@@ -7,3 +7,8 @@ backups/
 print-output/
 coverage/
 *.log
+
+data/
+certs/
+scripts/*.exe
+scripts/*.xml
