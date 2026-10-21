@@ -21,7 +21,8 @@ export const money = (n: number) =>
   new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency: "NGN",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(n / 100);
 export const today = () =>
   new Intl.DateTimeFormat("en-CA", {

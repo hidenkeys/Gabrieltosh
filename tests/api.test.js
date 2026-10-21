@@ -16,13 +16,20 @@ const server = app.listen(0, "127.0.0.1");
 await new Promise((r) => server.once("listening", r));
 const base = "http://127.0.0.1:" + server.address().port;
 let cookie = "";
-async function call(path, method = "GET", body, session = cookie) {
+async function call(
+  path,
+  method = "GET",
+  body,
+  session = cookie,
+  headers = {},
+) {
   const res = await fetch(base + "/api" + path, {
     method,
     headers: {
       "content-type": "application/json",
       "x-pos-request": "1",
       cookie: session,
+      ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -54,6 +61,36 @@ test("authenticated order-to-payment flow preserves totals and is idempotent", a
   assert.equal(create.data.total, 774000);
   const repeat = await call("/orders", "POST", input);
   assert.equal(repeat.data.id, create.data.id);
+  const edited = await call("/orders/" + create.data.id, "PUT", {
+    version: 1,
+    items: input.items,
+    note: "Updated held order",
+  });
+  assert.equal(edited.status, 200);
+  assert.equal(edited.data.version, 2);
+  assert.equal(
+    (
+      await call("/orders/" + create.data.id, "PUT", {
+        version: 1,
+        items: input.items,
+        note: "Stale edit",
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await call(
+        "/login",
+        "POST",
+        { username: "admin", password: "TestPassword1234" },
+        "",
+        { "x-forwarded-for": "192.168.1.80" },
+      )
+    ).status,
+    403,
+  );
+
   assert.equal(
     (
       await call("/orders/" + create.data.id + "/pay", "POST", {

@@ -254,7 +254,9 @@ export function createApp() {
     res.json(
       (
         await query(
-          "SELECT * FROM orders WHERE created_at >= $1 AND created_at < $2 ORDER BY created_at DESC",
+          date === lagosDate()
+            ? "SELECT * FROM orders WHERE (created_at >= $1 AND created_at < $2) OR status IN ('pending','paid','preparing','ready') ORDER BY created_at DESC"
+            : "SELECT * FROM orders WHERE created_at >= $1 AND created_at < $2 ORDER BY created_at DESC",
           [start, end],
         )
       ).rows,

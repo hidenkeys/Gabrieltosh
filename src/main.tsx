@@ -206,6 +206,7 @@ function App() {
     [orders, setOrders] = useState<Order[]>([]),
     [template, setTemplate] = useState<Template>(initialTemplate),
     [printing, setPrinting] = useState<any>({ jobs: [], worker: null });
+  useEffect(() => window.scrollTo({ top: 0 }), [page]);
   const notify = useCallback((s: string) => setToast(s), []);
   const refresh = useCallback(async () => {
     try {

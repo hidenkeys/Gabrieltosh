@@ -75,17 +75,44 @@ export async function processNext() {
         "UPDATE print_jobs SET status='submitted',simulated=$1,completed_at=CURRENT_TIMESTAMP,error=NULL WHERE id=$2",
         [simulated, job.id],
       );
+      await c.query(
+        "INSERT INTO audit(id,user_name,action,order_id,details) VALUES($1,$2,$3,$4,$5)",
+        [
+          randomUUID(),
+          "Print worker",
+          "print_submitted",
+          job.order_id,
+          JSON.stringify({
+            jobId: job.id,
+            kind: job.kind,
+            simulated,
+            reprint: job.reprint,
+          }),
+        ],
+      );
       const pending = (
         await c.query(
           "SELECT id FROM print_jobs WHERE order_id=$1 AND reprint=false AND status <> 'submitted'",
           [job.order_id],
         )
       ).rows;
-      if (!pending.length)
-        await c.query(
-          "UPDATE orders SET status='preparing',updated_at=CURRENT_TIMESTAMP,version=version+1 WHERE id=$1 AND status='paid' AND payment_status='paid'",
+      if (!pending.length) {
+        const updated = await c.query(
+          "UPDATE orders SET status='preparing',updated_at=CURRENT_TIMESTAMP,version=version+1 WHERE id=$1 AND status='paid' AND payment_status='paid' RETURNING id",
           [job.order_id],
         );
+        if (updated.rows.length)
+          await c.query(
+            "INSERT INTO audit(id,user_name,action,order_id,details) VALUES($1,$2,$3,$4,$5)",
+            [
+              randomUUID(),
+              "Print worker",
+              "order_preparing",
+              job.order_id,
+              JSON.stringify({ simulated }),
+            ],
+          );
+      }
     });
   } catch (e) {
     await query(
@@ -110,6 +137,7 @@ async function start() {
       (process.env.PRINT_MODE || "simulation") +
       " mode",
   );
+  let maintenance = null;
   while (true) {
     try {
       await query("UPDATE settings SET value=$1 WHERE key='worker'", [
@@ -124,16 +152,24 @@ async function start() {
         [new Date(Date.now() - 120000)],
       );
       await processNext();
-      if (
-        Date.now() - lastBackup >
-        Number(process.env.BACKUP_INTERVAL_HOURS || 6) * 3600000
-      ) {
-        lastBackup = Date.now();
-        await backup();
-      }
-      if (Date.now() - lastUpload > 60000) {
-        lastUpload = Date.now();
-        await uploadPending();
+      if (!maintenance) {
+        maintenance = (async () => {
+          if (
+            Date.now() - lastBackup >
+            Number(process.env.BACKUP_INTERVAL_HOURS || 6) * 3600000
+          ) {
+            lastBackup = Date.now();
+            await backup();
+          }
+          if (Date.now() - lastUpload > 60000) {
+            lastUpload = Date.now();
+            await uploadPending();
+          }
+        })()
+          .catch((e) => console.error("Backup maintenance: " + e.message))
+          .finally(() => {
+            maintenance = null;
+          });
       }
     } catch (e) {
       console.error(e.message);

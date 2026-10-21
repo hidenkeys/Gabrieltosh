@@ -94,6 +94,7 @@ export async function uploadPending() {
   const s3 = new S3Client({
     region: process.env.S3_REGION || "us-east-1",
     endpoint: process.env.S3_ENDPOINT || undefined,
+    maxAttempts: 1,
   });
   for (const b of (
     await query(
@@ -109,6 +110,7 @@ export async function uploadPending() {
           Key: "gabrieltosh/" + b.path.split("/").pop(),
           Body: await readFile(b.path),
         }),
+        { abortSignal: AbortSignal.timeout(10000) },
       );
       await query(
         "UPDATE backup_runs SET cloud_status='uploaded',error=NULL WHERE id=$1",

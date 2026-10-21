@@ -1,6 +1,8 @@
 import pg from "pg";
 import { readFile } from "node:fs/promises";
 export let pool;
+if (process.env.NODE_ENV === "production" && process.env.MEMORY_DB === "true")
+  throw new Error("Production requires persistent PostgreSQL.");
 if (process.env.MEMORY_DB === "true") {
   const { newDb } = await import("pg-mem");
   const memory = newDb();
