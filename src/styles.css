@@ -3054,3 +3054,66 @@ input[type="checkbox"] {
   display: block;
   margin: 0 auto 10px;
 }
+/* Every catalogue surface uses the same local product imagery. */
+.line-icon {
+  padding: 0;
+  width: 43px;
+  height: 51px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.line-icon img {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  padding: 3px;
+}
+.line-icon img.photo-cover {
+  object-fit: cover;
+  padding: 0;
+}
+.mini-product {
+  padding: 0;
+  width: 42px;
+  height: 48px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.mini-product img {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  padding: 3px;
+}
+.mini-product img.photo-cover {
+  object-fit: cover;
+  padding: 0;
+}
+.topping-options img.topping-thumbnail {
+  width: 57px;
+  height: 47px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 3px 3px #111b2f0c);
+}
+.option-product-art {
+  height: 160px;
+  background: var(--tone);
+  border-radius: 9px;
+  margin-bottom: 23px;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+}
+.option-product-art .product-photo {
+  width: 160px;
+  height: 100%;
+}
+.product-photo {
+  object-position: center;
+}
+.product-photo.photo-cover {
+  object-position: center;
+}

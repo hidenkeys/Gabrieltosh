@@ -1,0 +1,62 @@
+[
+  {
+    "code": "X1",
+    "name": "boba",
+    "prompt": "Use case: product-mockup. Asset type: isolated product photograph for a Bing Chun cafe tablet POS topping menu card. Subject: a shallow clear glass ramekin filled with glossy dark brown black tapioca boba pearls, plump round chewy spheres with a thin sheen of brown sugar syrup. Professional photorealistic food catalogue photography, soft diffused studio light, subtle realistic contact shadow, elevated 35-degree front view, a single complete bowl centered with generous transparent padding, bowl occupies about 75% of canvas width and 50% height. Crisp appetising detail, clean edges, restrained styling, coordinated with premium bubble tea product cutouts on pastel cards. Genuinely transparent background. No text, no logo, no watermark, no utensils, no hands, no extra props, no background surface, no decorative fruit. Create exactly one topping bowl.",
+    "savedAsset": "public/products/generated-boba.webp",
+    "tool": "Built-in image_gen"
+  },
+  {
+    "code": "X2",
+    "name": "coconut-jelly",
+    "prompt": "Use case: product-mockup. Asset type: isolated product photograph for a Bing Chun cafe tablet POS topping menu card. Subject: a shallow clear glass ramekin filled with translucent milky-white coconut nata de coco jelly cubes, small neat square dice, subtle moist glossy highlights. Professional photorealistic food catalogue photography, soft diffused studio light, subtle realistic contact shadow, elevated 35-degree front view, a single complete bowl centered with generous transparent padding, bowl occupies about 75% of canvas width and 50% height. Crisp appetising detail, clean edges, restrained styling, coordinated with premium bubble tea product cutouts on pastel cards. Genuinely transparent background. No text, no logo, no watermark, no utensils, no hands, no extra props, no background surface, no decorative fruit. Create exactly one topping bowl.",
+    "savedAsset": "public/products/generated-coconut-jelly.webp",
+    "tool": "Built-in image_gen"
+  },
+  {
+    "code": "X3",
+    "name": "jelly",
+    "prompt": "Use case: product-mockup. Asset type: isolated product photograph for a Bing Chun cafe tablet POS topping menu card. Subject: a shallow clear glass ramekin filled with golden amber tea jelly cut into small translucent rectangular cubes, moist glossy surfaces, recognisably jelly rather than fruit. Professional photorealistic food catalogue photography, soft diffused studio light, subtle realistic contact shadow, elevated 35-degree front view, a single complete bowl centered with generous transparent padding, bowl occupies about 75% of canvas width and 50% height. Crisp appetising detail, clean edges, restrained styling, coordinated with premium bubble tea product cutouts on pastel cards. Genuinely transparent background. No text, no logo, no watermark, no utensils, no hands, no extra props, no background surface, no decorative fruit. Create exactly one topping bowl.",
+    "savedAsset": "public/products/generated-jelly.webp",
+    "tool": "Built-in image_gen"
+  },
+  {
+    "code": "X4",
+    "name": "crystals",
+    "prompt": "Use case: product-mockup. Asset type: isolated product photograph for a Bing Chun cafe tablet POS topping menu card. Subject: a shallow clear glass ramekin filled with clear ivory translucent konjac crystal boba pearls, small plump irregular round translucent pearls in a little clear syrup. Professional photorealistic food catalogue photography, soft diffused studio light, subtle realistic contact shadow, elevated 35-degree front view, a single complete bowl centered with generous transparent padding, bowl occupies about 75% of canvas width and 50% height. Crisp appetising detail, clean edges, restrained styling, coordinated with premium bubble tea product cutouts on pastel cards. Genuinely transparent background. No text, no logo, no watermark, no utensils, no hands, no extra props, no background surface, no decorative fruit. Create exactly one topping bowl.",
+    "savedAsset": "public/products/generated-crystals.webp",
+    "tool": "Built-in image_gen"
+  },
+  {
+    "code": "H1",
+    "name": "strawberry-smoothie",
+    "prompt": "Use case: background-extraction. Edit target: the supplied Bing Chun strawberry smoothie promotional photograph. Create a clean product catalogue cutout of ONLY the single complete smoothie cup and its frozen smoothie contents, suitable for a refined tablet POS menu card. Preserve the original strawberry colour, icy texture, cup shape, blue Bing Chun mascot and printed BING CHUN branding. Reconstruct the bottom of the cup where it is hidden by foreground decoration. Remove ALL poster backgrounds, price badges, promotional words, fruits outside the cup, ice cubes outside the cup, and neighbouring products. Do not add props. Centre the entire cup upright, with even transparent padding, product about 85 percent of canvas height. Improve clarity without changing the recognisable drink. Genuinely transparent alpha background, soft professional studio light, no added text or watermark.",
+    "savedAsset": "public/products/generated-strawberry-smoothie.webp",
+    "tool": "Built-in image_gen",
+    "intent": "Product cutout adapted from sourced Bing Chun promotional image"
+  },
+  {
+    "code": "H6",
+    "name": "blueberry-smoothie",
+    "prompt": "Use case: background-extraction. Edit target: the supplied Bing Chun blueberry smoothie promotional photograph. Create a clean product catalogue cutout of ONLY the single complete smoothie cup and its frozen smoothie contents, suitable for a refined tablet POS menu card. Preserve the original blueberry colour, icy texture, cup shape, blue Bing Chun mascot and printed BING CHUN branding. Reconstruct the bottom of the cup where it is hidden by foreground decoration. Remove ALL poster backgrounds, price badges, promotional words, fruits outside the cup, ice cubes outside the cup, and neighbouring products. Do not add props. Centre the entire cup upright, with even transparent padding, product about 85 percent of canvas height. Improve clarity without changing the recognisable drink. Genuinely transparent alpha background, soft professional studio light, no added text or watermark.",
+    "savedAsset": "public/products/generated-blueberry-smoothie.webp",
+    "tool": "Built-in image_gen",
+    "intent": "Product cutout adapted from sourced Bing Chun promotional image"
+  },
+  {
+    "code": "H8",
+    "name": "grape-smoothie",
+    "prompt": "Use case: background-extraction. Edit target: the supplied Bing Chun grape smoothie promotional photograph. Create a clean product catalogue cutout of ONLY the single complete smoothie cup and its frozen smoothie contents, suitable for a refined tablet POS menu card. Preserve the original grape colour, icy texture, cup shape, blue Bing Chun mascot and printed BING CHUN branding. Reconstruct the bottom of the cup where it is hidden by foreground decoration. Remove ALL poster backgrounds, price badges, promotional words, fruits outside the cup, ice cubes outside the cup, and neighbouring products. Do not add props. Centre the entire cup upright, with even transparent padding, product about 85 percent of canvas height. Improve clarity without changing the recognisable drink. Genuinely transparent alpha background, soft professional studio light, no added text or watermark.",
+    "savedAsset": "public/products/generated-grape-smoothie.webp",
+    "tool": "Built-in image_gen",
+    "intent": "Product cutout adapted from sourced Bing Chun promotional image"
+  },
+  {
+    "code": "H7",
+    "name": "cocoa-smoothie",
+    "prompt": "Use case: background-extraction. Edit target: the supplied Bing Chun cocoa smoothie promotional photograph. Create a clean product catalogue cutout of ONLY the single complete smoothie cup and its frozen smoothie contents, suitable for a refined tablet POS menu card. Preserve the original cocoa colour, icy texture, cup shape, blue Bing Chun mascot and printed BING CHUN branding. Reconstruct the bottom of the cup where it is hidden by foreground decoration. Remove ALL poster backgrounds, price badges, promotional words, fruits outside the cup, ice cubes outside the cup, and neighbouring products. Do not add props. Centre the entire cup upright, with even transparent padding, product about 85 percent of canvas height. Improve clarity without changing the recognisable drink. Genuinely transparent alpha background, soft professional studio light, no added text or watermark.",
+    "savedAsset": "public/products/generated-cocoa-smoothie.webp",
+    "tool": "Built-in image_gen",
+    "intent": "Product cutout adapted from sourced Bing Chun promotional image"
+  }
+]

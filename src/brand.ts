@@ -6,7 +6,7 @@ export const store = {
   logo: "/brand/brand-logo.png",
 };
 // Match the photographed menu to the product assets supplied in the owner's website.
-// Products without a matching photo retain category illustrations rather than another flavour's photo.
+// Every seeded product has a photo. Generated assets and adapted promotional photos are documented in docs/product-images.md.
 export const productPhotos: Record<
   string,
   { src: string; fit?: "cover" | "contain" }
@@ -27,4 +27,41 @@ export const productPhotos: Record<
   A10: { src: "official-chocolate-oreo-sundae.avif" },
   A15: { src: "mulberry-sundae.webp", fit: "cover" },
   A34: { src: "boba-soft-serve.webp", fit: "cover" },
+  B1: { src: "bingchun-fresh-lemonade.avif" },
+  B3: { src: "bingchun-jasmine-honey.jpg", fit: "cover" },
+  B4: { src: "bingchun-lemon-green-tea.avif" },
+  B5: { src: "bingchun-lemon-black-tea.avif" },
+  B9: { src: "bingchun-strawberry-mulberry.jpg", fit: "cover" },
+  B16: { src: "bingchun-mulberry-popping-pearls.png", fit: "cover" },
+  A1: { src: "bingchun-vanilla-ice-cream.avif" },
+  A32: { src: "bingchun-chocolate-ice-cream.avif" },
+  A33: { src: "bingchun-mixed-ice-cream.avif" },
+  G17: { src: "bingchun-chocolate-milkshake.jpg", fit: "cover" },
+  H1: { src: "generated-strawberry-smoothie.webp" },
+  H6: { src: "generated-blueberry-smoothie.webp" },
+  H8: { src: "generated-grape-smoothie.webp" },
+  H7: { src: "generated-cocoa-smoothie.webp" },
+  X1: { src: "generated-boba.webp" },
+  X2: { src: "generated-coconut-jelly.webp" },
+  X3: { src: "generated-jelly.webp" },
+  X4: { src: "generated-crystals.webp" },
 };
+
+const categoryPhotos: Record<string, string> = {
+  "Fruit milk tea": "official-original-milk-tea.avif",
+  "Fresh fruit tea": "bingchun-fresh-lemonade.avif",
+  "Ice cream series": "bingchun-vanilla-ice-cream.avif",
+  "Smoothie series": "generated-strawberry-smoothie.webp",
+  Toppings: "generated-boba.webp",
+};
+export function getProductPhoto(product: { code: string; category: string }): {
+  src: string;
+  fit?: "cover" | "contain";
+} {
+  return (
+    productPhotos[product.code] || {
+      src:
+        categoryPhotos[product.category] || "official-original-milk-tea.avif",
+    }
+  );
+}

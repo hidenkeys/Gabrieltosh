@@ -1,0 +1,90 @@
+{
+  "retrieved": "2026-10-21",
+  "description": "Bing Chun product imagery; prices and recipes are not imported.",
+  "sources": [
+    {
+      "code": "H8",
+      "filename": "bingchun-grape-smoothie.jpg",
+      "url": "https://images.deliveryhero.io/image/global-menu-service/FP_KH/vendor/uyup/product/8f36d7b6-34eb-4508-a092-01790ff9832e.jpg?height=600&width=600",
+      "bytes": 32581
+    },
+    {
+      "code": "H7",
+      "filename": "bingchun-cocoa-smoothie.jpg",
+      "url": "https://images.deliveryhero.io/image/global-menu-service/FP_KH/vendor/uyup/product/63e5cfa0-1cb5-41bf-b043-65ff0bd075d1.jpg?height=600&width=600",
+      "bytes": 39918
+    },
+    {
+      "code": "H6",
+      "filename": "bingchun-blueberry-smoothie.jpg",
+      "url": "https://images.deliveryhero.io/image/global-menu-service/FP_KH/vendor/uyup/product/28586f3f-c436-497f-bf8e-344adbaa9dc2.jpg?height=600&width=600",
+      "bytes": 30842
+    },
+    {
+      "code": "H1",
+      "filename": "bingchun-strawberry-smoothie.jpg",
+      "url": "https://images.deliveryhero.io/image/global-menu-service/FP_KH/vendor/uyup/product/4342264/c4a8ba14-c297-46fe-bfe1-c848cb5e69c1.jpg?height=600&width=600",
+      "bytes": 58202
+    },
+    {
+      "code": "B3",
+      "filename": "bingchun-jasmine-honey.jpg",
+      "url": "https://foodpanda.dhmedia.io/image/fd-kh/Products/3171014.jpg?height=600&width=600",
+      "bytes": 21545
+    },
+    {
+      "code": "B9",
+      "filename": "bingchun-strawberry-mulberry.jpg",
+      "url": "https://images.deliveryhero.io/image/global-menu-service/FP_KH/vendor/uyup/product/4342251/f014fa57-c1e6-41a9-89f1-007b1292cce5.jpg?height=600&width=600",
+      "bytes": 43885
+    },
+    {
+      "code": "A1",
+      "filename": "bingchun-vanilla-ice-cream.avif",
+      "url": "https://bingchunsrilanka.lk/images/products/Vanilla-Ice-Cream.avif",
+      "bytes": 15812
+    },
+    {
+      "code": "A32",
+      "filename": "bingchun-chocolate-ice-cream.avif",
+      "url": "https://bingchunsrilanka.lk/images/products/Chocolate-Ice-Cream.avif",
+      "bytes": 27675
+    },
+    {
+      "code": "A33",
+      "filename": "bingchun-mixed-ice-cream.avif",
+      "url": "https://bingchunsrilanka.lk/images/products/Mix-Choco-Vanilla-Ice-Cream.avif",
+      "bytes": 23846
+    },
+    {
+      "code": "B1",
+      "filename": "bingchun-fresh-lemonade.avif",
+      "url": "https://bingchunsrilanka.lk/images/products/Fresh-Lemonade-700ml.avif",
+      "bytes": 22889
+    },
+    {
+      "code": "B5",
+      "filename": "bingchun-lemon-black-tea.avif",
+      "url": "https://bingchunsrilanka.lk/images/products/Lemon-Black-Tea-700ml.avif",
+      "bytes": 42045
+    },
+    {
+      "code": "B4",
+      "filename": "bingchun-lemon-green-tea.avif",
+      "url": "https://bingchunsrilanka.lk/images/products/Lemon-Green-Tea-700ml.avif",
+      "bytes": 39089
+    },
+    {
+      "code": "B16",
+      "filename": "bingchun-mulberry-popping-pearls.png",
+      "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/Restosuite_Prod/378d843cc2c0e50579c4fece48de5c60.png?height=600&width=600",
+      "bytes": 565748
+    },
+    {
+      "code": "G17",
+      "filename": "bingchun-chocolate-milkshake.jpg",
+      "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/Restosuite_Prod/801001b28caef33fe9db94bdf362164b.jpg?height=600&width=600",
+      "bytes": 48329
+    }
+  ]
+}

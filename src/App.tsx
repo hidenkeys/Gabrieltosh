@@ -1,4 +1,5 @@
-import { store, productPhotos } from "./brand";
+import { store } from "./brand";
+import { ProductImage } from "./ProductImage";
 import React, { useEffect, useState, useCallback } from "react";
 import {
   LayoutGrid,
@@ -754,7 +755,6 @@ function Counter({
         </div>
         <div className="product-grid">
           {shown.map((p: Product) => {
-            const Icon = icons[p.category] || CupSoda;
             return (
               <button
                 disabled={!p.available || p.needs_review}
@@ -765,22 +765,11 @@ function Counter({
                 <div className="product-art">
                   <span className="product-code">{p.code}</span>
                   <div className="product-halo" />
-                  {productPhotos[p.code] ? (
-                    <img
-                      className={
-                        "product-photo " +
-                        (productPhotos[p.code].fit === "cover"
-                          ? "photo-cover"
-                          : "")
-                      }
-                      src={"/products/" + productPhotos[p.code].src}
-                      alt={p.name}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <Icon strokeWidth={1.1} size={62} />
-                  )}
+                  <ProductImage
+                    product={p}
+                    className="product-photo"
+                    decorative
+                  />
                   <span className="art-spark">✳</span>
                   {!p.available && (
                     <span className="unavailable">Unavailable</span>
@@ -855,10 +844,11 @@ function Counter({
                   <div
                     className={"line-icon " + (tones[p?.category] || "rose")}
                   >
-                    {React.createElement(icons[p?.category] || CupSoda, {
-                      size: 23,
-                      strokeWidth: 1.4,
-                    })}
+                    {p ? (
+                      <ProductImage product={p} decorative />
+                    ) : (
+                      <img src={store.logo} alt="" />
+                    )}
                   </div>
                   <div className="line-details">
                     <h4>{p?.name || "Unavailable item"}</h4>
@@ -1043,6 +1033,17 @@ function ProductOptions({ product, products, onClose, onAdd }: any) {
       onClose={onClose}
     >
       <div className="modal-body">
+        <div
+          className={
+            "option-product-art " + (tones[product.category] || "rose")
+          }
+        >
+          <ProductImage
+            product={product}
+            className="product-photo"
+            decorative
+          />
+        </div>
         <p className="field-heading">Make it your way</p>
         <label>
           Sweetness
@@ -1092,6 +1093,11 @@ function ProductOptions({ product, products, onClose, onAdd }: any) {
                   )
                 }
               >
+                <ProductImage
+                  product={p}
+                  className="topping-thumbnail"
+                  decorative
+                />
                 <span>
                   {p.name}
                   <small>{p.size}</small>
@@ -2220,9 +2226,7 @@ function MenuLibrary({ products, refresh, notify }: any) {
                           "mini-product " + (tones[p.category] || "rose")
                         }
                       >
-                        {React.createElement(icons[p.category] || CupSoda, {
-                          size: 20,
-                        })}
+                        <ProductImage product={p} decorative />
                       </span>
                       <div>
                         <b>{p.name}</b>
