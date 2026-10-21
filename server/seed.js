@@ -4,9 +4,10 @@ import { query } from "./db.js";
 export const defaultReceipt = {
   businessName: "BING CHUN",
   subtitle: "A little joy in every cup.",
-  address: "Set your store address",
-  phone: "",
+  address: "75A Bode Thomas Street, Surulere, Lagos 101241",
+  phone: "0901 758 2027",
   footer: "Thank you. Come back for something lovely.",
+  showLogo: true,
   showStaff: true,
   showOptions: true,
   showPayment: true,
@@ -63,13 +64,53 @@ const rows = [
 export async function seed() {
   for (const [key, value] of Object.entries({
     receipt: defaultReceipt,
-    business: { name: "Bing Chun", timezone: "Africa/Lagos", currency: "NGN" },
+    business: {
+      name: "Bing Chun",
+      branch: "Surulere",
+      address: defaultReceipt.address,
+      phone: defaultReceipt.phone,
+      timezone: "Africa/Lagos",
+      currency: "NGN",
+    },
     worker: { online: false, mode: process.env.PRINT_MODE || "simulation" },
   }))
     await query(
       "INSERT INTO settings(key,value) VALUES($1,$2) ON CONFLICT(key) DO NOTHING",
       [key, JSON.stringify(value)],
     );
+  // Upgrade only the old scaffold defaults. Preserve customised receipt content and sales.
+  if (
+    !(await query("SELECT key FROM settings WHERE key='surulere_brand_v1'"))
+      .rows.length
+  ) {
+    const receipt = (
+      await query("SELECT value FROM settings WHERE key='receipt'")
+    ).rows[0].value;
+    const updated = { ...receipt, showLogo: receipt.showLogo ?? true };
+    if (
+      ["Set your store address", "Your store address"].includes(receipt.address)
+    )
+      updated.address = defaultReceipt.address;
+    if (!receipt.phone) updated.phone = defaultReceipt.phone;
+    await query("UPDATE settings SET value=$1 WHERE key='receipt'", [
+      JSON.stringify(updated),
+    ]);
+    const business = (
+      await query("SELECT value FROM settings WHERE key='business'")
+    ).rows[0].value;
+    await query("UPDATE settings SET value=$1 WHERE key='business'", [
+      JSON.stringify({
+        ...business,
+        branch: "Surulere",
+        address: defaultReceipt.address,
+        phone: defaultReceipt.phone,
+      }),
+    ]);
+    await query(
+      "INSERT INTO settings(key,value) VALUES('surulere_brand_v1',$1) ON CONFLICT(key) DO NOTHING",
+      [JSON.stringify({ applied: true })],
+    );
+  }
   if (!(await query("SELECT id FROM products LIMIT 1")).rows.length)
     for (const [code, name, category, naira, size] of rows) {
       const options =

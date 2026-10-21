@@ -86,6 +86,7 @@ export type Order = {
   items: any[];
 };
 export type Template = {
+  showLogo?: boolean;
   businessName: string;
   subtitle: string;
   address: string;

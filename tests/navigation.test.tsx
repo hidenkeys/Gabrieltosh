@@ -121,3 +121,20 @@ test("every workspace page renders after leaving and returning to Counter", asyn
   }
   cleanup();
 });
+
+test("report fetch failures show a recoverable error instead of a blank report", async () => {
+  failingReport = true;
+  render(React.createElement(App));
+  await screen.findByRole("heading", { name: "The counter." });
+  fireEvent.click(
+    screen.getByRole("button", { name: "Overview & EOD", exact: true }),
+  );
+  await screen.findByRole("alert");
+  assert(screen.getByText("Store report temporarily unavailable"));
+  failingReport = false;
+  fireEvent.click(
+    screen.getByRole("button", { name: "Try again", exact: true }),
+  );
+  await screen.findByText("What the store served");
+  cleanup();
+});

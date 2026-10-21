@@ -1,3 +1,4 @@
+import { store, productPhotos } from "./brand";
 import React, { useEffect, useState, useCallback } from "react";
 import {
   LayoutGrid,
@@ -78,9 +79,10 @@ const labels: any = {
 const initialTemplate: Template = {
   businessName: "BING CHUN",
   subtitle: "A little joy in every cup.",
-  address: "Your store address",
-  phone: "",
+  address: store.address,
+  phone: store.phone,
   footer: "Thank you. Come back for something lovely.",
+  showLogo: true,
   showStaff: true,
   showOptions: true,
   showPayment: true,
@@ -249,7 +251,7 @@ export default function App() {
   if (loading)
     return (
       <div className="loading">
-        <span className="brand-mark">b.</span>
+        <img className="brand-logo" src={store.logo} alt="Bing Chun mascot" />
         <p>Opening your workspace…</p>
       </div>
     );
@@ -302,7 +304,7 @@ export default function App() {
             setPage("counter");
           }}
         >
-          <span className="brand-mark">b.</span>
+          <img className="brand-logo" src={store.logo} alt="Bing Chun mascot" />
           <span>
             Bing Chun<small>STORE WORKSPACE</small>
           </span>
@@ -310,7 +312,7 @@ export default function App() {
         <div className="store-label">
           <span className="store-dot" />
           <div>
-            Main store<small>Single-store workspace</small>
+            Surulere<small>Bode Thomas · Local workspace</small>
           </div>
           <Monitor size={16} />
         </div>
@@ -408,7 +410,7 @@ export default function App() {
         <div className={"page " + (page === "counter" ? "counter-page" : "")}>
           <div className="page-heading">
             <div>
-              <div className="eyebrow">BING CHUN / MAIN STORE</div>
+              <div className="eyebrow">BING CHUN / SURULERE</div>
               <h1>
                 {titles[page][0]}
                 <span className="heading-dot">.</span>
@@ -494,7 +496,7 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
     <div className="login-page">
       <section className="login-art">
         <div className="brand light">
-          <span className="brand-mark">b.</span>
+          <img className="brand-logo" src={store.logo} alt="Bing Chun mascot" />
           <span>
             Bing Chun<small>STORE WORKSPACE</small>
           </span>
@@ -510,27 +512,17 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
             <br />
             All brought together, beautifully.
           </p>
-          <div className="abstract-cup">
-            <div className="straw" />
-            <div className="cup">
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-            <div className="cup-label">
-              冰醇
+          <div className="login-brand-scene">
+            <div className="brand-orbit" />
+            <img
+              src={store.logo}
+              alt="Bing Chun's blue mascot holding a drink"
+            />
+            <span className="branch-stamp">
+              SURULERE
               <br />
-              <small>BING CHUN</small>
-            </div>
-            <div className="orbit orbit-one" />
-            <div className="orbit orbit-two" />
-            <div className="spark">✳</div>
+              <small>BODE THOMAS, LAGOS</small>
+            </span>
           </div>
         </div>
         <footer>CRAFTED FOR THE WAY YOU SERVE.</footer>
@@ -773,7 +765,22 @@ function Counter({
                 <div className="product-art">
                   <span className="product-code">{p.code}</span>
                   <div className="product-halo" />
-                  <Icon strokeWidth={1.1} size={62} />
+                  {productPhotos[p.code] ? (
+                    <img
+                      className={
+                        "product-photo " +
+                        (productPhotos[p.code].fit === "cover"
+                          ? "photo-cover"
+                          : "")
+                      }
+                      src={"/products/" + productPhotos[p.code].src}
+                      alt={p.name}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <Icon strokeWidth={1.1} size={62} />
+                  )}
                   <span className="art-spark">✳</span>
                   {!p.available && (
                     <span className="unavailable">Unavailable</span>
@@ -1835,6 +1842,9 @@ function ReceiptPreview({
       ) : (
         <>
           <div className={"receipt-header " + t.align}>
+            {t.showLogo !== false && (
+              <img className="receipt-logo" src={store.logo} alt="Bing Chun" />
+            )}
             <h2 style={{ fontSize: t.headingSize === "large" ? 24 : 17 }}>
               {t.businessName}
             </h2>
@@ -2010,6 +2020,7 @@ function ReceiptStudio({ template, refresh, notify }: any) {
                   </label>
                 </div>
                 {[
+                  ["showLogo", "Show Bing Chun logo"],
                   ["showStaff", "Show staff name"],
                   ["showOptions", "Show drink options & toppings"],
                   ["showPayment", "Show payment method"],
@@ -2523,17 +2534,28 @@ function Reports({ user, notify }: any) {
     [report, setReport] = useState<any>(null),
     [closures, setClosures] = useState<any[]>([]),
     [counted, setCounted] = useState(""),
-    [busy, setBusy] = useState(false);
-  const load = () => {
-    api("/report?date=" + date)
-      .then(setReport)
-      .catch((e: Error) => notify(e.message));
-    if (user.role === "admin")
-      api("/closures")
-        .then(setClosures)
-        .catch((e: Error) => notify(e.message));
+    [busy, setBusy] = useState(false),
+    [loading, setLoading] = useState(true),
+    [error, setError] = useState("");
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [r, c] = await Promise.all([
+        api("/report?date=" + date),
+        user.role === "admin" ? api("/closures") : Promise.resolve([]),
+      ]);
+      setReport(r);
+      setClosures(c);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
   };
-  useEffect(load, [date]);
+  useEffect(() => {
+    load();
+  }, [date]);
   const closed = closures.find((c) => c.business_date === date);
   const exportCsv = () => {
     const quote = (v: any) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
@@ -2611,7 +2633,21 @@ function Reports({ user, notify }: any) {
           <Printer size={16} /> Print EOD
         </button>
       </div>
-      {report && (
+      {loading && (
+        <div className="resource-status" role="status">
+          <RefreshCw size={18} /> Loading the store report…
+        </div>
+      )}
+      {error && (
+        <div className="resource-status" role="alert">
+          <TriangleAlert size={18} />
+          <span>{error}</span>
+          <button className="secondary" onClick={load}>
+            Try again
+          </button>
+        </div>
+      )}
+      {report && !loading && !error && (
         <>
           <div className="metric-grid">
             <Metric
@@ -2831,11 +2867,20 @@ function Reports({ user, notify }: any) {
 function Team({ notify }: any) {
   const [users, setUsers] = useState<User[]>([]),
     [create, setCreate] = useState(false),
-    [busy, setBusy] = useState(false);
-  const load = () =>
-    api<User[]>("/users")
-      .then(setUsers)
-      .catch((e: Error) => notify(e.message));
+    [busy, setBusy] = useState(false),
+    [loading, setLoading] = useState(true),
+    [error, setError] = useState("");
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      setUsers(await api<User[]>("/users"));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
     load();
   }, []);
@@ -2850,6 +2895,19 @@ function Team({ notify }: any) {
           <Plus size={17} /> Add team member
         </button>
       </div>
+      {loading && (
+        <div className="resource-status" role="status">
+          Loading your team…
+        </div>
+      )}
+      {error && (
+        <div className="resource-status" role="alert">
+          <span>{error}</span>
+          <button className="secondary" onClick={load}>
+            Try again
+          </button>
+        </div>
+      )}
       <div className="team-grid">
         {users.map((u) => (
           <article className="panel team-card" key={u.id}>
@@ -3042,7 +3100,9 @@ function Audit() {
           <tbody>
             {rows
               .filter((r) =>
-                `${r.action} ${r.user_name}`.includes(search.toLowerCase()),
+                `${r.action} ${r.user_name}`
+                  .toLowerCase()
+                  .includes(search.toLowerCase()),
               )
               .map((r) => (
                 <tr key={r.id}>
@@ -3072,6 +3132,13 @@ function Audit() {
           </tbody>
         </table>
       </div>
+      {!rows.length && !error && (
+        <Empty
+          title="No activity recorded yet"
+          detail="Sign-ins, sales, menu changes and staff actions will appear here."
+          icon={Activity}
+        />
+      )}
       {selected && (
         <Modal
           title={selected.action.replaceAll("_", " ")}
@@ -3108,7 +3175,7 @@ function System({ printing }: any) {
             <dl className="settings-list">
               <div>
                 <dt>Workspace</dt>
-                <dd>Bing Chun · Main store</dd>
+                <dd>Bing Chun · Surulere</dd>
               </div>
               <div>
                 <dt>Server address</dt>

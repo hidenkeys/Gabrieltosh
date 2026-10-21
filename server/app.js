@@ -620,6 +620,7 @@ export function createApp() {
         address: z.string().max(180),
         phone: z.string().max(40),
         footer: z.string().max(200),
+        showLogo: z.boolean().default(true),
         showStaff: z.boolean(),
         showOptions: z.boolean(),
         showPayment: z.boolean(),
