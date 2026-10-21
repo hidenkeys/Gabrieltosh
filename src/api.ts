@@ -3,12 +3,20 @@ export async function api<T = any>(
   method = "GET",
   body?: unknown,
 ): Promise<T> {
-  const res = await fetch("/api" + path, {
-    method,
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json", "X-POS-Request": "1" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let res: Response;
+  const requestBody = body === undefined ? undefined : JSON.stringify(body);
+  try {
+    res = await fetch("/api" + path, {
+      method,
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "X-POS-Request": "1" },
+      body: requestBody,
+    });
+  } catch {
+    throw new Error(
+      "Cannot reach the store server. Make sure it is running and this device is connected to the store network, then try again.",
+    );
+  }
   const data = await res.json();
   if (!res.ok) {
     if (res.status === 401)

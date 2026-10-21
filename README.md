@@ -27,6 +27,8 @@ npm run preview:local
 
 This starts an isolated PostgreSQL instance, the app at `http://localhost:3002`, and a simulated print worker. The first run prints a randomly generated preview admin password in the terminal. Preview data persists under ignored `data/preview-db`. Do not use its fixed database credentials for deployment. The preview does not perform backups.
 
+Keep the preview terminal running while using the app. If it stops, the cached sign-in page can still open, but login and other API requests cannot reach the server. Run `npm run preview:local` again and refresh `http://localhost:3002`. This loopback preview is accessible only on this computer; handheld access requires the LAN deployment described below.
+
 ## Production deployment
 
 Follow [Windows setup](docs/WINDOWS-SETUP.md). Production uses an independently installed PostgreSQL Windows service. Copy `.env.example` to `.env`, supply a unique database credential, build the frontend and create the initial admin:
