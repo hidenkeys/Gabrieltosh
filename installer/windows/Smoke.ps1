@@ -6,8 +6,7 @@ if ($process.ExitCode -notin @(0, 3010)) { throw "Installer exited $($process.Ex
 $app = Join-Path $env:ProgramFiles 'BingChunPOS'
 . (Join-Path $app 'scripts\windows\Setup.Core.ps1')
 Assert-Administrator
-& (Join-Path $app 'runtime\python\python.exe') -c 'import win32print,win32ui,PIL,cryptography;from playwright.sync_api import sync_playwright;print("Embedded Python ready")'
-if ($LASTEXITCODE) { throw 'Embedded Python imports failed.' }
+[void](Invoke-StoreCommand (Join-Path $app 'runtime\python\python.exe') @('-c', 'import win32print,win32ui,PIL,cryptography;from playwright.sync_api import sync_playwright;print("Embedded Python ready")'))
 $ip = @(Get-StoreAddresses)[0]
 if (-not $ip) { throw 'No private IPv4 adapter for the network setup smoke test.' }
 $settings = [pscustomobject]@{
@@ -40,11 +39,25 @@ const headers = {Cookie:cookie,'Content-Type':'application/json','X-POS-Request'
 r = await fetch(base + '/api/products',{headers});
 const products = await r.json();assert.equal(products.length,34);
 r = await fetch(base + '/api/me',{headers});assert.equal((await r.json()).role,'admin');
+const tea = products.find(p=>p.code==='C2');
+r = await fetch(base + '/api/orders',{method:'POST',headers,body:JSON.stringify({requestKey:crypto.randomUUID(),items:[{productId:tea.id,quantity:2}],note:'WINDOWS INSTALLATION TEST'})});
+assert.equal(r.status,201);const order=await r.json();
+r = await fetch(base + '/api/orders/'+order.id+'/pay',{method:'POST',headers,body:JSON.stringify({method:'cash',cashTendered:order.total})});
+assert.equal(r.status,200);
+let prepared=false;
+for(let i=0;i<30;i++){
+ const orders=await (await fetch(base+'/api/orders',{headers})).json();
+ if(orders.find(o=>o.id===order.id)?.status==='preparing'){prepared=true;break;}
+ await new Promise(done=>setTimeout(done,1000));
+}
+assert(prepared,'The installed worker did not submit receipt/stickers and advance the paid order.');
+r=await fetch(base+'/api/printing',{headers});const jobs=(await r.json()).jobs.filter(j=>j.order_id===order.id);
+assert.equal(jobs.length,3);assert(jobs.every(j=>j.simulated&&j.status==='submitted'));
 // Add one unmistakable test record and verify it survives service restart later.
 Object.assign(process.env,parseEnv(readFileSync(process.env.ProgramData + '/BingChunPOS/.env','utf8')));
 const {query,pool} = await import('./server/db.js');
 await query("INSERT INTO settings(key,value) VALUES('windows_smoke',$1) ON CONFLICT(key) DO UPDATE SET value=$1",[JSON.stringify({persistent:true})]);
-await pool.end();console.log('HTTPS login, menu, administrator and database write passed.');
+await pool.end();console.log('HTTPS login, menu, paid order, simulated receipt/stickers, administrator and database write passed.');
 '@
     [void](Invoke-StoreCommand $node @('--input-type=module', '-') $test)
     $check = Request-PrinterCheck 'status'

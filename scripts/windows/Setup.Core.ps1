@@ -228,6 +228,7 @@ function Install-Store($Settings, [string]$AdminName, [string]$AdminUsername, [s
     $envFile = Join-Path $script:StoreRoot '.env'
     if ($saved -and (Get-Service BingChunDatabase -ErrorAction SilentlyContinue)) {
         Stop-Service BingChunWorker -ErrorAction SilentlyContinue
+        Stop-Service BingChunPOS -ErrorAction SilentlyContinue
         Start-Service BingChunDatabase
         [void](Invoke-Provision @{ action = 'backup'; envFile = $envFile })
     }

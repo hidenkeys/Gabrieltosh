@@ -4,7 +4,10 @@ $ErrorActionPreference = 'Stop'
 try {
     if ($Action -eq 'Open') {
         $connection = Join-Path $script:StoreRoot 'tablet\connection.json'
-        if (-not (Test-Path $connection)) { throw 'Run Bing Chun Setup before opening the POS.' }
+        if (-not (Test-Path $connection)) {
+            Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -STA -File `"$PSScriptRoot\Setup.ps1`""
+            exit 0
+        }
         $configuration = Get-Content $connection -Raw | ConvertFrom-Json
         Start-Process "https://localhost:$($configuration.HttpsPort)"
         exit 0
@@ -22,6 +25,7 @@ try {
             $major = (Get-Content (Join-Path $script:StoreRoot 'database\PG_VERSION') -Raw).Trim()
             if ($major -ne '17') { throw 'A database major-version migration is required before updating.' }
             Stop-Service BingChunWorker -ErrorAction SilentlyContinue
+            Stop-Service BingChunPOS -ErrorAction SilentlyContinue
             Start-Service BingChunDatabase
             [void](Invoke-Provision @{ action = 'backup'; envFile = (Join-Path $script:StoreRoot '.env') })
         }
