@@ -1,9 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-const provision = new URL("../scripts/windows/provision.js", import.meta.url);
+import { fileURLToPath } from "node:url";
+const provision = fileURLToPath(
+  new URL("../scripts/windows/provision.js", import.meta.url),
+);
 test("Windows setup accepts redirected JSON with a UTF-8 BOM", () => {
-  const result = spawnSync(process.execPath, [provision.pathname], {
+  const result = spawnSync(process.execPath, [provision], {
     input:
       "\uFEFF" +
       JSON.stringify({
@@ -18,7 +21,7 @@ test("Windows setup accepts redirected JSON with a UTF-8 BOM", () => {
   assert(!result.stderr.includes("never-echo-this-password"));
 });
 test("invalid setup input does not echo any supplied credentials", () => {
-  const result = spawnSync(process.execPath, [provision.pathname], {
+  const result = spawnSync(process.execPath, [provision], {
     input: '\uFEFF{"password":"never-echo-this-password",broken',
     encoding: "utf8",
   });
