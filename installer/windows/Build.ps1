@@ -74,6 +74,8 @@ Checked { & (Join-Path $python 'python.exe') 'installer/windows/Test-Certificate
 
 $winsw = Fetch 'https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW-x64.exe' 'WinSW-2.12.0-x64.exe'
 Copy-Item $winsw (Join-Path $runtime 'WinSW.exe')
+$winswLicense = Fetch 'https://raw.githubusercontent.com/winsw/winsw/v2.12.0/LICENSE.txt' 'WinSW-LICENSE.txt'
+Copy-Item $winswLicense $runtime
 $vc = Fetch 'https://aka.ms/vs/17/release/vc_redist.x64.exe' 'vc_redist.x64.exe'
 $signature = Get-AuthenticodeSignature $vc
 if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Microsoft Corporation') { throw 'The Microsoft runtime installer signature is invalid.' }

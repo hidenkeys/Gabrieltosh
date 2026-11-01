@@ -3,14 +3,27 @@ import pg from "pg";
 import { randomBytes } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { parseEnv } from "node:util";
-const input = JSON.parse(
-  await new Promise((done) => {
-    let text = "";
-    process.stdin.setEncoding("utf8");
-    process.stdin.on("data", (chunk) => (text += chunk));
-    process.stdin.on("end", () => done(text));
-  }),
-);
+const inputText = await new Promise((done) => {
+  let text = "";
+  process.stdin.setEncoding("utf8");
+  process.stdin.on("data", (chunk) => (text += chunk));
+  process.stdin.on("end", () => done(text));
+});
+let input;
+try {
+  // .NET Framework's redirected standard input can include a UTF-8 BOM.
+  input = JSON.parse(inputText.replace(/^\uFEFF/, ""));
+} catch {
+  // JSON parser messages can quote the input, which contains setup passwords.
+  console.error(
+    JSON.stringify({
+      ok: false,
+      error:
+        "The setup input could not be read. Reopen Store setup and try again.",
+    }),
+  );
+  process.exit(1);
+}
 
 try {
   if (input.action === "database") {
