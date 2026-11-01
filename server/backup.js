@@ -10,6 +10,7 @@ import {
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { query } from "./db.js";
+import { backupPath } from "./paths.js";
 const run = promisify(execFile);
 export async function backup() {
   if (
@@ -18,12 +19,12 @@ export async function backup() {
   )
     return;
   const id = randomUUID();
-  await mkdir("backups", { recursive: true });
+  await mkdir(backupPath(), { recursive: true });
   await query("INSERT INTO backup_runs(id,status) VALUES($1,$2)", [
     id,
     "running",
   ]);
-  const temp = `backups/${id}.dump`;
+  const temp = backupPath(`${id}.dump`);
   try {
     const url = new URL(process.env.DATABASE_URL);
     const env = {
@@ -34,7 +35,11 @@ export async function backup() {
       PGUSER: decodeURIComponent(url.username),
       PGDATABASE: url.pathname.slice(1),
     };
-    await run("pg_dump", ["--format=custom", "--file", temp], { env });
+    await run(
+      process.env.PG_DUMP_PATH || "pg_dump",
+      ["--format=custom", "--file", temp],
+      { env },
+    );
     let path = temp;
     if (process.env.BACKUP_ENCRYPTION_KEY) {
       if (!/^[a-f0-9]{64}$/i.test(process.env.BACKUP_ENCRYPTION_KEY))
@@ -69,8 +74,8 @@ export async function backup() {
     );
     const retention =
       Number(process.env.BACKUP_RETENTION_DAYS || 14) * 86400000;
-    for (const f of await readdir("backups")) {
-      const p = "backups/" + f;
+    for (const f of await readdir(backupPath())) {
+      const p = backupPath(f);
       if (
         Date.now() - (await stat(p)).mtimeMs > retention &&
         f.endsWith(".enc")
@@ -107,7 +112,7 @@ export async function uploadPending() {
       await s3.send(
         new PutObjectCommand({
           Bucket: process.env.S3_BUCKET,
-          Key: "gabrieltosh/" + b.path.split("/").pop(),
+          Key: "gabrieltosh/" + b.path.replaceAll("\\", "/").split("/").pop(),
           Body: await readFile(b.path),
         }),
         { abortSignal: AbortSignal.timeout(10000) },

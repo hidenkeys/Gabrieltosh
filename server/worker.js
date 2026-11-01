@@ -7,6 +7,8 @@ import { pathToFileURL } from "node:url";
 import { query, transaction, migrate } from "./db.js";
 import { renderPrint } from "./printing.js";
 import { backup, uploadPending } from "./backup.js";
+import { printOutputPath, pythonExecutable } from "./paths.js";
+import { processDiagnostic } from "./windows-diagnostics.js";
 const run = promisify(execFile);
 export async function processNext() {
   const job = await transaction(async (c) => {
@@ -45,8 +47,8 @@ export async function processNext() {
   });
   if (!job) return false;
   try {
-    await mkdir("print-output", { recursive: true });
-    const path = resolve("print-output", job.id + ".html");
+    await mkdir(printOutputPath(), { recursive: true });
+    const path = printOutputPath(job.id + ".html");
     await writeFile(path, renderPrint(job));
     const simulated = (process.env.PRINT_MODE || "simulation") === "simulation";
     if (!simulated) {
@@ -58,7 +60,7 @@ export async function processNext() {
           : process.env.LABEL_PRINTER;
       if (!printer) throw new Error("Configure the printer queue name.");
       await run(
-        "python",
+        pythonExecutable(),
         [
           resolve("scripts/windows_print.py"),
           path,
@@ -152,6 +154,7 @@ async function start() {
         [new Date(Date.now() - 120000)],
       );
       await processNext();
+      await processDiagnostic();
       if (!maintenance) {
         maintenance = (async () => {
           if (

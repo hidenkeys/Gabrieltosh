@@ -4,11 +4,19 @@ Install: py -m pip install pywin32 pillow playwright
 Physical printer calibration is required before production.
 """
 import sys
+import json
+import os
+import win32print
 from pathlib import Path
 from PIL import Image, ImageWin
 from playwright.sync_api import sync_playwright
 import win32ui
+if sys.argv[1:] == ["--list"]:
+    print(json.dumps([p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]))
+    sys.exit(0)
 html_path, printer, kind, width, height = sys.argv[1:]
+if kind not in ("receipt", "label"):
+    raise ValueError("Unknown print kind")
 width_mm = 58 if kind == 'receipt' else float(width)
 image_path = str(Path(html_path).with_suffix('.png'))
 with sync_playwright() as p:
@@ -25,6 +33,8 @@ try:
     printable_height = dc.GetDeviceCaps(10)
     target_width = min(printable_width, round(width_mm / 25.4 * dc.GetDeviceCaps(88)))
     target_height = round(image.height * target_width / image.width)
+    if kind == "label" and target_height > round(float(height) / 25.4 * dc.GetDeviceCaps(90)):
+        raise RuntimeError("Label content exceeds the selected label height. Increase label height or shorten the template.")
     if target_height > printable_height:
         raise RuntimeError('Output exceeds configured paper height. Configure receipt roll or label stock in Windows printer preferences.')
     dc.StartDoc('Bing Chun ' + kind)
@@ -32,5 +42,8 @@ try:
     ImageWin.Dib(image).draw(dc.GetHandleOutput(), (0, 0, target_width, target_height))
     dc.EndPage()
     dc.EndDoc()
+except Exception:
+    dc.AbortDoc()
+    raise
 finally:
     dc.DeleteDC()
