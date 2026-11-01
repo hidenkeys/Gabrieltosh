@@ -79,11 +79,15 @@ function Set-PrivateDirectory([string]$Path) {
 function Grant-ServicePath([string]$Path, [string]$Service, [string]$Rights, [bool]$Directory = $true) {
     $account = New-Object Security.Principal.NTAccount("NT SERVICE\$Service")
     $sid = $account.Translate([Security.Principal.SecurityIdentifier])
+    Grant-SidPath $Path $sid $Rights $Directory
+}
+
+function Grant-SidPath([string]$Path, [Security.Principal.SecurityIdentifier]$Sid, [string]$Rights, [bool]$Directory = $true) {
     $acl = Get-Acl -LiteralPath $Path
     if ($Directory) {
-        $rule = New-Object Security.AccessControl.FileSystemAccessRule($sid, $Rights, 'ContainerInherit,ObjectInherit', 'None', 'Allow')
+        $rule = New-Object Security.AccessControl.FileSystemAccessRule($Sid, $Rights, 'ContainerInherit,ObjectInherit', 'None', 'Allow')
     } else {
-        $rule = New-Object Security.AccessControl.FileSystemAccessRule($sid, $Rights, 'Allow')
+        $rule = New-Object Security.AccessControl.FileSystemAccessRule($Sid, $Rights, 'Allow')
     }
     $acl.AddAccessRule($rule)
     Set-Acl -LiteralPath $Path -AclObject $acl
@@ -245,8 +249,18 @@ function Install-Store($Settings, [string]$AdminName, [string]$AdminUsername, [s
         $pwfile = Join-Path $script:StoreRoot 'init-password.tmp'
         try {
             Write-PrivateText $pwfile $dbPassword
+            # initdb deliberately disables the Administrators group in its token.
+            # Give the installing user's SID temporary access, not all local users.
+            $installerSid = [Security.Principal.WindowsIdentity]::GetCurrent().User
+            Grant-SidPath $script:StoreRoot $installerSid 'ReadAndExecute' $false
+            Grant-SidPath $dbRoot $installerSid 'Modify'
+            Grant-SidPath $pwfile $installerSid 'Read' $false
             [void](Invoke-StoreCommand (Join-Path $pgBin 'initdb.exe') @('-D', $dbRoot, '-U', 'postgres', '--encoding=UTF8', '--locale=C', '--auth=scram-sha-256', '--pwfile', $pwfile))
-        } finally { Remove-Item $pwfile -Force -ErrorAction SilentlyContinue }
+        } finally {
+            Remove-Item $pwfile -Force -ErrorAction SilentlyContinue
+            Set-PrivateDirectory $dbRoot
+            Set-PrivateDirectory $script:StoreRoot
+        }
     }
     $major = (Get-Content (Join-Path $dbRoot 'PG_VERSION') -Raw).Trim()
     if ($major -ne '17') { throw 'This package supports PostgreSQL 17 data. A different major version requires a database migration.' }
