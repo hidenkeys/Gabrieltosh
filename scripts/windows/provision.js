@@ -29,19 +29,33 @@ try {
     });
     await client.connect();
     try {
+      let appCredentials;
+      try {
+        appCredentials = JSON.parse(
+          await readFile(input.credentialsFile, "utf8"),
+        );
+      } catch (e) {
+        if (e.code !== "ENOENT") throw e;
+      }
       const role = await client.query(
         "SELECT rolname FROM pg_roles WHERE rolname='bingchun_app'",
       );
       if (!role.rows.length) {
         // Generated hex passwords have no SQL quoting characters. Never interpolate user input.
-        const password = randomBytes(32).toString("hex");
+        const password =
+          appCredentials?.password || randomBytes(32).toString("hex");
+        if (!appCredentials)
+          await writeFile(input.credentialsFile, JSON.stringify({ password }), {
+            flag: "wx",
+            mode: 0o600,
+          });
         await client.query(
           `CREATE ROLE bingchun_app LOGIN PASSWORD '${password}' NOSUPERUSER NOCREATEDB NOCREATEROLE`,
         );
-        await writeFile(input.credentialsFile, JSON.stringify({ password }), {
-          flag: "wx",
-          mode: 0o600,
-        });
+      } else if (!appCredentials) {
+        throw new Error(
+          "The database role exists but its saved credential is missing. Restore the original configuration before continuing.",
+        );
       }
       const database = await client.query(
         "SELECT datname FROM pg_database WHERE datname='bingchun'",

@@ -1,0 +1,62 @@
+name: Build Windows installer
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'installer/**'
+      - 'scripts/windows/**'
+      - 'scripts/windows_print.py'
+      - 'server/**'
+      - 'src/**'
+      - 'public/**'
+      - 'package*.json'
+      - '.github/workflows/windows-installer.yml'
+permissions:
+  contents: read
+concurrency:
+  group: windows-installer-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: x64
+      - name: Validate Windows PowerShell scripts
+        shell: powershell
+        run: ./scripts/windows/Test-Setup.ps1
+      - name: Build bundled installer
+        shell: pwsh
+        run: ./installer/windows/Build.ps1 -Version "0.2.${{ github.run_number }}"
+      - name: Test installer on Windows
+        shell: powershell
+        run: ./installer/windows/Smoke.ps1 -Installer (Get-ChildItem build/windows/output/*.exe).FullName
+      - name: Upload installer and checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: BingChun-Windows-x64
+          path: |
+            build/windows/output/*
+            build/windows/app/bundle-manifest.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload diagnostic logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-build-diagnostics
+          path: |
+            C:/ProgramData/BingChunPOS/logs/**/*.log
+            C:/ProgramData/BingChunPOS/logs/**/*.out.log
+            C:/ProgramData/BingChunPOS/logs/**/*.err.log
+          if-no-files-found: ignore
+          retention-days: 7

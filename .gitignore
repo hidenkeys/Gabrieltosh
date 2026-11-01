@@ -12,3 +12,6 @@ data/
 certs/
 scripts/*.exe
 scripts/*.xml
+build/
+__pycache__/
+*.pyc

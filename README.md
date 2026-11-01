@@ -31,6 +31,8 @@ Keep the preview terminal running while using the app. If it stops, the cached s
 
 ## Production deployment
 
+For a guided Windows installation, use the **Build Windows installer** workflow and follow [the installer guide](docs/WINDOWS-INSTALLER.md). It bundles the runtimes, creates the local database and automatic services, and provides network/printer setup and service-account print tests. Matching printer drivers and on-site hardware validation are still required.
+
 Follow [Windows setup](docs/WINDOWS-SETUP.md). Production uses an independently installed PostgreSQL Windows service. Copy `.env.example` to `.env`, supply a unique database credential, build the frontend and create the initial admin:
 
 ```sh

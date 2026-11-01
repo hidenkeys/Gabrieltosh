@@ -1,0 +1,4 @@
+pywin32==312
+pillow==13.0.0
+playwright==1.64.1
+cryptography==50.0.2

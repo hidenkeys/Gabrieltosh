@@ -1,0 +1,25 @@
+BING CHUN SURULERE POS
+
+Install this on the store's Windows computer, not on each tablet.
+
+The guided setup creates a local PostgreSQL database, administrator login,
+tablet HTTPS address and printer configuration. No development password is used.
+All application runtimes are included. Matching Xprinter drivers must be installed
+separately from the manufacturer before physical printing can be tested.
+
+Store data, credentials and encrypted backups are kept in:
+  C:\ProgramData\BingChunPOS
+
+Updating or uninstalling the application preserves this data.
+An update requires a successful local backup before replacing application files.
+Do not delete the data folder unless you intend to remove the store's records.
+
+Begin in simulation mode. Use Check system and printers to test the worker
+account and submit clearly marked installation test pages.
+
+Reserve the computer's IP in the router. Set the Windows network profile to
+Private. Install the generated public CA certificate on each managed Android
+tablet before opening the HTTPS address. Do not copy private certificate keys.
+
+Keep an independent copy of backups and the encryption key before live trading.
+The full physical-printer acceptance checklist is included in the application docs.
