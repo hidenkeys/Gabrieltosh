@@ -105,6 +105,18 @@ function Get-StoreAddresses {
     } | Select-Object -ExpandProperty IPAddress -Unique)
 }
 
+function Grant-WorkerPrinter([string]$Name) {
+    if (-not $Name) { return }
+    $printer = @(Get-Printer -Full | Where-Object { $_.Name -eq $Name })
+    if (-not $printer.Count) { return }
+    if (-not $printer[0].PermissionSDDL) { throw "Could not read permissions for $Name. Check the installed driver and printer Security settings." }
+    $sid = (New-Object Security.Principal.NTAccount('NT SERVICE\BingChunWorker')).Translate([Security.Principal.SecurityIdentifier])
+    $descriptor = New-Object Security.AccessControl.CommonSecurityDescriptor($false, $false, $printer[0].PermissionSDDL)
+    $descriptor.DiscretionaryAcl.AddAccess([Security.AccessControl.AccessControlType]::Allow, $sid, 0x00020008,
+        [Security.AccessControl.InheritanceFlags]::None, [Security.AccessControl.PropagationFlags]::None)
+    Set-Printer -InputObject $printer[0] -PermissionSDDL $descriptor.GetSddlForm([Security.AccessControl.AccessControlSections]::All)
+}
+
 function Test-PrivateAddress([string]$Address) {
     $ip = $null
     if (-not [Net.IPAddress]::TryParse($Address, [ref]$ip)) { return $false }
@@ -284,6 +296,8 @@ function Install-Store($Settings, [string]$AdminName, [string]$AdminUsername, [s
     Grant-ServicePath $certs 'BingChunPOS' 'ReadAndExecute' $false
     foreach ($file in @('store.pem', 'store-key.pem')) { Grant-ServicePath (Join-Path $certs $file) 'BingChunPOS' 'Read' $false }
     foreach ($folder in @('backups', 'print-output', 'diagnostics')) { Grant-ServicePath (Join-Path $script:StoreRoot $folder) 'BingChunWorker' 'Modify' }
+    Grant-WorkerPrinter $Settings.ReceiptPrinter
+    Grant-WorkerPrinter $Settings.LabelPrinter
     & $Progress 'Allowing tablet access on the private local network...'
     Get-NetFirewallRule -Name 'BingChunPOS-TabletHTTPS' -ErrorAction SilentlyContinue | Remove-NetFirewallRule
     New-NetFirewallRule -Name 'BingChunPOS-TabletHTTPS' -DisplayName 'Bing Chun tablet HTTPS' -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Settings.HttpsPort -LocalAddress $Settings.Address -Profile Private -RemoteAddress LocalSubnet | Out-Null

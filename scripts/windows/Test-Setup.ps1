@@ -21,6 +21,7 @@ $secret = New-Secret
 if ($secret -notmatch '^[a-f0-9]{64}$') { throw 'Generated secret is not 256-bit hex.' }
 Write-Host 'PowerShell parse, network validation, argument escaping and secret checks passed.'
 if ($env:OS -eq 'Windows_NT') {
-    $roundTrip = Invoke-StoreCommand 'node.exe' @('-e', 'let s="";process.stdin.setEncoding("utf8");process.stdin.on("data",c=>s+=c);process.stdin.on("end",()=>console.log(s));') 'Surulere / Teni / ₦'
-    if ($roundTrip -ne 'Surulere / Teni / ₦') { throw 'Native UTF-8 input/output was corrupted.' }
+    $unicodeText = 'Surulere / Teni / ' + [char]0x20A6
+    $roundTrip = Invoke-StoreCommand 'node.exe' @('-e', 'let s="";process.stdin.setEncoding("utf8");process.stdin.on("data",c=>s+=c);process.stdin.on("end",()=>console.log(s));') $unicodeText
+    if ($roundTrip -ne $unicodeText) { throw 'Native UTF-8 input/output was corrupted.' }
 }
