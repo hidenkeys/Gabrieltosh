@@ -80,6 +80,7 @@ $vc = Fetch 'https://aka.ms/vs/17/release/vc_redist.x64.exe' 'vc_redist.x64.exe'
 $signature = Get-AuthenticodeSignature $vc
 if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Microsoft Corporation') { throw 'The Microsoft runtime installer signature is invalid.' }
 Copy-Item $vc $runtime
+$vcVersion = (Get-Item $vc).VersionInfo
 
 $files = @(Get-ChildItem $app -Recurse -File | ForEach-Object {
     [pscustomobject]@{ path = $_.FullName.Substring($app.Length + 1).Replace('\', '/'); sha256 = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
@@ -87,11 +88,12 @@ $files = @(Get-ChildItem $app -Recurse -File | ForEach-Object {
 $manifest = [ordered]@{
     version = $Version; commit = (& git rev-parse HEAD).Trim(); builtAt = [DateTime]::UtcNow.ToString('o')
     architecture = 'windows-x64'; postgres = $pgVersion; node = $nodeVersion; python = $pythonVersion
+    visualCpp = $vcVersion.FileVersion
     downloads = @($sources.ToArray()); files = $files
 }
 $manifest | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $app 'bundle-manifest.json') -Encoding utf8
 if (-not (Test-Path $Iscc)) { throw 'Install Inno Setup 6, or pass -Iscc with the compiler path.' }
-Checked { & $Iscc "/DPackageVersion=$Version" "/DSourceRoot=$app" 'installer/windows/BingChun.iss' }
+Checked { & $Iscc "/DPackageVersion=$Version" "/DSourceRoot=$app" "/DVCMajor=$($vcVersion.FileMajorPart)" "/DVCMinor=$($vcVersion.FileMinorPart)" "/DVCBuild=$($vcVersion.FileBuildPart)" "/DVCRbld=$($vcVersion.FilePrivatePart)" 'installer/windows/BingChun.iss' }
 Get-ChildItem (Join-Path $build 'output') -Filter '*.exe' | ForEach-Object {
     "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)" | Set-Content ($_.FullName + '.sha256') -Encoding ascii
 }

@@ -4,6 +4,12 @@
 #ifndef SourceRoot
   #define SourceRoot "..\..\build\windows\app"
 #endif
+#ifndef VCMajor
+  #define VCMajor 14
+  #define VCMinor 44
+  #define VCBuild 35211
+  #define VCRbld 0
+#endif
 [Setup]
 AppId={{97701B93-8D04-46B6-82EC-9216955FA99A}
 AppName=Bing Chun Surulere POS
@@ -38,17 +44,50 @@ Name: "{group}\Back up now"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.
 Name: "{group}\Installation guide"; Filename: "{app}\docs\WINDOWS-INSTALLER.md"
 
 [Run]
-Filename: "{app}\runtime\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Windows runtime support..."; Flags: waituntilterminated; Check: not VCRuntimeInstalled
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File ""{app}\scripts\windows\Setup.ps1"""; Description: "Configure database, network and printers"; Flags: postinstall nowait skipifsilent
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File ""{app}\scripts\windows\Setup.ps1"""; Description: "Configure database, network and printers"; Flags: postinstall nowait skipifsilent; Check: CanConfigure
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\services"
 
 [Code]
+var
+  VCRuntimeNeedsRestart: Boolean;
+
 function VCRuntimeInstalled: Boolean;
-var Installed: Cardinal;
+var Installed, Major, Minor, Bld, Rbld: Cardinal; Key: String;
 begin
-  Result := RegQueryDWordValue(HKLM64, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64', 'Installed', Installed) and (Installed = 1);
+  Key := 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64';
+  Result := RegQueryDWordValue(HKLM64, Key, 'Installed', Installed) and (Installed = 1)
+    and RegQueryDWordValue(HKLM64, Key, 'Major', Major)
+    and RegQueryDWordValue(HKLM64, Key, 'Minor', Minor)
+    and RegQueryDWordValue(HKLM64, Key, 'Bld', Bld)
+    and RegQueryDWordValue(HKLM64, Key, 'Rbld', Rbld);
+  if Result then
+    Result := (Major > {#VCMajor}) or ((Major = {#VCMajor}) and
+      ((Minor > {#VCMinor}) or ((Minor = {#VCMinor}) and
+      ((Bld > {#VCBuild}) or ((Bld = {#VCBuild}) and (Rbld >= {#VCRbld}))))));
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var Code: Integer;
+begin
+  if (CurStep = ssPostInstall) and not VCRuntimeInstalled then begin
+    if not Exec(ExpandConstant('{app}\runtime\vc_redist.x64.exe'), '/install /quiet /norestart', '', SW_HIDE, ewWaitUntilTerminated, Code) then
+      RaiseException('Could not start the Microsoft runtime installer. Run setup again before opening the POS.');
+    if Code = 3010 then VCRuntimeNeedsRestart := True
+    else if (Code <> 0) and (Code <> 1638) then
+      RaiseException('Microsoft runtime installation failed (' + IntToStr(Code) + '). Run setup again before configuring the store.');
+  end;
+end;
+
+function NeedRestart: Boolean;
+begin
+  Result := VCRuntimeNeedsRestart;
+end;
+
+function CanConfigure: Boolean;
+begin
+  Result := not VCRuntimeNeedsRestart;
 end;
 
 function RunMaintenance(Action: String): Boolean;

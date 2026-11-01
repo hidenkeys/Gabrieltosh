@@ -4,7 +4,7 @@ Use a maintained x64 Windows computer (Windows 11 recommended), the store router
 
 ## Get the installer
 
-Open the repository's **Actions → Build Windows installer**, select a successful run, then download **BingChun-Windows-x64** from Artifacts. Extract the ZIP and run `BingChun-Setup-<version>-x64.exe`. The accompanying `.sha256` file lets you compare the installer with `Get-FileHash -Algorithm SHA256`. GitHub artifact downloads require a GitHub sign-in; artifacts expire after 30 days, so keep the accepted installer offline.
+Open the repository's **Actions → Build Windows installer**, select a successful run, then download **BingChun-Windows-x64** from Artifacts. Extract the ZIP, open its **output** folder and run `BingChun-Setup-<version>-x64.exe`. The accompanying `.sha256` file lets you compare the installer with `Get-FileHash -Algorithm SHA256`. GitHub artifact downloads require a GitHub sign-in; artifacts expire after 30 days, so keep the accepted installer offline.
 
 The build bundles Node, PostgreSQL 17, Python, printing libraries, Chromium and WinSW. Internet is needed on the build machine; the installed application does not download these runtimes. Manufacturer printer drivers are separate. The package is not code-signed; a publisher certificate is needed before distributing a signed installer. Obtain it from this repository's successful build rather than unrelated download sites.
 
