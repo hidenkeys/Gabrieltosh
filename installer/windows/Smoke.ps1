@@ -49,6 +49,7 @@ await pool.end();console.log('HTTPS login, menu, administrator and database writ
     [void](Invoke-StoreCommand $node @('--input-type=module', '-') $test)
     $check = Request-PrinterCheck 'status'
     if (-not $check.ok) { throw 'Worker account printer enumeration failed.' }
+    if (-not $check.rendererReady) { throw 'The worker could not launch the printing renderer.' }
     [void](Invoke-Provision @{ action = 'backup'; envFile = (Join-Path $script:StoreRoot '.env') })
     if (-not (Get-ChildItem (Join-Path $script:StoreRoot 'backups') -Filter '*.enc')) { throw 'No encrypted backup was produced.' }
     Stop-StoreServices
@@ -62,6 +63,13 @@ await pool.end();console.log('Database persisted across service restart.');
 '@
     [void](Invoke-StoreCommand $node @("--env-file=$(Join-Path $script:StoreRoot '.env')", '--input-type=module', '-') $persist)
     # Repair must preserve the original administrator and database credentials.
+    Install-Store $settings '' '' '' { param($message) Write-Host $message }
+    [void](Invoke-StoreCommand $node @('--input-type=module', '-') $test)
+    $screenshots = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) 'build\windows\ui'
+    [void](Invoke-StoreCommand 'powershell.exe' @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-STA', '-File', (Join-Path $app 'scripts\windows\Setup.ps1'), '-Screenshots', $screenshots))
+    # Exercise the actual installer's update hook, not only the repair functions.
+    $update = Start-Process -FilePath $Installer -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait -PassThru
+    if ($update.ExitCode -notin @(0, 3010)) { throw 'Installer update failed.' }
     Install-Store $settings '' '' '' { param($message) Write-Host $message }
     [void](Invoke-StoreCommand $node @('--input-type=module', '-') $test)
 } finally { Pop-Location; Remove-Item Env:SMOKE_PASSWORD -ErrorAction SilentlyContinue }

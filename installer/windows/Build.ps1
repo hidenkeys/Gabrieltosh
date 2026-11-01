@@ -70,6 +70,7 @@ Get-ChildItem (Join-Path $site 'pywin32_system32') -Filter '*.dll' | Copy-Item -
 $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $runtime 'browsers'
 Checked { & (Join-Path $python 'python.exe') -m playwright install chromium }
 Checked { & (Join-Path $python 'python.exe') -c 'import win32print,win32ui,PIL,cryptography;from playwright.sync_api import sync_playwright;print("Printing imports ready")' }
+Checked { & (Join-Path $python 'python.exe') 'installer/windows/Test-Certificates.py' }
 
 $winsw = Fetch 'https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW-x64.exe' 'WinSW-2.12.0-x64.exe'
 Copy-Item $winsw (Join-Path $runtime 'WinSW.exe')

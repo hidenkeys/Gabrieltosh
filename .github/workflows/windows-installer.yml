@@ -47,6 +47,7 @@ jobs:
           path: |
             build/windows/output/*
             build/windows/app/bundle-manifest.json
+            build/windows/ui/*.png
           if-no-files-found: error
           retention-days: 30
       - name: Upload diagnostic logs on failure

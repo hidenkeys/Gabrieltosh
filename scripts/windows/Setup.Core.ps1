@@ -27,15 +27,19 @@ function Invoke-StoreCommand([string]$File, [string[]]$Arguments, [string]$Input
     $info.RedirectStandardInput = $true
     $info.RedirectStandardOutput = $true
     $info.RedirectStandardError = $true
-    $info.StandardInputEncoding = New-Object Text.UTF8Encoding($false)
+    $info.StandardOutputEncoding = New-Object Text.UTF8Encoding($false)
+    $info.StandardErrorEncoding = New-Object Text.UTF8Encoding($false)
     $process = New-Object Diagnostics.Process
     $process.StartInfo = $info
     try {
         [void]$process.Start()
         $stdout = $process.StandardOutput.ReadToEndAsync()
         $stderr = $process.StandardError.ReadToEndAsync()
-        $process.StandardInput.Write($InputText)
-        $process.StandardInput.Close()
+        # StandardInputEncoding is absent in Windows PowerShell 5.1/.NET Framework.
+        # Write UTF-8 bytes directly so names/passwords survive every system locale.
+        $inputBytes = [Text.Encoding]::UTF8.GetBytes($InputText)
+        $process.StandardInput.BaseStream.Write($inputBytes, 0, $inputBytes.Length)
+        $process.StandardInput.BaseStream.Close()
         if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
             $process.Kill()
             throw 'A setup command timed out. Open diagnostics before retrying.'
@@ -122,7 +126,7 @@ function Assert-StoreSettings($Settings) {
         if ($Settings.ReceiptPrinter -notin $printers -or $Settings.LabelPrinter -notin $printers) { throw 'Install both printer drivers, then select their queues.' }
         if ($Settings.ReceiptPrinter -eq $Settings.LabelPrinter) { throw 'Choose separate receipt and sticker printer queues.' }
     }
-    if ($Settings.LabelWidth -lt 20 -or $Settings.LabelWidth -gt 60 -or $Settings.LabelHeight -lt 15 -or $Settings.LabelHeight -gt 200) { throw 'Label width must be 20-60 mm and height 15-200 mm.' }
+    if ([double]::IsNaN($Settings.LabelWidth) -or [double]::IsNaN($Settings.LabelHeight) -or $Settings.LabelWidth -lt 20 -or $Settings.LabelWidth -gt 60 -or $Settings.LabelHeight -lt 15 -or $Settings.LabelHeight -gt 150) { throw 'Label width must be 20-60 mm and height 15-150 mm.' }
     $saved = Get-StoreConfiguration
     if ($saved -and $saved.DatabasePort -ne $Settings.DatabasePort) { throw 'Changing an existing database port requires a separate migration. Keep the original database port.' }
     if (-not $saved) {
@@ -272,10 +276,10 @@ function Install-Store($Settings, [string]$AdminName, [string]$AdminUsername, [s
     if (-not (Test-Path $envFile)) { $values.BACKUP_ENCRYPTION_KEY = New-Secret; $values.BACKUP_INTERVAL_HOURS = '6'; $values.BACKUP_RETENTION_DAYS = '14' }
     $envFile = Update-Environment $values
     & $Progress 'Loading the menu and creating the administrator account...'
-    [void](Invoke-Provision @{ action = 'bootstrap'; envFile = $envFile; name = $AdminName; username = $AdminUsername; password = $AdminPassword })
+    [void](Invoke-Provision @{ action = 'bootstrap'; envFile = $envFile; name = $AdminName; username = $AdminUsername; password = $AdminPassword; labelWidth = $Settings.LabelWidth; labelHeight = $Settings.LabelHeight })
     $node = Join-Path $script:AppRoot 'runtime\node\node.exe'
     Install-StoreService 'BingChunPOS' $node "--env-file=$(ConvertTo-NativeArgument $envFile) server/index.js" 'BingChunDatabase'
-    Install-StoreService 'BingChunWorker' $node "--env-file=$(ConvertTo-NativeArgument $envFile) server/worker.js" 'BingChunDatabase'
+    Install-StoreService 'BingChunWorker' $node "--env-file=$(ConvertTo-NativeArgument $envFile) server/worker.js" 'BingChunDatabase/Spooler'
     foreach ($name in @('BingChunPOS', 'BingChunWorker')) { Grant-ServicePath $envFile $name 'Read' $false }
     Grant-ServicePath $certs 'BingChunPOS' 'ReadAndExecute' $false
     foreach ($file in @('store.pem', 'store-key.pem')) { Grant-ServicePath (Join-Path $certs $file) 'BingChunPOS' 'Read' $false }
@@ -312,4 +316,14 @@ function Request-PrinterCheck([string]$Kind, [double]$Width = 50, [double]$Heigh
         Start-Sleep -Milliseconds 1000
     }
     throw 'The print check timed out. Inspect physical output before trying again.'
+}
+
+function Export-RecoveryKey([string]$Destination) {
+    Assert-Administrator
+    $lines = Get-Content (Join-Path $script:StoreRoot '.env')
+    $key = @($lines | Where-Object { $_ -match '^BACKUP_ENCRYPTION_KEY=' })
+    if ($key.Count -ne 1) { throw 'A unique backup encryption key was not found. Check the saved configuration.' }
+    $secret = ($key[0] -split '=', 2)[1].Trim().Trim('"').Trim("'")
+    if ($secret -notmatch '^[a-fA-F0-9]{64}$') { throw 'The backup encryption key is invalid.' }
+    Write-PrivateText $Destination "BING CHUN SURULERE - BACKUP RECOVERY KEY`r`nKeep this file securely on a separate offline device. It can decrypt store backups.`r`nBACKUP_ENCRYPTION_KEY=$secret`r`n"
 }

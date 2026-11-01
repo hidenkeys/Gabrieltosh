@@ -1,4 +1,4 @@
-param([switch]$Diagnostics)
+param([switch]$Diagnostics, [string]$Screenshots = '')
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
@@ -114,7 +114,7 @@ Refresh-Printers
 if ($saved) { $receipt.SelectedItem = $saved.ReceiptPrinter; $label.SelectedItem = $saved.LabelPrinter }
 $labelWidth = Add-Input $pages[2] 'Sticker width (mm)' 250 $(if ($saved) { [string]$saved.LabelWidth } else { '50' })
 $labelHeight = Add-Input $pages[2] 'Sticker height (mm)' 292 $(if ($saved) { [string]$saved.LabelHeight } else { '40' })
-[void](Add-Text $pages[2] 'Measure the actual labels. These sizes are used for test output; set matching sizes in Windows printer preferences and Receipt studio for order labels.' 24 335 810 45)
+[void](Add-Text $pages[2] 'Measure the actual labels. Setup applies these dimensions to order labels and test output. Set the same sizes in Windows printer preferences.' 24 335 810 45)
 [void](Add-Button $pages[2] 'Refresh printers' 24 395 { Refresh-Printers } 175)
 [void](Add-Button $pages[2] 'Windows printers' 215 395 { Start-Process 'ms-settings:printers' } 175)
 [void](Add-Button $pages[2] 'Official Xprinter drivers' 405 395 { Start-Process 'https://www.xprinter.net/' } 220)
@@ -141,6 +141,7 @@ function Run-Check([string]$Kind) {
             [void](Wait-StoreHealth)
             $data = Request-PrinterCheck 'status'
             $text += 'Database and local application: connected'
+            $text += 'Printing renderer: ready under worker service account'
             $text += "Worker-visible printers: $($data.printers -join ', ')"
             $text += "Admin: https://localhost:$($configuration.HttpsPort)"
             $text += "Tablets: https://$($configuration.Address):$($configuration.HttpsPort)"
@@ -164,6 +165,18 @@ $testLabel = Add-Button $pages[3] 'Print test sticker' 525 100 { Run-Check 'labe
 } 180)
 [void](Add-Button $pages[3] 'Tablet certificate' 220 145 { Start-Process explorer.exe (Join-Path $script:StoreRoot 'tablet') } 180)
 [void](Add-Button $pages[3] 'Logs & backups' 415 145 { Start-Process explorer.exe $script:StoreRoot } 180)
+[void](Add-Button $pages[3] 'Save recovery key' 610 145 {
+    try {
+        $dialog = New-Object Windows.Forms.SaveFileDialog
+        $dialog.Filter = 'Recovery key (*.txt)|*.txt'; $dialog.FileName = 'BingChun-Recovery-Key.txt'
+        $dialog.Title = 'Save the recovery key to a separate secure device'
+        if ($dialog.ShowDialog() -eq 'OK') {
+            Export-RecoveryKey $dialog.FileName
+            [void][Windows.Forms.MessageBox]::Show('Recovery key saved. Keep it separate from this computer and restrict access to it.', 'Backup recovery')
+        }
+        $dialog.Dispose()
+    } catch { Show-SetupError $_ }
+} 220)
 
 $status = Add-Text $form 'Review each tab, then select Apply setup. Your database stays on this computer.' 28 614 870 45
 $back = Add-Button $form 'Back' 26 665 { if ($tabs.SelectedIndex -gt 0) { $tabs.SelectedIndex-- } } 100
@@ -194,4 +207,17 @@ $install.BackColor = [Drawing.Color]::FromArgb(47, 125, 246)
 $install.ForeColor = [Drawing.Color]::White
 $install.FlatStyle = 'Flat'
 if ($Diagnostics) { $tabs.SelectedIndex = 3 }
+if ($Screenshots) {
+    [void](New-Item -ItemType Directory -Force $Screenshots)
+    $form.Show()
+    for ($i = 0; $i -lt $pages.Count; $i++) {
+        $tabs.SelectedIndex = $i
+        [Windows.Forms.Application]::DoEvents()
+        $bitmap = New-Object Drawing.Bitmap($form.Width, $form.Height)
+        $form.DrawToBitmap($bitmap, (New-Object Drawing.Rectangle(0, 0, $form.Width, $form.Height)))
+        $bitmap.Save((Join-Path $Screenshots "setup-$($i + 1).png"))
+        $bitmap.Dispose()
+    }
+    $form.Close(); exit
+}
 [void]$form.ShowDialog()

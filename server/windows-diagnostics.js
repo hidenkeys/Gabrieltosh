@@ -37,6 +37,11 @@ export async function processDiagnostic() {
       { timeout: 30000 },
     );
     const printers = JSON.parse(stdout);
+    await run(
+      pythonExecutable(),
+      [resolve("scripts/windows_print.py"), "--render-check", claimed + ".png"],
+      { timeout: 60000 },
+    );
     if (request.kind !== "status") {
       const printer =
         request.kind === "receipt"
@@ -49,9 +54,13 @@ export async function processDiagnostic() {
       if (!(width >= 20 && width <= 60 && height >= 15 && height <= 200))
         throw new Error("Invalid test media dimensions.");
       const html = claimed + ".html";
+      const content =
+        request.kind === "receipt"
+          ? "<b>BING CHUN</b><p>INSTALLATION TEST<br>NOT A SALE</p><p>Receipt printer<br>Check alignment and readable text.</p>"
+          : "<b>TEST</b><span>NOT A SALE</span>";
       await writeFile(
         html,
-        `<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box}body{width:${width}mm;margin:0;padding:3mm;font:12px Arial;color:black}b{display:block;font-size:16px}</style><body><b>BING CHUN</b><p>INSTALLATION TEST<br>NOT A SALE</p><p>${request.kind === "receipt" ? "Receipt printer" : "Cup sticker"}<br>Check alignment and readable text.</p></body>`,
+        `<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box}body{width:${width}mm;margin:0;padding:1mm;font:10px Arial;color:black}b,span{display:block}b{font-size:12px}</style><body>${content}</body>`,
       );
       await run(
         pythonExecutable(),
@@ -69,6 +78,7 @@ export async function processDiagnostic() {
     result = {
       ok: true,
       printers,
+      rendererReady: true,
       submitted: request.kind !== "status",
       checkedAt: new Date().toISOString(),
     };

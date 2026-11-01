@@ -32,14 +32,14 @@ Certificates last one year. Run Store setup and Apply setup to renew the server 
 
 Use **Check system and printers** from Start. Queue enumeration and test output run through the **actual background worker**, not the elevated desktop user. Choose **Print test receipt** and **Print test sticker**; these submit physical installation tests even when order printing remains in simulation. Check the paper yourself: Windows accepting a job does not prove it printed.
 
-After the tests pass, choose **Windows - physical printing** and Apply setup. In Receipt studio, set the receipt details and matching label dimensions. Wizard dimensions size installation test output; Receipt studio controls order labels. New paid orders print automatically without a browser print dialog. Old simulated jobs are not replayed. EOD currently uses the browser print dialog.
+After the tests pass, choose **Windows - physical printing** and Apply setup. Setup applies the measured label dimensions to Receipt studio; its other receipt settings are preserved. Use Receipt studio to customise receipt details. New paid orders print automatically without a browser print dialog. Old simulated jobs are not replayed. EOD currently uses the browser print dialog.
 
 Complete [the printer acceptance checklist](PRINTER-COMMISSIONING.md), including multiple tablets, different options/toppings, receipt-before-sticker sequencing, long receipts, retries, interruption recovery and reprints. If a label exceeds its selected height or a receipt exceeds the driver's roll height, the adapter reports an error instead of shrinking text to fit. Configure the driver/media and retry only after checking physical output.
 
 ## Backups, updates and recovery
 
 - Local encrypted backups run at worker startup and every six hours. **Back up now** in Start requests an immediate backup. Copy accepted backups to an independent device/location; the same disk alone does not protect against disk failure.
-- Keep the `BACKUP_ENCRYPTION_KEY` from the administrator-protected `.env` in a separate secure offline location. Losing the key makes encrypted backups unreadable. The installer does not set up a cloud account; optional S3 configuration is described in [Windows setup](WINDOWS-SETUP.md).
+- Use **Save recovery key** on the wizard's Test & finish tab to save the backup key to a separate secure offline device. Losing the key makes encrypted backups unreadable. The installer does not set up a cloud account; optional S3 configuration is described in [Windows setup](WINDOWS-SETUP.md).
 - An installer update first attempts a backup using the existing installation, then stops the services before replacing files. After update, run Apply setup to apply migrations and restart. Application uninstall stops/removes services and the firewall rule, and **preserves store data**. Reinstallation can reuse it. PostgreSQL major upgrades require a planned dump/restore; do not point a different major version at the existing data folder.
 - Recovery into a new database is documented in [Windows setup](WINDOWS-SETUP.md#6-recovery-drill). Complete a restore drill before real sales. Do not overwrite a running production database.
 - Keep Windows awake during trading. Restart Windows and verify services/printing, then disconnect only the internet uplink and verify local operation with the router still powered.

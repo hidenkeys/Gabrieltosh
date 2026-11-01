@@ -44,6 +44,10 @@ try {
         // Generated hex passwords have no SQL quoting characters. Never interpolate user input.
         const password =
           appCredentials?.password || randomBytes(32).toString("hex");
+        if (!/^[a-f0-9]{64}$/.test(password))
+          throw new Error(
+            "The saved database credential has an invalid format.",
+          );
         if (!appCredentials)
           await writeFile(input.credentialsFile, JSON.stringify({ password }), {
             flag: "wx",
@@ -73,6 +77,25 @@ try {
         const { seed, createAdmin } = await import("../../server/seed.js");
         await migrate();
         await seed();
+        if (input.labelWidth !== undefined || input.labelHeight !== undefined) {
+          if (!(
+            input.labelWidth >= 20 &&
+            input.labelWidth <= 60 &&
+            input.labelHeight >= 15 &&
+            input.labelHeight <= 150
+          ))
+            throw new Error("Invalid label dimensions.");
+          const template = (
+            await query("SELECT value FROM settings WHERE key='receipt'")
+          ).rows[0].value;
+          await query("UPDATE settings SET value=$1 WHERE key='receipt'", [
+            JSON.stringify({
+              ...template,
+              labelWidth: input.labelWidth,
+              labelHeight: input.labelHeight,
+            }),
+          ]);
+        }
         if (!(await query("SELECT id FROM users LIMIT 1")).rows.length) {
           if (
             !input.name?.trim() ||
