@@ -4,6 +4,8 @@ A tablet-friendly restaurant/drinks POS for one store. The Windows counter compu
 
 ## Included
 
+For the public menu, item selection and downloadable QR codes, see [Customer menu](docs/CUSTOMER-MENU.md).
+
 - Category-based menu, search, quantities, sweetness/ice and paid toppings.
 - Held orders, server-calculated pricing, supervisor discounts and manual cash/card/transfer confirmation.
 - Audited order progression: unpaid → paid → receipt submission → sticker submissions → preparing → ready → fulfilled.

@@ -1,8 +1,9 @@
 // Development preview only. Uses a persistent, isolated local PostgreSQL instance.
 import EmbeddedPostgres from "embedded-postgres";
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
+import { parseEnv } from "node:util";
 const password = "LocalPreviewOnly2026";
 const pg = new EmbeddedPostgres({
   databaseDir: "data/preview-db",
@@ -16,6 +17,12 @@ const pg = new EmbeddedPostgres({
 });
 const env = {
   ...process.env,
+  PUBLIC_MENU_PUBLISH_KEY:
+    process.env.PUBLIC_MENU_PUBLISH_KEY ??
+    (existsSync(".env")
+      ? parseEnv(readFileSync(".env", "utf8")).PUBLIC_MENU_PUBLISH_KEY
+      : "") ??
+    "",
   MEMORY_DB: "false",
   DATABASE_URL: `postgres://preview:${password}@127.0.0.1:55440/postgres`,
   PORT: "3002",

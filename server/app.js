@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import bcrypt from "bcryptjs";
 import { randomUUID, randomBytes, createHash } from "node:crypto";
 import { z } from "zod";
+import { mountCustomerMenu } from "./customer-menu.js";
 import { query, transaction } from "./db.js";
 import {
   priceOrder,
@@ -202,6 +203,7 @@ export function createApp() {
     ]);
     res.clearCookie("pos_session").json({ ok: true });
   });
+  mountCustomerMenu(app, admin, audit);
   app.get("/api/products", staff, async (req, res) =>
     res.json(
       (await query("SELECT * FROM products ORDER BY category,code")).rows,

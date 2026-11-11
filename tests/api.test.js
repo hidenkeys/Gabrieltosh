@@ -133,6 +133,42 @@ test("authenticated order-to-payment flow preserves totals and is idempotent", a
     password: "CashierPassword123",
   });
   const clerkCookie = clerk.cookie;
+  const publicMenu = await call("/customer-menu");
+  assert.equal(publicMenu.status, 200);
+  assert.match(publicMenu.data.url, /^https:\/\//);
+  assert.equal(
+    (await call("/customer-menu", "GET", undefined, clerkCookie)).status,
+    403,
+  );
+  assert.equal(
+    (
+      await call("/customer-menu", "GET", undefined, "", {
+        "x-forwarded-for": "192.168.1.80",
+      })
+    ).status,
+    401,
+  );
+  assert.equal(
+    (
+      await call(
+        "/customer-menu/publish",
+        "POST",
+        { productIds: [tea.id] },
+        clerkCookie,
+      )
+    ).status,
+    403,
+  );
+  const qr = await fetch(base + "/api/customer-menu/qr.png?download=1", {
+    headers: { cookie },
+  });
+  assert.equal(qr.status, 200);
+  assert.equal(qr.headers.get("content-type"), "image/png");
+  assert.match(
+    qr.headers.get("content-disposition"),
+    /bing-chun-surulere-menu-qr.png/,
+  );
+  assert.equal(Buffer.from(await qr.arrayBuffer()).readUInt32BE(), 0x89504e47);
   assert.equal(
     (await call("/users", "GET", undefined, clerkCookie)).status,
     403,

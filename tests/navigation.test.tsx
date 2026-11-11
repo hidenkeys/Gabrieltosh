@@ -56,6 +56,11 @@ globalThis.fetch = (async (input: any) => {
   const data: any = {
     "/me": user,
     "/products": [],
+    "/customer-menu": {
+      url: "https://menu.example/",
+      canPublish: true,
+      publication: null,
+    },
     "/orders": [],
     "/settings": {
       receipt: template,
@@ -101,6 +106,7 @@ test("every workspace page renders after leaving and returning to Counter", asyn
     ["Print queue", "Print queue."],
     ["Overview & EOD", "Store overview."],
     ["Menu library", "Menu library."],
+    ["Customer menu", "Customer menu."],
     ["Receipt studio", "Receipt studio."],
     ["Team & access", "Team & access."],
     ["Activity log", "Activity log."],
@@ -114,6 +120,17 @@ test("every workspace page renders after leaving and returning to Counter", asyn
     if (nav === "Team & access")
       await screen.findByRole("heading", { name: user.name });
     if (nav === "Receipt studio") await screen.findByText("Template settings");
+    if (nav === "Customer menu") {
+      await screen.findByRole("img", { name: /QR code for the Bing Chun/ });
+      assert.equal(
+        screen.getByRole("link", { name: "PNG" }).getAttribute("href"),
+        "/api/customer-menu/qr.png?download=1",
+      );
+      assert.equal(
+        screen.getByRole("link", { name: "Open menu" }).getAttribute("href"),
+        "https://menu.example/",
+      );
+    }
     fireEvent.click(
       screen.getByRole("button", { name: "Counter", exact: true }),
     );

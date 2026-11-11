@@ -1,5 +1,6 @@
 import { store } from "./brand";
 import { ProductImage } from "./ProductImage";
+import { CustomerMenu } from "./CustomerMenu";
 import React, { useEffect, useState, useCallback } from "react";
 import {
   LayoutGrid,
@@ -42,6 +43,7 @@ import {
   Cloud,
   Eye,
   EyeOff,
+  QrCode,
 } from "lucide-react";
 import {
   api,
@@ -275,6 +277,7 @@ export default function App() {
     ...(admin
       ? [
           { id: "menu", label: "Menu library", icon: Package },
+          { id: "customer-menu", label: "Customer menu", icon: QrCode },
           { id: "receipts", label: "Receipt studio", icon: ReceiptText },
           { id: "team", label: "Team & access", icon: Users },
           { id: "audit", label: "Activity log", icon: Activity },
@@ -289,6 +292,7 @@ export default function App() {
     printing: ["Print queue", "Receipts and labels, in the right order."],
     reports: ["Store overview", "The numbers behind a good day."],
     menu: ["Menu library", "A thoughtfully organised menu."],
+    "customer-menu": ["Customer menu", "Share the Surulere menu with a scan."],
     receipts: ["Receipt studio", "Make every little detail yours."],
     team: ["Team & access", "The people behind the counter."],
     audit: ["Activity log", "A clear record of every important action."],
@@ -470,6 +474,7 @@ export default function App() {
               notify={notify}
             />
           )}
+          {page === "customer-menu" && admin && <CustomerMenu products={products} notify={notify} />}
           {page === "team" && <Team notify={notify} />}
           {page === "audit" && <Audit />}
           {page === "system" && <System printing={printing} />}

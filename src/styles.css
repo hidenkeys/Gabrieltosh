@@ -3117,3 +3117,29 @@ input[type="checkbox"] {
 .product-photo.photo-cover {
   object-position: center;
 }
+.customer-menu-layout { display:grid; grid-template-columns:minmax(250px,320px) minmax(0,1fr); gap:20px; align-items:start; }
+.customer-share,.customer-selection { background:#fff; border:1px solid #dbe6f1; border-radius:20px; padding:22px; min-width:0; }
+.customer-share .eyebrow,.customer-qr-actions,.customer-selection-heading,.customer-publish-status,.customer-publish-actions { display:flex; align-items:center; gap:9px; }
+.customer-share h2,.customer-selection h2 { margin:8px 0; font-size:1.4rem; line-height:1.12; }
+.customer-share p,.customer-selection p { color:#51647d; line-height:1.5; font-size:.88rem; margin:8px 0 16px; }
+.customer-qr { display:block; width:min(100%,230px); height:auto; margin:8px auto 16px; border:1px solid #e4ecf5; border-radius:14px; }
+.customer-qr-actions,.customer-publish-actions { flex-wrap:wrap; }
+.customer-qr-actions a { text-decoration:none; }
+.customer-link { display:grid; gap:6px; font-size:.82rem; font-weight:700; margin:17px 0 8px; }
+.customer-link input { width:100%; min-width:0; font-size:.76rem; }
+.customer-selection-heading { justify-content:space-between; align-items:flex-start; flex-wrap:wrap; }
+.customer-publish-status { font-size:.82rem; color:#174897; background:#edf5ff; border-radius:11px; padding:10px; margin-bottom:12px; }
+.customer-publish-status svg { flex-shrink:0; }
+.customer-products { max-height:470px; overflow:auto; margin:12px 0 18px; scrollbar-width:thin; }
+.customer-products fieldset { border:1px solid #e4ecf5; border-radius:12px; padding:4px 10px; margin:0 4px 10px 0; min-width:0; }
+.customer-products legend { font-weight:800; padding:0 4px; font-size:.83rem; }
+.customer-product { display:grid; grid-template-columns:20px 38px minmax(0,1fr) auto; gap:8px; align-items:center; padding:7px 0; margin:0; border-bottom:1px solid #eef2f6; cursor:pointer; font-size:.83rem; }
+.customer-product:last-child { border-bottom:0; }
+.customer-product input[type=checkbox] { width:17px; height:17px; accent-color:#1558c9; }
+.customer-product strong { overflow-wrap:anywhere; }
+.customer-product small { display:block; color:#51647d; margin-top:2px; }
+.customer-product b { white-space:nowrap; }
+.customer-product .mini-product { width:36px; height:36px; }
+.customer-publish-actions small { color:#51647d; }
+@media (max-width:860px) { .customer-menu-layout { grid-template-columns:1fr; } }
+@media (max-width:450px) { .customer-share,.customer-selection { padding:15px; } }
