@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import OverviewAttention from "./OverviewAttention";
 import { formatMoney } from "./api";
 import ReportDetails from "./ReportDetails";
 import ReportExplorer from "./ReportExplorer";
@@ -15,6 +17,7 @@ export default function OperationalOverview({
   canCreate,
   canViewOrders,
   onNavigate,
+  canNavigate = () => false,
 }: {
   data: any;
   orders: any[];
@@ -23,15 +26,33 @@ export default function OperationalOverview({
   canCreate: boolean;
   canViewOrders: boolean;
   onNavigate: (id: string) => void;
+  canNavigate?: (id: string) => boolean;
 }) {
+  const dateReports = useRef<HTMLDetailsElement>(null);
   const report = data.report || {},
     flow = ["submitted", "accepted", "preparing", "ready"],
     active = orders.filter((o) => flow.includes(o.status));
   return (
     <div className="mw-overview">
       <div className="mw-overview-toolbar">
-        <p>{report.date || "Today"} · Branch trading day</p>
+        <p>
+          {report.date || "Date unavailable"} · Branch trading day
+          {data.branch?.timezone ? ` · ${data.branch.timezone}` : ""}
+        </p>
         <div className="mw-actions">
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => {
+              if (dateReports.current) {
+                dateReports.current.open = true;
+                dateReports.current.querySelector("summary")?.focus();
+                dateReports.current.scrollIntoView({ block: "start" });
+              }
+            }}
+          >
+            Reports by date
+          </button>
           {canViewOrders && (
             <button className="secondary" onClick={() => onNavigate("orders")}>
               View orders
@@ -67,7 +88,7 @@ export default function OperationalOverview({
           ],
           [
             "Orders",
-            report.orders ?? orders.length,
+            report.orders ?? "Unavailable",
             "Orders placed this trading day",
           ],
         ].map(([label, value, note]) => (
@@ -78,6 +99,11 @@ export default function OperationalOverview({
           </section>
         ))}
       </div>
+      <OverviewAttention
+        data={data}
+        canNavigate={canNavigate}
+        onNavigate={onNavigate}
+      />
       <div className="mw-overview-columns">
         <section className="mw-card">
           <div className="mw-overview-section-heading">
@@ -108,6 +134,8 @@ export default function OperationalOverview({
                         <th>Order</th>
                         <th>Customer</th>
                         <th>Status</th>
+                        <th>Handler</th>
+                        <th>Placed</th>
                         <th>Total</th>
                       </tr>
                     </thead>
@@ -117,6 +145,24 @@ export default function OperationalOverview({
                           <td>{o.reference}</td>
                           <td>{o.displayName}</td>
                           <td>{o.status.replaceAll("_", " ")}</td>
+                          <td>
+                            {o.handlerName ||
+                              (o.handlerId ? "Assigned staff" : "Unassigned")}
+                          </td>
+                          <td>
+                            {Number.isFinite(Date.parse(o.createdAt))
+                              ? new Date(o.createdAt).toLocaleTimeString(
+                                  "en-GB",
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    ...(data.branch?.timezone
+                                      ? { timeZone: data.branch.timezone }
+                                      : {}),
+                                  },
+                                )
+                              : "Unavailable"}
+                          </td>
                           <td>{money(o.total)}</td>
                         </tr>
                       ))}
@@ -162,7 +208,7 @@ export default function OperationalOverview({
         <summary>Sales, tax and product breakdown</summary>
         <ReportDetails report={report} />
       </details>
-      <details className="mw-card">
+      <details className="mw-card" ref={dateReports}>
         <summary>Reports for another trading day</summary>
         <ReportExplorer base={base} disabled={disabled} />
       </details>

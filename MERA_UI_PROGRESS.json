@@ -2,7 +2,7 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-18T16:10:03+01:00",
+  "lastUpdated": "2026-11-18T16:25:00+01:00",
   "revision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
@@ -236,20 +236,29 @@
       "title": "Overview actionable content and date context",
       "weight": 3,
       "checkpoint": 0,
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
         "O1",
         "F5"
       ],
       "acceptance": "Orders needing attention, outstanding payments, arrivals, stock, shifts/recent activity with permission-safe real data, dates and drilldowns; unavailable differs from zero.",
-      "evidence": [],
+      "evidence": [
+        "src/mera/workspace/OverviewAttention.tsx",
+        "tests/mera-ui-pilot.test.tsx",
+        "docs/mera/ui-audit/PILOT-CHECKPOINT-2026-11-18.md"
+      ],
       "blockers": [],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 0,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T16:25:00+01:00",
+          "checkpoint": 0,
+          "note": "Priority sections/date entry and handler/time integrated; browser overflow corrected. Staff/recent activity, full drilldowns/date-state acceptance incomplete; no checkpoint credit yet."
         }
       ]
     },
@@ -1641,10 +1650,10 @@
     }
   ],
   "overallPrdCoverage": {
-    "status": "MAPPING_IN_PROGRESS",
+    "status": "INVENTORY_DRAFT_REVIEW_PENDING",
     "counts": null,
     "percentage": null,
-    "note": "Historical ACCEPTANCE/BOARD gates are not a complete atomic PRD denominator. No invented PRD percentage."
+    "note": "208 requirement IDs inventoried in docs/mera/PRD-COVERAGE.md. Denominator/classification needs lead review; no PRD percentage inferred. UI weights remain independent."
   },
   "productionReadiness": {
     "status": "NOT_READY",

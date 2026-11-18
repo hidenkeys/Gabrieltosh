@@ -943,3 +943,68 @@
     display: none;
   }
 }
+
+.mw-attention-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+.mw-attention-grid > section + section {
+  border-left: 1px solid var(--line);
+  padding-left: 20px;
+}
+.mw-attention-grid h3 {
+  margin: 12px 0;
+  font-size: 14px;
+}
+.mw-attention-grid p,
+.mw-attention-grid li span {
+  font-size: 12px;
+  color: #6d7b8e;
+}
+.mw-attention-grid ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+}
+.mw-attention-grid li {
+  display: grid;
+  gap: 5px;
+  padding: 8px 0;
+  overflow-wrap: anywhere;
+}
+.mw-attention-grid li strong {
+  font-size: 12px;
+  font-weight: 550;
+}
+.mw-attention-grid button {
+  min-height: 44px;
+  margin-top: 4px;
+}
+@media (max-width: 1200px) {
+  .mw-attention-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mw-attention-grid > section + section {
+    border-left: 0;
+    padding-left: 0;
+  }
+}
+@media (max-width: 620px) {
+  .mw-attention-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .mw-attention-grid > section + section {
+    border-top: 1px solid var(--line);
+  }
+}
+
+/* Keep wider service rows inside their local scroll region on handhelds. */
+.mw-overview-columns > .mw-card {
+  min-width: 0;
+}
+.mw-overview .mw-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}

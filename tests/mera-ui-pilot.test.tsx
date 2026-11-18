@@ -208,3 +208,62 @@ test("account popup closes by Escape or outside pointer, retaining workspace sig
     cleanup();
   }
 });
+
+test("overview attention distinguishes unavailable alerts, scopes actions and uses actual service records", async () => {
+  const { default: OverviewAttention } =
+    await import("../src/mera/workspace/OverviewAttention");
+  const actions: string[] = [];
+  try {
+    const { rerender } = render(
+      <OverviewAttention
+        data={{}}
+        canNavigate={(id) => ["orders", "menu"].includes(id)}
+        onNavigate={(id) => actions.push(id)}
+      />,
+    );
+    assert.ok(screen.getByText("Waiting-time alerts are unavailable."));
+    assert.ok(screen.getByText("Stock alerts are unavailable."));
+    assert.equal(screen.queryByText("Shift status"), null);
+    fireEvent.click(screen.getByRole("button", { name: "Review stock" }));
+    assert.deepEqual(actions, ["menu"]);
+    rerender(
+      <OverviewAttention
+        data={{
+          serverTime: "2026-11-18T12:00:00Z",
+          delayedOrders: [{ id: "order", reference: "M-001", ageMinutes: 21 }],
+          lowStockAlerts: [{ productId: "tea", name: "Milk tea", stock: 2 }],
+          shifts: [
+            { id: "shift", status: "pending_approval", variance: 15000 },
+          ],
+          reservations: [
+            {
+              id: "past",
+              displayName: "Past guest",
+              status: "confirmed",
+              startsAt: "2026-11-17T12:00:00Z",
+              endsAt: "2026-11-17T13:00:00Z",
+            },
+            {
+              id: "next",
+              displayName: "Next guest",
+              status: "confirmed",
+              startsAt: "2026-11-18T13:00:00Z",
+              endsAt: "2026-11-18T14:00:00Z",
+            },
+          ],
+        }}
+        canNavigate={() => true}
+        onNavigate={(id) => actions.push(id)}
+      />,
+    );
+    assert.ok(screen.getByText("21 min"));
+    assert.ok(screen.getByText("2 left"));
+    assert.ok(screen.getByText("Next guest"));
+    assert.equal(screen.queryByText("Past guest"), null);
+    assert.ok(screen.getByText("Variance ₦150.00"));
+    fireEvent.click(screen.getByRole("button", { name: "Review arrivals" }));
+    assert.deepEqual(actions, ["menu", "reservations"]);
+  } finally {
+    cleanup();
+  }
+});

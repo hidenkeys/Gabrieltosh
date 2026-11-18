@@ -2,7 +2,7 @@
 
 Goal: Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.
 
-Scope **1.0** · revision `e281670b8767bcd2f21254eb7042da4ec3e70fdd` · updated 2026-11-18T16:10:03+01:00
+Scope **1.0** · revision `e281670b8767bcd2f21254eb7042da4ec3e70fdd` · updated 2026-11-18T16:25:00+01:00
 
 **UI correction: 14% complete | 86% remaining.** Weighted evidence: 14.8/100. This is checklist completion, not a time estimate.
 
@@ -38,7 +38,7 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | F5 | Compact shared shell, account menu and role landing | 4% | 0% | IN_PROGRESS · lead | [WorkspaceAccount.tsx](src/mera/workspace/WorkspaceAccount.tsx), [mera-ui-pilot.test.tsx](tests/mera-ui-pilot.test.tsx) |
 | F6 | Durable progress and complete screen inventory | 2% | 100% | VERIFIED · lead | [MERA_UI_PROGRESS.json](MERA_UI_PROGRESS.json), [mera-ui-progress.js](scripts/mera-ui-progress.js) |
 | O1 | Overview layout pilot | 2% | 60% | IN_PROGRESS · lead | [05-mera-overview-after.jpg](docs/mera/ui-audit/screenshots/05-mera-overview-after.jpg), [10-mera-overview-narrow.jpg](docs/mera/ui-audit/screenshots/10-mera-overview-narrow.jpg), [design-qa.md](design-qa.md) |
-| O2 | Overview actionable content and date context | 3% | 0% | NOT_STARTED · lead | Pending |
+| O2 | Overview actionable content and date context | 3% | 0% | IN_PROGRESS · lead | [OverviewAttention.tsx](src/mera/workspace/OverviewAttention.tsx), [mera-ui-pilot.test.tsx](tests/mera-ui-pilot.test.tsx), [PILOT-CHECKPOINT-2026-11-18.md](docs/mera/ui-audit/PILOT-CHECKPOINT-2026-11-18.md) |
 | O3 | Onboarding, branding and branch setup | 4% | 0% | IN_PROGRESS · workspace | [mera-management-ui.test.tsx](tests/mera-management-ui.test.tsx), [management.css](src/mera/workspace/management.css) |
 | O4 | Menu, categories, modifiers and stock management | 5% | 0% | NOT_STARTED · workspace | Pending |
 | O5 | Staff, invitations, scopes and custom roles | 3% | 0% | NOT_STARTED · workspace | Pending |
@@ -107,7 +107,7 @@ Task acceptance criteria, dependency IDs, change history and blockers are in [ME
 
 ## Separate PRD coverage
 
-Status: MAPPING_IN_PROGRESS. Historical ACCEPTANCE/BOARD gates are not a complete atomic PRD denominator. No invented PRD percentage. Counts/percentage remain unestablished until the atomic PRD map is complete. Historical evidence remains in [ACCEPTANCE](docs/mera/ACCEPTANCE.md) and [BOARD](docs/mera/BOARD.md), including explicit incomplete implementation work.
+Status: INVENTORY_DRAFT_REVIEW_PENDING. 208 requirement IDs inventoried in docs/mera/PRD-COVERAGE.md. Denominator/classification needs lead review; no PRD percentage inferred. UI weights remain independent. Counts/percentage remain unestablished until the atomic PRD map is complete. Historical evidence remains in [ACCEPTANCE](docs/mera/ACCEPTANCE.md) and [BOARD](docs/mera/BOARD.md), including explicit incomplete implementation work.
 
 ## Production readiness
 

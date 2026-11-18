@@ -1799,6 +1799,9 @@ export default function OrganizationWorkspace({
                   orders={liveOrders}
                   base={branchBase}
                   disabled={busy || offline}
+                  canNavigate={(id) =>
+                    visibleSections.some(([sectionId]) => sectionId === id)
+                  }
                   canCreate={allowed("orders.create")}
                   canViewOrders={allowed("orders.view")}
                   onNavigate={setSection}
