@@ -1,3 +1,4 @@
+import { publishedCounterProducts } from "./catalog.js";
 import { z } from "zod";
 import { assertOrganizationFeature } from "./feature-flags.js";
 import { createHash } from "node:crypto";
@@ -48,7 +49,7 @@ export async function createPricingQuote({locked,record,readRecords},s,body,acto
    else if(guestId)assertOrganizationFeature(organization,"customer_ordering");
    if(input.menuVersion!==b.menu_version)throw fail("Menu changed. Refresh before requesting a quote.",409,"MENU_CHANGED");
    const live=(await readRecords(c,s.organizationId,s.branchId,"product")).map(r=>r.data);
-   const products=b.published_menu.map(p=>{const current=live.find(i=>i.id===p.id);return {...p,available:!!current?.available&&availableNow(p.availabilityWindows,b.timezone),stockMode:current?.stockMode||"unlimited",stock:current?.stock||0,variants:p.variants.map(v=>({...v,stockMode:current?.variants.find(i=>i.id===v.id)?.stockMode||"unlimited",stock:current?.variants.find(i=>i.id===v.id)?.stock||0}))};});
+   const products=publishedCounterProducts(b,live);
    const amounts=priceBreakdown(quote(input.items,products).total,b.settings.pricingPolicy);
    const stored=await record(c,s,"order_quote",{...amounts,menuVersion:input.menuVersion,currency:b.currency,actorId:actor?.id||null,guestId:guestId||null,intentHash:pricingItemsHash(input),createdAt:stamp(),expiresAt:new Date(Date.now()+5*60000).toISOString()});
    const {actorId,guestId:ignored,intentHash,policySnapshot,...safe}=stored;return safe;

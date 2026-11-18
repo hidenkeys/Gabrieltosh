@@ -18,6 +18,7 @@ import { ProductImage } from "../../ProductImage";
 import SetupChecklist from "./SetupChecklist";
 import RefundRequests from "./RefundRequests";
 import StaffPos from "./StaffPos";
+import { validateStaffSelection } from "./staffSelection";
 import PosOrderContext from "./PosOrderContext";
 import WorkspaceNavigation from "./WorkspaceNavigation";
 import { chooseWorkspaceLanding, getSectionPresentation } from "./presentation";
@@ -148,7 +149,9 @@ export default function OrganizationWorkspace({
     payment: "",
     unassigned: false,
   });
-  const [error, setError] = useState("");
+  const [writeError, setError] = useState("");
+  const [readError, setReadError] = useState("");
+  const error = writeError || readError;
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
@@ -264,6 +267,8 @@ export default function OrganizationWorkspace({
   activeScope.current = branchBase;
 
   const clearProtected = useCallback(() => {
+    setError("");
+    setReadError("");
     authorizationEpoch.current++;
     setPrivateAccess(null);
     setData(null);
@@ -336,7 +341,7 @@ export default function OrganizationWorkspace({
       const epoch = scopeEpoch.current.generation;
       if (!quiet) {
         setLoading(true);
-        setError("");
+        setReadError("");
       }
       try {
         const result = await workspaceApi("/context");
@@ -379,6 +384,7 @@ export default function OrganizationWorkspace({
           clearFinancialJournals(actor);
         }
         setContext(result);
+        if (!accessDenied.current) setReadError("");
         setOffline(false);
         setOrganizationId((current) =>
           result.organizations?.some((org: any) => org.id === current)
@@ -396,7 +402,7 @@ export default function OrganizationWorkspace({
           setContext(null);
           setOrganizationId("");
         }
-        setError((e as Error).message);
+        setReadError((e as Error).message);
         setOffline(true);
       } finally {
         if (generation === contextGeneration.current) setLoading(false);
@@ -438,6 +444,8 @@ export default function OrganizationWorkspace({
   }, [clearProtected, loadContext]);
   useEffect(() => {
     setPrivateAccess(null);
+    setError("");
+    setReadError("");
     setData(null);
     setCategories([]);
     setMembers([]);
@@ -475,7 +483,7 @@ export default function OrganizationWorkspace({
           return;
         setData(response);
         setOffline(false);
-        setError("");
+        setReadError("");
       } catch (e) {
         if (
           (e as Error).name !== "AbortError" &&
@@ -486,7 +494,7 @@ export default function OrganizationWorkspace({
             accessDenied.current = true;
             clearProtected();
           }
-          setError((e as Error).message);
+          setReadError((e as Error).message);
           setOffline(true);
         }
       }
@@ -496,6 +504,8 @@ export default function OrganizationWorkspace({
   useEffect(() => {
     accessDenied.current = false;
     setPrivateAccess(null);
+    setError("");
+    setReadError("");
     setData(null);
     setCategories([]);
     setTabForm({});
@@ -568,7 +578,7 @@ export default function OrganizationWorkspace({
             scopeEpoch.current.generation === scopeVersion &&
             authorizationEpoch.current === authorizationVersion
           )
-            setError(e.message);
+            setReadError(e.message);
         });
       return () => controller.abort();
     }
@@ -694,6 +704,19 @@ export default function OrganizationWorkspace({
     }
   };
   const sendStaffOrder = async () => {
+    if (!uncertainOrder && (requiresQuote || !!staffQuote) && !validQuote) {
+      setError("Review the total again before submitting this order.");
+      return;
+    }
+    if (
+      !uncertainOrder &&
+      (!Array.isArray(data?.counterProducts) ||
+        !validateStaffSelection(data.counterProducts, orderDraft.items)
+          .complete)
+    ) {
+      setError("Complete the item selections before submitting this order.");
+      return;
+    }
     const scope = branchBase;
     requestKey.current ||= uuid();
     const resolvingUncertain = !!uncertainOrder;
@@ -1095,6 +1118,12 @@ export default function OrganizationWorkspace({
         ? data.branch.settings.pricingPolicy.version
         : null);
   const products = list(data?.products);
+  const counterMenuAvailable = Array.isArray(data?.counterProducts);
+  const counterProducts = counterMenuAvailable ? data?.counterProducts : [];
+  const staffSelection = validateStaffSelection(
+    counterProducts,
+    orderDraft.items,
+  );
   const branch =
     data?.branch || branches.find((row: any) => row.id === branchId);
 
@@ -1259,6 +1288,9 @@ export default function OrganizationWorkspace({
       {error && (
         <div className="mw-note mw-error" role="alert">
           {offline && <WifiOff size={15} />} {error}
+          {writeError && readError && (
+            <p>Records could not be refreshed: {readError}</p>
+          )}
           <div className="mw-actions">
             <button
               className="secondary"
@@ -1269,6 +1301,15 @@ export default function OrganizationWorkspace({
             >
               Refresh records
             </button>
+            {writeError && (
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setError("")}
+              >
+                Dismiss message
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -2437,26 +2478,35 @@ export default function OrganizationWorkspace({
                 <Tickets
                   key={branchBase}
                   base={branchBase}
-                  tickets={list(data.tickets)}
+                  tickets={Array.isArray(data.tickets) ? data.tickets : null}
                   stationScope={
                     ["kitchen", "bar"].includes(organization?.role)
                       ? organization.role
                       : undefined
                   }
-                  orders={liveOrders}
+                  orders={Array.isArray(data.orders) ? liveOrders : null}
                   disabled={busy || offline}
                   save={mutate}
+                  serverTime={data.serverTime}
+                  payLater={data.branch?.settings?.payLater === true}
+                  loadError={
+                    offline
+                      ? readError || "Preparation tickets could not be loaded."
+                      : undefined
+                  }
+                  onRefresh={refresh}
+                  refreshDisabled={busy}
+                  onViewOrders={
+                    allowed("orders.view")
+                      ? () => selectSection("orders")
+                      : undefined
+                  }
                 />
               )}
-              {(activeSection === "orders" ||
-                activeSection === "preparation") && (
+              {activeSection === "orders" && (
                 <>
                   <section className="mw-card">
-                    <h2>
-                      {activeSection === "preparation"
-                        ? "Kitchen & bar handoffs"
-                        : "Every order, with responsibility"}
-                    </h2>
+                    <h2>Every order, with responsibility</h2>
                     {activeSection === "orders" && (
                       <>
                         <p className="mw-note">
@@ -2614,198 +2664,181 @@ export default function OrganizationWorkspace({
                       </label>
                     </div>
                     {filteredOrders.length
-                      ? filteredOrders
-                          .filter(
-                            (order) =>
-                              activeSection !== "preparation" ||
-                              ![
-                                "completed",
-                                "collected",
-                                "cancelled",
-                                "rejected",
-                              ].includes(order.status),
-                          )
-                          .map((order) => (
-                            <div className="mw-row" key={order.id}>
-                              <div>
-                                <b>
-                                  {order.reference || order.id.slice(0, 8)} ·{" "}
-                                  {order.displayName}
-                                </b>
-                                <small>
-                                  {sourceLabel(order.source)} ·{" "}
-                                  {sourceLabel(order.fulfillment)} ·{" "}
-                                  {formatMoney(order.total)} ·{" "}
-                                  {sourceLabel(order.paymentStatus)}
-                                </small>
-                                <small>
-                                  Handler:{" "}
-                                  {order.handlerName ||
-                                    order.assignedTo ||
-                                    order.handlerId ||
-                                    "Unassigned"}{" "}
-                                  · {dateLabel(order.createdAt)}
-                                </small>
-                                <OrderInstructions order={order} />
-                                {list(order.items).map(
-                                  (line: any, index: number) => (
-                                    <div key={line.orderLineId || index}>
-                                      <small>
-                                        {line.quantity} ×{" "}
-                                        {line.name || line.productName}
-                                        {line.size ? " · " + line.size : ""}
-                                      </small>
-                                      <OrderInstructions item={line} />
-                                    </div>
+                      ? filteredOrders.map((order) => (
+                          <div className="mw-row" key={order.id}>
+                            <div>
+                              <b>
+                                {order.reference || order.id.slice(0, 8)} ·{" "}
+                                {order.displayName}
+                              </b>
+                              <small>
+                                {sourceLabel(order.source)} ·{" "}
+                                {sourceLabel(order.fulfillment)} ·{" "}
+                                {formatMoney(order.total)} ·{" "}
+                                {sourceLabel(order.paymentStatus)}
+                              </small>
+                              <small>
+                                Handler:{" "}
+                                {order.handlerName ||
+                                  order.assignedTo ||
+                                  order.handlerId ||
+                                  "Unassigned"}{" "}
+                                · {dateLabel(order.createdAt)}
+                              </small>
+                              <OrderInstructions order={order} />
+                              {list(order.items).map(
+                                (line: any, index: number) => (
+                                  <div key={line.orderLineId || index}>
+                                    <small>
+                                      {line.quantity} ×{" "}
+                                      {line.name || line.productName}
+                                      {line.size ? " · " + line.size : ""}
+                                    </small>
+                                    <OrderInstructions item={line} />
+                                  </div>
+                                ),
+                              )}
+                              {order.historicalReadOnly && (
+                                <div className="mw-note">
+                                  <strong>
+                                    Imported source history · read only
+                                  </strong>
+                                  <p>
+                                    Original source status:{" "}
+                                    {sourceLabel(
+                                      order.legacyStatus || order.status,
+                                    )}
+                                    .{" "}
+                                    {(order.historicalRecognitionBasis ||
+                                      order.recognitionBasis) &&
+                                      "Recognition basis: " +
+                                        sourceLabel(
+                                          order.historicalRecognitionBasis ||
+                                            order.recognitionBasis,
+                                        ) +
+                                        "."}{" "}
+                                    {order.historicalTaxStatus &&
+                                      "Historical tax: " +
+                                        sourceLabel(order.historicalTaxStatus) +
+                                        "."}{" "}
+                                    This record does not create a live bill,
+                                    stock hold or preparation ticket.
+                                  </p>
+                                </div>
+                              )}
+                              {Number.isSafeInteger(order.writtenOff) &&
+                                order.writtenOff > 0 && (
+                                  <small>
+                                    Non-cash written-off debt:{" "}
+                                    {formatMoney(order.writtenOff)} ·
+                                    Outstanding:{" "}
+                                    {formatMoney(order.outstandingBalance)}
+                                  </small>
+                                )}
+                              {!order.historicalReadOnly &&
+                                allowed("refunds.approve") && (
+                                  <WriteOff
+                                    key={
+                                      branchBase +
+                                      order.id +
+                                      financialRevision +
+                                      "writeoff"
+                                    }
+                                    base={branchBase}
+                                    order={order}
+                                    disabled={busy || offline}
+                                    save={mutate}
+                                  />
+                                )}
+                              <details style={{ marginTop: 8 }}>
+                                <summary>
+                                  Responsibility & payment history
+                                </summary>
+                                {list(order.history).map(
+                                  (entry: any, index: number) => (
+                                    <small key={index}>
+                                      {sourceLabel(entry.action)} ·{" "}
+                                      {entry.actorName ||
+                                        entry.actorId ||
+                                        "System"}{" "}
+                                      · {dateLabel(entry.at)}
+                                      {entry.amount
+                                        ? " · " + formatMoney(entry.amount)
+                                        : ""}
+                                    </small>
                                   ),
                                 )}
-                                {order.historicalReadOnly && (
-                                  <div className="mw-note">
-                                    <strong>
-                                      Imported source history · read only
-                                    </strong>
-                                    <p>
-                                      Original source status:{" "}
-                                      {sourceLabel(
-                                        order.legacyStatus || order.status,
-                                      )}
-                                      .{" "}
-                                      {(order.historicalRecognitionBasis ||
-                                        order.recognitionBasis) &&
-                                        "Recognition basis: " +
-                                          sourceLabel(
-                                            order.historicalRecognitionBasis ||
-                                              order.recognitionBasis,
-                                          ) +
-                                          "."}{" "}
-                                      {order.historicalTaxStatus &&
-                                        "Historical tax: " +
-                                          sourceLabel(
-                                            order.historicalTaxStatus,
-                                          ) +
-                                          "."}{" "}
-                                      This record does not create a live bill,
-                                      stock hold or preparation ticket.
-                                    </p>
-                                  </div>
+                              </details>
+                              {!order.historicalReadOnly &&
+                                allowed("orders.fulfill") && (
+                                  <ItemFulfillment
+                                    key={branchBase + order.id}
+                                    base={branchBase}
+                                    order={order}
+                                    tickets={list(data.tickets)}
+                                    disabled={busy || offline}
+                                    save={mutate}
+                                  />
                                 )}
-                                {Number.isSafeInteger(order.writtenOff) &&
-                                  order.writtenOff > 0 && (
-                                    <small>
-                                      Non-cash written-off debt:{" "}
-                                      {formatMoney(order.writtenOff)} ·
-                                      Outstanding:{" "}
-                                      {formatMoney(order.outstandingBalance)}
-                                    </small>
-                                  )}
-                                {!order.historicalReadOnly &&
-                                  allowed("refunds.approve") && (
-                                    <WriteOff
-                                      key={
-                                        branchBase +
-                                        order.id +
-                                        financialRevision +
-                                        "writeoff"
-                                      }
-                                      base={branchBase}
-                                      order={order}
-                                      disabled={busy || offline}
-                                      save={mutate}
-                                    />
-                                  )}
-                                <details style={{ marginTop: 8 }}>
-                                  <summary>
-                                    Responsibility & payment history
-                                  </summary>
-                                  {list(order.history).map(
-                                    (entry: any, index: number) => (
-                                      <small key={index}>
-                                        {sourceLabel(entry.action)} ·{" "}
-                                        {entry.actorName ||
-                                          entry.actorId ||
-                                          "System"}{" "}
-                                        · {dateLabel(entry.at)}
-                                        {entry.amount
-                                          ? " · " + formatMoney(entry.amount)
-                                          : ""}
-                                      </small>
-                                    ),
-                                  )}
-                                </details>
-                                {!order.historicalReadOnly &&
-                                  allowed("orders.fulfill") && (
-                                    <ItemFulfillment
-                                      key={branchBase + order.id}
-                                      base={branchBase}
-                                      order={order}
-                                      tickets={list(data.tickets)}
-                                      disabled={busy || offline}
-                                      save={mutate}
-                                    />
-                                  )}
-                                {!order.historicalReadOnly &&
-                                  allowed("orders.fulfill") && (
-                                    <ItemCancellation
-                                      key={
-                                        branchBase +
-                                        order.id +
-                                        financialRevision
-                                      }
-                                      base={branchBase}
-                                      order={order}
-                                      refunds={list(data.refunds)}
-                                      canRefund={allowed("refunds.approve")}
-                                      tickets={list(data.tickets)}
-                                      disabled={busy || offline}
-                                      save={mutate}
-                                    />
-                                  )}
-                              </div>
-                              <div className="mw-actions">
-                                <span className="mw-pill">
-                                  {sourceLabel(order.status)}
-                                </span>
-                                {!order.historicalReadOnly &&
-                                  nextState[order.status] &&
-                                  button(
-                                    "Mark " +
-                                      sourceLabel(nextState[order.status]),
-                                    () =>
-                                      act(
-                                        branchBase +
-                                          `/orders/${order.id}/status`,
-                                        {
-                                          status: nextState[order.status],
-                                          version: order.version,
-                                        },
-                                        "Order updated.",
-                                      ),
-                                    [
-                                      "submitted",
-                                      "accepted",
-                                      "preparing",
-                                    ].includes(order.status)
-                                      ? "orders.prepare"
-                                      : "orders.fulfill",
-                                  )}
-                                {!order.historicalReadOnly &&
-                                  button(
-                                    "Assign to me",
-                                    () =>
-                                      act(
-                                        branchBase +
-                                          `/orders/${order.id}/assign`,
-                                        {
-                                          userId: user.id,
-                                          version: order.version,
-                                        },
-                                        "Order assigned.",
-                                      ),
-                                    "orders.assign",
-                                  )}
-                              </div>
+                              {!order.historicalReadOnly &&
+                                allowed("orders.fulfill") && (
+                                  <ItemCancellation
+                                    key={
+                                      branchBase + order.id + financialRevision
+                                    }
+                                    base={branchBase}
+                                    order={order}
+                                    refunds={list(data.refunds)}
+                                    canRefund={allowed("refunds.approve")}
+                                    tickets={list(data.tickets)}
+                                    disabled={busy || offline}
+                                    save={mutate}
+                                  />
+                                )}
                             </div>
-                          ))
+                            <div className="mw-actions">
+                              <span className="mw-pill">
+                                {sourceLabel(order.status)}
+                              </span>
+                              {!order.historicalReadOnly &&
+                                nextState[order.status] &&
+                                button(
+                                  "Mark " +
+                                    sourceLabel(nextState[order.status]),
+                                  () =>
+                                    act(
+                                      branchBase + `/orders/${order.id}/status`,
+                                      {
+                                        status: nextState[order.status],
+                                        version: order.version,
+                                      },
+                                      "Order updated.",
+                                    ),
+                                  [
+                                    "submitted",
+                                    "accepted",
+                                    "preparing",
+                                  ].includes(order.status)
+                                    ? "orders.prepare"
+                                    : "orders.fulfill",
+                                )}
+                              {!order.historicalReadOnly &&
+                                button(
+                                  "Assign to me",
+                                  () =>
+                                    act(
+                                      branchBase + `/orders/${order.id}/assign`,
+                                      {
+                                        userId: user.id,
+                                        version: order.version,
+                                      },
+                                      "Order assigned.",
+                                    ),
+                                  "orders.assign",
+                                )}
+                            </div>
+                          </div>
+                        ))
                       : empty("No orders match the current filters.")}
                   </section>
                   {activeSection === "orders" &&
@@ -2826,6 +2859,22 @@ export default function OrganizationWorkspace({
               )}
               {activeSection === "counter" && allowed("orders.create") && (
                 <section className="mw-pos-container">
+                  {!counterMenuAvailable && (
+                    <div className="mw-note mw-error" role="alert">
+                      <p>
+                        The counter menu is unavailable. Refresh it before
+                        building a new order.
+                      </p>
+                      <button
+                        type="button"
+                        className="secondary"
+                        disabled={busy}
+                        onClick={() => void refresh()}
+                      >
+                        Refresh counter menu
+                      </button>
+                    </div>
+                  )}
                   <form onSubmit={submit(sendStaffOrder)}>
                     <fieldset
                       disabled={busy || offline || !!uncertainOrder}
@@ -2838,7 +2887,7 @@ export default function OrganizationWorkspace({
                     >
                       <StaffPos
                         key={branchBase}
-                        products={products}
+                        products={counterProducts}
                         lines={orderDraft.items}
                         disabled={busy || offline || !!uncertainOrder}
                         staffName={context?.user?.name || user?.name || "Staff"}
@@ -2872,7 +2921,8 @@ export default function OrganizationWorkspace({
                           disabled={
                             busy ||
                             offline ||
-                            !orderDraft.items.length ||
+                            !staffSelection.complete ||
+                            !counterMenuAvailable ||
                             !data.menuVersion
                           }
                           onClick={() => {
@@ -2928,10 +2978,11 @@ export default function OrganizationWorkspace({
                           disabled={
                             busy ||
                             offline ||
-                            !orderDraft.items.length ||
+                            !staffSelection.complete ||
+                            !counterMenuAvailable ||
                             !data.menuVersion ||
                             entitlements?.newOrdersAllowed === false ||
-                            (requiresQuote && !validQuote)
+                            ((requiresQuote || !!staffQuote) && !validQuote)
                           }
                         >
                           Submit order

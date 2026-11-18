@@ -4,6 +4,7 @@ import { ProductImage } from "../../ProductImage";
 import StaffOrderItems from "./StaffOrderItems";
 import { formatMoney } from "./api";
 import { catalogPriceLabel } from "./catalogPresentation";
+import { validateStaffSelection } from "./staffSelection";
 
 export default function StaffPos({
   products,
@@ -43,17 +44,11 @@ export default function StaffPos({
     lines.some((l) => l.productId === p.id),
   );
   const count = lines.reduce((sum, l) => sum + l.quantity, 0);
-  const estimate = lines.reduce((sum, l) => {
-    const p = products.find((p) => p.id === l.productId);
-    if (!p) return sum;
-    const price =
-      p.variants?.find((v: any) => v.id === l.variantId)?.price ?? p.price;
-    const extras = (p.modifierGroups || [])
-      .flatMap((g: any) => g.options)
-      .filter((o: any) => (l.modifiers || []).includes(o.id))
-      .reduce((n: number, o: any) => n + o.price, 0);
-    return sum + (price + extras) * l.quantity;
-  }, 0);
+  const validation = validateStaffSelection(products, lines);
+  const estimateLabel =
+    validation.estimate === null
+      ? "Complete selections"
+      : formatMoney(validation.estimate);
   function add(product: any) {
     const current = lines.find((l) => l.productId === product.id);
     if (current) {
@@ -83,7 +78,7 @@ export default function StaffPos({
           aria-pressed={mobileView === "basket"}
           onClick={() => setMobileView("basket")}
         >
-          Current order ({count}) · {formatMoney(estimate)}
+          Current order ({count}) · {estimateLabel}
         </button>
       </div>
       <section
@@ -208,18 +203,44 @@ export default function StaffPos({
               <p>Select an item from the menu.</p>
             </div>
           ) : (
-            <StaffOrderItems
-              products={selected}
-              lines={lines}
-              disabled={disabled}
-              onChange={onChange}
-            />
+            <>
+              <StaffOrderItems
+                products={selected}
+                lines={lines}
+                disabled={disabled}
+                onChange={onChange}
+              />
+              {validation.lines
+                .filter(
+                  (line) =>
+                    !products.some((product) => product.id === line.productId),
+                )
+                .map((line) => (
+                  <div key={line.index}>
+                    <p>
+                      This item is no longer available. Remove it before
+                      reviewing the order.
+                    </p>
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() =>
+                        onChange(
+                          lines.filter((_line, index) => index !== line.index),
+                        )
+                      }
+                    >
+                      Remove unavailable item {line.index + 1}
+                    </button>
+                  </div>
+                ))}
+            </>
           )}
         </div>
         <div className="mw-pos-checkout">
           <div className="summary-total">
             <span>Items estimate</span>
-            <strong>{formatMoney(estimate)}</strong>
+            <strong>{estimateLabel}</strong>
           </div>
           <p className="mw-muted">
             Review the total for final prices and any charges.

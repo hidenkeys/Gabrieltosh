@@ -1,4 +1,6 @@
 import { formatMoney } from "./api";
+import { catalogPriceLabel } from "./catalogPresentation";
+import { validateStaffSelection } from "./staffSelection";
 export default function StaffOrderItems({
   products,
   lines,
@@ -32,6 +34,16 @@ export default function StaffOrderItems({
         )
         .map((product) => {
           const line = lines.find((line) => line.productId === product.id);
+          const selection = line
+            ? validateStaffSelection([product], [line]).lines[0]
+            : null;
+          const priceLabel = selection
+            ? selection.needsVariant
+              ? "Choose size"
+              : selection.complete
+                ? `${formatMoney(selection.baseEstimate!)}${selection.extrasEstimate ? " + " + formatMoney(selection.extrasEstimate) + " add-ons" : ""} per item`
+                : "Complete selections"
+            : catalogPriceLabel(product);
           return (
             <div
               key={product.id}
@@ -39,7 +51,7 @@ export default function StaffOrderItems({
             >
               <label className="mw-row">
                 <span>
-                  {product.name} · {formatMoney(product.price)}
+                  {product.name} · {priceLabel}
                 </span>
                 <input
                   aria-label={"Quantity of " + product.name}
@@ -53,6 +65,11 @@ export default function StaffOrderItems({
                   }
                 />
               </label>
+              {selection && !selection.complete && (
+                <p className="mw-pos-selection-help" role="status">
+                  {selection.messages.join(" ")}
+                </p>
+              )}
               {line && (
                 <div className="mw-form">
                   {product.variants?.length > 0 && (
@@ -93,11 +110,16 @@ export default function StaffOrderItems({
                           </span>
                           <input
                             type="checkbox"
-                            checked={line.modifiers.includes(option.id)}
+                            checked={(Array.isArray(line.modifiers)
+                              ? line.modifiers
+                              : []
+                            ).includes(option.id)}
                             onChange={(event) => {
-                              const modifiers = line.modifiers.filter(
-                                (id: string) => id !== option.id,
-                              );
+                              const modifiers = (
+                                Array.isArray(line.modifiers)
+                                  ? line.modifiers
+                                  : []
+                              ).filter((id: string) => id !== option.id);
                               if (event.target.checked)
                                 modifiers.push(option.id);
                               update(product.id, { modifiers });

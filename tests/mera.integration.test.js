@@ -98,6 +98,7 @@ test(
       const base = "http://127.0.0.1:" + server.address().port + "/api/mera/v1",
         B = `/organizations/${org}/branches/${branch}`,
         P = `/public/bing-chun/${branch}`;
+      let callBase = base;
       async function call(
         path,
         method = "GET",
@@ -106,7 +107,7 @@ test(
         cookie = "",
         extra = {},
       ) {
-        const response = await fetch(base + path, {
+        const response = await fetch(callBase + path, {
           method,
           headers: {
             "content-type": "application/json",
@@ -2286,6 +2287,82 @@ test(
       assert.deepEqual(concurrentBusiness.map(r=>r.status),[200,200]);
       const storedBusiness=(await db.query("SELECT onboarding FROM mera_organizations WHERE id=$1",[org])).rows[0].onboarding;
       assert.equal(storedBusiness.status,"published");assert.deepEqual(storedBusiness.verification,securedOnboarding.verification);assert.equal(storedBusiness.data.concurrentOne,"retained");assert.equal(storedBusiness.data.concurrentTwo,"retained");
+      // Guest reservation recovery is durable, scoped and cannot cancel an accepted booking.
+      // Independent API-fixture phase: retain real rate limits after the earlier phase's >60 writes.
+      app.use("/api/mera/reservation-phase", createMeraRouter(db));
+      callBase = base.replace("/api/mera/v1", "/api/mera/reservation-phase");
+      const reservationRecoveryPrefix=foreignPublic+"/reservation-attempts/";
+      const recoveryGuest=(await call(foreignPublic+"/guest","GET",undefined,null,multiVenueCookies)).data;
+      const recoveryBookingIntent={requestKey:randomUUID(),displayName:recoveryGuest.displayName,contact:"fixture-contact",partySize:1,startsAt:new Date(Date.now()+40*86400000).toISOString(),endsAt:new Date(Date.now()+40*86400000+3600000).toISOString(),notes:"Private booking note"};
+      const recoveryMissing=await call(reservationRecoveryPrefix+recoveryBookingIntent.requestKey,"GET",undefined,null,multiVenueCookies);
+      assert.equal(recoveryMissing.status,200);assert.equal(recoveryMissing.cacheControl,"no-store");assert.equal(recoveryMissing.data.status,"not_found");assert.equal(recoveryMissing.data.sessionRef,recoveryGuest.sessionRef);assert.equal(recoveryMissing.data.organizationId,foreignOrg.data.organizationId);assert.equal(recoveryMissing.data.branchId,foreignOrg.data.branchId);
+      const recoveryBooked=await call(foreignPublic+"/reservations","POST",recoveryBookingIntent,null,multiVenueCookies);
+      assert.equal(recoveryBooked.status,201,JSON.stringify(recoveryBooked.data));
+      const recoveryRecorded=await call(reservationRecoveryPrefix+recoveryBookingIntent.requestKey,"GET",undefined,null,multiVenueCookies);
+      assert.equal(recoveryRecorded.data.status,"recorded");assert.equal(recoveryRecorded.data.reservation.id,recoveryBooked.data.id);assert.equal(recoveryRecorded.data.reservation.depositRequired,recoveryBooked.data.depositRequired);assert.equal(recoveryRecorded.data.reservation.contact,undefined);assert.equal(recoveryRecorded.data.reservation.notes,undefined);assert.equal(recoveryRecorded.data.reservation.guestId,undefined);assert.equal(recoveryRecorded.data.reservation.intentHash,undefined);
+      const recoveryBeforeStop=(await db.query("SELECT data FROM mera_records WHERE id=$1",[recoveryBooked.data.id])).rows[0].data;
+      const recoveryStop=await call(reservationRecoveryPrefix+recoveryBookingIntent.requestKey+"/abandon","POST",{reason:"Check accepted booking before changing plans"},null,multiVenueCookies);
+      assert.equal(recoveryStop.data.status,"recorded");assert.equal(recoveryStop.data.reservation.id,recoveryBooked.data.id);
+      assert.deepEqual((await db.query("SELECT data FROM mera_records WHERE id=$1",[recoveryBooked.data.id])).rows[0].data,recoveryBeforeStop);
+      await call(foreignBase+"/settings","PATCH",{reservationsEnabled:false});
+      const recoveryReplay=await call(foreignPublic+"/reservations","POST",recoveryBookingIntent,null,multiVenueCookies);
+      assert.equal(recoveryReplay.status,201);assert.equal(recoveryReplay.data.id,recoveryBooked.data.id);
+      await call(foreignBase+"/settings","PATCH",{reservationsEnabled:true});
+      const recoveryOtherGuest=await call(foreignPublic+"/guests","POST",{displayName:"Different reservation recovery guest"},null);
+      assert.equal(recoveryOtherGuest.status,201,JSON.stringify(recoveryOtherGuest.data));
+      const recoveryOtherCheck=await call(reservationRecoveryPrefix+recoveryBookingIntent.requestKey,"GET",undefined,null,recoveryOtherGuest.cookie);
+      assert.equal(recoveryOtherCheck.data.status,"not_found");assert.notEqual(recoveryOtherCheck.data.sessionRef,recoveryGuest.sessionRef);assert.equal(recoveryOtherCheck.data.reservation,undefined);
+      assert.equal((await call(P+"/reservation-attempts/"+recoveryBookingIntent.requestKey,"GET",undefined,null,multiVenueCookies)).data.status,"not_found");
+      assert.equal((await call(reservationRecoveryPrefix+recoveryBookingIntent.requestKey,"GET",undefined,null,"")).status,401);
+      assert.equal((await call(P+"/reservation-attempts/"+recoveryBookingIntent.requestKey,"GET",undefined,null,expiringIdentity.cookie)).status,401);
+      assert.equal((await call(reservationRecoveryPrefix+recoveryBookingIntent.requestKey,"GET",undefined,null,multiVenueCookies,{"X-Mera-Organization-Slug":"bing-chun"})).status,404);
+      const recoveryFencedIntent={...recoveryBookingIntent,requestKey:randomUUID()};
+      const recoveryAbandon=await call(reservationRecoveryPrefix+recoveryFencedIntent.requestKey+"/abandon","POST",{reason:"Discard uncertain booking intent and review a fresh request"},null,multiVenueCookies);
+      assert.equal(recoveryAbandon.data.status,"abandoned");assert.equal(recoveryAbandon.data.sessionRef,recoveryGuest.sessionRef);
+      assert.deepEqual((await call(reservationRecoveryPrefix+recoveryFencedIntent.requestKey+"/abandon","POST",{reason:"Repeat explicit recovery request"},null,multiVenueCookies)).data,recoveryAbandon.data);
+      const recoveryDelayed=await call(foreignPublic+"/reservations","POST",recoveryFencedIntent,null,multiVenueCookies);
+      assert.equal(recoveryDelayed.status,409);assert.equal(recoveryDelayed.data.code,"RESERVATION_REQUEST_ABANDONED");
+      assert.equal((await call(reservationRecoveryPrefix+recoveryFencedIntent.requestKey,"GET",undefined,null,multiVenueCookies)).data.status,"abandoned");
+      const recoveryIsolatedIntent={...recoveryBookingIntent,requestKey:randomUUID()};
+      assert.equal((await call(reservationRecoveryPrefix+recoveryIsolatedIntent.requestKey+"/abandon","POST",{reason:"Independent other guest attempt"},null,recoveryOtherGuest.cookie)).data.status,"abandoned");
+      const recoveryIsolatedBooking=await call(foreignPublic+"/reservations","POST",recoveryIsolatedIntent,null,multiVenueCookies);
+      assert.equal(recoveryIsolatedBooking.status,201,JSON.stringify(recoveryIsolatedBooking.data));
+      const recoveryRaceIntent={...recoveryBookingIntent,requestKey:randomUUID()};
+      const [recoveryRaceBooking,recoveryRaceStop]=await Promise.all([call(foreignPublic+"/reservations","POST",recoveryRaceIntent,null,multiVenueCookies),call(reservationRecoveryPrefix+recoveryRaceIntent.requestKey+"/abandon","POST",{reason:"Concurrent explicit reservation recovery"},null,multiVenueCookies)]);
+      const recoveryRaceCount=Number((await db.query("SELECT COUNT(*) AS count FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='reservation' AND data->>'requestKey'=$3",[foreignOrg.data.organizationId,foreignOrg.data.branchId,recoveryRaceIntent.requestKey])).rows[0].count);
+      if(recoveryRaceBooking.status===201){assert.equal(recoveryRaceStop.data.status,"recorded");assert.equal(recoveryRaceStop.data.reservation.id,recoveryRaceBooking.data.id);assert.equal(recoveryRaceCount,1);}else{assert.equal(recoveryRaceBooking.data.code,"RESERVATION_REQUEST_ABANDONED");assert.equal(recoveryRaceStop.data.status,"abandoned");assert.equal(recoveryRaceCount,0);}
+      // Counter/public/quotes/orders must all use offered publication, never unpublished draft prices.
+      const counterFixtureProduct=await call(B+"/products","POST",{name:"Published counter tea",code:"COUNTER-PG",category:"Published counter category",price:350000,stockMode:"counted",stock:10,variants:[{id:"regular",name:"Regular",price:350000,stockMode:"counted",stock:10}],modifierGroups:[{id:"toppings",name:"Toppings",min:0,max:1,options:[{id:"pearl",name:"Pearls",price:50000}]}]});
+      assert.equal(counterFixtureProduct.status,201,JSON.stringify(counterFixtureProduct.data));
+      const counterFixturePublished=await call(B+"/menu/publish","POST",{});assert.equal(counterFixturePublished.status,200);
+      const counterWorkingDraft={...counterFixtureProduct.data,name:"Unpublished counter tea",category:"Unpublished category",variants:[{...counterFixtureProduct.data.variants[0],price:360000}],modifierGroups:[{id:"toppings",name:"Unpublished topping group",min:0,max:1,options:[{id:"pearl",name:"Unpublished pearls",price:60000}]}]};
+      const counterEdited=await call(B+"/products/"+counterFixtureProduct.data.id,"PUT",counterWorkingDraft);assert.equal(counterEdited.status,200,JSON.stringify(counterEdited.data));
+      const counterWorkspace=(await call(B+"/workspace")).data;
+      assert.equal(counterWorkspace.menuVersion,counterFixturePublished.data.version);
+      assert.equal(counterWorkspace.products.find(p=>p.id===counterFixtureProduct.data.id).variants[0].price,360000);
+      const counterOffered=counterWorkspace.counterProducts.find(p=>p.id===counterFixtureProduct.data.id);
+      assert.equal(counterOffered.variants[0].price,350000);assert.equal(counterOffered.name,"Published counter tea");assert.equal(counterOffered.category,"Published counter category");assert.equal(counterOffered.modifierGroups[0].options[0].price,50000);assert.equal(counterOffered.modifierGroups[0].options[0].name,"Pearls");
+      const counterPublicMenu=(await call(P+"/menu","GET",undefined,null)).data;
+      assert.equal(counterPublicMenu.version,counterFixturePublished.data.version);assert.equal(counterPublicMenu.products.find(p=>p.id===counterFixtureProduct.data.id).variants[0].price,350000);
+      const counterItems=[{productId:counterFixtureProduct.data.id,variantId:"regular",quantity:2,modifiers:["pearl"]}];
+      const counterStaffQuote=await call(B+"/quote","POST",{menuVersion:counterFixturePublished.data.version,items:counterItems});assert.equal(counterStaffQuote.status,201,JSON.stringify(counterStaffQuote.data));assert.equal(counterStaffQuote.data.subtotal,800000);
+      const counterGuestQuote=await call(P+"/quote","POST",{menuVersion:counterFixturePublished.data.version,items:counterItems},null,winner.cookie);assert.equal(counterGuestQuote.status,201,JSON.stringify(counterGuestQuote.data));assert.equal(counterGuestQuote.data.subtotal,800000);
+      const counterStaffOrder=await call(B+"/orders","POST",{requestKey:randomUUID(),menuVersion:counterFixturePublished.data.version,quoteId:counterStaffQuote.data.id,displayName:"Published counter fixture",items:counterItems});assert.equal(counterStaffOrder.status,201,JSON.stringify(counterStaffOrder.data));assert.equal(counterStaffOrder.data.items[0].unitPrice,400000);assert.equal(counterStaffOrder.data.pricing.subtotal,800000);
+      const counterGuestOrder=await call(P+"/orders","POST",{requestKey:randomUUID(),menuVersion:counterFixturePublished.data.version,quoteId:counterGuestQuote.data.id,displayName:"Guest fixture",items:counterItems},null,winner.cookie);assert.equal(counterGuestOrder.status,201,JSON.stringify(counterGuestOrder.data));assert.equal(counterGuestOrder.data.items[0].unitPrice,400000);
+      const counterLiveStock=await call(B+"/stock","POST",{productId:counterFixtureProduct.data.id,variantId:"regular",quantity:3,reason:"Published stock overlay regression"});assert.equal(counterLiveStock.status,200);
+      const counterAfterStock=(await call(B+"/workspace")).data.counterProducts.find(p=>p.id===counterFixtureProduct.data.id);assert.equal(counterAfterStock.variants[0].stock,3);assert.equal(counterAfterStock.variants[0].price,350000);
+      const counterPublicStock=(await call(P+"/menu","GET",undefined,null)).data.products.find(p=>p.id===counterFixtureProduct.data.id);assert.equal(counterPublicStock.variants[0].stock,3);assert.equal(counterPublicStock.variants[0].price,350000);
+      assert.equal((await call(B+"/products/"+counterFixtureProduct.data.id,"PUT",{...counterWorkingDraft,available:false})).status,200);
+      const counterPaused=(await call(B+"/workspace")).data.counterProducts.find(p=>p.id===counterFixtureProduct.data.id);assert.equal(counterPaused.available,false);assert.equal(counterPaused.variants[0].price,350000);
+      const counterPausedPublic=(await call(P+"/menu","GET",undefined,null)).data.products.find(p=>p.id===counterFixtureProduct.data.id);assert.ok(!counterPausedPublic||!counterPausedPublic.available);
+      assert.equal((await call(P+"/quote","POST",{menuVersion:counterFixturePublished.data.version,items:counterItems},null,winner.cookie)).data.code,"MENU_CHANGED");
+      assert.equal((await call(B+"/products/"+counterFixtureProduct.data.id,"PUT",{...counterWorkingDraft,available:true})).status,200);
+      const counterRepublished=await call(B+"/menu/publish","POST",{});assert.equal(counterRepublished.status,200);
+      const counterAfterPublish=(await call(B+"/workspace")).data.counterProducts.find(p=>p.id===counterFixtureProduct.data.id);assert.equal(counterAfterPublish.variants[0].price,360000);assert.equal(counterAfterPublish.modifierGroups[0].options[0].price,60000);assert.equal(counterAfterPublish.name,"Unpublished counter tea");
+      const counterPublicAfterPublish=(await call(P+"/menu","GET",undefined,null)).data.products.find(p=>p.id===counterFixtureProduct.data.id);assert.equal(counterPublicAfterPublish.variants[0].price,360000);
+      await db.query("UPDATE mera_memberships SET permissions=$1 WHERE user_id=$2 AND organization_id=$3",[JSON.stringify(["menu.edit"]),publishingPeer,org]);
+      const counterDeniedWorkspace=await call(B+"/workspace","GET",undefined,publishingPeer);assert.equal(counterDeniedWorkspace.status,200);assert.deepEqual(counterDeniedWorkspace.data.counterProducts,[]);
+      callBase = base;
       const membership = (
         await call("/organizations/" + org + "/members")
       ).data.find((m) => m.userId === owner);

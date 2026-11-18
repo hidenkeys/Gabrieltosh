@@ -44,6 +44,7 @@ const context = {
 const snapshot = (branch: string) => ({
   branch: { name: branch === "branch-1" ? "Surulere" : "Ikeja" },
   products: [],
+  counterProducts: [],
   orders: [
     {
       id: "order-" + branch,
@@ -362,6 +363,9 @@ test("staff table orders freeze uncertain intent and retry the same request with
         ...snapshot("branch-1"),
         menuVersion: 1,
         products: [
+          { id: "tea", name: "Milk tea", available: true, price: 150000 },
+        ],
+        counterProducts: [
           { id: "tea", name: "Milk tea", available: true, price: 150000 },
         ],
         tables: [{ id: "table-1", name: "Window table" }],
@@ -1165,6 +1169,9 @@ test("a held staff write times out as uncertain and retry preserves its original
         products: [
           { id: "tea", name: "Milk tea", price: 150000, available: true },
         ],
+        counterProducts: [
+          { id: "tea", name: "Milk tea", price: 150000, available: true },
+        ],
       });
     if (String(input).endsWith("/orders") && init.method === "POST") {
       writes.push(JSON.parse(init.body));
@@ -1612,6 +1619,9 @@ test("configured pricing requires canonical quote review and expired quotes perm
         },
         menuVersion: 1,
         products: [
+          { id: "tea", name: "Milk tea", price: 150000, available: true },
+        ],
+        counterProducts: [
           { id: "tea", name: "Milk tea", price: 150000, available: true },
         ],
       });
@@ -2496,6 +2506,7 @@ test("imported orders are fetched from bounded history and remain outside prepar
       return Response.json({
         ...snapshot("branch-1"),
         history: { bounded: true, recentOrderLimit: 200 },
+        tickets: [],
       });
     if (url.pathname.endsWith("/orders")) {
       historyQueries.push(url.search);
@@ -2554,7 +2565,36 @@ test("imported orders are fetched from bounded history and remain outside prepar
       screen.queryByText("Old source order", { exact: false }),
       null,
     );
-    assert(screen.getByText("Surulere customer", { exact: false }));
+    const preparation = screen.getByRole("region", {
+      name: "Station preparation",
+    });
+    assert(
+      within(preparation).getByText("No preparation tickets for this branch."),
+    );
+    assert.equal(
+      screen.queryByText("Surulere customer", { exact: false }),
+      null,
+    );
+    assert.equal(
+      screen.queryByRole("heading", {
+        name: "Every order, with responsibility",
+      }),
+      null,
+    );
+    assert.equal(
+      screen.queryByRole("heading", { name: "Kitchen & bar handoffs" }),
+      null,
+    );
+    assert.equal(
+      screen.queryByRole("button", { name: "Record verified collection" }),
+      null,
+    );
+    assert.equal(
+      screen.queryByRole("button", { name: "Record authorized refund" }),
+      null,
+    );
+    assert.equal(screen.queryByLabelText("Amount received (naira)"), null);
+    assert.equal(screen.queryByText("Browse full order history"), null);
     fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
     assert.equal(
       screen.queryByRole("option", { name: /Old source order/ }),
@@ -3040,6 +3080,9 @@ test("new-service flags pause new visits and bookings while staff orders and exi
         ...snapshot("branch-1"),
         menuVersion: 1,
         products: [
+          { id: "tea", name: "Milk tea", price: 150000, available: true },
+        ],
+        counterProducts: [
           { id: "tea", name: "Milk tea", price: 150000, available: true },
         ],
         tables: [
@@ -4085,6 +4128,379 @@ test("menu management keeps an unsaved product across local views and restores t
     );
   } finally {
     cleanup();
+    globalThis.fetch = original;
+  }
+});
+
+test("P1 counter uses published variant prices and blocks incomplete or expired optional review", async () => {
+  const original = globalThis.fetch,
+    previous = [...context.organizations[0].permissions];
+  context.organizations[0].permissions.push("orders.create");
+  let expired = false;
+  const quotes: any[] = [];
+  const published = {
+    id: "qa",
+    name: "QA drink",
+    available: true,
+    price: 0,
+    variants: [{ id: "large", name: "Large", price: 350000 }],
+    modifierGroups: [
+      {
+        id: "topping",
+        name: "Toppings",
+        min: 1,
+        max: 1,
+        options: [{ id: "pearls", name: "Pearls", price: 50000 }],
+      },
+    ],
+  };
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    if (String(input).endsWith("/workspace"))
+      return Response.json({
+        ...snapshot("branch-1"),
+        menuVersion: 1,
+        products: [
+          {
+            ...published,
+            variants: [{ id: "large", name: "Large", price: 360000 }],
+          },
+        ],
+        counterProducts: [published],
+      });
+    if (String(input).endsWith("/quote")) {
+      quotes.push(JSON.parse(init.body));
+      return Response.json({
+        id: "published-quote",
+        expiresAt: new Date(
+          Date.now() + (expired ? -1000 : 300000),
+        ).toISOString(),
+        subtotal: 800000,
+        total: 800000,
+        lines: [],
+        policyVersion: null,
+      });
+    }
+    return original(input, init);
+  }) as any;
+  try {
+    render(<Workspace user={user} notify={() => {}} />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Add QA drink to order" }),
+    );
+    assert(
+      (
+        screen.getByRole("button", {
+          name: "Review current order total",
+        }) as HTMLButtonElement
+      ).disabled,
+    );
+    assert(
+      (
+        screen.getByRole("button", {
+          name: "Submit order",
+        }) as HTMLButtonElement
+      ).disabled,
+    );
+    assert.equal(
+      screen.getByText("Items estimate").parentElement?.textContent,
+      "Items estimateComplete selections",
+    );
+    fireEvent.change(screen.getByLabelText("Quantity of QA drink"), {
+      target: { value: "2" },
+    });
+    fireEvent.change(screen.getByLabelText("Size for QA drink"), {
+      target: { value: "large" },
+    });
+    assert(
+      (
+        screen.getByRole("button", {
+          name: "Submit order",
+        }) as HTMLButtonElement
+      ).disabled,
+    );
+    fireEvent.click(screen.getByRole("checkbox", { name: /Pearls/ }));
+    assert(
+      screen
+        .getByText("Items estimate")
+        .parentElement?.textContent?.includes("8,000"),
+    );
+    assert(
+      !screen
+        .getByText("Items estimate")
+        .parentElement?.textContent?.includes("8,200"),
+    );
+    assert(
+      !(
+        screen.getByRole("button", {
+          name: "Submit order",
+        }) as HTMLButtonElement
+      ).disabled,
+    );
+    expired = true;
+    fireEvent.click(
+      screen.getByRole("button", { name: "Review current order total" }),
+    );
+    await screen.findByText("Quote changed or expired · review again");
+    assert.equal(quotes.length, 1);
+    assert(
+      (
+        screen.getByRole("button", {
+          name: "Submit order",
+        }) as HTMLButtonElement
+      ).disabled,
+    );
+    expired = false;
+    fireEvent.click(
+      screen.getByRole("button", { name: "Review current order total" }),
+    );
+    await screen.findByText("Reviewed order total");
+    assert(
+      !(
+        screen.getByRole("button", {
+          name: "Submit order",
+        }) as HTMLButtonElement
+      ).disabled,
+    );
+  } finally {
+    cleanup();
+    context.organizations[0].permissions = previous;
+    globalThis.fetch = original;
+  }
+});
+test("P1 missing published counter projection never falls back to working catalog and supports read retry", async () => {
+  const original = globalThis.fetch,
+    previous = [...context.organizations[0].permissions];
+  context.organizations[0].permissions.push("orders.create");
+  let ready = false;
+  const product = {
+    id: "draft",
+    name: "Draft-only item",
+    price: 100000,
+    available: true,
+  };
+  globalThis.fetch = (async (input: any, init: any) => {
+    if (String(input).endsWith("/workspace")) {
+      const value: any = {
+        ...snapshot("branch-1"),
+        menuVersion: 1,
+        products: [product],
+      };
+      if (ready)
+        value.counterProducts = [{ ...product, name: "Published item" }];
+      else delete value.counterProducts;
+      return Response.json(value);
+    }
+    return original(input, init);
+  }) as any;
+  try {
+    render(<Workspace user={user} notify={() => {}} />);
+    await screen.findByText(
+      "The counter menu is unavailable. Refresh it before building a new order.",
+    );
+    assert.equal(
+      screen.queryByRole("button", { name: "Add Draft-only item to order" }),
+      null,
+    );
+    assert(
+      (
+        screen.getByRole("button", {
+          name: "Submit order",
+        }) as HTMLButtonElement
+      ).disabled,
+    );
+    ready = true;
+    fireEvent.click(
+      screen.getByRole("button", { name: "Refresh counter menu" }),
+    );
+    await screen.findByRole("button", { name: "Add Published item to order" });
+    assert.equal(
+      screen.queryByText(
+        "The counter menu is unavailable. Refresh it before building a new order.",
+      ),
+      null,
+    );
+  } finally {
+    cleanup();
+    context.organizations[0].permissions = previous;
+    globalThis.fetch = original;
+  }
+});
+test("write validation errors survive a successful background refresh while read errors recover independently", async () => {
+  const original = globalThis.fetch,
+    oldInterval = globalThis.setInterval;
+  const hidden = Object.getOwnPropertyDescriptor(document, "hidden");
+  let poll: (() => void) | undefined,
+    failRead = false;
+  const invokePoll = () => {
+    Object.defineProperty(document, "hidden", {
+      value: false,
+      configurable: true,
+    });
+    try {
+      poll!();
+    } finally {
+      if (hidden) Object.defineProperty(document, "hidden", hidden);
+      else delete (document as any).hidden;
+    }
+  };
+  globalThis.setInterval = ((handler: any, delay: any, ...args: any[]) => {
+    if (delay === 2500) poll = () => handler(...args);
+    return oldInterval(handler, delay, ...args);
+  }) as any;
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    if (String(input).endsWith("/payments"))
+      return Response.json(
+        { error: "Check the payment reference" },
+        { status: 400 },
+      );
+    if (String(input).endsWith("/workspace") && failRead)
+      return Response.json(
+        { error: "Records are temporarily unavailable" },
+        { status: 503 },
+      );
+    return original(input, init);
+  }) as any;
+  try {
+    render(<Workspace user={user} notify={() => {}} />);
+    await screen.findByText("Surulere customer", { exact: false });
+    fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
+    fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
+      target: { value: "order-branch-1" },
+    });
+    fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
+      target: { value: "1000" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Record verified collection" }),
+    );
+    await screen.findByText("Check the payment reference");
+    assert(poll);
+    await act(async () => {
+      invokePoll();
+      await Promise.resolve();
+    });
+    assert(screen.getByText("Check the payment reference"));
+    failRead = true;
+    await act(async () => {
+      invokePoll();
+      await Promise.resolve();
+    });
+    await screen.findByText(
+      "Records could not be refreshed: Records are temporarily unavailable",
+    );
+    assert(screen.getByText("Check the payment reference"));
+    failRead = false;
+    fireEvent.click(screen.getByRole("button", { name: "Refresh records" }));
+    await waitFor(() =>
+      assert(
+        !screen.queryByText(
+          "Records could not be refreshed: Records are temporarily unavailable",
+        ),
+      ),
+    );
+    assert(screen.getByText("Check the payment reference"));
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss message" }));
+    assert.equal(screen.queryByText("Check the payment reference"), null);
+  } finally {
+    cleanup();
+    globalThis.fetch = original;
+    globalThis.setInterval = oldInterval;
+    if (hidden) Object.defineProperty(document, "hidden", hidden);
+    else delete (document as any).hidden;
+  }
+});
+
+test("a new explicit write clears the previous validation message before its result", async () => {
+  const original = globalThis.fetch;
+  let writes = 0,
+    release: ((response: Response) => void) | undefined;
+  globalThis.fetch = (async (input: any, init: any) => {
+    if (String(input).endsWith("/payments")) {
+      writes++;
+      return writes === 1
+        ? Response.json({ error: "Original write validation" }, { status: 400 })
+        : new Promise<Response>((resolve) => {
+            release = resolve;
+          });
+    }
+    return original(input, init);
+  }) as any;
+  try {
+    render(<Workspace user={user} notify={() => {}} />);
+    await screen.findByText("Surulere customer", { exact: false });
+    fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
+    fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
+      target: { value: "order-branch-1" },
+    });
+    fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
+      target: { value: "1000" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Record verified collection" }),
+    );
+    await screen.findByText("Original write validation");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Record verified collection" }),
+    );
+    await waitFor(() => assert(release));
+    assert(!screen.queryByText("Original write validation"));
+    await act(async () => release!(Response.json({ id: "received" })));
+  } finally {
+    cleanup();
+    globalThis.fetch = original;
+  }
+});
+test("an uncertain original staff submission remains retryable after the published menu changes", async () => {
+  const original = globalThis.fetch,
+    previous = [...context.organizations[0].permissions];
+  context.organizations[0].permissions.push("orders.create");
+  let changed = false;
+  const writes: any[] = [];
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    if (String(input).endsWith("/workspace"))
+      return Response.json({
+        ...snapshot("branch-1"),
+        menuVersion: changed ? 2 : 1,
+        products: [],
+        counterProducts: changed
+          ? []
+          : [{ id: "tea", name: "Milk tea", price: 150000, available: true }],
+      });
+    if (String(input).endsWith("/orders") && init.method === "POST") {
+      writes.push(JSON.parse(init.body));
+      if (writes.length === 1) throw new TypeError("Connection lost");
+      return Response.json({ id: "created-original" });
+    }
+    return original(input, init);
+  }) as any;
+  try {
+    render(<Workspace user={user} notify={() => {}} />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Add Milk tea to order" }),
+    );
+    fireEvent.submit(
+      screen.getByRole("button", { name: "Submit order" }).closest("form")!,
+    );
+    await screen.findByText("Submission not confirmed");
+    changed = true;
+    fireEvent.click(screen.getByRole("button", { name: "Refresh workspace" }));
+    await screen.findByRole("button", { name: "Remove unavailable item 1" });
+    assert(
+      (
+        screen.getByRole("button", {
+          name: "Submit order",
+        }) as HTMLButtonElement
+      ).disabled,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry original submission" }),
+    );
+    await waitFor(() => assert.equal(writes.length, 2));
+    assert.deepEqual(writes[1], writes[0]);
+    assert.equal(writes[1].menuVersion, 1);
+  } finally {
+    cleanup();
+    context.organizations[0].permissions = previous;
     globalThis.fetch = original;
   }
 });

@@ -13,6 +13,7 @@ import "./mera/workspace/setup.css";
 import "./mera/workspace/branch-admin.css";
 import "./mera/workspace/menu-management.css";
 import "./mera/workspace/publication.css";
+import "./mera/workspace/preparation.css";
 const Marketing = React.lazy(() => import("./mera/marketing/Marketing"));
 const LegalInformation = React.lazy(() =>
   import("./mera/marketing/Marketing").then((module) => ({

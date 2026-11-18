@@ -460,6 +460,7 @@ test("reservation acknowledgement and original details survive uncertain deliver
     amount: 1000000,
     basis: "net_paid_bill",
     disclosure: "Booking minimum-spend terms",
+    shortfallTreatment: "manager_review",
     version: "booking-v1",
   };
   mockGuestSessionFetch(t, async (input, init) => {
@@ -467,7 +468,12 @@ test("reservation acknowledgement and original details survive uncertain deliver
     if (path.endsWith("/menu"))
       return Response.json({
         ...menu,
-        tables: [{ id: "table-preference", name: "Window preference" }],
+        tables: [
+          {
+            id: "70000000-0000-4000-8000-000000000001",
+            name: "Window preference",
+          },
+        ],
         reservationPolicy: {
           enabled: true,
           minimumSpend: 1000000,
@@ -478,6 +484,13 @@ test("reservation acknowledgement and original details survive uncertain deliver
     if (path.endsWith("/guest"))
       return Response.json({ error: "guest" }, { status: 401 });
     if (path.endsWith("/guests")) return Response.json({ displayName: "Ada" });
+    if (path.includes("/reservation-attempts/"))
+      return Response.json({
+        status: "not_found",
+        sessionRef: "40000000-0000-4000-8000-000000000001",
+        organizationId: "10000000-0000-4000-8000-000000000001",
+        branchId: "20000000-0000-4000-8000-000000000001",
+      });
     if (path.endsWith("/reservations")) {
       attempts.push(JSON.parse(init.body));
       if (attempts.length === 2)
@@ -492,7 +505,7 @@ test("reservation acknowledgement and original details survive uncertain deliver
   await screen.findByText(policy.disclosure);
   fireEvent.change(
     screen.getByRole("combobox", { name: "Preferred table (optional)" }),
-    { target: { value: "table-preference" } },
+    { target: { value: "70000000-0000-4000-8000-000000000001" } },
   );
   assert.equal(
     screen.getByRole("button", { name: "Request reservation" }).disabled,
@@ -530,7 +543,7 @@ test("reservation acknowledgement and original details survive uncertain deliver
   assert.deepEqual(attempts[0], attempts[1]);
   assert.equal(attempts[0].minimumSpendPolicyVersion, "booking-v1");
   assert.equal(attempts[0].minimumSpendAcknowledged, true);
-  assert.equal(attempts[0].tableId, "table-preference");
+  assert.equal(attempts[0].tableId, "70000000-0000-4000-8000-000000000001");
   assert.equal(document.querySelector("fieldset").disabled, true);
   fireEvent.click(
     screen.getByRole("button", { name: "Retry original reservation" }),

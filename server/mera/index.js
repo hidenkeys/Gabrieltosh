@@ -1,3 +1,4 @@
+import { assertReservationRequestActive, mountMeraReservationAttempts } from "./reservation-attempts.js";
 import { mountMeraRefundRequests, reviewRefundRequest, completeRefundRequest } from "./refund-requests.js";
 import { mountMeraWorkspaceAdmin } from "./workspace-admin.js";
 import { mountMeraStockHistory } from "./stock-history.js";
@@ -16,7 +17,7 @@ import { mountMeraWriteoffs } from "./writeoff.js";
 import { mountMeraCategories } from "./categories.js";
 import { mountMeraHelp } from "./help.js";
 import { mountMeraFulfillment } from "./fulfillment.js";
-import { bindProductCategory } from "./catalog.js";
+import { bindProductCategory, publishedCounterProducts } from "./catalog.js";
 import { mountMeraFinancialRequests,assertFinancialRequestActive } from "./financial-requests.js";
 import { subscriptionEntitlement } from "./subscriptions.js";
 import { migrateMeraAssets,mountMeraAssets,assertMeraAsset } from "./assets.js";
@@ -480,6 +481,7 @@ export function createMeraRouter(db) {
     B + "/workspace",
     guard([
       "orders.view",
+      "orders.create",
       "menu.edit",
       "stock.adjust",
       "reports.view",
@@ -518,6 +520,7 @@ export function createMeraRouter(db) {
         reportWindow:access.includes("reports.view")?snapshot.window:null,
         delayedOrderThresholdMinutes:15,
         delayedOrders:access.includes("orders.view")?by("order").filter(o=>!o.historicalReadOnly&&!o.holdExpired&&o.paymentStatus!=="expired"&&!(o.stockHeld&&Date.parse(o.holdExpiresAt)<=Date.now())&&["submitted","accepted","preparing","ready"].includes(o.status)&&Date.now()-Date.parse(o.createdAt)>15*60000).map(o=>({id:o.id,reference:o.reference,createdAt:o.createdAt,ageMinutes:Math.floor((Date.now()-Date.parse(o.createdAt))/60000)})):[],
+        counterProducts: access.includes("orders.create") ? publishedCounterProducts(b,by("product")) : [],
         products: access.some((p) =>
           [
             "menu.edit",
@@ -904,16 +907,7 @@ export function createMeraRouter(db) {
     const current = (
       await readRecords(c, s.organizationId, s.branchId, "product")
     ).map((r) => r.data);
-    const published = b.published_menu.map((p) => {
-      const live = current.find((l) => l.id === p.id);
-      return {
-        ...p,
-        available: !!live?.available && availableNow(p.availabilityWindows,b.timezone),
-        variants:p.variants.map(v=>({...v,stockMode:live?.variants?.find(l=>l.id===v.id)?.stockMode || "unlimited",stock:live?.variants?.find(l=>l.id===v.id)?.stock || 0})),
-        stock: live?.stock || 0,
-        stockMode: live?.stockMode || "unlimited",
-      };
-    });
+    const published = publishedCounterProducts(b,current);
     if(!availableNow(b.settings.serviceHours,b.timezone)) throw fail("Ordering is closed outside branch service hours.",409,"BRANCH_CLOSED");
     const priced = quote(input.items, published);
     const pricing=await resolveQuotedPricing(c,s,b,input,actor,guestId,priced.total);
@@ -1583,6 +1577,7 @@ export function createMeraRouter(db) {
         throw fail("Reservation key conflict.", 409);
       return repeat;
     }
+    if (guestId && !actor) await assertReservationRequestActive(c,s,input.requestKey,guestId);
     const organization=(await c.query("SELECT platform_flags FROM mera_organizations WHERE id=$1",[s.organizationId])).rows[0];
     assertOrganizationFeature(organization,"new_reservations");
     if(actor?.type==="integration")assertOrganizationFeature(organization,"zidi");
@@ -2078,17 +2073,7 @@ export function createMeraRouter(db) {
     const live = (await readRecords(db, organization.id, b.id, "product")).map(
       (r) => r.data,
     );
-    const products = b.published_menu
-      .map((p) => {
-        const current = live.find((l) => l.id === p.id);
-        return {
-          ...p,
-          available: !!current?.available && availableNow(p.availabilityWindows,b.timezone),
-          variants:p.variants.map(v=>({...v,stockMode:current?.variants?.find(l=>l.id===v.id)?.stockMode || "unlimited",stock:current?.variants?.find(l=>l.id===v.id)?.stock || 0})),
-          stock: current?.stock || 0,
-          stockMode: current?.stockMode || "unlimited",
-        };
-      })
+    const products = publishedCounterProducts(b,live)
       .filter(
         (p) =>
           b.settings.showSoldOut ||
@@ -3165,6 +3150,7 @@ export function createMeraRouter(db) {
   mountMeraRefundRequests(router,{db,guard,scope,locked,readRecords,find,record,update,event});
   mountMeraWorkspaceAdmin(router,{db,guard,scope,event});
   mountMeraStockHistory(router,{db,guard,scope,locked,find,record,update,event});
+  mountMeraReservationAttempts(router,{publicContext,guest,locked,record,event});
   mountMeraOrderAttempts(router,{guard,scope,locked,record,event,publicContext,guest,publicOrder});
   mountMeraPrinting(router,{db,guard,scope,locked,find,record,update,event});
   mountMeraQueries(router,{db,guard,scope});

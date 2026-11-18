@@ -1085,3 +1085,19 @@
     width: 100%;
   }
 }
+.mera-customer #mc-reservation-timezone {
+  display: block;
+  margin-block: 6px;
+  color: #51647d;
+  line-height: 1.5;
+}
+.mera-customer .mc-reservation-recovery-actions {
+  display: grid;
+  gap: 10px;
+  margin-block: 16px;
+}
+.mera-customer .mc-reservation-recovery-actions fieldset {
+  padding: 14px;
+  border: 1px solid #e9e6e2;
+  border-radius: 8px;
+}

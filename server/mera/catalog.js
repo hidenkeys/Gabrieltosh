@@ -1,4 +1,4 @@
-import { fail } from "./domain.js";
+import { fail, availableNow } from "./domain.js";
 export async function bindProductCategory(c,s,product) {
  if(!product.categoryId)return {...product,categoryId:null,categoryPath:[]};
  const path=[],seen=new Set();let id=product.categoryId;
@@ -10,4 +10,20 @@ export async function bindProductCategory(c,s,product) {
   path.unshift({id:node.id,name:node.name,parentId:node.parentId,sortOrder:node.sortOrder});id=node.parentId;
  }
  return {...product,category:path.at(-1).name,parentCategory:path.length>1?path.at(-2).name:null,categoryPath:path};
+}
+
+// A draft edit never changes an offered price or option until the branch publishes.
+export function publishedCounterProducts(branch, liveProducts) {
+ const liveById=new Map(liveProducts.map(product=>[product.id,product]));
+ return branch.published_menu.map(product=>{
+  const live=liveById.get(product.id);
+  return {...product,
+   available:!!live?.available && availableNow(product.availabilityWindows,branch.timezone),
+   stockMode:live?.stockMode || "unlimited",stock:live?.stock || 0,
+   variants:product.variants.map(variant=>{
+    const balance=live?.variants?.find(current=>current.id===variant.id);
+    return {...variant,stockMode:balance?.stockMode || "unlimited",stock:balance?.stock || 0};
+   }),
+  };
+ });
 }

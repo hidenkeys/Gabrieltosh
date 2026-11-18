@@ -14,6 +14,16 @@ import {
   CheckoutRecoveryError,
   type CheckoutJournal,
 } from "./checkoutRecovery";
+import {
+  assertReservationSession,
+  buildReservationJournal,
+  clearReservationJournal,
+  readReservationJournal,
+  parseReservationAttempt,
+  reservationScope,
+  saveReservationJournal,
+  type ReservationJournal,
+} from "./reservationRecovery";
 import SessionOrders from "./SessionOrders";
 import HelpRequests from "./HelpRequests";
 import GuestActivity from "./GuestActivity";
@@ -176,6 +186,16 @@ export default function CustomerExperience({
   const searchRef = useRef<HTMLInputElement>(null);
   const reservationKey = useRef(requestId());
   const reservationSessionRef = useRef<string | null>(null);
+  const reservationJournalRef = useRef<ReservationJournal | null>(null);
+  const [reservationRecovery, setReservationRecovery] = useState<
+    "checking" | "ready" | "blocked"
+  >("checking");
+  const [reservationReview, setReservationReview] = useState<
+    ReservationJournal["review"] | null
+  >(null);
+  const reservationRecoveryGeneration = useRef(0);
+  const [confirmStopReservation, setConfirmStopReservation] = useState(false);
+  const [stopReservationReason, setStopReservationReason] = useState("");
   const reservationInFlight = useRef(false);
   const [reservationError, setReservationError] = useState("");
   async function load() {
@@ -227,6 +247,10 @@ export default function CustomerExperience({
     setReservationIntent(null);
     setReservationError("");
     reservationSessionRef.current = null;
+    reservationJournalRef.current = null;
+    reservationRecoveryGeneration.current++;
+    setReservationReview(null);
+    setReservationRecovery("checking");
     customerRequest(prefix + "/guest")
       .then(async (session) => {
         if (!active) return;
@@ -238,7 +262,8 @@ export default function CustomerExperience({
             (r) => !["cancelled", "completed", "no-show"].includes(r.status),
           )
           .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))[0];
-        if (upcoming) setReservation(upcoming);
+        if (upcoming && !reservationJournalRef.current)
+          setReservation(upcoming);
         const joined = session.openVisits?.[0];
         if (joined?.id) {
           const currentVisit = await customerRequest(
@@ -272,6 +297,51 @@ export default function CustomerExperience({
       active = false;
     };
   }, [prefix]);
+  async function restoreReservation() {
+    const generation = ++reservationRecoveryGeneration.current;
+    setReservationRecovery("checking");
+    try {
+      const scope = reservationScope(
+        menu?.organization?.id,
+        branch,
+        menu?.branch?.id,
+      );
+      const record =
+        readReservationJournal(scope) || reservationJournalRef.current;
+      if (!record) {
+        if (generation === reservationRecoveryGeneration.current)
+          setReservationRecovery("ready");
+        return;
+      }
+      reservationJournalRef.current = record;
+      const session = await customerRequest(prefix + "/guest");
+      if (generation !== reservationRecoveryGeneration.current) return;
+      assertReservationSession(record, session);
+      setReservation(null);
+      setReservationIntent(record.intent);
+      reservationSessionRef.current = record.sessionRef;
+      reservationKey.current = record.intent.requestKey;
+      setReservationReview(record.review);
+      if (!checkoutIntentRef.current) setDisplayName(record.intent.displayName);
+      setReservationAcknowledged(!!record.intent.minimumSpendAcknowledged);
+      setReservationRecovery("ready");
+      setReservationError(
+        "A saved reservation still needs checking. No request was sent automatically.",
+      );
+    } catch {
+      if (generation !== reservationRecoveryGeneration.current) return;
+      setReservation(null);
+      setReservationIntent(null);
+      setReservationReview(null);
+      setReservationRecovery("blocked");
+      setReservationError(
+        "This tab’s saved reservation could not be verified in the current guest session. It has not been retried. Keep this tab open and ask staff to check it before booking again.",
+      );
+    }
+  }
+  useEffect(() => {
+    if (menu?.organization?.id && menu?.branch?.id) void restoreReservation();
+  }, [menu?.organization?.id, menu?.branch?.id, branch, prefix]);
   async function restoreCheckout() {
     const check = ++recoveryCheck.current;
     setCheckoutRecovery({
@@ -504,6 +574,7 @@ export default function CustomerExperience({
     0,
   );
   function clearGuestView(message: string) {
+    reservationRecoveryGeneration.current++;
     resolvingAttempt.current = false;
     setConfirmStopRequest(false);
     setStopReason("");
@@ -538,6 +609,7 @@ export default function CustomerExperience({
     setJoinAcknowledged(false);
     setReservationIntent(null);
     setReservationAcknowledged(false);
+    if (reservationJournalRef.current) setReservationRecovery("blocked");
     setReservationError("");
     reservationSessionRef.current = null;
     setFulfillment("counter_pickup");
@@ -614,6 +686,18 @@ export default function CustomerExperience({
       modifiers,
     })),
   );
+  const bookingMinimumPolicy =
+    reservationIntent && reservationReview
+      ? reservationReview.minimumSpendPolicy
+      : minimumPolicy;
+  const bookingPolicy =
+    reservationIntent && reservationReview
+      ? {
+          enabled: true,
+          depositRequired: !!reservationReview.depositPolicy,
+          depositPolicy: reservationReview.depositPolicy,
+        }
+      : menu?.reservationPolicy;
   const currentQuote = checkoutIntent
     ? quote
     : quote?.cartSignature === cartSignature &&
@@ -885,10 +969,91 @@ export default function CustomerExperience({
       }
     }
   }
+  function finishReservationAttempt(
+    record: ReservationJournal,
+    result: ReturnType<typeof parseReservationAttempt>,
+  ) {
+    if (result.status === "not_found") return false;
+    if (result.status === "recorded") setReservation(result.reservation);
+    clearReservationJournal(record);
+    reservationJournalRef.current = null;
+    reservationSessionRef.current = null;
+    setReservationIntent(null);
+    setReservationReview(null);
+    setConfirmStopReservation(false);
+    setStopReservationReason("");
+    reservationKey.current = requestId();
+    setReservationError("");
+    setReservationRecovery("ready");
+    if (result.status === "abandoned")
+      setSuccess(
+        "The unconfirmed reservation request is stopped. An accepted booking has not been cancelled, and no refund was made.",
+      );
+    return true;
+  }
+  async function resolveReservation(stop = false) {
+    if (reservationInFlight.current || reservationRecovery !== "ready") return;
+    reservationInFlight.current = true;
+    setBusy(true);
+    setReservationError("");
+    const generation = checkoutGeneration.current;
+    try {
+      const record = reservationJournalRef.current;
+      if (!record)
+        throw Error(
+          "The original reservation could not be checked safely. Ask staff to review it.",
+        );
+      const checked = parseReservationAttempt(
+        await customerRequest(
+          prefix + "/reservation-attempts/" + record.intent.requestKey,
+        ),
+        record,
+      );
+      if (generation !== checkoutGeneration.current) return;
+      if (finishReservationAttempt(record, checked)) return;
+      if (!stop) {
+        setReservationError(
+          "The venue has not recorded this request yet. That does not confirm failure. Keep the original retry details or explicitly stop the unconfirmed request before booking again.",
+        );
+        return;
+      }
+      const stopped = parseReservationAttempt(
+        await customerRequest(
+          prefix +
+            "/reservation-attempts/" +
+            record.intent.requestKey +
+            "/abandon",
+          "POST",
+          { reason: stopReservationReason.trim() },
+        ),
+        record,
+      );
+      if (generation !== checkoutGeneration.current) return;
+      if (!finishReservationAttempt(record, stopped))
+        throw Error(
+          "Stopping this request was not confirmed. Its original details remain saved.",
+        );
+    } catch (e) {
+      if (generation === checkoutGeneration.current) {
+        setReservationError((e as Error).message);
+        if (
+          [401, 403, 404].includes((e as any).status) ||
+          (e as Error).message.includes("guest session")
+        ) {
+          setReservationRecovery("blocked");
+          setReservationReview(null);
+          setReservationIntent(null);
+        }
+      }
+    } finally {
+      reservationInFlight.current = false;
+      if (generation === checkoutGeneration.current) setBusy(false);
+    }
+  }
   async function reserve(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    if (reservationInFlight.current) return;
+    if (reservationInFlight.current || reservationRecovery !== "ready") return;
     reservationInFlight.current = true;
     const generation = checkoutGeneration.current;
     setBusy(true);
@@ -929,19 +1094,53 @@ export default function CustomerExperience({
           "This reservation cannot be retried in a different guest session. Ask staff to check your original request before making another.",
         );
       reservationSessionRef.current = sessionRef;
+      const record =
+        reservationJournalRef.current ||
+        buildReservationJournal(
+          reservationScope(menu?.organization?.id, branch, menu?.branch?.id),
+          sessionRef,
+          intent,
+          { ...menu?.reservationPolicy, minimumSpendPolicy: minimumPolicy },
+          menu?.branch?.timezone || "Africa/Lagos",
+        );
+      assertReservationSession(record, session);
+      reservationJournalRef.current = saveReservationJournal(record);
+      setReservationReview(record.review);
+      if (reservationIntent) {
+        const checked = parseReservationAttempt(
+          await customerRequest(
+            prefix + "/reservation-attempts/" + record.intent.requestKey,
+          ),
+          record,
+        );
+        if (generation !== checkoutGeneration.current) return;
+        if (finishReservationAttempt(record, checked)) return;
+      }
       const next = await customerRequest(
         prefix + "/reservations",
         "POST",
         intent,
       );
       if (generation !== checkoutGeneration.current) return;
+      setReservation(next);
+      clearReservationJournal(record);
+      reservationJournalRef.current = null;
+      setReservationReview(null);
       setReservationIntent(null);
       reservationSessionRef.current = null;
-      setReservation(next);
       reservationKey.current = requestId();
     } catch (e) {
-      if (generation === checkoutGeneration.current)
+      if (generation === checkoutGeneration.current) {
         setReservationError((e as Error).message);
+        if (
+          [401, 403, 404].includes((e as any).status) ||
+          (e as Error).message.includes("guest session")
+        ) {
+          setReservationRecovery("blocked");
+          setReservationReview(null);
+          setReservationIntent(null);
+        }
+      }
     } finally {
       reservationInFlight.current = false;
       if (generation === checkoutGeneration.current) setBusy(false);
@@ -1782,7 +1981,22 @@ export default function CustomerExperience({
                 {reservationError}
               </p>
             )}
-            {reservation ? (
+            {reservationRecovery !== "ready" ? (
+              <div>
+                <p role="status">
+                  {reservationRecovery === "checking"
+                    ? "Checking this tab’s saved reservations…"
+                    : "Booking is paused until the saved request can be checked safely."}
+                </p>
+                <button
+                  className="mc-secondary"
+                  disabled={busy || reservationRecovery === "checking"}
+                  onClick={() => void restoreReservation()}
+                >
+                  Check saved reservation
+                </button>
+              </div>
+            ) : reservation && !reservationIntent ? (
               <div>
                 <div className="mc-alert mc-success" role="status">
                   Reservation {reservation.reference || reservation.id} ·{" "}
@@ -1837,6 +2051,21 @@ export default function CustomerExperience({
               </div>
             ) : (
               <form onSubmit={reserve}>
+                {reservationIntent && reservationReview && (
+                  <div className="mc-note">
+                    <h3>Original reservation request</h3>
+                    <p>
+                      {reservationIntent.partySize} guests ·{" "}
+                      {new Date(reservationIntent.startsAt).toLocaleString(
+                        "en-GB",
+                        { timeZone: reservationReview.timezone },
+                      )}{" "}
+                      ({reservationReview.timezone})
+                    </p>
+                    <p>Contact: {reservationIntent.contact}</p>
+                    <p>{reservationIntent.notes}</p>
+                  </div>
+                )}
                 <fieldset
                   disabled={busy || !!reservationIntent}
                   style={{ border: 0, padding: 0 }}
@@ -1887,15 +2116,21 @@ export default function CustomerExperience({
                         </select>
                       </label>
                     )}
-                    <label>
-                      Date & time
-                      <small>
+                    <div>
+                      <label htmlFor="mc-reservation-start">Date & time</label>
+                      <small id="mc-reservation-timezone">
                         Enter your device’s local time (
                         {Intl.DateTimeFormat().resolvedOptions().timeZone}). The
                         venue is in {menu?.branch?.timezone || "Africa/Lagos"}.
                       </small>
-                      <input name="startsAt" type="datetime-local" required />
-                    </label>
+                      <input
+                        id="mc-reservation-start"
+                        aria-describedby="mc-reservation-timezone"
+                        name="startsAt"
+                        type="datetime-local"
+                        required
+                      />
+                    </div>
                     <label>
                       Duration
                       <select name="duration">
@@ -1914,59 +2149,57 @@ export default function CustomerExperience({
                     receipt of your request; the venue must confirm the booking
                     separately.
                   </p>
-                  {menu?.reservationPolicy?.enabled === false && (
+                  {bookingPolicy?.enabled === false && (
                     <div className="mc-alert">
                       This branch is not accepting online reservations.
                     </div>
                   )}
-                  {menu?.reservationPolicy?.depositRequired &&
-                  menu.reservationPolicy.depositPolicy?.approved ? (
+                  {bookingPolicy?.depositRequired &&
+                  bookingPolicy.depositPolicy?.approved ? (
                     <div className="mc-alert">
                       Required deposit:{" "}
-                      {money(menu.reservationPolicy.depositPolicy.amount)}. Ask
-                      staff to verify and record it before confirmation.
-                      Cancellation cutoff:{" "}
-                      {
-                        menu.reservationPolicy.depositPolicy
-                          .cancellationCutoffHours
-                      }{" "}
+                      {money(bookingPolicy.depositPolicy.amount)}. Ask staff to
+                      verify and record it before confirmation. Cancellation
+                      cutoff:{" "}
+                      {bookingPolicy.depositPolicy.cancellationCutoffHours}{" "}
                       hours. Refund rule:{" "}
-                      {menu.reservationPolicy.depositPolicy.refundRule ===
+                      {bookingPolicy.depositPolicy.refundRule ===
                       "refundable_before_cutoff"
                         ? "Refundable before the cutoff"
                         : "Non-refundable"}
                       . No online payment is collected here.
                     </div>
-                  ) : menu?.reservationPolicy?.depositRequired ? (
+                  ) : bookingPolicy?.depositRequired ? (
                     <div className="mc-alert">
                       Please contact the venue to arrange the required deposit
                       before booking.
                     </div>
                   ) : null}
-                  {minimumPolicy?.enabled && minimumPolicy.approved && (
-                    <div className="mc-alert">
-                      <p>
-                        Minimum spend: {money(minimumPolicy.amount)} · based on
-                        net paid bill.
-                      </p>
-                      <p>{minimumPolicy.disclosure}</p>
-                      <p>
-                        No shortfall charge is added automatically. Additional
-                        orders or an authorized manager waiver resolve a
-                        shortfall.
-                      </p>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={reservationAcknowledged}
-                          onChange={(event) =>
-                            setReservationAcknowledged(event.target.checked)
-                          }
-                        />
-                        I acknowledge this minimum-spend policy
-                      </label>
-                    </div>
-                  )}
+                  {bookingMinimumPolicy?.enabled &&
+                    bookingMinimumPolicy.approved && (
+                      <div className="mc-alert">
+                        <p>
+                          Minimum spend: {money(bookingMinimumPolicy.amount)} ·
+                          based on net paid bill.
+                        </p>
+                        <p>{bookingMinimumPolicy.disclosure}</p>
+                        <p>
+                          No shortfall charge is added automatically. Additional
+                          orders or an authorized manager waiver resolve a
+                          shortfall.
+                        </p>
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={reservationAcknowledged}
+                            onChange={(event) =>
+                              setReservationAcknowledged(event.target.checked)
+                            }
+                          />
+                          I acknowledge this minimum-spend policy
+                        </label>
+                      </div>
+                    )}
                   {minimumBlocked && (
                     <div className="mc-alert">
                       Please contact the venue to confirm minimum-spend terms
@@ -1977,10 +2210,68 @@ export default function CustomerExperience({
                 {reservationIntent && (
                   <p role="status">
                     Your reservation has not been confirmed here. Its original
-                    details stay locked for the same request. Keep this tab
-                    open; refreshing will not save these retry details. Check
-                    Your order or ask staff before making another booking.
+                    details stay locked for the same request. The original
+                    request is saved in this tab. Check its outcome before
+                    making another booking.
                   </p>
+                )}
+                {reservationIntent && reservationReview && (
+                  <div className="mc-reservation-recovery-actions">
+                    <button
+                      type="button"
+                      className="mc-secondary"
+                      disabled={busy}
+                      onClick={() => void resolveReservation()}
+                    >
+                      Check original reservation
+                    </button>
+                    <button
+                      type="button"
+                      className="mc-secondary"
+                      disabled={busy}
+                      onClick={() => setConfirmStopReservation(true)}
+                    >
+                      Stop unconfirmed reservation…
+                    </button>
+                    {confirmStopReservation && (
+                      <fieldset disabled={busy}>
+                        <legend>
+                          Stop this unconfirmed reservation request?
+                        </legend>
+                        <p>
+                          If the venue already accepted it, the booking will be
+                          kept. Stopping an unconfirmed request does not cancel
+                          a booking or confirm a refund.
+                        </p>
+                        <label>
+                          Reason for stopping
+                          <textarea
+                            value={stopReservationReason}
+                            onChange={(event) =>
+                              setStopReservationReason(event.target.value)
+                            }
+                            minLength={3}
+                            maxLength={500}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmStopReservation(false)}
+                        >
+                          Keep original reservation request
+                        </button>
+                        <button
+                          type="button"
+                          disabled={
+                            busy || stopReservationReason.trim().length < 3
+                          }
+                          onClick={() => void resolveReservation(true)}
+                        >
+                          Stop unconfirmed reservation request
+                        </button>
+                      </fieldset>
+                    )}
+                  </div>
                 )}
                 <button
                   className="mc-primary"
@@ -1988,11 +2279,12 @@ export default function CustomerExperience({
                     busy ||
                     !menu ||
                     (!reservationIntent &&
-                      (menu.reservationPolicy?.enabled === false ||
-                        (!!menu.reservationPolicy?.depositRequired &&
-                          !menu.reservationPolicy?.depositPolicy?.approved) ||
+                      (bookingPolicy?.enabled === false ||
+                        (!!bookingPolicy?.depositRequired &&
+                          !bookingPolicy?.depositPolicy?.approved) ||
                         minimumBlocked ||
-                        (minimumPolicy?.enabled && !reservationAcknowledged)))
+                        (bookingMinimumPolicy?.enabled &&
+                          !reservationAcknowledged)))
                   }
                 >
                   {busy

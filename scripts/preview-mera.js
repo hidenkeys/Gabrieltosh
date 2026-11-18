@@ -3,9 +3,9 @@ import EmbeddedPostgres from "embedded-postgres";
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
-if (process.env.NODE_ENV === "production")
-  throw new Error("Mera demo is not a production launcher.");
-const databaseDir = "data/mera-demo-db";
+import { meraPreviewConfig } from "./mera-preview-config.js";
+const config = meraPreviewConfig();
+const { databaseDir } = config;
 const password = randomBytes(24).toString("hex");
 // Persistent cluster uses a separately recorded development-only login.
 const devPassword = "MeraIsolatedDevelopmentOnly2026";
@@ -13,24 +13,24 @@ const postgres = new EmbeddedPostgres({
   databaseDir,
   user: "mera_demo",
   password: devPassword,
-  port: 55441,
+  port: config.dbPort,
   persistent: true,
-  postgresFlags: ["-h", "127.0.0.1"],
+  postgresFlags: ["-h", config.host],
   onLog: () => {},
   onError: (m) => console.error(String(m)),
 });
 if (!existsSync(databaseDir + "/PG_VERSION")) await postgres.initialise();
 await postgres.start();
 Object.assign(process.env, {
-  DATABASE_URL: `postgres://mera_demo:${devPassword}@127.0.0.1:55441/postgres`,
+  DATABASE_URL: `postgres://mera_demo:${devPassword}@127.0.0.1:${config.dbPort}/postgres`,
   MEMORY_DB: "false",
   MERA_ENABLED: "true",
   MERA_DEMO: "true",
   MERA_RUN_JOBS: "true",
   DISABLE_BACKUPS: "true",
   PRINT_MODE: "simulation",
-  PORT: "3003",
-  HOST: "127.0.0.1",
+  PORT: String(config.webPort),
+  HOST: config.host,
 });
 const db = await import("../server/db.js");
 const { seed, createAdmin } = await import("../server/seed.js");
@@ -66,4 +66,6 @@ async function stop() {
 process.on("SIGINT", stop);
 process.on("SIGTERM", stop);
 child.once("exit", stop);
-console.log("Mera isolated development site: http://localhost:3003/mera");
+console.log(
+  `Mera isolated development site (${config.instance}): ${config.url}`,
+);

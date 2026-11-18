@@ -79,7 +79,8 @@ test("POS search preserves selected customization and totals while unavailable s
       target: { value: "large" },
     });
     fireEvent.click(screen.getByRole("checkbox", { name: "Boba +₦50.00" }));
-    assert.ok(screen.getByText("₦270.00"));
+    assert.ok(screen.getByText("Complete selections"));
+    assert.equal(screen.queryByText("₦270.00"), null);
     fireEvent.change(
       screen.getByRole("searchbox", { name: "Search counter menu" }),
       { target: { value: "nothing matches" } },
