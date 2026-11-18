@@ -155,17 +155,22 @@ test("deposit cancellation shows pending review without claiming refund", async 
   });
   render(React.createElement(GuestActivity, { prefix: "/public/org/branch" }));
   await screen.findByText("Please review service timing");
+  fireEvent.click(
+    screen.getByText("Request cancellation", { selector: "summary" }),
+  );
   fireEvent.change(
     screen.getByRole("textbox", { name: "Cancellation reason" }),
     { target: { value: "Plans changed" } },
   );
-  fireEvent.click(screen.getByRole("button", { name: "Request cancellation" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Send cancellation request" }),
+  );
   await screen.findByRole("status");
   assert.match(
     screen.getByRole("status").textContent,
     /no refund is confirmed/,
   );
-  assert(screen.getByText("Status: confirmed"));
+  assert(screen.getByText("Reservation confirmed"));
   assert.equal(
     screen.queryByRole("button", { name: "Request cancellation" }),
     null,

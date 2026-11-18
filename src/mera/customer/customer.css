@@ -1101,3 +1101,38 @@
   border: 1px solid #e9e6e2;
   border-radius: 8px;
 }
+
+.mera-customer .mc-reservation-status {
+  font-weight: 700;
+  color: #111b2f;
+}
+.mera-customer .mc-reservation-reference {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.mera-customer .mc-reservation-cancellation {
+  margin-block: 16px;
+}
+.mera-customer .mc-reservation-cancellation > summary {
+  min-height: 44px;
+  cursor: pointer;
+  padding-block: 12px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.mera-customer .mc-reservation-cancellation > summary:focus-visible {
+  outline: 3px solid var(--mc-link, #1558c9);
+  outline-offset: 3px;
+}
+.mera-customer .mc-reservation-cancellation textarea[readonly] {
+  background: #f8f7f4;
+}
+
+.mera-customer .mc-session button,
+.mera-customer .mc-activity button,
+.mera-customer .mc-consent button {
+  min-height: 44px;
+}
+.mera-customer .mc-consent .mc-modifier {
+  min-height: 44px;
+}

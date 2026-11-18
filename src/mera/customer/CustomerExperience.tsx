@@ -27,6 +27,10 @@ import {
 import SessionOrders from "./SessionOrders";
 import HelpRequests from "./HelpRequests";
 import GuestActivity from "./GuestActivity";
+import {
+  reservationStatusLabel,
+  reservationDateLabel,
+} from "./reservationPresentation";
 import { ProductImage } from "../../ProductImage";
 import { money } from "../../api";
 import { customerRequest, requestId } from "./client";
@@ -1999,16 +2003,31 @@ export default function CustomerExperience({
             ) : reservation && !reservationIntent ? (
               <div>
                 <div className="mc-alert mc-success" role="status">
-                  Reservation {reservation.reference || reservation.id} ·{" "}
-                  {reservation.status || "requested"}. The venue’s confirmation
-                  and any deposit policy apply. No money has been collected
-                  here.
+                  <strong>
+                    {reservationStatusLabel(reservation.status || "requested")}
+                  </strong>
+                  <p>
+                    {reservation.status === "confirmed"
+                      ? "The venue has confirmed this reservation."
+                      : !reservation.status ||
+                          reservation.status === "requested"
+                        ? "Your request has reached the venue. A table is only booked once the venue confirms it."
+                        : "Check your activity under Your order for the venue’s latest update."}
+                  </p>
+                  <p>
+                    No money has been collected here. Any deposit policy still
+                    applies.
+                  </p>
                 </div>
+                <p className="mc-reservation-reference">
+                  Reference: {reservation.reference || reservation.id}
+                </p>
                 {reservation.startsAt && (
                   <p>
-                    {new Date(reservation.startsAt).toLocaleString("en-GB", {
-                      timeZone: menu?.branch?.timezone || "Africa/Lagos",
-                    })}{" "}
+                    {reservationDateLabel(
+                      reservation.startsAt,
+                      menu?.branch?.timezone,
+                    )}{" "}
                     · {reservation.partySize} guests
                   </p>
                 )}
@@ -2305,7 +2324,7 @@ export default function CustomerExperience({
               onClear={clearGuestView}
               hasUnconfirmedOrder={!!checkoutIntent}
             />
-            <GuestActivity prefix={prefix} />
+            <GuestActivity prefix={prefix} timeZone={menu?.branch?.timezone} />
             <MarketingPreference prefix={prefix} />
           </>
         )}

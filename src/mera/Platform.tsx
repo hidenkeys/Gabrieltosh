@@ -2,6 +2,11 @@ import { useEffect, useState, useRef } from "react";
 import { workspaceApi, formatMoney, WorkspaceError } from "./workspace/api";
 
 export default function Platform() {
+  const accessHeading = useRef<HTMLHeadingElement>(null);
+  const verificationHeading = useRef<HTMLHeadingElement>(null);
+  const accessError = useRef<HTMLDivElement>(null);
+  const [casesLoading, setCasesLoading] = useState(false);
+  const [casesLoaded, setCasesLoaded] = useState(false);
   const reviewDialog = useRef<HTMLDialogElement>(null);
   const reviewTrigger = useRef<HTMLButtonElement | null>(null);
   const [panel, setPanel] = useState("organizations");
@@ -43,15 +48,26 @@ export default function Platform() {
       reviewTrigger.current?.focus();
     };
   }, [selected]);
+  useEffect(() => {
+    if (selected) return;
+    if (error) accessError.current?.focus();
+    else if (auth && !auth.verified) verificationHeading.current?.focus();
+    else if (data) accessHeading.current?.focus();
+  }, [error, auth?.verified, auth?.enrolled, !!data]);
   async function loadCases(epoch = accessEpoch.current) {
+    setCasesLoading(true);
+    setCaseError("");
     try {
       const result = await workspaceApi("/platform/support-cases");
       if (epoch !== accessEpoch.current) return;
       setSupportCases(result.cases || []);
+      setCasesLoaded(true);
       setCaseError("");
     } catch (e) {
       if (epoch !== accessEpoch.current) return;
       setCaseError((e as Error).message);
+    } finally {
+      if (epoch === accessEpoch.current) setCasesLoading(false);
     }
   }
   async function load() {
@@ -110,6 +126,8 @@ export default function Platform() {
       setError("Your access changed. Verify your session again.");
       setData(null);
       setAuth(null);
+      setCasesLoaded(false);
+      setCasesLoading(false);
       setSupportCases([]);
       setCaseDrafts({});
       setSelected(null);
@@ -346,7 +364,9 @@ export default function Platform() {
       <header className="mera-page-heading">
         <div>
           <p className="eyebrow">Mera operations</p>
-          <h1>Platform administration</h1>
+          <h1 ref={accessHeading} tabIndex={-1}>
+            Platform administration
+          </h1>
           <p>Manage organizations, service access and support.</p>
         </div>
         <button className="secondary" onClick={load} disabled={busy}>
@@ -354,14 +374,16 @@ export default function Platform() {
         </button>
       </header>
       {error && !selected && (
-        <div role="alert" className="info-box">
+        <div ref={accessError} tabIndex={-1} role="alert" className="info-box">
           {error} <a href="/mera/workspace">Organization sign-in</a>
         </div>
       )}
       {!auth && !error && <p role="status">Verifying operator access…</p>}
       {auth && !auth.verified && (
         <section className="mera-panel" style={{ maxWidth: 560, padding: 24 }}>
-          <h2>Verify your authenticator</h2>
+          <h2 ref={verificationHeading} tabIndex={-1}>
+            Verify your authenticator
+          </h2>
           <p>
             Access is bound to this sign-in session and expires after ten
             minutes. Each code can be used once.
@@ -477,92 +499,118 @@ export default function Platform() {
               </p>
             </section>
           )}
-          <section hidden={panel !== "support"} className="mera-panel">
+          <section
+            hidden={panel !== "support"}
+            className="mera-panel"
+            aria-busy={casesLoading}
+          >
             <h2>Organization support</h2>
             <p>
               Replies appear in the organization's support inbox. Operator notes
               stay private; external message delivery is not configured.
             </p>
-            {caseError && <p role="alert">{caseError}</p>}
-            {!supportCases.length && <p>No support cases recorded.</p>}
-            {supportCases.map((row) => {
-              const draft = caseDrafts[row.id] || row;
-              return (
-                <details
-                  key={row.id}
-                  style={{
-                    padding: "16px 0",
-                    borderBottom: "1px solid #e4dfd4",
-                  }}
+            {casesLoading && <p role="status">Loading support cases…</p>}
+            {caseError && (
+              <div className="info-box">
+                <p role="alert">
+                  Support cases could not be loaded. {caseError}
+                </p>
+                <button
+                  className="secondary"
+                  disabled={casesLoading}
+                  onClick={() => void loadCases()}
                 >
-                  <summary>
-                    {row.reference} ·{" "}
-                    {data.organizations.find(
-                      (o: any) => o.id === row.organizationId,
-                    )?.name || "Organization"}{" "}
-                    · {row.subject} · {row.status.replaceAll("_", " ")}
-                  </summary>
-                  <p style={{ whiteSpace: "pre-wrap" }}>{row.message}</p>
-                  <label>
-                    Status
-                    <select
-                      value={
-                        draft.status === "open" ? "acknowledged" : draft.status
-                      }
-                      disabled={busy}
-                      onChange={(e) => editCase(row, "status", e.target.value)}
-                    >
-                      <option value="acknowledged">Acknowledged</option>
-                      <option value="in_progress">In progress</option>
-                      <option value="resolved">Resolved</option>
-                    </select>
-                  </label>
-                  <label>
-                    Reply visible to the organization
-                    <textarea
-                      value={draft.customerReply || ""}
-                      maxLength={4000}
-                      disabled={busy}
-                      onChange={(e) =>
-                        editCase(row, "customerReply", e.target.value)
-                      }
-                    />
-                  </label>
-                  <label>
-                    Private operator note
-                    <textarea
-                      value={caseDrafts[row.id]?.internalNote || ""}
-                      maxLength={4000}
-                      disabled={busy}
-                      onChange={(e) =>
-                        editCase(row, "internalNote", e.target.value)
-                      }
-                    />
-                  </label>
-                  {!!row.internalNotes?.length && (
-                    <div>
-                      <strong>Private notes</strong>
-                      {row.internalNotes.map((n: any, i: number) => (
-                        <p key={i}>
-                          {new Date(n.at).toLocaleString()} · {n.text}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                  <button
-                    className="secondary"
-                    disabled={
-                      busy ||
-                      (draft.status === "resolved" &&
-                        !draft.customerReply?.trim())
-                    }
-                    onClick={() => saveCase(row)}
+                  Retry support cases
+                </button>
+              </div>
+            )}
+            {!casesLoading &&
+              !caseError &&
+              casesLoaded &&
+              !supportCases.length && <p>No support cases recorded.</p>}
+            {!caseError &&
+              supportCases.map((row) => {
+                const draft = caseDrafts[row.id] || row;
+                return (
+                  <details
+                    key={row.id}
+                    style={{
+                      padding: "16px 0",
+                      borderBottom: "1px solid #e4dfd4",
+                    }}
                   >
-                    Save support response
-                  </button>
-                </details>
-              );
-            })}
+                    <summary>
+                      {row.reference} ·{" "}
+                      {data.organizations.find(
+                        (o: any) => o.id === row.organizationId,
+                      )?.name || "Organization"}{" "}
+                      · {row.subject} · {row.status.replaceAll("_", " ")}
+                    </summary>
+                    <p style={{ whiteSpace: "pre-wrap" }}>{row.message}</p>
+                    <label>
+                      Status
+                      <select
+                        value={
+                          draft.status === "open"
+                            ? "acknowledged"
+                            : draft.status
+                        }
+                        disabled={busy}
+                        onChange={(e) =>
+                          editCase(row, "status", e.target.value)
+                        }
+                      >
+                        <option value="acknowledged">Acknowledged</option>
+                        <option value="in_progress">In progress</option>
+                        <option value="resolved">Resolved</option>
+                      </select>
+                    </label>
+                    <label>
+                      Reply visible to the organization
+                      <textarea
+                        value={draft.customerReply || ""}
+                        maxLength={4000}
+                        disabled={busy}
+                        onChange={(e) =>
+                          editCase(row, "customerReply", e.target.value)
+                        }
+                      />
+                    </label>
+                    <label>
+                      Private operator note
+                      <textarea
+                        value={caseDrafts[row.id]?.internalNote || ""}
+                        maxLength={4000}
+                        disabled={busy}
+                        onChange={(e) =>
+                          editCase(row, "internalNote", e.target.value)
+                        }
+                      />
+                    </label>
+                    {!!row.internalNotes?.length && (
+                      <div>
+                        <strong>Private notes</strong>
+                        {row.internalNotes.map((n: any, i: number) => (
+                          <p key={i}>
+                            {new Date(n.at).toLocaleString()} · {n.text}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      className="secondary"
+                      disabled={
+                        busy ||
+                        (draft.status === "resolved" &&
+                          !draft.customerReply?.trim())
+                      }
+                      onClick={() => saveCase(row)}
+                    >
+                      Save support response
+                    </button>
+                  </details>
+                );
+              })}
           </section>
           <section hidden={panel !== "organizations"} className="mera-panel">
             <div className="mera-platform-section-heading">

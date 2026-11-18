@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { customerRequest } from "./client";
 export default function SessionOrders({
+  ...props
+}: Parameters<typeof ScopedSessionOrders>[0]) {
+  return <ScopedSessionOrders key={props.prefix} {...props} />;
+}
+function ScopedSessionOrders({
   prefix,
   onSelect,
   onClear,
@@ -14,6 +19,7 @@ export default function SessionOrders({
   const [orders, setOrders] = useState<any[]>([]),
     [cursor, setCursor] = useState<string | null>(null),
     [busy, setBusy] = useState(false),
+    [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
     [confirmEnd, setConfirmEnd] = useState(false);
   const generation = useRef(0),
@@ -22,6 +28,7 @@ export default function SessionOrders({
   async function load(next?: string) {
     const current = generation.current;
     setBusy(true);
+    setLoading(true);
     try {
       const result = await customerRequest(
         prefix +
@@ -37,14 +44,20 @@ export default function SessionOrders({
     } catch (e) {
       if (current !== generation.current) return;
       setError((e as Error).message);
-      if ((e as any).status === 401) {
+      if ([401, 403, 404].includes((e as any).status)) {
         setOrders([]);
+        setCursor(null);
+      }
+      if ((e as any).status === 401) {
         callbacks.current.onClear(
           "This guest session expired. Enter your name to start a new session. Existing orders have not been cancelled.",
         );
       }
     } finally {
-      if (current === generation.current) setBusy(false);
+      if (current === generation.current) {
+        setBusy(false);
+        setLoading(false);
+      }
     }
   }
   useEffect(() => {
@@ -58,10 +71,10 @@ export default function SessionOrders({
   }, [prefix]);
   return (
     <section className="mc-panel mc-session">
-      <h2>Orders in this guest session</h2>
+      <h2>Your recent orders</h2>
       <p>
-        This list belongs to your current organization and guest session. It
-        does not provide verified cross-device history.
+        Orders at this branch in your current guest session. For an order placed
+        on another device, please ask staff for help.
       </p>
       {error && <p role="alert">{error}</p>}
       <button
@@ -71,10 +84,12 @@ export default function SessionOrders({
       >
         Refresh session orders
       </button>
+      {loading && <p role="status">Loading your orders…</p>}
       {orders.map((order) => (
         <article key={order.id}>
           <p>
-            {order.reference} · {order.status} · {order.paymentStatus}
+            {order.reference} · {String(order.status).replaceAll("_", " ")} ·{" "}
+            {String(order.paymentStatus).replaceAll("_", " ")}
           </p>
           <button
             className="mc-secondary"
@@ -91,6 +106,10 @@ export default function SessionOrders({
               } catch (e) {
                 if (current !== generation.current) return;
                 setError((e as Error).message);
+                if ([401, 403, 404].includes((e as any).status)) {
+                  setOrders([]);
+                  setCursor(null);
+                }
                 if ((e as any).status === 401)
                   callbacks.current.onClear(
                     "This guest session expired. Existing orders have not been cancelled.",
@@ -104,7 +123,9 @@ export default function SessionOrders({
           </button>
         </article>
       ))}
-      {!orders.length && !busy && <p>No orders in this guest session.</p>}
+      {!orders.length && !busy && !error && (
+        <p>No orders in this guest session.</p>
+      )}
       {cursor && (
         <button
           className="mc-secondary"

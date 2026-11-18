@@ -151,7 +151,7 @@ test("reservation refresh restores original body and terms despite changed curre
   fireEvent.click(
     screen.getByRole("button", { name: "Retry original reservation" }),
   );
-  await screen.findByText(/Reservation .*requested/);
+  await screen.findByText("Awaiting venue confirmation");
   assert.equal(writes.length, 3);
   for (const write of writes) {
     assert(write.path.endsWith("/reservations"));
@@ -235,7 +235,7 @@ test("stop discovering recorded booking retains reservation without cancellation
   fireEvent.click(
     screen.getByRole("button", { name: "Check original reservation" }),
   );
-  await screen.findByText(/Reservation .*requested/);
+  await screen.findByText("Awaiting venue confirmation");
   assert.equal(posts.length, 0);
   assert.equal(readReservationJournal(scope), null);
 });

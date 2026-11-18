@@ -114,3 +114,12 @@ Scope: overview and POS first; other surface layouts remain pending their own au
 - DONE (local pilot): compact overview hierarchy, grouped sidebar variant, real photo POS/current-order panel, existing quote/permission/retry/visit handlers preserved. Keyboard/manual activation, compact-menu Escape, menu search/quantities and narrow basket access verified in the browser. Other modules deliberately retain their current layouts.
 - VERIFIED: TypeScript/Vite build; full suite183 passed/0 failed/2 skipped. No new actual-PG/provider/physical printer claim follows from this UI run. Screenshot comparisons and actual viewport measurements are in project-root design-qa.md and docs/mera/ui-audit.
 - Source UI integration remains alongside the earlier uncommitted operational milestone. Documentation/skill checkpoint can be committed independently without publishing unfinished accounting/provider work. Remaining original build dependencies and launch gates still apply.
+
+## UI reservation/staff checkpoint — 18 November2026
+
+- Lead integrated and browser-verified normal reservation creation, reload activity and canonical no-deposit cancellation in a separate visual database; retained Bing Chun visual authority.
+- Customer leaf adds scope-safe recent-order reads and regression evidence; creation journal/attempt recovery remains distinct from component-local cancellation intent.
+- Workspace leaf fixes role/invitation read states and invitation/history/custom-role hierarchy; root mounted stylesheet and verified desktop/narrow/keyboard. O5 partial only; no grants or invitation delivery performed.
+- Platform leaf fixes support loading/error/empty and auth focus; normal MFA/operator browser verification still pending. Backend owner read-only assessing a truly isolated synthetic MFA test fixture, without changing any authority.
+- Integration:324total/322pass/0fail/2skip; build passed; separate actualPG1pass/0fail/0skip. Physical output and production providers remain unverified.
+- Next dependencies: safe isolated platform test; customer visit/checkout and remaining management/operational layouts; broad state/accessibility review. Stable task weights and exact evidence remain in MERA_UI_PROGRESS.json.

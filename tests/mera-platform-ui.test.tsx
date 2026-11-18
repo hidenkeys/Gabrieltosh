@@ -214,3 +214,64 @@ test("organization review opens a named dialog and returns keyboard focus when c
     cleanup();
   }
 });
+test("support loading failure is recoverable and never masquerades as an empty inbox", async () => {
+  let attempts = 0;
+  let finish: ((value: Response) => void) | undefined;
+  globalThis.fetch = (async (input: any) => {
+    if (String(input).endsWith("/auth"))
+      return Response.json({ enrolled: true, verified: true });
+    if (String(input).endsWith("/support-cases")) {
+      attempts++;
+      if (attempts === 1) throw new Error("Connection interrupted");
+      return new Promise<Response>((resolve) => {
+        finish = resolve;
+      });
+    }
+    return Response.json({ organizations: [], audits: [], policy: {} });
+  }) as any;
+  try {
+    render(<Platform />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Support inbox" }),
+    );
+    await screen.findByRole("alert");
+    assert.equal(screen.queryByText("No support cases recorded."), null);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry support cases" }),
+    );
+    assert.ok(await screen.findByText("Loading support cases…"));
+    assert.equal(screen.queryByText("No support cases recorded."), null);
+    await waitFor(() => assert.ok(finish));
+    await act(async () => {
+      finish!(Response.json({ cases: [] }));
+    });
+    assert.ok(await screen.findByText("No support cases recorded."));
+    assert.equal(screen.queryByRole("alert"), null);
+    assert.equal(attempts, 2);
+  } finally {
+    cleanup();
+  }
+});
+test("access failure and authenticator recovery move focus to the current state", async () => {
+  let attempts = 0;
+  globalThis.fetch = (async () => {
+    if (++attempts === 1) throw new Error("Access check unavailable");
+    return Response.json({ enrolled: true, verified: false });
+  }) as any;
+  try {
+    render(<Platform />);
+    const alert = await screen.findByRole("alert");
+    await waitFor(() => assert.equal(document.activeElement, alert));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh access" }));
+    const heading = await screen.findByRole("heading", {
+      name: "Verify your authenticator",
+    });
+    await waitFor(() => assert.equal(document.activeElement, heading));
+    assert.equal(
+      screen.queryByRole("heading", { name: "Organization directory" }),
+      null,
+    );
+  } finally {
+    cleanup();
+  }
+});

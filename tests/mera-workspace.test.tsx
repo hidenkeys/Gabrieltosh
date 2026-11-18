@@ -877,6 +877,7 @@ test("custom roles expose only actor-grantable permissions and invite using a sc
     });
     assert(screen.getByText("Delivery: not_sent"));
     fireEvent.click(screen.getByRole("button", { name: "Edit role" }));
+    assert((screen.getByRole("button", {name:"Save custom role"}).closest("details") as HTMLDetailsElement).open);
     fireEvent.change(screen.getByLabelText("Role name"), {
       target: { value: "Evening host" },
     });

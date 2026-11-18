@@ -1,15 +1,33 @@
 import { useEffect, useRef, useState } from "react";
 import { customerRequest, requestId } from "./client";
+import {
+  reservationStatusLabel,
+  reservationDateLabel,
+} from "./reservationPresentation";
 const money = (amount: number) =>
   new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(
     amount / 100,
   );
-export default function GuestActivity({ prefix }: { prefix: string }) {
+export default function GuestActivity({
+  prefix,
+  timeZone,
+}: {
+  prefix: string;
+  timeZone?: string;
+}) {
   // A venue change must synchronously discard the previous venue's private view
   // and pending cancellation intents, before the next request completes.
-  return <ScopedGuestActivity key={prefix} prefix={prefix} />;
+  return (
+    <ScopedGuestActivity key={prefix} prefix={prefix} timeZone={timeZone} />
+  );
 }
-function ScopedGuestActivity({ prefix }: { prefix: string }) {
+function ScopedGuestActivity({
+  prefix,
+  timeZone,
+}: {
+  prefix: string;
+  timeZone?: string;
+}) {
   const [activity, setActivity] = useState<any>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -70,10 +88,18 @@ function ScopedGuestActivity({ prefix }: { prefix: string }) {
           {activity.reservations?.map((reservation: any) => (
             <article key={reservation.id}>
               <h4>
-                {new Date(reservation.startsAt).toLocaleString("en-GB")} ·{" "}
+                {reservationDateLabel(reservation.startsAt, timeZone)} ·{" "}
                 {reservation.partySize} guests
               </h4>
-              <p>Status: {reservation.status}</p>
+              <p className="mc-reservation-status">
+                {reservationStatusLabel(reservation.status)}
+              </p>
+              {reservation.status === "requested" && (
+                <p>
+                  The venue has received your request. Your table is awaiting
+                  confirmation.
+                </p>
+              )}
               {reservation.depositRequired > 0 && (
                 <p>
                   Required deposit {money(reservation.depositRequired)} · staff
@@ -95,65 +121,85 @@ function ScopedGuestActivity({ prefix }: { prefix: string }) {
               )}
               {reservation.cancellationRequestedAt ? (
                 <p role="status">
-                  Cancellation requested. Staff must review any deposit; no
-                  refund is confirmed.
+                  {reservation.status === "cancelled"
+                    ? "Your reservation is cancelled; no refund is confirmed."
+                    : "Cancellation requested. Staff must review this request and any deposit; no refund is confirmed."}
                 </p>
               ) : (
                 ["requested", "confirmed"].includes(reservation.status) && (
-                  <form
-                    onSubmit={async (event) => {
-                      event.preventDefault();
-                      const values = new FormData(event.currentTarget);
-                      setBusy(true);
-                      setError("");
-                      try {
-                        const reason = String(values.get("reason"));
-                        let intent = cancellationIntents.current.get(
-                          reservation.id,
-                        );
-                        if (intent && intent.reason !== reason)
-                          throw new Error(
-                            "Refresh your activity to check the previous cancellation request before changing its reason.",
-                          );
-                        if (!intent) {
-                          intent = { requestKey: requestId(), reason };
-                          cancellationIntents.current.set(
+                  <details className="mc-reservation-cancellation">
+                    <summary>Request cancellation</summary>
+                    <form
+                      onSubmit={async (event) => {
+                        event.preventDefault();
+                        const values = new FormData(event.currentTarget);
+                        setBusy(true);
+                        setError("");
+                        try {
+                          const reason = String(values.get("reason"));
+                          let intent = cancellationIntents.current.get(
                             reservation.id,
+                          );
+                          if (intent && intent.reason !== reason)
+                            throw new Error(
+                              "Refresh your activity to check the previous cancellation request before changing its reason.",
+                            );
+                          if (!intent) {
+                            intent = { requestKey: requestId(), reason };
+                            cancellationIntents.current.set(
+                              reservation.id,
+                              intent,
+                            );
+                          }
+                          await customerRequest(
+                            prefix +
+                              `/reservations/${reservation.id}/cancellation`,
+                            "POST",
                             intent,
                           );
+                          if (!mounted.current) return;
+                          await load();
+                        } catch (e) {
+                          if (mounted.current) setError((e as Error).message);
+                        } finally {
+                          if (mounted.current) setBusy(false);
                         }
-                        await customerRequest(
-                          prefix +
-                            `/reservations/${reservation.id}/cancellation`,
-                          "POST",
-                          intent,
-                        );
-                        if (!mounted.current) return;
-                        await load();
-                      } catch (e) {
-                        if (mounted.current) setError((e as Error).message);
-                      } finally {
-                        if (mounted.current) setBusy(false);
-                      }
-                    }}
-                  >
-                    <label>
-                      Cancellation reason
-                      <textarea
-                        name="reason"
-                        required
-                        minLength={3}
-                        maxLength={500}
-                      />
-                    </label>
-                    <p>
-                      A recorded deposit requires staff review. Sending this
-                      request does not confirm a refund.
-                    </p>
-                    <button className="mc-secondary" disabled={busy}>
-                      Request cancellation
-                    </button>
-                  </form>
+                      }}
+                    >
+                      <label>
+                        Cancellation reason
+                        <textarea
+                          name="reason"
+                          required
+                          minLength={3}
+                          maxLength={500}
+                          defaultValue={
+                            cancellationIntents.current.get(reservation.id)
+                              ?.reason || ""
+                          }
+                          readOnly={cancellationIntents.current.has(
+                            reservation.id,
+                          )}
+                        />
+                      </label>
+                      {cancellationIntents.current.has(reservation.id) && (
+                        <p role="status">
+                          Keep the original reason while this request is
+                          checked. A retry sends the same request.
+                        </p>
+                      )}
+                      <p>
+                        Staff must confirm the cancellation. If a deposit was
+                        recorded, staff must review it separately; this request
+                        does not confirm a refund.
+                      </p>
+                      <button className="mc-secondary" disabled={busy}>
+                        {cancellationIntents.current.has(reservation.id)
+                          ? "Retry cancellation request"
+                          : "Send cancellation request"}
+                      </button>
+                    </form>
+                  </details>
                 )
               )}
             </article>
