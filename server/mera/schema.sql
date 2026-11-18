@@ -6,3 +6,22 @@ CREATE INDEX IF NOT EXISTS mera_record_scope ON mera_records(organization_id,bra
 CREATE TABLE IF NOT EXISTS mera_guests(id TEXT PRIMARY KEY,token_hash TEXT UNIQUE NOT NULL,organization_id TEXT NOT NULL REFERENCES mera_organizations(id),display_name TEXT NOT NULL,expires_at TIMESTAMPTZ NOT NULL);
 CREATE TABLE IF NOT EXISTS mera_invitations(id TEXT PRIMARY KEY,organization_id TEXT NOT NULL REFERENCES mera_organizations(id),token_hash TEXT UNIQUE NOT NULL,email TEXT NOT NULL,role TEXT NOT NULL,permissions JSONB NOT NULL,branch_ids JSONB NOT NULL,expires_at TIMESTAMPTZ NOT NULL,revoked BOOLEAN NOT NULL DEFAULT false,accepted BOOLEAN NOT NULL DEFAULT false);
 CREATE TABLE IF NOT EXISTS mera_platform_members(user_id TEXT PRIMARY KEY REFERENCES users(id),active BOOLEAN NOT NULL DEFAULT true,strong_auth_verified BOOLEAN NOT NULL DEFAULT false);
+CREATE OR REPLACE FUNCTION mera_record_immutability() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ IF TG_OP <> 'INSERT' AND OLD.kind IN ('ledger','audit') THEN
+  RAISE EXCEPTION 'Mera ledger and audit records are append-only';
+ END IF;
+ IF TG_OP <> 'DELETE' AND NEW.kind='ledger' THEN
+  IF NEW.data->'postings' IS NULL OR jsonb_typeof(NEW.data->'postings') <> 'array' OR jsonb_array_length(NEW.data->'postings') < 2 THEN
+   RAISE EXCEPTION 'Ledger requires balanced postings';
+  END IF;
+  IF EXISTS(SELECT 1 FROM jsonb_array_elements(NEW.data->'postings') p WHERE jsonb_typeof(p->'debit') IS DISTINCT FROM 'number' OR jsonb_typeof(p->'credit') IS DISTINCT FROM 'number' OR (p->>'debit')::numeric<0 OR (p->>'credit')::numeric<0 OR (p->>'debit')::numeric<>trunc((p->>'debit')::numeric) OR (p->>'credit')::numeric<>trunc((p->>'credit')::numeric)) OR (SELECT sum((p->>'debit')::numeric-(p->>'credit')::numeric) FROM jsonb_array_elements(NEW.data->'postings') p) <> 0 THEN
+   RAISE EXCEPTION 'Ledger entries must balance in integer minor units';
+  END IF;
+ END IF;
+ IF TG_OP='DELETE' THEN RETURN OLD; END IF;
+ RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS mera_record_immutable ON mera_records;
+CREATE TRIGGER mera_record_immutable BEFORE INSERT OR UPDATE OR DELETE ON mera_records FOR EACH ROW EXECUTE FUNCTION mera_record_immutability();

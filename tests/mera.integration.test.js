@@ -7,7 +7,9 @@ import EmbeddedPostgres from "embedded-postgres";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { randomUUID } from "node:crypto";
+import { randomUUID, randomBytes, createHash } from "node:crypto";
+import { processMeraJobs } from "../server/mera/operations.js";
+import { base32, totp, encryptFactor } from "../server/mera/platform.js";
 import {
   createMeraRouter,
   migrateMera,
@@ -100,11 +102,13 @@ test(
         body,
         user = owner,
         cookie = "",
+        extra = {},
       ) {
         const response = await fetch(base + path, {
           method,
           headers: {
             "content-type": "application/json",
+            ...extra,
             ...(user ? { "x-test-user": user } : {}),
             ...(cookie ? { cookie } : {}),
           },
@@ -124,7 +128,7 @@ test(
         (await call(B + "/workspace", "GET", undefined, null)).status,
         401,
       );
-      assert.equal((await call("/platform")).status, 403);
+      assert.equal((await call("/platform")).status, 401);
       let menu = (await call(P + "/menu", "GET", undefined, null)).data;
       assert.equal(menu.products.length, 1);
       const selected = menu.products[0];
@@ -267,12 +271,55 @@ test(
       const ledger = (
         await db.query("SELECT data FROM mera_records WHERE kind='ledger'")
       ).rows;
-      assert.equal(ledger.length, 2);
+      assert.equal(ledger.filter((r) => r.data.paymentId).length, 2);
+      assert.equal(
+        ledger.filter((r) => r.data.type === "sale_recognition").length,
+        1,
+      );
       for (const row of ledger)
         assert.equal(
           row.data.postings.reduce((n, p) => n + p.debit - p.credit, 0),
           0,
         );
+      const changedReplay = await call(
+        P + "/orders",
+        "POST",
+        { ...winner.input, note: "Changed intent" },
+        null,
+        winner.cookie,
+      );
+      assert.equal(changedReplay.status, 409);
+      assert.equal(changedReplay.data.code, "IDEMPOTENCY_CONFLICT");
+      assert.equal(
+        (
+          await call(B + "/orders/" + winner.order.id + "/payments", "POST", {
+            requestKey: payKey,
+            method: "cash",
+            amount: 100000,
+            reference: "DIFFERENT",
+          })
+        ).status,
+        409,
+      );
+      await assert.rejects(
+        db.query("UPDATE mera_records SET data=data WHERE kind='ledger'"),
+      );
+      await assert.rejects(
+        db.query(
+          "INSERT INTO mera_records(id,organization_id,branch_id,kind,data) VALUES($1,$2,$3,'ledger',$4)",
+          [
+            randomUUID(),
+            org,
+            branch,
+            JSON.stringify({
+              postings: [
+                { account: "cash", debit: 100, credit: 0 },
+                { account: "sales", debit: 0, credit: 99 },
+              ],
+            }),
+          ],
+        ),
+      );
       const table = (
         await call(B + "/tables", "POST", {
           name: "T1",
@@ -664,6 +711,418 @@ test(
       );
       assert.equal(combined.balance, 0);
       assert(!combined.charges.some((l) => l.orderId === paidRound.id));
+      const credential = await call(B + "/integration-credentials", "POST", {
+        name: "Development Zidi",
+        scopes: [
+          "published_menu.read",
+          "orders.create",
+          "orders.read",
+          "reservations.create",
+        ],
+      });
+      assert.equal(credential.status, 201, JSON.stringify(credential.data));
+      const machineHeaders = {
+        authorization: "Bearer " + credential.data.token,
+      };
+      const zidiMenu = await call(
+        "/integrations/zidi/v1/menu",
+        "GET",
+        undefined,
+        null,
+        "",
+        machineHeaders,
+      );
+      assert.equal(zidiMenu.status, 200, JSON.stringify(zidiMenu.data));
+      assert.equal(zidiMenu.data.mode, "simulator");
+      const machineOrderBody = {
+        requestKey: randomUUID(),
+        menuVersion: menu.version,
+        displayName: "Zidi Guest",
+        items: [{ productId: selected.id, quantity: 1, modifiers: [] }],
+      };
+      const machineOrder = await call(
+        "/integrations/zidi/v1/orders",
+        "POST",
+        machineOrderBody,
+        null,
+        "",
+        machineHeaders,
+      );
+      assert.equal(machineOrder.status, 201, JSON.stringify(machineOrder.data));
+      assert.equal(
+        (
+          await call(
+            "/integrations/zidi/v1/orders",
+            "POST",
+            machineOrderBody,
+            null,
+            "",
+            machineHeaders,
+          )
+        ).data.order.id,
+        machineOrder.data.order.id,
+      );
+      assert.equal(
+        (
+          await call(
+            "/integrations/zidi/v1/orders",
+            "POST",
+            { ...machineOrderBody, note: "Changed intent" },
+            null,
+            "",
+            machineHeaders,
+          )
+        ).status,
+        409,
+      );
+      assert.equal(
+        (
+          await call(
+            "/integrations/zidi/v1/orders/" + machineOrder.data.order.id,
+            "GET",
+            undefined,
+            null,
+            "",
+            machineHeaders,
+          )
+        ).status,
+        200,
+      );
+      assert.equal(
+        (
+          await call(
+            "/integrations/zidi/v1/orders/" + winner.order.id,
+            "GET",
+            undefined,
+            null,
+            "",
+            machineHeaders,
+          )
+        ).status,
+        404,
+      );
+      assert.equal(
+        (
+          await call(
+            "/integrations/zidi/v1/orders/" +
+              machineOrder.data.order.id +
+              "/payments",
+            "POST",
+            { amount: 380000 },
+            null,
+            "",
+            machineHeaders,
+          )
+        ).status,
+        503,
+      );
+      const menuOnlyCredential = (
+        await call(B + "/integration-credentials", "POST", {
+          name: "Read only",
+          scopes: ["published_menu.read"],
+        })
+      ).data;
+      assert.equal(
+        (
+          await call(
+            "/integrations/zidi/v1/orders",
+            "POST",
+            { ...machineOrderBody, requestKey: randomUUID() },
+            null,
+            "",
+            { authorization: "Bearer " + menuOnlyCredential.token },
+          )
+        ).status,
+        403,
+      );
+      await call(
+        B + "/integration-credentials/" + credential.data.id,
+        "DELETE",
+      );
+      assert.equal(
+        (
+          await call(
+            "/integrations/zidi/v1/menu",
+            "GET",
+            undefined,
+            null,
+            "",
+            machineHeaders,
+          )
+        ).status,
+        403,
+      );
+      const exportDate = new Date().toISOString().slice(0, 10);
+      const exportJob = await call(B + "/exports", "POST", {
+        date: exportDate,
+        requestKey: randomUUID(),
+      });
+      assert.equal(exportJob.status, 202, JSON.stringify(exportJob.data));
+      assert.equal(await processMeraJobs(db), true);
+      const completedJob = (await call(B + "/jobs")).data.find(
+        (j) => j.id === exportJob.data.id,
+      );
+      assert.equal(completedJob.status, "complete");
+      const downloaded = await fetch(
+        base + B + "/exports/" + completedJob.artifactId + "/download",
+        { headers: { "x-test-user": owner } },
+      );
+      assert.equal(downloaded.status, 200);
+      assert.match(await downloaded.text(), /grossOrderValue/);
+      assert.equal(
+        (
+          await fetch(
+            base + B + "/exports/" + completedJob.artifactId + "/download",
+            { headers: { "x-test-user": other } },
+          )
+        ).status,
+        403,
+      );
+      const invoice = await call(
+        "/organizations/" + org + "/invoices",
+        "POST",
+        {
+          periodStart: "2026-11-01T00:00:00Z",
+          periodEnd: "2026-12-01T00:00:00Z",
+          requestKey: randomUUID(),
+        },
+      );
+      assert.equal(invoice.status, 201, JSON.stringify(invoice.data));
+      assert.equal(invoice.data.notCharged, true);
+      assert.equal(invoice.data.status, "draft");
+      assert.equal(invoice.data.amount, 1350000);
+      const directory = (
+        await call(
+          "/public/organizations/bing-chun/branches",
+          "GET",
+          undefined,
+          null,
+        )
+      ).data;
+      assert.equal(directory.branches.length, 1);
+      assert.equal(directory.branches[0].id, branch);
+      const consentKey = randomUUID();
+      assert.equal(
+        (
+          await call(
+            P + "/consent",
+            "PUT",
+            { requestKey: consentKey, marketing: true },
+            null,
+            g1,
+          )
+        ).data.marketing,
+        true,
+      );
+      assert.equal(
+        (
+          await call(
+            P + "/consent",
+            "PUT",
+            { requestKey: consentKey, marketing: false },
+            null,
+            g1,
+          )
+        ).status,
+        409,
+      );
+      assert.equal(
+        (await call(P + "/consent", "GET", undefined, null, g2)).data.marketing,
+        false,
+      );
+      const factor = base32(randomBytes(20)),
+        mfaKey = randomBytes(32);
+      process.env.MERA_PLATFORM_MFA_KEY = mfaKey.toString("hex");
+      await db.query(
+        "INSERT INTO mera_platform_members(user_id,active) VALUES($1,true)",
+        [owner],
+      );
+      await db.query(
+        "INSERT INTO mera_platform_factors(user_id,secret_cipher) VALUES($1,$2)",
+        [owner, encryptFactor(factor, mfaKey)],
+      );
+      const sessionA = randomBytes(32).toString("hex"),
+        sessionB = randomBytes(32).toString("hex");
+      for (const token of [sessionA, sessionB])
+        await db.query(
+          "INSERT INTO sessions(token,user_id,expires_at) VALUES($1,$2,CURRENT_TIMESTAMP+INTERVAL '1 hour')",
+          [createHash("sha256").update(token).digest("hex"), owner],
+        );
+      assert.equal(
+        (
+          await call(
+            "/platform",
+            "GET",
+            undefined,
+            owner,
+            "pos_session=" + sessionA,
+          )
+        ).status,
+        403,
+      );
+      const counter = Math.floor(Date.now() / 30000),
+        code = totp(factor, counter);
+      assert.equal(
+        (
+          await call(
+            "/platform/auth/verify",
+            "POST",
+            { code },
+            owner,
+            "pos_session=" + sessionA,
+          )
+        ).status,
+        200,
+      );
+      assert.equal(
+        (
+          await call(
+            "/platform/auth/verify",
+            "POST",
+            { code },
+            owner,
+            "pos_session=" + sessionA,
+          )
+        ).status,
+        401,
+      );
+      assert.equal(
+        (
+          await call(
+            "/platform",
+            "GET",
+            undefined,
+            owner,
+            "pos_session=" + sessionA,
+          )
+        ).status,
+        200,
+      );
+      assert.equal(
+        (
+          await call(
+            "/platform",
+            "GET",
+            undefined,
+            owner,
+            "pos_session=" + sessionB,
+          )
+        ).status,
+        403,
+      );
+      assert.equal(
+        (
+          await call(
+            "/platform/auth/verify",
+            "POST",
+            { code: totp(factor, counter + 1) },
+            owner,
+            "pos_session=" + sessionB,
+          )
+        ).status,
+        200,
+      );
+      await db.query(
+        "UPDATE mera_platform_members SET active=false WHERE user_id=$1",
+        [owner],
+      );
+      assert.equal(
+        (
+          await call(
+            "/platform",
+            "GET",
+            undefined,
+            owner,
+            "pos_session=" + sessionA,
+          )
+        ).status,
+        403,
+      );
+      await db.query(
+        "UPDATE mera_platform_members SET active=true WHERE user_id=$1",
+        [owner],
+      );
+      const subscriptionKey = randomUUID();
+      const subscriptionPath =
+        "/platform/organizations/" + org + "/subscription";
+      assert.equal(
+        (
+          await call(
+            subscriptionPath,
+            "PATCH",
+            {
+              requestKey: subscriptionKey,
+              status: "suspended",
+              reason: "Test subscription suspension",
+            },
+            owner,
+            "pos_session=" + sessionA,
+          )
+        ).status,
+        200,
+      );
+      assert.equal(
+        (
+          await call(
+            subscriptionPath,
+            "PATCH",
+            {
+              requestKey: subscriptionKey,
+              status: "active",
+              reason: "Changed intent",
+            },
+            owner,
+            "pos_session=" + sessionA,
+          )
+        ).status,
+        409,
+      );
+      assert.equal(
+        (
+          await call(
+            P + "/orders",
+            "POST",
+            { ...winner.input, requestKey: randomUUID() },
+            null,
+            winner.cookie,
+          )
+        ).status,
+        409,
+      );
+      const activePaidOrder = (
+        await call(
+          "/public/orders/" + tableOrder.id,
+          "GET",
+          undefined,
+          null,
+          g1,
+        )
+      ).data;
+      assert.equal(
+        (
+          await call(B + "/orders/" + tableOrder.id + "/status", "POST", {
+            status: "accepted",
+            version: activePaidOrder.version,
+          })
+        ).status,
+        200,
+      );
+      assert.equal(
+        (
+          await call(
+            subscriptionPath,
+            "PATCH",
+            {
+              requestKey: randomUUID(),
+              status: "active",
+              reason: "Restore after test",
+            },
+            owner,
+            "pos_session=" + sessionA,
+          )
+        ).status,
+        200,
+      );
       const allLedger = (
         await db.query("SELECT data FROM mera_records WHERE kind='ledger'")
       ).rows;

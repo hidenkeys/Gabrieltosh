@@ -26,6 +26,7 @@ Object.assign(process.env, {
   MEMORY_DB: "false",
   MERA_ENABLED: "true",
   MERA_DEMO: "true",
+  MERA_RUN_JOBS: "true",
   DISABLE_BACKUPS: "true",
   PRINT_MODE: "simulation",
   PORT: "3003",
@@ -49,11 +50,16 @@ const child = spawn(process.execPath, ["server/index.js"], {
   env: process.env,
   stdio: "inherit",
 });
+const jobs = spawn(process.execPath, ["scripts/mera-worker.js"], {
+  env: process.env,
+  stdio: "inherit",
+});
 let stopping = false;
 async function stop() {
   if (stopping) return;
   stopping = true;
   child.kill();
+  jobs.kill();
   await postgres.stop();
   process.exit();
 }

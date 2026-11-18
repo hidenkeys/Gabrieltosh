@@ -28,8 +28,107 @@ export function qrOrigin(req) {
   }
 }
 export function mountMeraQr(router, services) {
-  const { db, guard, scope, locked, record, readRecords, event, find } =
-    services;
+  const {
+    db,
+    guard,
+    scope,
+    locked,
+    record,
+    readRecords,
+    event,
+    find,
+    publicContext,
+    guest,
+  } = services;
+  router.get("/public/organizations/:slug/branches", async (req, res) => {
+    const organization = (
+      await db.query("SELECT id FROM mera_organizations WHERE slug=$1", [
+        req.params.slug.toLowerCase(),
+      ])
+    ).rows[0];
+    if (!organization)
+      return res.status(404).json({ error: "Organization not found." });
+    const rows = (
+      await db.query(
+        "SELECT id,name,timezone,currency,settings FROM mera_branches WHERE organization_id=$1 AND menu_version>0 ORDER BY name,id",
+        [organization.id],
+      )
+    ).rows;
+    res.json({
+      branches: rows.map((b) => ({
+        id: b.id,
+        name: b.name,
+        timezone: b.timezone,
+        currency: b.currency,
+        address:
+          typeof b.settings?.address === "string" ? b.settings.address : "",
+      })),
+    });
+  });
+  const consentPath = "/public/:slug/:branchId/consent";
+  router.get(consentPath, async (req, res) => {
+    const { organization, s } = await publicContext(req);
+    const g = await guest(req, organization.id);
+    const rows = await readRecords(
+      db,
+      s.organizationId,
+      s.branchId,
+      "customer_consent",
+    );
+    const latest = rows
+      .filter((r) => r.data.guestId === g.id)
+      .sort((a, b) => b.data.recordedAt.localeCompare(a.data.recordedAt))[0];
+    res
+      .set("Cache-Control", "no-store")
+      .json({
+        marketing: latest?.data.marketing ?? false,
+        recordedAt: latest?.data.recordedAt ?? null,
+        deliveryAvailable: false,
+      });
+  });
+  router.put(consentPath, async (req, res) => {
+    const value = z
+      .object({ requestKey: z.string().uuid(), marketing: z.boolean() })
+      .strict()
+      .parse(req.body);
+    const { organization, s } = await publicContext(req);
+    const g = await guest(req, organization.id);
+    const saved = await locked(s, async (c) => {
+      const rows = await readRecords(
+        c,
+        s.organizationId,
+        s.branchId,
+        "customer_consent",
+      );
+      const existing = rows.find(
+        (r) =>
+          r.data.guestId === g.id && r.data.requestKey === value.requestKey,
+      );
+      if (existing) {
+        if (existing.data.marketing !== value.marketing)
+          throw Object.assign(
+            new Error(
+              "This request key already records a different preference.",
+            ),
+            { status: 409 },
+          );
+        return existing.data;
+      }
+      return record(c, s, "customer_consent", {
+        guestId: g.id,
+        ...value,
+        recordedAt: new Date().toISOString(),
+        source: "explicit_guest_preference",
+      });
+    });
+    res
+      .set("Cache-Control", "no-store")
+      .json({
+        marketing: saved.marketing,
+        recordedAt: saved.recordedAt,
+        deliveryAvailable: false,
+      });
+  });
   router.get(
     B + "/qr-codes",
     guard(["menu.publish", "tables.manage"]),

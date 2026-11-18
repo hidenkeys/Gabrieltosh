@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./styles.css";
+import "./mera/platform.css";
 import "./mera/marketing/marketing.css";
 import "./mera/customer/customer.css";
 import "./mera/workspace/workspace.css";

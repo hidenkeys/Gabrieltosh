@@ -45,6 +45,12 @@ export default function CustomerExperience({
   const slug = organizationSlug || route[2] || "bing-chun";
   const branch = branchId || route[3] || "20000000-0000-4000-8000-000000000001";
   const prefix = `/public/${encodeURIComponent(slug)}/${encodeURIComponent(branch)}`;
+  const bingChun = slug === "bing-chun";
+  const requestedTable = new URLSearchParams(window.location.search).get(
+    "tableId",
+  );
+  const [branches, setBranches] = useState<any[]>([]);
+  const [hasGuest, setHasGuest] = useState(false);
   const [menu, setMenu] = useState<any>(null),
     [error, setError] = useState(""),
     [search, setSearch] = useState(""),
@@ -77,13 +83,23 @@ export default function CustomerExperience({
   useEffect(() => {
     let active = true;
     void load();
+    customerRequest(
+      `/public/organizations/${encodeURIComponent(slug)}/branches`,
+    )
+      .then((result) => {
+        if (active) setBranches(result.branches || []);
+      })
+      .catch(() => {});
     setCart([]);
     setOrder(null);
     setVisit(null);
+    setHasGuest(false);
+    setReservation(null);
     customerRequest(prefix + "/guest")
       .then(async (session) => {
         if (!active) return;
         setDisplayName(session.displayName || "");
+        setHasGuest(true);
         const upcoming = [...(session.reservations || [])]
           .filter(
             (r) => !["cancelled", "completed", "no-show"].includes(r.status),
@@ -95,7 +111,10 @@ export default function CustomerExperience({
           const currentVisit = await customerRequest(
             `/public/visits/${joined.id}`,
           );
-          if (active) {
+          if (
+            active &&
+            (!requestedTable || currentVisit.visit?.tableId === requestedTable)
+          ) {
             setVisit(currentVisit);
             setFulfillment("table_service");
           }
@@ -172,6 +191,45 @@ export default function CustomerExperience({
       window.removeEventListener("online", refresh);
     };
   }, [order?.id]);
+  useEffect(() => {
+    if (!visit?.visit?.id) return;
+    let active = true,
+      refreshing = false;
+    const refresh = async () => {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        const current = await customerRequest(
+          `/public/visits/${visit.visit.id}`,
+        );
+        if (active) setVisit(current);
+      } catch (e) {
+        if (active) {
+          if (
+            [401, 403, 404].includes((e as Error & { status: number }).status)
+          ) {
+            setVisit(null);
+            setFulfillment("counter_pickup");
+            setError(
+              "This visit is no longer available. Ask staff for the current joining code.",
+            );
+          } else
+            setError(
+              "Table updates are interrupted. The last confirmed bill is shown; check the connection before making another request.",
+            );
+        }
+      } finally {
+        refreshing = false;
+      }
+    };
+    const timer = setInterval(refresh, 3000);
+    window.addEventListener("online", refresh);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      window.removeEventListener("online", refresh);
+    };
+  }, [visit?.visit?.id]);
   const products: Product[] = menu?.products || [];
   const categories = ["All", ...new Set(products.map((p) => p.category))];
   const total = cart.reduce(
@@ -184,6 +242,7 @@ export default function CustomerExperience({
     await customerRequest(prefix + "/guests", "POST", {
       displayName: displayName.trim(),
     });
+    setHasGuest(true);
   }
   function addProduct() {
     if (!selected) return;
@@ -315,7 +374,13 @@ export default function CustomerExperience({
       <header className="mc-top">
         <div className="mc-wrap">
           <div className="mc-brand">
-            <img src="/brand/brand-logo.png" alt="" />
+            {bingChun ? (
+              <img src="/brand/brand-logo.png" alt="" />
+            ) : (
+              <span className="mc-initial" aria-hidden="true">
+                {(menu?.organization?.name || "Mera").slice(0, 1)}
+              </span>
+            )}
             <span>
               {menu?.organization?.name || "Mera"}
               <small
@@ -326,6 +391,34 @@ export default function CustomerExperience({
             </span>
           </div>
           <a href="/mera">Hospitality, made simpler · Mera</a>
+          {branches.length > 1 && (
+            <label className="mc-branch-selector">
+              Branch
+              <select
+                aria-label="Choose branch"
+                value={branch}
+                disabled={busy}
+                onChange={(event) => {
+                  if (
+                    cart.length &&
+                    !window.confirm(
+                      "Changing branch clears this basket. Continue?",
+                    )
+                  )
+                    return;
+                  window.location.assign(
+                    `/mera/menu/${encodeURIComponent(slug)}/${encodeURIComponent(event.target.value)}`,
+                  );
+                }}
+              >
+                {branches.map((option: any) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
       </header>
       <main className="mc-wrap">
@@ -340,12 +433,43 @@ export default function CustomerExperience({
               made for you.
             </h1>
             <p>
-              Browse the menu, make it yours, and follow your order from the
-              first tap to the final handoff.
+              {menu?.organization?.branding?.description ||
+                "Browse the menu, make it yours, and follow your order from the first tap to the final handoff."}
             </p>
+            {menu?.branch?.settings?.address && (
+              <p className="mc-note">{menu.branch.settings.address}</p>
+            )}
           </div>
-          <img src="/brand/brand-logo.png" alt="Bing Chun mascot" />
+          {bingChun && (
+            <img src="/brand/brand-logo.png" alt="Bing Chun mascot" />
+          )}
         </section>
+        {requestedTable && menu && (
+          <div className="mc-alert" role="status">
+            {menu.tables?.some((table: any) => table.id === requestedTable) ? (
+              <>
+                You scanned{" "}
+                {
+                  menu.tables.find((table: any) => table.id === requestedTable)
+                    .name
+                }
+                . Ask staff for the current visit’s joining code before opening
+                its private bill.{" "}
+                <button
+                  className="mc-secondary"
+                  onClick={() => setTab("visit")}
+                >
+                  Join table
+                </button>
+              </>
+            ) : (
+              <>
+                This table context is not available at this branch. Ask staff to
+                check the QR code; the counter menu remains available.
+              </>
+            )}
+          </div>
+        )}
         <nav className="mc-tabs" aria-label="Customer services">
           {[
             ["menu", "Menu"],
@@ -416,10 +540,16 @@ export default function CustomerExperience({
                   )
                   .map((p) => (
                     <article className="mc-product" key={p.id}>
-                      <ProductImage
-                        product={{ ...p, code: p.imageCode || p.code }}
-                        decorative
-                      />
+                      {bingChun || p.imageCode ? (
+                        <ProductImage
+                          product={{ ...p, code: p.imageCode || p.code }}
+                          decorative
+                        />
+                      ) : (
+                        <div className="mc-photo-placeholder">
+                          Photo coming soon
+                        </div>
+                      )}
                       <div>
                         <h3>{p.name}</h3>
                         <p>{p.description || p.size}</p>
@@ -791,6 +921,7 @@ export default function CustomerExperience({
             )}
           </section>
         )}
+        {tab === "track" && hasGuest && <MarketingPreference prefix={prefix} />}
         {tab === "visit" && (
           <section className="mc-panel">
             <h2>Join your table</h2>
@@ -1085,5 +1216,84 @@ function Feedback({
         {busy ? "Sending…" : "Send private feedback"}
       </button>
     </form>
+  );
+}
+
+function MarketingPreference({ prefix }: { prefix: string }) {
+  const [marketing, setMarketing] = useState(false),
+    [busy, setBusy] = useState(false),
+    [ready, setReady] = useState(false),
+    [message, setMessage] = useState(""),
+    [error, setError] = useState("");
+  const key = useRef(requestId());
+  useEffect(() => {
+    let active = true;
+    customerRequest(prefix + "/consent")
+      .then((value) => {
+        if (active) {
+          setMarketing(value.marketing === true);
+          setReady(true);
+        }
+      })
+      .catch((e) => {
+        if (active) setError((e as Error).message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [prefix]);
+  return (
+    <section className="mc-panel">
+      <h2>Your communication preference</h2>
+      <p>
+        This optional preference belongs to your current guest session. It is
+        separate from order updates. Verified contact and marketing delivery are
+        not connected, so saving it will not send messages or verify a phone or
+        email address.
+      </p>
+      <label className="mc-modifier">
+        <input
+          type="checkbox"
+          checked={marketing}
+          disabled={!ready || busy}
+          onChange={(e) => {
+            setMarketing(e.target.checked);
+            key.current = requestId();
+            setMessage("");
+          }}
+        />
+        I would like to receive optional marketing updates when contact
+        verification and delivery become available.
+      </label>
+      <button
+        className="mc-secondary"
+        disabled={!ready || busy}
+        onClick={async () => {
+          setBusy(true);
+          setError("");
+          try {
+            const result = await customerRequest(prefix + "/consent", "PUT", {
+              requestKey: key.current,
+              marketing,
+            });
+            if (result.marketing !== marketing)
+              throw new Error("The preference could not be confirmed.");
+            setMessage(
+              marketing
+                ? "Your optional preference was saved for this guest session. No messages have been sent."
+                : "Optional marketing updates are turned off for this guest session.",
+            );
+          } catch (e) {
+            setError((e as Error).message);
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {busy ? "Saving…" : "Save preference"}
+      </button>
+      {message && <p role="status">{message}</p>}
+      {error && <p role="alert">{error}</p>}
+    </section>
   );
 }

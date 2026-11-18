@@ -5,8 +5,16 @@ import express from "express";
 import { createApp, errorHandler } from "./app.js";
 import { migrate } from "./db.js";
 import { seed, createAdmin } from "./seed.js";
-await migrate();
-await seed();
+import { validateMeraRuntime } from "./mera-security.js";
+validateMeraRuntime();
+// Hosted production schema changes must be a reviewed, explicit migration step.
+if (!(
+  process.env.MERA_ENABLED === "true" && process.env.NODE_ENV === "production"
+)) {
+  await migrate();
+  if (process.env.MERA_ENABLED !== "true" || process.env.MERA_DEMO === "true")
+    await seed();
+}
 if (process.env.MEMORY_DB === "true" && process.env.DEMO_PASSWORD) {
   await createAdmin("Store administrator", "admin", process.env.DEMO_PASSWORD);
   console.warn("EPHEMERAL DEVELOPMENT DATABASE: records disappear on restart.");

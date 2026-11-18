@@ -16,7 +16,13 @@ import ReservationSettlement from "./ReservationSettlement";
 import TableEditor from "./TableEditor";
 import PrintStudio from "./PrintStudio";
 import DepositPolicy from "./DepositPolicy";
-import { workspaceApi, formatMoney } from "./api";
+import QrCodes from "./QrCodes";
+import Integrations from "./Integrations";
+import { Complaints, Waitlist } from "./Operations";
+import ExportJobs from "./ExportJobs";
+import Invoices from "./Invoices";
+import ReportDetails from "./ReportDetails";
+import { workspaceApi, formatMoney, WorkspaceError } from "./api";
 
 type RecordData = Record<string, any>;
 type Props = { user: any; notify: (message: string) => void };
@@ -40,6 +46,11 @@ const sections = [
   ["team", "People", "members.manage"],
   ["billing", "Subscription", "billing.manage"],
   ["printing", "Receipt studio", "menu.edit"],
+  ["qr", "Menu QR codes", "qr.manage"],
+  ["integrations", "Integrations", "organization.manage"],
+  ["care", "Customer care", "organization.manage"],
+  ["waitlist", "Front desk", "reservations.manage"],
+  ["exports", "Report exports", "reports.export"],
 ];
 const sourceLabel = (value: string) => value?.replaceAll("_", " ") || "—";
 const list = (value: any) => (Array.isArray(value) ? value : []);
@@ -58,6 +69,13 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
   const [section, setSection] = useState("overview");
   const [data, setData] = useState<RecordData | null>(null);
   const [members, setMembers] = useState<any[]>([]);
+  const [orderFilters, setOrderFilters] = useState({
+    query: "",
+    status: "",
+    source: "",
+    payment: "",
+    unassigned: false,
+  });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -70,7 +88,9 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
     note: "",
   });
   const requestKey = useRef<string | null>(null);
+  const [uncertainOrder, setUncertainOrder] = useState<RecordData | null>(null);
   const pendingRequests = useRef(new Map<string, string>());
+  const uncertainOrders = useRef(new Map<string, RecordData>());
   const [tabForm, setTabForm] = useState<RecordData>({});
   const organizations = list(context?.organizations);
   const organization = organizations.find(
@@ -87,6 +107,13 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
   const contextGeneration = useRef(0);
   const mutationGeneration = useRef(0);
   const branchBase = `/organizations/${encodeURIComponent(organizationId)}/branches/${encodeURIComponent(branchId)}`;
+  const scopeEpoch = useRef({ path: "", generation: 0 });
+  if (scopeEpoch.current.path !== branchBase)
+    scopeEpoch.current = {
+      path: branchBase,
+      generation: scopeEpoch.current.generation + 1,
+    };
+  const scopeVersion = scopeEpoch.current.generation;
   activeScope.current = branchBase;
 
   const loadContext = useCallback(async () => {
@@ -141,26 +168,39 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
           undefined,
           signal,
         );
-        if (signal?.aborted || activeScope.current !== branchBase) return;
+        if (
+          signal?.aborted ||
+          activeScope.current !== branchBase ||
+          scopeEpoch.current.generation !== scopeVersion
+        )
+          return;
         setData(response);
         setOffline(false);
         setError("");
       } catch (e) {
         if (
           (e as Error).name !== "AbortError" &&
-          activeScope.current === branchBase
+          activeScope.current === branchBase &&
+          scopeEpoch.current.generation === scopeVersion
         ) {
           setError((e as Error).message);
           setOffline(true);
         }
       }
     },
-    [organizationId, branchId, branchBase],
+    [organizationId, branchId, branchBase, scopeVersion],
   );
   useEffect(() => {
     setData(null);
     setTabForm({});
     setProductEdit(null);
+    setOrderFilters({
+      query: "",
+      status: "",
+      source: "",
+      payment: "",
+      unassigned: false,
+    });
     setMembers([]);
     setBusy(false);
     setOrderDraft({
@@ -170,6 +210,12 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
       note: "",
     });
     requestKey.current = null;
+    const unresolved = uncertainOrders.current.get(branchBase);
+    setUncertainOrder(unresolved || null);
+    if (unresolved) {
+      setOrderDraft(unresolved);
+      requestKey.current = unresolved.requestKey;
+    }
     const controller = new AbortController();
     void refresh(controller.signal);
     const interval = setInterval(() => {
@@ -197,12 +243,17 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
         .then((rows) => {
           if (
             !controller.signal.aborted &&
-            activeScope.current === requestedScope
+            activeScope.current === requestedScope &&
+            scopeEpoch.current.generation === scopeVersion
           )
             setMembers(list(rows.members ?? rows));
         })
         .catch((e) => {
-          if (e.name !== "AbortError" && activeScope.current === requestedScope)
+          if (
+            e.name !== "AbortError" &&
+            activeScope.current === requestedScope &&
+            scopeEpoch.current.generation === scopeVersion
+          )
             setError(e.message);
         });
       return () => controller.abort();
@@ -230,13 +281,19 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
       }
       const result = await workspaceApi(path, method, body);
       if (signature) pendingRequests.current.delete(signature);
-      if (activeScope.current !== requestedScope)
+      if (
+        activeScope.current !== requestedScope ||
+        scopeEpoch.current.generation !== scopeVersion
+      )
         throw new DOMException(
           "The workspace changed while the action was running.",
           "AbortError",
         );
       await refresh();
-      if (activeScope.current !== requestedScope)
+      if (
+        activeScope.current !== requestedScope ||
+        scopeEpoch.current.generation !== scopeVersion
+      )
         throw new DOMException(
           "The workspace changed while the action was running.",
           "AbortError",
@@ -244,16 +301,90 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
       notify(success);
       return result;
     } catch (e) {
-      if (activeScope.current === requestedScope)
+      if (
+        activeScope.current === requestedScope &&
+        scopeEpoch.current.generation === scopeVersion
+      )
         setError((e as Error).message);
       throw e;
     } finally {
       if (
         generation === mutationGeneration.current &&
-        activeScope.current === requestedScope
+        activeScope.current === requestedScope &&
+        scopeEpoch.current.generation === scopeVersion
       )
         setBusy(false);
     }
+  };
+  const sendStaffOrder = async () => {
+    const scope = branchBase;
+    requestKey.current ||= uuid();
+    const body = uncertainOrder || {
+      ...orderDraft,
+      menuVersion: data?.menuVersion,
+      requestKey: requestKey.current,
+    };
+    uncertainOrders.current.set(scope, body);
+    try {
+      await mutate(branchBase + "/orders", "POST", body, "Order submitted.");
+      if (
+        activeScope.current !== scope ||
+        scopeEpoch.current.generation !== scopeVersion
+      )
+        return;
+      uncertainOrders.current.delete(scope);
+      setUncertainOrder(null);
+      requestKey.current = null;
+      setOrderDraft({
+        displayName: "",
+        fulfillment: "counter_pickup",
+        items: [],
+        note: "",
+      });
+    } catch (error) {
+      if (
+        error instanceof WorkspaceError &&
+        (!error.status || error.status >= 500 || error.status === 409)
+      ) {
+        uncertainOrders.current.set(scope, body);
+        if (
+          activeScope.current === scope &&
+          scopeEpoch.current.generation === scopeVersion
+        )
+          setUncertainOrder(body);
+      } else if ((error as Error).name !== "AbortError")
+        uncertainOrders.current.delete(scope);
+      throw error;
+    }
+  };
+  const checkStaffOrder = async () => {
+    const scope = branchBase;
+    const result = await workspaceApi(branchBase + "/workspace");
+    if (
+      activeScope.current !== scope ||
+      scopeEpoch.current.generation !== scopeVersion
+    )
+      return;
+    setData(result);
+    if (
+      list(result.orders).some(
+        (order: any) => order.requestKey === uncertainOrder?.requestKey,
+      )
+    ) {
+      uncertainOrders.current.delete(scope);
+      setUncertainOrder(null);
+      requestKey.current = null;
+      setOrderDraft({
+        displayName: "",
+        fulfillment: "counter_pickup",
+        items: [],
+        note: "",
+      });
+      notify("The original order is confirmed in the order queue.");
+    } else
+      setError(
+        "The original order is not yet visible. Retry the unchanged submission safely; do not create a duplicate.",
+      );
   };
   const act = (path: string, body: any, success: string, method = "POST") =>
     void mutate(path, method, body, success).catch(() => {});
@@ -283,7 +414,10 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
         const result = callback();
         if (result instanceof Promise)
           void result.catch((e) => {
-            if (activeScope.current === requestedScope)
+            if (
+              activeScope.current === requestedScope &&
+              scopeEpoch.current.generation === scopeVersion
+            )
               setError((e as Error).message);
           });
       } catch (e) {
@@ -303,12 +437,35 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
     );
   const empty = (text: string) => <div className="mw-empty">{text}</div>;
   const visibleSections = sections.filter(([, , permission]) =>
-    allowed(permission),
+    permission === "qr.manage"
+      ? allowed("menu.publish") || allowed("tables.manage")
+      : allowed(permission),
   );
   const activeSection = visibleSections.some(([id]) => id === section)
     ? section
     : visibleSections[0]?.[0] || "";
   const orders = list(data?.orders);
+  const filteredOrders = orders.filter((order: any) => {
+    const query = orderFilters.query.trim().toLowerCase();
+    return (
+      (!query ||
+        [
+          order.reference,
+          order.id,
+          order.displayName,
+          order.actorName,
+          order.handlerName,
+        ].some((value) =>
+          String(value || "")
+            .toLowerCase()
+            .includes(query),
+        )) &&
+      (!orderFilters.status || order.status === orderFilters.status) &&
+      (!orderFilters.source || order.source === orderFilters.source) &&
+      (!orderFilters.payment || order.paymentStatus === orderFilters.payment) &&
+      (!orderFilters.unassigned || !order.handlerId)
+    );
+  });
   const products = list(data?.products);
   const branch =
     data?.branch || branches.find((row: any) => row.id === branchId);
@@ -454,6 +611,54 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
             </div>
           ) : (
             <main>
+              {activeSection === "qr" && (
+                <QrCodes
+                  key={branchBase}
+                  base={branchBase}
+                  tables={list(data.tables)}
+                  demo={!!context?.demo}
+                />
+              )}
+              {activeSection === "integrations" && (
+                <Integrations
+                  key={branchBase}
+                  base={branchBase}
+                  demo={!!context?.demo}
+                />
+              )}
+              {activeSection === "care" && (
+                <Complaints
+                  key={branchBase}
+                  base={branchBase}
+                  complaints={list(data.complaints)}
+                  disabled={busy || offline}
+                  save={mutate}
+                />
+              )}
+              {activeSection === "waitlist" && (
+                <Waitlist
+                  key={branchBase}
+                  base={branchBase}
+                  disabled={busy || offline}
+                  save={mutate}
+                />
+              )}
+              {activeSection === "exports" && (
+                <ExportJobs
+                  key={branchBase}
+                  base={branchBase}
+                  disabled={busy || offline}
+                  save={mutate}
+                />
+              )}
+              {activeSection === "billing" && (
+                <Invoices
+                  key={organizationId}
+                  organizationId={organizationId}
+                  disabled={busy || offline}
+                  save={mutate}
+                />
+              )}
               {activeSection === "printing" && (
                 <PrintStudio
                   key={branchId}
@@ -494,6 +699,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                       </section>
                     ))}
                   </div>
+                  <ReportDetails report={data.report} />
                   <section className="mw-card">
                     <h2>Service at a glance</h2>
                     <div className="mw-grid">
@@ -988,8 +1194,114 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                         ? "Kitchen & bar handoffs"
                         : "Every order, with responsibility"}
                     </h2>
-                    {orders.length
-                      ? orders
+                    <div className="mw-form">
+                      <label>
+                        Find orders
+                        <input
+                          type="search"
+                          placeholder="Reference, customer or staff"
+                          value={orderFilters.query}
+                          onChange={(event) =>
+                            setOrderFilters({
+                              ...orderFilters,
+                              query: event.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        Order status
+                        <select
+                          value={orderFilters.status}
+                          onChange={(event) =>
+                            setOrderFilters({
+                              ...orderFilters,
+                              status: event.target.value,
+                            })
+                          }
+                        >
+                          <option value="">All states</option>
+                          {[
+                            "submitted",
+                            "accepted",
+                            "preparing",
+                            "ready",
+                            "collected",
+                            "completed",
+                            "rejected",
+                            "cancelled",
+                          ].map((status) => (
+                            <option key={status}>{status}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Order channel
+                        <select
+                          value={orderFilters.source}
+                          onChange={(event) =>
+                            setOrderFilters({
+                              ...orderFilters,
+                              source: event.target.value,
+                            })
+                          }
+                        >
+                          <option value="">All channels</option>
+                          {Array.from(
+                            new Set(
+                              orders
+                                .map((order: any) => order.source)
+                                .filter(Boolean),
+                            ),
+                          ).map((source) => (
+                            <option key={source} value={source}>
+                              {sourceLabel(source)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Payment state
+                        <select
+                          value={orderFilters.payment}
+                          onChange={(event) =>
+                            setOrderFilters({
+                              ...orderFilters,
+                              payment: event.target.value,
+                            })
+                          }
+                        >
+                          <option value="">All payment states</option>
+                          {[
+                            "unpaid",
+                            "pending",
+                            "partially_paid",
+                            "paid",
+                            "partially_refunded",
+                            "refunded",
+                            "failed",
+                            "expired",
+                          ].map((state) => (
+                            <option key={state}>{state}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="mw-row">
+                        <span>Unassigned orders only</span>
+                        <input
+                          type="checkbox"
+                          checked={orderFilters.unassigned}
+                          onChange={(event) =>
+                            setOrderFilters({
+                              ...orderFilters,
+                              unassigned: event.target.checked,
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+                    {filteredOrders.length
+                      ? filteredOrders
                           .filter(
                             (order) =>
                               activeSection !== "preparation" ||
@@ -1091,90 +1403,168 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                               </div>
                             </div>
                           ))
-                      : empty("No orders for this branch yet.")}
+                      : empty("No orders match the current filters.")}
                   </section>
                   {activeSection === "orders" && allowed("orders.create") && (
                     <section className="mw-card">
                       <h2>Create a staff-assisted order</h2>
-                      <form
-                        onSubmit={submit(async () => {
-                          requestKey.current ||= uuid();
-                          await mutate(
-                            branchBase + "/orders",
-                            "POST",
-                            {
-                              ...orderDraft,
-                              menuVersion: data.menuVersion,
-                              requestKey: requestKey.current,
-                            },
-                            "Order submitted.",
-                          );
-                          requestKey.current = null;
-                          setOrderDraft({
-                            displayName: "",
-                            fulfillment: "counter_pickup",
-                            items: [],
-                            note: "",
-                          });
-                        })}
-                      >
-                        <div className="mw-form">
+                      <form onSubmit={submit(sendStaffOrder)}>
+                        <fieldset
+                          disabled={busy || offline || !!uncertainOrder}
+                          style={{
+                            border: 0,
+                            padding: 0,
+                            margin: 0,
+                            minWidth: 0,
+                          }}
+                        >
+                          <div className="mw-form">
+                            <label>
+                              Customer display name
+                              <input
+                                required
+                                value={orderDraft.displayName}
+                                onChange={(event) => (
+                                  (requestKey.current = null),
+                                  setOrderDraft({
+                                    ...orderDraft,
+                                    displayName: event.target.value,
+                                  })
+                                )}
+                              />
+                            </label>
+                            <label>
+                              Fulfillment
+                              <select
+                                value={orderDraft.fulfillment}
+                                onChange={(event) => (
+                                  (requestKey.current = null),
+                                  setOrderDraft({
+                                    ...orderDraft,
+                                    fulfillment: event.target.value,
+                                    visitId: undefined,
+                                  })
+                                )}
+                              >
+                                <option value="counter_pickup">
+                                  Counter pickup
+                                </option>
+                                <option value="takeaway">Takeaway</option>
+                                {allowed("tables.manage") && (
+                                  <option value="table_service">
+                                    Table service
+                                  </option>
+                                )}
+                              </select>
+                            </label>
+                          </div>
+                          {orderDraft.fulfillment === "table_service" && (
+                            <label>
+                              Open table visit
+                              <select
+                                required
+                                value={orderDraft.visitId || ""}
+                                onChange={(event) => {
+                                  requestKey.current = null;
+                                  setOrderDraft({
+                                    ...orderDraft,
+                                    visitId: event.target.value,
+                                  });
+                                }}
+                              >
+                                <option value="">Select an open visit</option>
+                                {list(data.visits)
+                                  .filter(
+                                    (visit: any) => visit.status === "open",
+                                  )
+                                  .map((visit: any) => (
+                                    <option key={visit.id} value={visit.id}>
+                                      {list(data.tables).find(
+                                        (table: any) =>
+                                          table.id === visit.tableId,
+                                      )?.name || "Table"}{" "}
+                                      ·{" "}
+                                      {visit.displayName ||
+                                        visit.id.slice(0, 8)}
+                                    </option>
+                                  ))}
+                              </select>
+                            </label>
+                          )}
                           <label>
-                            Customer display name
+                            Order note
                             <input
-                              required
-                              value={orderDraft.displayName}
-                              onChange={(event) =>
+                              value={orderDraft.note}
+                              onChange={(event) => {
+                                requestKey.current = null;
                                 setOrderDraft({
                                   ...orderDraft,
-                                  displayName: event.target.value,
-                                })
-                              }
+                                  note: event.target.value,
+                                });
+                              }}
                             />
                           </label>
-                          <label>
-                            Fulfillment
-                            <select
-                              value={orderDraft.fulfillment}
-                              onChange={(event) =>
-                                setOrderDraft({
-                                  ...orderDraft,
-                                  fulfillment: event.target.value,
+                          <StaffOrderItems
+                            products={products}
+                            lines={orderDraft.items}
+                            disabled={busy || offline}
+                            onChange={(items) => {
+                              requestKey.current = null;
+                              setOrderDraft({ ...orderDraft, items });
+                            }}
+                          />
+                          <div className="mw-note">
+                            The server validates current publication, modifier
+                            requirements, prices and stock. No payment is
+                            confirmed by creating an order.
+                          </div>
+                          <button
+                            className="primary"
+                            disabled={
+                              busy ||
+                              offline ||
+                              !orderDraft.items.length ||
+                              !data.menuVersion
+                            }
+                          >
+                            Submit order
+                          </button>
+                        </fieldset>
+                        {uncertainOrder && (
+                          <div className="mw-note" role="status">
+                            <strong>Submission not confirmed</strong>
+                            <p>
+                              This draft is locked while its original request is
+                              unresolved. Check the queue or retry the exact
+                              same submission with its original request key.
+                            </p>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() =>
+                                void checkStaffOrder().catch((e) => {
+                                  if (
+                                    activeScope.current === branchBase &&
+                                    scopeEpoch.current.generation ===
+                                      scopeVersion
+                                  )
+                                    setError(e.message);
                                 })
                               }
                             >
-                              <option value="counter_pickup">
-                                Counter pickup
-                              </option>
-                              <option value="takeaway">Takeaway</option>
-                            </select>
-                          </label>
-                        </div>
-                        <StaffOrderItems
-                          products={products}
-                          lines={orderDraft.items}
-                          disabled={busy || offline}
-                          onChange={(items) => {
-                            requestKey.current = null;
-                            setOrderDraft({ ...orderDraft, items });
-                          }}
-                        />
-                        <div className="mw-note">
-                          The server validates current publication, modifier
-                          requirements, prices and stock. No payment is
-                          confirmed by creating an order.
-                        </div>
-                        <button
-                          className="primary"
-                          disabled={
-                            busy ||
-                            offline ||
-                            !orderDraft.items.length ||
-                            !data.menuVersion
-                          }
-                        >
-                          Submit order
-                        </button>
+                              Check original order
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy || offline}
+                              onClick={() =>
+                                void sendStaffOrder().catch(() => {})
+                              }
+                            >
+                              Retry original submission
+                            </button>
+                          </div>
+                        )}
                       </form>
                     </section>
                   )}
@@ -1757,9 +2147,13 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                                 `/organizations/${organizationId}/members`,
                               ),
                             )
-                            .then((rows) =>
-                              setMembers(list(rows.members ?? rows)),
-                            )
+                            .then((rows) => {
+                              if (
+                                activeScope.current === branchBase &&
+                                scopeEpoch.current.generation === scopeVersion
+                              )
+                                setMembers(list(rows.members ?? rows));
+                            })
                             .catch(() => {});
                         }}
                       >
@@ -1841,11 +2235,9 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                     <div>
                       <div className="mw-eyebrow">Proposed monthly price</div>
                       <h3>
-                        {formatMoney(
-                          data.policy?.monthlyPrice ||
-                            context?.policy?.monthlyPrice ||
-                            1350000,
-                        )}
+                        {Number.isSafeInteger(data.policy?.monthlyPrice)
+                          ? formatMoney(data.policy.monthlyPrice)
+                          : "Unresolved"}
                       </h3>
                       <p>
                         One organization, one included branch. Additional branch

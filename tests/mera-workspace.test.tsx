@@ -329,3 +329,289 @@ test("unused reservation deposit is labeled credit held rather than negative deb
   assert.equal(screen.queryByText(/Due.*-/), null);
   cleanup();
 });
+
+test("staff table orders freeze uncertain intent and retry the same request without duplicates", async () => {
+  const originalFetch = globalThis.fetch;
+  const previous = [...context.organizations[0].permissions];
+  context.organizations[0].permissions.push("orders.create", "tables.manage");
+  const submitted: any[] = [];
+  let fail = true;
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    if (String(input).endsWith("/workspace"))
+      return Response.json({
+        ...snapshot("branch-1"),
+        menuVersion: 1,
+        products: [
+          { id: "tea", name: "Milk tea", available: true, price: 150000 },
+        ],
+        tables: [{ id: "table-1", name: "Window table" }],
+        visits: [
+          {
+            id: "visit-1",
+            tableId: "table-1",
+            status: "open",
+            displayName: "Family",
+          },
+        ],
+      });
+    if (String(input).endsWith("/orders") && init.method === "POST") {
+      submitted.push(JSON.parse(init.body));
+      if (fail) throw new TypeError("Network lost");
+      return Response.json({ id: "created" });
+    }
+    return originalFetch(input, init);
+  }) as any;
+  try {
+    render(React.createElement(Workspace, { user, notify: () => {} }));
+    await screen.findByText("Surulere customer", { exact: false });
+    fireEvent.change(screen.getByLabelText("Customer display name"), {
+      target: { value: "Ada" },
+    });
+    fireEvent.change(screen.getByLabelText("Fulfillment"), {
+      target: { value: "table_service" },
+    });
+    fireEvent.change(screen.getByLabelText("Open table visit"), {
+      target: { value: "visit-1" },
+    });
+    fireEvent.change(screen.getByLabelText("Quantity of Milk tea"), {
+      target: { value: "1" },
+    });
+    fireEvent.change(screen.getByLabelText("Order note"), {
+      target: { value: "Less ice" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
+    await screen.findByText("Submission not confirmed");
+    assert.equal(
+      (
+        screen.getByLabelText("Customer display name") as HTMLInputElement
+      ).closest("fieldset")?.disabled,
+      true,
+    );
+    assert.equal(submitted[0].visitId, "visit-1");
+    assert.equal(submitted[0].fulfillment, "table_service");
+    fail = false;
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Retry original submission" }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    assert.equal(screen.queryByText("Submission not confirmed"), null);
+    assert.equal(submitted.length, 2);
+    assert.deepEqual(submitted[0], submitted[1]);
+  } finally {
+    cleanup();
+    context.organizations[0].permissions = previous;
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("QR administration exports scoped real codes and clearly labels preview reachability", async () => {
+  const { default: QrCodes } = await import("../src/mera/workspace/QrCodes");
+  const originalFetch = globalThis.fetch;
+  const calls: any[] = [];
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    calls.push({
+      path: String(input),
+      body: init.body && JSON.parse(init.body),
+    });
+    return Response.json(
+      init.method === "POST"
+        ? {
+            id: "qr-1",
+            kind: "branch",
+            url: "http://localhost:3003/api/mera/v1/public/qr/qr-1",
+          }
+        : { codes: [] },
+    );
+  }) as any;
+  try {
+    render(
+      React.createElement(QrCodes, {
+        base: "/organizations/org/branches/branch",
+        tables: [],
+        demo: true,
+      }),
+    );
+    await screen.findByText("No menu codes have been created for this branch.");
+    assert(screen.getByText(/not guaranteed to be publicly reachable/));
+    fireEvent.click(screen.getByRole("button", { name: "Create menu code" }));
+    const download = await screen.findByRole("link", { name: "Export SVG" });
+    assert.equal(
+      download.getAttribute("href"),
+      "/api/mera/v1/organizations/org/branches/branch/qr-codes/qr-1/image.svg",
+    );
+    assert.deepEqual(calls[1].body, { kind: "branch" });
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("integration credentials are explicitly simulated, scoped and revocable", async () => {
+  const { default: Integrations } =
+    await import("../src/mera/workspace/Integrations");
+  const originalFetch = globalThis.fetch;
+  const calls: any[] = [];
+  let created = false;
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    calls.push({
+      path: String(input),
+      method: init.method,
+      body: init.body && JSON.parse(init.body),
+    });
+    if (init.method === "POST") {
+      created = true;
+      return Response.json({ id: "credential", token: "development-secret" });
+    }
+    if (init.method === "DELETE") return Response.json({ revoked: true });
+    return Response.json(
+      created
+        ? [
+            {
+              id: "credential",
+              name: "Test adapter",
+              active: true,
+              scopes: ["published_menu.read"],
+            },
+          ]
+        : [],
+    );
+  }) as any;
+  try {
+    render(
+      React.createElement(Integrations, {
+        base: "/organizations/org/branches/branch",
+        demo: true,
+      }),
+    );
+    await screen.findByText("No integration credentials for this branch.");
+    assert(screen.getByText("Development simulator"));
+    fireEvent.change(screen.getByLabelText("Credential name"), {
+      target: { value: "Test adapter" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create simulator credential" }),
+    );
+    await screen.findByDisplayValue("development-secret");
+    assert.deepEqual(calls.find((call) => call.method === "POST").body, {
+      name: "Test adapter",
+      scopes: ["published_menu.read"],
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Revoke access" }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    assert.equal(screen.queryByDisplayValue("development-secret"), null);
+    assert(
+      calls.some(
+        (call) =>
+          call.method === "DELETE" &&
+          call.path.endsWith("/integration-credentials/credential"),
+      ),
+    );
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("complaint resolution requires an explicit private resolution and uses branch-scoped updates", async () => {
+  const { Complaints } = await import("../src/mera/workspace/Operations");
+  const calls: any[] = [];
+  try {
+    render(
+      React.createElement(Complaints, {
+        base: "/organizations/org/branches/branch",
+        complaints: [
+          {
+            id: "care",
+            category: "service",
+            rating: 2,
+            text: "Long wait",
+            status: "open",
+            orderId: "order",
+            createdAt: "2026-11-18T12:00:00Z",
+          },
+        ],
+        disabled: false,
+        save: async (...args: any[]) => {
+          calls.push(args);
+          return {};
+        },
+      }),
+    );
+    fireEvent.change(screen.getByLabelText("Case status"), {
+      target: { value: "resolved" },
+    });
+    assert.equal(
+      (screen.getByLabelText("Resolution") as HTMLTextAreaElement).required,
+      true,
+    );
+    fireEvent.change(screen.getByLabelText("Resolution"), {
+      target: { value: "Contacted customer and explained delay" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Update care record" }),
+      ),
+    );
+    assert.equal(
+      calls[0][0],
+      "/organizations/org/branches/branch/complaints/care",
+    );
+    assert.equal(calls[0][1], "PATCH");
+    assert.deepEqual(calls[0][2], {
+      status: "resolved",
+      resolution: "Contacted customer and explained delay",
+    });
+  } finally {
+    cleanup();
+  }
+});
+
+test("exports stay queued until a canonical completed artifact is available", async () => {
+  const { default: ExportJobs } =
+    await import("../src/mera/workspace/ExportJobs");
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    Response.json([
+      {
+        id: "queued",
+        type: "report_export",
+        status: "queued",
+        artifactId: "unready",
+        createdAt: "2026-11-18T12:00:00Z",
+      },
+      {
+        id: "done",
+        type: "report_export",
+        status: "complete",
+        artifactId: "ready",
+        createdAt: "2026-11-18T12:00:00Z",
+      },
+    ])) as any;
+  try {
+    render(
+      React.createElement(ExportJobs, {
+        base: "/organizations/org/branches/branch",
+        disabled: false,
+        save: async () => ({}),
+      }),
+    );
+    const link = await screen.findByRole("link", {
+      name: "Download report CSV",
+    });
+    assert.equal(
+      link.getAttribute("href"),
+      "/api/mera/v1/organizations/org/branches/branch/exports/ready/download",
+    );
+    assert.equal(screen.getAllByRole("link").length, 1);
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+  }
+});

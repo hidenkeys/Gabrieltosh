@@ -143,3 +143,62 @@ test("an expired table visit removes the previous private bill", async (t) => {
   assert.equal(screen.queryByText("1 × Private table dessert"), null);
   cleanup();
 });
+
+test("marketing consent starts unchecked and persists only an explicit choice", async (t) => {
+  const writes = [];
+  t.mock.method(globalThis, "fetch", async (input, init) => {
+    const path = String(input);
+    if (path.endsWith("/menu")) return Response.json(menu);
+    if (path.endsWith("/branches")) return Response.json({ branches: [] });
+    if (path.endsWith("/guest"))
+      return Response.json({ displayName: "Ada", orders: [] });
+    if (path.endsWith("/consent") && init.method === "GET")
+      return Response.json({ marketing: false, deliveryAvailable: false });
+    if (path.endsWith("/consent") && init.method === "PUT") {
+      const body = JSON.parse(init.body);
+      writes.push(body);
+      return Response.json({
+        marketing: body.marketing,
+        deliveryAvailable: false,
+      });
+    }
+    throw new Error("Unexpected request");
+  });
+  render(React.createElement(CustomerExperience));
+  await screen.findByText("Brown Sugar Boba");
+  fireEvent.click(screen.getByRole("button", { name: "Your order" }));
+  const checkbox = await screen.findByRole("checkbox", {
+    name: /I would like to receive optional marketing/,
+  });
+  await screen.findByRole("button", { name: "Save preference" });
+  assert.equal(checkbox.checked, false);
+  assert.equal(writes.length, 0);
+  fireEvent.click(checkbox);
+  fireEvent.click(screen.getByRole("button", { name: "Save preference" }));
+  await screen.findByText(/Your optional preference was saved/);
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].marketing, true);
+  assert.match(writes[0].requestKey, /^[a-f0-9-]{36}$/);
+  cleanup();
+});
+
+test("a stalled customer write times out without silently retrying or confirming success", async (t) => {
+  const { customerRequest } = await import("../src/mera/customer/client.ts");
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  let attempts = 0;
+  t.mock.method(globalThis, "fetch", (_url, options) => {
+    attempts++;
+    return new Promise((_resolve, reject) =>
+      options.signal.addEventListener("abort", () =>
+        reject(new Error("aborted")),
+      ),
+    );
+  });
+  const pending = customerRequest("/public/test/orders", "POST", {
+    requestKey: "same-key",
+  });
+  const rejected = assert.rejects(pending, /an order may already have reached/);
+  t.mock.timers.tick(15000);
+  await rejected;
+  assert.equal(attempts, 1);
+});

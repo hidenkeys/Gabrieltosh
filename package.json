@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "start": "node --env-file-if-exists=.env server/index.js",
     "worker": "node --env-file-if-exists=.env server/worker.js",
+    "worker:mera": "node --env-file-if-exists=.env scripts/mera-worker.js",
     "test": "node --import tsx --test tests/*.test.js tests/*.test.tsx",
     "bootstrap": "node --env-file-if-exists=.env scripts/bootstrap.js",
     "test:postgres": "node scripts/test-postgres.js",

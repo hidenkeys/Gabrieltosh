@@ -125,10 +125,23 @@ export function paymentStatus(order) {
   if (order.paid > 0) return "partially_paid";
   return "unpaid";
 }
-export function ledgerPostings(amount, method, refund = false) {
+export function ledgerPostings(
+  amount,
+  method,
+  refund = false,
+  recognized = false,
+) {
   assertMoney(amount);
-  const debit = refund ? "merchant_sales" : `collections_${method}`,
-    credit = refund ? `collections_${method}` : "merchant_sales";
+  const debit = refund
+      ? recognized
+        ? "sales_returns"
+        : "customer_collections_liability"
+      : `collections_${method}`,
+    credit = refund
+      ? `collections_${method}`
+      : recognized
+        ? "merchant_receivable"
+        : "customer_collections_liability";
   return [
     { account: debit, debit: amount, credit: 0 },
     { account: credit, debit: 0, credit: amount },

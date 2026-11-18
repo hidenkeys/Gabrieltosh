@@ -1,6 +1,7 @@
 import express from "express";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import { meraPublicLimits } from "./mera-security.js";
 import bcrypt from "bcryptjs";
 import { randomUUID, randomBytes, createHash } from "node:crypto";
 import { z } from "zod";
@@ -148,7 +149,11 @@ export function createApp() {
     }
   });
   if (process.env.MERA_ENABLED === "true")
-    app.use("/api/mera/v1", createMeraRouter({ query, transaction }));
+    app.use(
+      "/api/mera/v1",
+      meraPublicLimits(),
+      createMeraRouter({ query, transaction }),
+    );
   app.get("/api/health", async (req, res) => {
     await query("SELECT 1");
     res.json({

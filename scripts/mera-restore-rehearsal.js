@@ -46,13 +46,16 @@ const config = {
   password,
   database: "postgres",
 };
-const env = {
-  ...process.env,
+const env = { ...process.env };
+// libpq service files/options must not redirect native tools to another server.
+for (const name of Object.keys(env))
+  if (name.startsWith("PG")) delete env[name];
+Object.assign(env, {
   PGHOST: config.host,
   PGPORT: String(config.port),
   PGUSER: user,
   PGPASSWORD: password,
-};
+});
 let clusterAttempted = false,
   db,
   admin,
@@ -183,6 +186,35 @@ try {
   } = await import("../server/mera/index.js");
   await migrateMera(db);
   await seedMeraDemo({ ...db, userId: owner.id });
+  const { migrateMeraPlatform, encryptFactor, decryptFactor, base32 } =
+    await import("../server/mera/platform.js");
+  await migrateMeraPlatform(db);
+  const factorKey = randomBytes(32),
+    factorSecret = base32(randomBytes(20));
+  const factorCipher = encryptFactor(factorSecret, factorKey),
+    sessionHash = createHash("sha256").update(randomBytes(32)).digest("hex");
+  await db.query(
+    "INSERT INTO sessions(token,user_id,expires_at) VALUES($1,$2,$3)",
+    [sessionHash, owner.id, new Date(Date.now() + 3600000)],
+  );
+  await db.query(
+    "INSERT INTO mera_platform_factors(user_id,secret_cipher) VALUES($1,$2)",
+    [owner.id, factorCipher],
+  );
+  await db.query(
+    "INSERT INTO mera_platform_stepups(session_hash,user_id,expires_at) VALUES($1,$2,$3)",
+    [sessionHash, owner.id, new Date(Date.now() + 600000)],
+  );
+  await db.query(
+    "INSERT INTO mera_platform_audit(id,actor_id,action,organization_id,details) VALUES($1,$2,$3,$4,$5)",
+    [
+      randomUUID(),
+      owner.id,
+      "recovery_fixture",
+      DEMO_ORGANIZATION,
+      JSON.stringify({ isolated: true }),
+    ],
+  );
   const app = express();
   app.use(express.json());
   app.use(cookieParser());
@@ -276,6 +308,22 @@ try {
     before,
     "Restored rows and finance must exactly match exported source snapshot",
   );
+  assert.equal(before.tables.mera_platform_factors.count, 1);
+  assert.equal(before.tables.mera_platform_stepups.count, 1);
+  assert.equal(before.tables.mera_platform_audit.count, 1);
+  assert.equal(
+    decryptFactor(
+      (
+        await restored.query(
+          "SELECT secret_cipher FROM mera_platform_factors WHERE user_id=$1",
+          [owner.id],
+        )
+      ).rows[0].secret_cipher,
+      factorKey,
+    ),
+    factorSecret,
+    "MFA ciphertext must restore without changing the secret",
+  );
   // Prove the comparison detects data corruption even when all row counts remain equal.
   await restored.query(
     "UPDATE mera_records SET data=jsonb_set(data,'{amount}',to_jsonb((data->>'amount')::integer+1)) WHERE id=(SELECT id FROM mera_records WHERE kind='payment' LIMIT 1)",
@@ -296,6 +344,7 @@ try {
       ledgerEntries: before.ledger.entries,
       balancedLedgerMinorUnits: before.ledger.debits,
       exactRowHashesMatch: true,
+      mfaCipherRestored: true,
       tamperDetected: true,
       productionDataRead: false,
     }),

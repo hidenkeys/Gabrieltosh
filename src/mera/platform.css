@@ -1,0 +1,78 @@
+.mera-platform {
+  color: #20221f;
+}
+.mera-platform h1 {
+  font-size: clamp(2rem, 4vw, 3.1rem);
+  letter-spacing: -0.045em;
+}
+.mera-platform h2 {
+  font-size: 1.35rem;
+  margin-bottom: 16px;
+}
+.mera-platform .mera-page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+.mera-platform .mera-page-heading p {
+  max-width: 720px;
+  color: #65685f;
+  line-height: 1.6;
+}
+.mera-platform .mera-panel {
+  background: #fffefa;
+  border: 1px solid #e4dfd4;
+  border-radius: 22px;
+  box-shadow: 0 5px 24px #292d2310;
+}
+.mera-platform label {
+  display: grid;
+  gap: 8px;
+  font-weight: 600;
+  margin: 16px 0;
+}
+.mera-platform input,
+.mera-platform textarea,
+.mera-platform select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d4d2c9;
+  border-radius: 10px;
+  color: inherit;
+  background: #fff;
+  font: inherit;
+}
+.mera-platform textarea {
+  min-height: 90px;
+}
+.mera-platform .status-pill {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 100px;
+  background: #f4eee1;
+  color: #755620;
+  font-size: 13px;
+}
+.mera-platform td,
+.mera-platform th {
+  padding: 14px 16px;
+  text-align: left;
+}
+.mera-platform button:focus-visible,
+.mera-platform a:focus-visible,
+.mera-platform input:focus-visible,
+.mera-platform select:focus-visible,
+.mera-platform textarea:focus-visible {
+  outline: 3px solid #1558c9;
+  outline-offset: 3px;
+}
+@media (max-width: 680px) {
+  .mera-platform .mera-page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .mera-platform .table-wrap {
+    overflow: auto;
+  }
+}

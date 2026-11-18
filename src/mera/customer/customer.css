@@ -3,6 +3,24 @@
   min-height: 100vh;
   color: #29262b;
 }
+.mc-initial {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #e9faff;
+  color: #1558c9;
+  font-size: 25px;
+}
+.mc-photo-placeholder {
+  aspect-ratio: 1.05;
+  display: grid;
+  place-items: center;
+  color: #51647d;
+  font-size: 12px;
+  background: #f2f7fa;
+}
 @media print {
   .mera-customer .mc-top,
   .mera-customer .mc-hero,
@@ -417,4 +435,18 @@
   .mc-top .mc-wrap {
     flex-wrap: wrap;
   }
+}
+.mc-branch-selector {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  color: #51647d;
+}
+.mc-branch-selector select {
+  padding: 8px 10px;
+  background: white;
+  border: 1px solid #dedbd6;
+  border-radius: 8px;
+  color: #29262b;
+  max-width: 230px;
 }
