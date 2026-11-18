@@ -2,15 +2,15 @@
 
 Goal: Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.
 
-Scope **1.0** · revision `27680f2` · updated 2026-11-18T22:52:35+01:00
+Scope **1.0** · revision `cfce7e7` · updated 2026-11-18T23:28:34+01:00
 
-**UI correction: 39% complete | 61% remaining.** Weighted evidence: 39.4/100. This is checklist completion, not a time estimate.
+**UI correction: 41% complete | 59% remaining.** Weighted evidence: 41.2/100. This is checklist completion, not a time estimate.
 
 Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.
 
 ## Current milestone
 
-Menu and branch integration verified at27680f2. Next integrate dedicated preparation and durable reservation recovery, then complete remaining management, operational, customer and platform workflows with per-screen verification.
+Preparation integration verified at cfce7e7 with partial-to-ready browser checks. Next verify durable reservation recovery in the browser, restricted preparation roles and remaining management, operational, customer and platform workflows.
 
 ## Measurement
 
@@ -22,7 +22,7 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | --- | ---: | ---: | --- |
 | References, design system and application shell | 15% | 81% | lead |
 | Organization management | 25% | 32% | workspace / lead overview |
-| POS and operational roles | 20% | 20% | lead / rotating operational agent |
+| POS and operational roles | 20% | 29% | lead / rotating operational agent |
 | Customer experience | 20% | 40% | customer |
 | Marketing and platform administration | 10% | 40% | backend (presentation workstream A) |
 | Integration, accessibility and delivery | 10% | 30% | lead |
@@ -47,7 +47,7 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | P1 | Original-style POS catalog and current order | 5% | 80% | IN_PROGRESS · lead | [06-mera-pos-after-empty.jpg](docs/mera/ui-audit/screenshots/06-mera-pos-after-empty.jpg), [07-mera-pos-tablet.jpg](docs/mera/ui-audit/screenshots/07-mera-pos-tablet.jpg), [09-mera-pos-narrow-basket.jpg](docs/mera/ui-audit/screenshots/09-mera-pos-narrow-basket.jpg), [mera-ui-pilot.test.tsx](tests/mera-ui-pilot.test.tsx), [counter-comparison-current.jpg](docs/mera/ui-audit/counter-comparison-current.jpg) |
 | P2 | Order lists, details, responsibility and help | 4% | 0% | NOT_STARTED · lead | Pending |
 | P3 | Waiter tables, rounds, bills and handoffs | 4% | 0% | NOT_STARTED · lead | Pending |
-| P4 | Kitchen and bar preparation | 3% | 0% | IN_PROGRESS · lead | Pending |
+| P4 | Kitchen and bar preparation | 3% | 60% | IN_PROGRESS · lead | [PREPARATION-MOUNT.md](docs/mera/ui-audit/PREPARATION-MOUNT.md), [56-preparation-partial-desktop.jpg](docs/mera/ui-audit/screenshots/56-preparation-partial-desktop.jpg), [57-preparation-ready-tablet.jpg](docs/mera/ui-audit/screenshots/57-preparation-ready-tablet.jpg), [58-preparation-ready-narrow.jpg](docs/mera/ui-audit/screenshots/58-preparation-ready-narrow.jpg), [mera-preparation.test.tsx](tests/mera-preparation.test.tsx) |
 | P5 | Front desk reservations, arrivals and waitlist | 4% | 0% | NOT_STARTED · lead | Pending |
 | C1 | Mobile menu and persistent cart pilot | 6% | 80% | IN_PROGRESS · customer | [CustomerExperience.tsx](src/mera/customer/CustomerExperience.tsx), [mera-customer-ui-correction.test.tsx](tests/mera-customer-ui-correction.test.tsx), [PILOT-CHECKPOINT-2026-11-18.md](docs/mera/ui-audit/PILOT-CHECKPOINT-2026-11-18.md), [13-customer-narrow-menu.jpg](docs/mera/ui-audit/screenshots/13-customer-narrow-menu.jpg), [14-customer-narrow-basket.jpg](docs/mera/ui-audit/screenshots/14-customer-narrow-basket.jpg), [15-customer-tablet.jpg](docs/mera/ui-audit/screenshots/15-customer-tablet.jpg), [customer-comparison-current.jpg](docs/mera/ui-audit/customer-comparison-current.jpg) |
 | C2 | Checkout, pending recovery, tracking and receipts | 5% | 40% | IN_PROGRESS · customer | [mera-customer-ui-correction.test.tsx](tests/mera-customer-ui-correction.test.tsx), [checkoutRecovery.ts](src/mera/customer/checkoutRecovery.ts), [quoteClock.ts](src/mera/customer/quoteClock.ts), [mera-customer-recovery.test.tsx](tests/mera-customer-recovery.test.tsx), [mera-customer-quote-clock.test.js](tests/mera-customer-quote-clock.test.js), [39-customer-unpaid-tracking.jpg](docs/mera/ui-audit/screenshots/39-customer-unpaid-tracking.jpg) |
@@ -73,7 +73,7 @@ Task acceptance criteria, dependency IDs, change history and blockers are in [ME
 | WS-menu | /mera/workspace#menu | Manager/stock | O4 | Categories/SharedMenus/CatalogOperations/variants/modifiers/StockMovements | NOT_STARTED; Prior pilot evidence only for overview/counter; full scope pending |
 | WS-orders | /mera/workspace#orders | Cashier/waiter/manager | P2 | OrderHistory/OrderInstructions/RefundRequests | NOT_STARTED; Prior pilot evidence only for overview/counter; full scope pending |
 | WS-counter | /mera/workspace#counter | Cashier | P1 | StaffPos/StaffOrderItems | Prior pilot reopened; Prior pilot evidence only for overview/counter; full scope pending |
-| WS-preparation | /mera/workspace#preparation | Kitchen/bar | P4 | Tickets/OrderInstructions/ItemFulfillment | NOT_STARTED; Prior pilot evidence only for overview/counter; full scope pending |
+| WS-preparation | /mera/workspace#preparation | Kitchen/bar | P4 | Tickets/OrderInstructions/ItemFulfillment | Integrated partial-preparation and ready-state captures56–58; no original preparation-screen comparison claimed; Browser reviewed desktop,751×1075 and390×844; no document overflow at tablet/narrow |
 | WS-tables | /mera/workspace#tables | Waiter/front desk | P3 | FloorMap/TableEditor/VisitTables/Bills/PrivateVisitAccess | NOT_STARTED; Prior pilot evidence only for overview/counter; full scope pending |
 | WS-reservations | /mera/workspace#reservations | Front desk | P5 | ReservationSettlement/DepositOutcomes/minimum spend | NOT_STARTED; Prior pilot evidence only for overview/counter; full scope pending |
 | WS-payments | /mera/workspace#payments | Cashier/manager | O6 | Transactions/refunds/writeoff/recovery | NOT_STARTED; Prior pilot evidence only for overview/counter; full scope pending |
@@ -139,5 +139,6 @@ Status: INVENTORY_DRAFT_REVIEW_PENDING. 208 requirement IDs inventoried in docs/
 - 2026-11-18T17:17:08+01:00: Four-surface comparison gate passed; customer wording corrected; broader shell and workflow rollout next, scope unchanged; weight 100; 27.6 points / 27% rounded.
 - 2026-11-18T17:29:28+01:00: Shared all-page shell visual/role checks accepted; checkout recovery state implementation credited. Setup/platform/customer follow-on slices remain partial; scope unchanged; weight 100; 32.8 points / 32% rounded.
 - 2026-11-18T22:52:35+01:00: Menu/branch integrated and exercised with actual publication recovery; basic reservation interface corrected; scope unchanged; weight 100; 39.4 points / 39% rounded.
+- 2026-11-18T23:28:34+01:00: Station preparation browser integration verified; published POS pricing and reservation recovery integrated with regressions; reservation browser review remains pending; scope unchanged; weight 100; 41.2 points / 41% rounded.
 
 Regenerate this report with `node scripts/mera-ui-progress.js`. The calculation validates weights, task IDs, mapped screens and local evidence paths; the lead still reviews whether evidence supports each checkpoint.

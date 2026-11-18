@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Menu and branch integration verified at27680f2. Next integrate dedicated preparation and durable reservation recovery, then complete remaining management, operational, customer and platform workflows with per-screen verification.",
+  "Preparation integration verified at cfce7e7 with partial-to-ready browser checks. Next verify durable reservation recovery in the browser, restricted preparation roles and remaining management, operational, customer and platform workflows.",
   "",
   "## Measurement",
   "",

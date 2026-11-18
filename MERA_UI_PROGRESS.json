@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-18T22:52:35+01:00",
-  "revision": "27680f2",
+  "lastUpdated": "2026-11-18T23:28:34+01:00",
+  "revision": "cfce7e7",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -543,7 +543,7 @@
       "workstream": "P",
       "title": "Kitchen and bar preparation",
       "weight": 3,
-      "checkpoint": 0,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
@@ -551,7 +551,13 @@
         "F5"
       ],
       "acceptance": "Dedicated station tickets with modifiers/notes/elapsed time/current actors and prominent versioned actions; no owner dashboard for these roles.",
-      "evidence": [],
+      "evidence": [
+        "docs/mera/ui-audit/PREPARATION-MOUNT.md",
+        "docs/mera/ui-audit/screenshots/56-preparation-partial-desktop.jpg",
+        "docs/mera/ui-audit/screenshots/57-preparation-ready-tablet.jpg",
+        "docs/mera/ui-audit/screenshots/58-preparation-ready-narrow.jpg",
+        "tests/mera-preparation.test.tsx"
+      ],
       "blockers": [],
       "history": [
         {
@@ -563,6 +569,11 @@
           "at": "2026-11-18T22:52:35+01:00",
           "checkpoint": 0,
           "note": "Dedicated preparation source and focused tests ready; main mount and live visual integration still pending, no completion credit."
+        },
+        {
+          "at": "2026-11-18T23:28:34+01:00",
+          "checkpoint": 60,
+          "note": "Integrated dedicated station view and verified local accepted\u2192preparing\u2192partial\u2192ready flow; restricted-role/live conflict and full accessibility checks pending."
         }
       ]
     },
@@ -1116,13 +1127,13 @@
       "permissions": "orders.prepare",
       "states": {
         "loading": "UNVERIFIED for full correction",
-        "empty": "UNVERIFIED for full correction",
+        "empty": "Browser active view empty after completed ticket; component regressions",
         "error": "UNVERIFIED for full correction",
         "permission": "UNVERIFIED for full correction",
-        "recovery": "UNVERIFIED for full correction"
+        "recovery": "Exact version/body retry and reviewed newer-version tests; live failure pending"
       },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "NOT_STARTED",
+      "responsive": "Browser reviewed desktop,751\u00d71075 and390\u00d7844; no document overflow at tablet/narrow",
+      "visualReview": "Integrated partial-preparation and ready-state captures56\u201358; no original preparation-screen comparison claimed",
       "blockers": []
     },
     {
@@ -1881,6 +1892,13 @@
       "scopeWeight": 100,
       "weightedPoints": 39.4,
       "roundedCompletion": 39
+    },
+    {
+      "at": "2026-11-18T23:28:34+01:00",
+      "event": "Station preparation browser integration verified; published POS pricing and reservation recovery integrated with regressions; reservation browser review remains pending; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 41.2,
+      "roundedCompletion": 41
     }
   ],
   "baselineRevision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd"
