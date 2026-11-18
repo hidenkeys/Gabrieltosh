@@ -2,7 +2,7 @@
 
 Goal: Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.
 
-Scope **1.0** · revision `e281670b8767bcd2f21254eb7042da4ec3e70fdd` · updated 2026-11-18T16:25:00+01:00
+Scope **1.0** · revision `e281670b8767bcd2f21254eb7042da4ec3e70fdd` · updated 2026-11-18T16:17:45+01:00
 
 **UI correction: 14% complete | 86% remaining.** Weighted evidence: 14.8/100. This is checklist completion, not a time estimate.
 
