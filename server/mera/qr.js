@@ -42,16 +42,25 @@ export function mountMeraQr(router, services) {
   } = services;
   router.get("/public/organizations/:slug/branches", async (req, res) => {
     const organization = (
-      await db.query("SELECT id FROM mera_organizations WHERE slug=$1", [
-        req.params.slug.toLowerCase(),
-      ])
+      await db.query(
+        "SELECT id FROM mera_organizations WHERE slug=$1 AND ($2::boolean OR onboarding->>'status'='published')",
+        [
+          req.params.slug.toLowerCase(),
+          process.env.MERA_DEMO === "true" &&
+            process.env.NODE_ENV !== "production",
+        ],
+      )
     ).rows[0];
     if (!organization)
       return res.status(404).json({ error: "Organization not found." });
     const rows = (
       await db.query(
-        "SELECT id,name,timezone,currency,settings FROM mera_branches WHERE organization_id=$1 AND menu_version>0 ORDER BY name,id",
-        [organization.id],
+        "SELECT id,name,timezone,currency,settings FROM mera_branches WHERE organization_id=$1 AND menu_version>0 AND ($2::boolean OR settings->>'launchState'='published') ORDER BY name,id",
+        [
+          organization.id,
+          process.env.MERA_DEMO === "true" &&
+            process.env.NODE_ENV !== "production",
+        ],
       )
     ).rows;
     res.json({
@@ -78,13 +87,11 @@ export function mountMeraQr(router, services) {
     const latest = rows
       .filter((r) => r.data.guestId === g.id)
       .sort((a, b) => b.data.recordedAt.localeCompare(a.data.recordedAt))[0];
-    res
-      .set("Cache-Control", "no-store")
-      .json({
-        marketing: latest?.data.marketing ?? false,
-        recordedAt: latest?.data.recordedAt ?? null,
-        deliveryAvailable: false,
-      });
+    res.set("Cache-Control", "no-store").json({
+      marketing: latest?.data.marketing ?? false,
+      recordedAt: latest?.data.recordedAt ?? null,
+      deliveryAvailable: false,
+    });
   });
   router.put(consentPath, async (req, res) => {
     const value = z
@@ -121,13 +128,11 @@ export function mountMeraQr(router, services) {
         source: "explicit_guest_preference",
       });
     });
-    res
-      .set("Cache-Control", "no-store")
-      .json({
-        marketing: saved.marketing,
-        recordedAt: saved.recordedAt,
-        deliveryAvailable: false,
-      });
+    res.set("Cache-Control", "no-store").json({
+      marketing: saved.marketing,
+      recordedAt: saved.recordedAt,
+      deliveryAvailable: false,
+    });
   });
   router.get(
     B + "/qr-codes",

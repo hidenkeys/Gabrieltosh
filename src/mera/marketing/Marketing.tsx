@@ -28,8 +28,8 @@ export default function Marketing() {
             Built for counters, tables and the people who make them work.
           </p>
           <div>
-            <a className="primary" href="/mera/workspace">
-              Preview organization onboarding →
+            <a className="primary" href="/mera/signup">
+              Explore onboarding →
             </a>
             <a className="secondary" href={demo}>
               View the Bing Chun demo
@@ -133,7 +133,7 @@ export default function Marketing() {
             trial and grace periods must be approved before live billing. No
             recurring debit or live collection is enabled by this preview.
           </p>
-          <a className="text-button" href="/mera/workspace">
+          <a className="text-button" href="/mera/signup">
             Review onboarding and readiness →
           </a>
         </section>
@@ -146,8 +146,8 @@ export default function Marketing() {
             policies visible before launch.
           </p>
           <div className="mera-support-links">
-            <a className="primary" href="/mera/workspace">
-              Open onboarding →
+            <a className="primary" href="/mera/signup">
+              Explore onboarding →
             </a>
             <a className="secondary" href="/mera/legal">
               Review policy preparation

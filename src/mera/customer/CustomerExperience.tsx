@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import GuestActivity from "./GuestActivity";
 import { ProductImage } from "../../ProductImage";
 import { money } from "../../api";
 import { customerRequest, requestId } from "./client";
@@ -49,6 +50,7 @@ export default function CustomerExperience({
   const requestedTable = new URLSearchParams(window.location.search).get(
     "tableId",
   );
+  const [joinTable, setJoinTable] = useState(requestedTable || "");
   const [branches, setBranches] = useState<any[]>([]);
   const [hasGuest, setHasGuest] = useState(false);
   const [menu, setMenu] = useState<any>(null),
@@ -80,6 +82,14 @@ export default function CustomerExperience({
       setError((e as Error).message);
     }
   }
+  useEffect(() => {
+    if (
+      menu &&
+      joinTable &&
+      !menu.tables?.some((table: any) => table.id === joinTable)
+    )
+      setJoinTable("");
+  }, [menu, joinTable]);
   useEffect(() => {
     let active = true;
     void load();
@@ -353,7 +363,9 @@ export default function CustomerExperience({
     try {
       await guest();
       const result = await customerRequest(prefix + "/visits/join", "POST", {
-        visitId: String(data.get("visitId")),
+        ...(joinTable
+          ? { tableId: joinTable }
+          : { visitId: String(data.get("visitId")) }),
         code: String(data.get("code")),
       });
       const id = result.visit?.id || result.id || String(data.get("visitId"));
@@ -889,20 +901,43 @@ export default function CustomerExperience({
                   <textarea name="notes" maxLength={500} />
                 </label>
                 <p>
-                  Availability is checked by the venue. A request is only
-                  confirmed when the server returns a reservation reference.
+                  Availability is checked by the venue. A reference confirms
+                  receipt of your request; the venue must confirm the booking
+                  separately.
                 </p>
                 {menu?.reservationPolicy?.enabled === false && (
                   <div className="mc-alert">
                     This branch is not accepting online reservations.
                   </div>
                 )}
-                {(menu?.reservationPolicy?.depositRequired ||
-                  !!menu?.reservationPolicy?.minimumSpend) && (
+                {menu?.reservationPolicy?.depositRequired &&
+                menu.reservationPolicy.depositPolicy?.approved ? (
                   <div className="mc-alert">
-                    This venue requires a deposit or minimum-spend agreement.
-                    Online booking is unavailable until the payment and service
-                    policies are approved; please contact the venue.
+                    Required deposit:{" "}
+                    {money(menu.reservationPolicy.depositPolicy.amount)}. Ask
+                    staff to verify and record it before confirmation.
+                    Cancellation cutoff:{" "}
+                    {
+                      menu.reservationPolicy.depositPolicy
+                        .cancellationCutoffHours
+                    }{" "}
+                    hours. Refund rule:{" "}
+                    {menu.reservationPolicy.depositPolicy.refundRule ===
+                    "refundable_before_cutoff"
+                      ? "Refundable before the cutoff"
+                      : "Non-refundable"}
+                    . No online payment is collected here.
+                  </div>
+                ) : menu?.reservationPolicy?.depositRequired ? (
+                  <div className="mc-alert">
+                    Deposit policy approval is pending. Contact the venue before
+                    booking.
+                  </div>
+                ) : null}
+                {!!menu?.reservationPolicy?.minimumSpend && (
+                  <div className="mc-alert">
+                    Minimum-spend agreement requires venue approval before
+                    online reservations are available.
                   </div>
                 )}
                 <button
@@ -911,7 +946,8 @@ export default function CustomerExperience({
                     busy ||
                     !menu ||
                     menu.reservationPolicy?.enabled === false ||
-                    !!menu.reservationPolicy?.depositRequired ||
+                    (!!menu.reservationPolicy?.depositRequired &&
+                      !menu.reservationPolicy?.depositPolicy?.approved) ||
                     !!menu.reservationPolicy?.minimumSpend
                   }
                 >
@@ -921,7 +957,12 @@ export default function CustomerExperience({
             )}
           </section>
         )}
-        {tab === "track" && hasGuest && <MarketingPreference prefix={prefix} />}
+        {tab === "track" && hasGuest && (
+          <>
+            <GuestActivity prefix={prefix} />
+            <MarketingPreference prefix={prefix} />
+          </>
+        )}
         {tab === "visit" && (
           <section className="mc-panel">
             <h2>Join your table</h2>
@@ -1039,9 +1080,9 @@ export default function CustomerExperience({
             ) : (
               <form onSubmit={join}>
                 <p>
-                  Ask a member of staff for your current visit reference and
-                  joining code. Scanning a table QR alone does not unlock a
-                  private bill.
+                  Choose your table and ask staff for its current joining code,
+                  or enter a visit reference. Scanning a table QR alone does not
+                  unlock a private bill.
                 </p>
                 <label>
                   Your name
@@ -1053,9 +1094,25 @@ export default function CustomerExperience({
                   />
                 </label>
                 <label>
-                  Visit reference
-                  <input name="visitId" required autoComplete="off" />
+                  Table
+                  <select
+                    value={joinTable}
+                    onChange={(event) => setJoinTable(event.target.value)}
+                  >
+                    <option value="">Use a visit reference instead</option>
+                    {(menu?.tables || []).map((table: any) => (
+                      <option key={table.id} value={table.id}>
+                        {table.name}
+                      </option>
+                    ))}
+                  </select>
                 </label>
+                {!joinTable && (
+                  <label>
+                    Visit reference
+                    <input name="visitId" required autoComplete="off" />
+                  </label>
+                )}
                 <label>
                   Joining code
                   <input name="code" required autoComplete="off" />
@@ -1190,7 +1247,10 @@ function Feedback({
       <h3>How was your visit?</h3>
       <label>
         Rating
-        <select name="rating" defaultValue="5">
+        <select name="rating" defaultValue="" required>
+          <option value="" disabled>
+            Choose your rating
+          </option>
           {[5, 4, 3, 2, 1].map((n) => (
             <option key={n} value={n}>
               {n} / 5
@@ -1243,7 +1303,7 @@ function MarketingPreference({ prefix }: { prefix: string }) {
     };
   }, [prefix]);
   return (
-    <section className="mc-panel">
+    <section className="mc-panel mc-consent">
       <h2>Your communication preference</h2>
       <p>
         This optional preference belongs to your current guest session. It is

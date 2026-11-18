@@ -32,6 +32,12 @@ export function assertMoney(n) {
     throw fail("Invalid amount.");
   return n;
 }
+export function availableNow(windows, timezone="Africa/Lagos", at=new Date()) {
+  if(!windows?.length) return true;
+  const parts=Object.fromEntries(new Intl.DateTimeFormat("en-GB",{timeZone:timezone,weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(at).map(p=>[p.type,p.value]));
+  const day=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].indexOf(parts.weekday), time=parts.hour+":"+parts.minute;
+  return windows.some(w=>w.days.includes(day)&&time>=w.start&&time<w.end);
+}
 export function quote(items, products) {
   const result = items.map((line) => {
     const p = products.find((p) => p.id === line.productId);
@@ -44,6 +50,7 @@ export function quote(items, products) {
     if (p.variants.length) {
       variant = p.variants.find((v) => v.id === line.variantId);
       if (!variant) throw fail("Select a valid product size.");
+      if(variant.stockMode==="counted" && variant.stock<line.quantity) throw fail("Not enough stock for this size.",409,"OUT_OF_STOCK");
       unit = variant.price;
     } else if (line.variantId) throw fail("Invalid size.");
     const selected = new Set(line.modifiers);
@@ -70,6 +77,7 @@ export function quote(items, products) {
     assertMoney(unit);
     return {
       productId: p.id,
+      variantId: variant?.id || null,
       code: p.code,
       name: p.name,
       size: variant?.name || p.size,

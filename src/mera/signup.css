@@ -1,0 +1,114 @@
+.mera-signup {
+  min-height: 100vh;
+  color: #28262b;
+  background: #faf7ef;
+}
+.mera-signup header,
+.mera-signup main,
+.mera-signup footer {
+  max-width: 1160px;
+  width: calc(100% - 48px);
+  margin: auto;
+}
+.mera-signup header,
+.mera-signup footer {
+  padding: 26px 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: center;
+}
+.mera-signup main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: 80px;
+  padding: 70px 0;
+}
+.mera-signup h1 {
+  font-size: clamp(2.8rem, 5vw, 4.4rem);
+  line-height: 1.05;
+  letter-spacing: -0.055em;
+  margin: 18px 0 24px;
+}
+.mera-signup h2 {
+  font-size: 1.8rem;
+  letter-spacing: -0.03em;
+  margin: 12px 0;
+}
+.mera-signup p {
+  line-height: 1.7;
+  color: #656259;
+}
+.mera-signup ol {
+  padding-left: 22px;
+  margin: 28px 0;
+  line-height: 2.3;
+}
+.mera-signup-card {
+  padding: 36px;
+  background: #fffefb;
+  border: 1px solid #e4ddcf;
+  border-radius: 26px;
+  box-shadow: 0 12px 60px #463c2410;
+}
+.mera-signup label {
+  display: grid;
+  gap: 8px;
+  font-weight: 600;
+  margin: 18px 0;
+}
+.mera-signup input {
+  border: 1px solid #d8d4ca;
+  border-radius: 12px;
+  background: white;
+  padding: 13px 15px;
+  font: inherit;
+  width: 100%;
+}
+.mera-signup .primary,
+.mera-signup .secondary {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  margin-top: 16px;
+}
+.mera-signup form .primary {
+  width: 100%;
+}
+.mera-signup-badge {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+.mera-signup-note {
+  font-size: 13px;
+  border-top: 1px solid #e5dfd2;
+  padding-top: 20px;
+}
+.mera-signup :focus-visible {
+  outline: 3px solid #1558c9;
+  outline-offset: 3px;
+}
+@media (max-width: 760px) {
+  .mera-signup main {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 30px 0;
+  }
+  .mera-signup-card {
+    padding: 24px;
+  }
+  .mera-signup footer {
+    flex-direction: column;
+    align-items: start;
+  }
+  .mera-signup header,
+  .mera-signup main,
+  .mera-signup footer {
+    width: calc(100% - 32px);
+  }
+}

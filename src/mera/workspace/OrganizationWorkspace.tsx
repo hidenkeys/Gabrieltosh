@@ -22,14 +22,19 @@ import { Complaints, Waitlist } from "./Operations";
 import ExportJobs from "./ExportJobs";
 import Invoices from "./Invoices";
 import ReportDetails from "./ReportDetails";
+import Tickets from "./Tickets";
+import RoleManager from "./RoleManager";
+import TimeWindows from "./TimeWindows";
+import VariantsEditor from "./VariantsEditor";
+import SharedMenus from "./SharedMenus";
+import LaunchReadiness from "./LaunchReadiness";
+import ReservationPolicy from "./ReservationPolicy";
 import { workspaceApi, formatMoney, WorkspaceError } from "./api";
 
 type RecordData = Record<string, any>;
 type Props = { user: any; notify: (message: string) => void };
 const nextState: Record<string, string> = {
   submitted: "accepted",
-  accepted: "preparing",
-  preparing: "ready",
   ready: "collected",
   collected: "completed",
 };
@@ -103,44 +108,136 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
       !organization?.branchIds?.length ||
       organization.branchIds.includes(branch.id),
   );
+  const tabsRef = useRef<HTMLDivElement | null>(null);
   const activeScope = useRef("");
   const contextGeneration = useRef(0);
+  const permissionFingerprint = useRef("");
+  const accessDenied = useRef(false);
+  const authorizationEpoch = useRef(0);
+  const lastDenialCheck = useRef(0);
   const mutationGeneration = useRef(0);
   const branchBase = `/organizations/${encodeURIComponent(organizationId)}/branches/${encodeURIComponent(branchId)}`;
-  const scopeEpoch = useRef({ path: "", generation: 0 });
+  const scopeEpoch = useRef({
+    path: "",
+    generation: 0,
+    startedAt: performance.now(),
+  });
   if (scopeEpoch.current.path !== branchBase)
     scopeEpoch.current = {
       path: branchBase,
       generation: scopeEpoch.current.generation + 1,
+      startedAt: performance.now(),
     };
   const scopeVersion = scopeEpoch.current.generation;
   activeScope.current = branchBase;
 
-  const loadContext = useCallback(async () => {
-    const generation = ++contextGeneration.current;
-    setLoading(true);
-    setError("");
-    try {
-      const result = await workspaceApi("/context");
-      if (generation !== contextGeneration.current) return;
-      setContext(result);
-      setOffline(false);
-      setOrganizationId((current) =>
-        result.organizations?.some((org: any) => org.id === current)
-          ? current
-          : result.organizations?.[0]?.id || "",
-      );
-    } catch (e) {
-      if (generation !== contextGeneration.current) return;
-      setError((e as Error).message);
-      setOffline(true);
-    } finally {
-      if (generation === contextGeneration.current) setLoading(false);
-    }
+  const clearProtected = useCallback(() => {
+    authorizationEpoch.current++;
+    setData(null);
+    setMembers([]);
+    setProductEdit(null);
+    setTabForm({});
+    setUncertainOrder(null);
+    uncertainOrders.current.clear();
+    requestKey.current = null;
+    setOrderDraft({
+      displayName: "",
+      fulfillment: "counter_pickup",
+      items: [],
+      note: "",
+    });
   }, []);
+  const loadContext = useCallback(
+    async (quiet = false) => {
+      const generation = ++contextGeneration.current;
+      const epoch = scopeEpoch.current.generation;
+      if (!quiet) {
+        setLoading(true);
+        setError("");
+      }
+      try {
+        const result = await workspaceApi("/context");
+        if (
+          generation !== contextGeneration.current ||
+          (quiet && epoch !== scopeEpoch.current.generation)
+        )
+          return;
+        const fingerprint = JSON.stringify(
+          (result.organizations || []).map((org: any) => ({
+            id: org.id,
+            role: org.role,
+            permissions: org.permissions,
+            branchIds: org.branchIds,
+            branches: org.branches.map((branch: any) => branch.id),
+          })),
+        );
+        if (
+          permissionFingerprint.current &&
+          permissionFingerprint.current !== fingerprint
+        ) {
+          clearProtected();
+          accessDenied.current = false;
+        }
+        permissionFingerprint.current = fingerprint;
+        setContext(result);
+        setOffline(false);
+        setOrganizationId((current) =>
+          result.organizations?.some((org: any) => org.id === current)
+            ? current
+            : result.organizations?.[0]?.id || "",
+        );
+      } catch (e) {
+        if (
+          generation !== contextGeneration.current ||
+          (quiet && epoch !== scopeEpoch.current.generation)
+        )
+          return;
+        if (e instanceof WorkspaceError && [401, 403].includes(e.status)) {
+          clearProtected();
+          setContext(null);
+          setOrganizationId("");
+        }
+        setError((e as Error).message);
+        setOffline(true);
+      } finally {
+        if (generation === contextGeneration.current && !quiet)
+          setLoading(false);
+      }
+    },
+    [clearProtected],
+  );
   useEffect(() => {
     void loadContext();
+    const timer = setInterval(() => {
+      if (!document.hidden) void loadContext(true);
+    }, 10000);
+    return () => clearInterval(timer);
   }, [loadContext]);
+  useEffect(() => {
+    const denied = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (detail?.startedAt < scopeEpoch.current.startedAt) return;
+      const currentOrg = activeScope.current.split("/branches/")[0];
+      if (
+        detail?.path?.startsWith("/organizations/") &&
+        !detail.path.startsWith(currentOrg + "/")
+      )
+        return;
+      if (
+        detail?.path?.includes("/branches/") &&
+        !detail.path.startsWith(activeScope.current + "/")
+      )
+        return;
+      if (detail?.path?.endsWith("/workspace")) accessDenied.current = true;
+      clearProtected();
+      if (Date.now() - lastDenialCheck.current >= 10000) {
+        lastDenialCheck.current = Date.now();
+        void loadContext(true);
+      }
+    };
+    window.addEventListener("mera:access-denied", denied);
+    return () => window.removeEventListener("mera:access-denied", denied);
+  }, [clearProtected, loadContext]);
   useEffect(() => {
     setData(null);
     setMembers([]);
@@ -160,7 +257,8 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
   }, [organizationId]);
   const refresh = useCallback(
     async (signal?: AbortSignal) => {
-      if (!organizationId || !branchId) return;
+      if (!organizationId || !branchId || accessDenied.current) return;
+      const authorizationVersion = authorizationEpoch.current;
       try {
         const response = await workspaceApi(
           branchBase + "/workspace",
@@ -170,6 +268,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
         );
         if (
           signal?.aborted ||
+          authorizationEpoch.current !== authorizationVersion ||
           activeScope.current !== branchBase ||
           scopeEpoch.current.generation !== scopeVersion
         )
@@ -183,6 +282,10 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
           activeScope.current === branchBase &&
           scopeEpoch.current.generation === scopeVersion
         ) {
+          if (e instanceof WorkspaceError && [401, 403].includes(e.status)) {
+            accessDenied.current = true;
+            clearProtected();
+          }
           setError((e as Error).message);
           setOffline(true);
         }
@@ -191,6 +294,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
     [organizationId, branchId, branchBase, scopeVersion],
   );
   useEffect(() => {
+    accessDenied.current = false;
     setData(null);
     setTabForm({});
     setProductEdit(null);
@@ -266,6 +370,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
     success: string,
   ) => {
     const requestedScope = activeScope.current;
+    const authorizationVersion = authorizationEpoch.current;
     const generation = ++mutationGeneration.current;
     setBusy(true);
     setError("");
@@ -283,6 +388,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
       if (signature) pendingRequests.current.delete(signature);
       if (
         activeScope.current !== requestedScope ||
+        authorizationEpoch.current !== authorizationVersion ||
         scopeEpoch.current.generation !== scopeVersion
       )
         throw new DOMException(
@@ -292,6 +398,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
       await refresh();
       if (
         activeScope.current !== requestedScope ||
+        authorizationEpoch.current !== authorizationVersion ||
         scopeEpoch.current.generation !== scopeVersion
       )
         throw new DOMException(
@@ -508,6 +615,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
           <button
             className="secondary"
             onClick={() => {
+              accessDenied.current = false;
               void loadContext();
               void refresh();
             }}
@@ -535,7 +643,13 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
         <div className="mw-note mw-error" role="alert">
           {offline && <WifiOff size={15} />} {error}
           <div className="mw-actions">
-            <button className="secondary" onClick={() => void refresh()}>
+            <button
+              className="secondary"
+              onClick={() => {
+                accessDenied.current = false;
+                void refresh();
+              }}
+            >
               Refresh records
             </button>
           </div>
@@ -589,14 +703,89 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
       )}
       {!!organizations.length && (
         <>
-          <nav className="mw-tabs" aria-label="Organization workspace">
-            <div role="tablist" className="mw-tabs">
-              {visibleSections.map(([id, name]) => (
+          <nav className="mw-navigation" aria-label="Organization workspace">
+            <div className="mw-nav-tools">
+              <label>
+                All workspace pages
+                <select
+                  aria-label="Workspace page"
+                  value={activeSection}
+                  onChange={(event) => setSection(event.target.value)}
+                >
+                  {visibleSections.map(([id, name]) => (
+                    <option key={id} value={id}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="mw-actions">
+                <button
+                  type="button"
+                  aria-label="Scroll workspace pages left"
+                  onClick={() =>
+                    tabsRef.current?.scrollBy?.({
+                      left: -300,
+                      behavior: "smooth",
+                    })
+                  }
+                >
+                  ←
+                </button>
+                <button
+                  type="button"
+                  aria-label="Scroll workspace pages right"
+                  onClick={() =>
+                    tabsRef.current?.scrollBy?.({
+                      left: 300,
+                      behavior: "smooth",
+                    })
+                  }
+                >
+                  →
+                </button>
+              </div>
+            </div>
+            <div
+              role="tablist"
+              aria-label="Workspace pages"
+              className="mw-tabs"
+              ref={tabsRef}
+            >
+              {visibleSections.map(([id, name], index) => (
                 <button
                   key={id}
+                  id={"mw-tab-" + id}
+                  type="button"
                   role="tab"
+                  aria-controls="mw-workspace-panel"
+                  tabIndex={activeSection === id ? 0 : -1}
                   aria-selected={activeSection === id}
                   onClick={() => setSection(id)}
+                  onKeyDown={(event) => {
+                    let target: number;
+                    if (event.key === "ArrowRight")
+                      target = (index + 1) % visibleSections.length;
+                    else if (event.key === "ArrowLeft")
+                      target =
+                        (index - 1 + visibleSections.length) %
+                        visibleSections.length;
+                    else if (event.key === "Home") target = 0;
+                    else if (event.key === "End")
+                      target = visibleSections.length - 1;
+                    else return;
+                    event.preventDefault();
+                    setSection(visibleSections[target][0]);
+                    const element =
+                      tabsRef.current?.querySelectorAll<HTMLButtonElement>(
+                        '[role="tab"]',
+                      )[target];
+                    element?.focus();
+                    element?.scrollIntoView?.({
+                      block: "nearest",
+                      inline: "nearest",
+                    });
+                  }}
                 >
                   {name}
                 </button>
@@ -610,7 +799,12 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                 : "No branch is available for this membership."}
             </div>
           ) : (
-            <main>
+            <main
+              id="mw-workspace-panel"
+              role="tabpanel"
+              aria-labelledby={"mw-tab-" + activeSection}
+              tabIndex={0}
+            >
               {activeSection === "qr" && (
                 <QrCodes
                   key={branchBase}
@@ -625,6 +819,24 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                   base={branchBase}
                   demo={!!context?.demo}
                 />
+              )}
+              {activeSection === "onboarding" && (
+                <>
+                  <LaunchReadiness
+                    key={branchBase + "launch"}
+                    base={branchBase}
+                    settings={branch?.settings}
+                    disabled={busy || offline}
+                    save={mutate}
+                  />
+                  <ReservationPolicy
+                    key={branchBase + "reservation-policy"}
+                    base={branchBase}
+                    policy={branch?.settings?.reservationPolicy}
+                    disabled={busy || offline}
+                    save={mutate}
+                  />
+                </>
               )}
               {activeSection === "care" && (
                 <Complaints
@@ -809,6 +1021,17 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                   />
                 )}
               {activeSection === "menu" && (
+                <SharedMenus
+                  key={branchBase}
+                  organizationId={organizationId}
+                  base={branchBase}
+                  products={products}
+                  disabled={busy || offline}
+                  canPublish={allowed("menu.publish")}
+                  save={mutate}
+                />
+              )}
+              {activeSection === "menu" && (
                 <>
                   <section className="mw-card">
                     <div className="mw-heading">
@@ -880,11 +1103,17 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                                   const reason = document.getElementById(
                                     "reason-" + product.id,
                                   ) as HTMLInputElement;
+                                  const variant = document.getElementById(
+                                    "variant-" + product.id,
+                                  ) as HTMLSelectElement | null;
                                   await mutate(
                                     branchBase + "/stock",
                                     "POST",
                                     {
                                       productId: product.id,
+                                      ...(variant?.value
+                                        ? { variantId: variant.value }
+                                        : {}),
                                       quantity: Number(form.value),
                                       reason: reason.value,
                                     },
@@ -893,6 +1122,27 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                                 })}
                                 className="mw-actions"
                               >
+                                {!!product.variants?.length && (
+                                  <select
+                                    aria-label={
+                                      "Stock target for " + product.name
+                                    }
+                                    id={"variant-" + product.id}
+                                  >
+                                    <option value="">Product balance</option>
+                                    {product.variants.map((variant: any) => (
+                                      <option
+                                        key={variant.id}
+                                        value={variant.id}
+                                      >
+                                        {variant.name} ·{" "}
+                                        {variant.stockMode === "counted"
+                                          ? (variant.stock || 0) + " in stock"
+                                          : "unlimited"}
+                                      </option>
+                                    ))}
+                                  </select>
+                                )}
                                 <input
                                   id={"stock-" + product.id}
                                   aria-label={
@@ -1022,6 +1272,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                           Stock mode
                           <select
                             value={productEdit.stockMode}
+                            disabled={!!productEdit.id}
                             onChange={(event) =>
                               setProductEdit({
                                 ...productEdit,
@@ -1086,30 +1337,26 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                             The server validates group limits and option
                             selections.
                           </p>
-                          <label>
-                            Variants JSON
-                            <textarea
-                              rows={5}
-                              value={
-                                productEdit.variantsJson ??
-                                JSON.stringify(
-                                  productEdit.variants || [],
-                                  null,
-                                  2,
-                                )
-                              }
-                              onChange={(e) =>
-                                setProductEdit({
-                                  ...productEdit,
-                                  variantsJson: e.target.value,
-                                })
-                              }
-                            />
-                          </label>
-                          <p className="mw-muted">
-                            Variant: id, name, price. Example:
-                            [&#123;"id":"large","name":"Large","price":380000&#125;]
-                          </p>
+                          <VariantsEditor
+                            value={productEdit.variants || []}
+                            onChange={(variants) =>
+                              setProductEdit({
+                                ...productEdit,
+                                variants,
+                                variantsJson: undefined,
+                              })
+                            }
+                          />
+                          <TimeWindows
+                            label="Product availability schedule"
+                            value={productEdit.availabilityWindows || []}
+                            onChange={(availabilityWindows) =>
+                              setProductEdit({
+                                ...productEdit,
+                                availabilityWindows,
+                              })
+                            }
+                          />
                           <label>
                             Modifier groups JSON
                             <textarea
@@ -1184,6 +1431,21 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                     </section>
                   )}
                 </>
+              )}
+              {activeSection === "preparation" && (
+                <Tickets
+                  key={branchBase}
+                  base={branchBase}
+                  tickets={list(data.tickets)}
+                  stationScope={
+                    ["kitchen", "bar"].includes(organization?.role)
+                      ? organization.role
+                      : undefined
+                  }
+                  orders={orders}
+                  disabled={busy || offline}
+                  save={mutate}
+                />
               )}
               {(activeSection === "orders" ||
                 activeSection === "preparation") && (
@@ -2161,57 +2423,15 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                       </button>
                     </div>
                   ))}
-                  <form
-                    className="mw-form"
-                    onSubmit={submit(() =>
-                      mutate(
-                        `/organizations/${organizationId}/invitations`,
-                        "POST",
-                        {
-                          email: tabForm.email,
-                          role: tabForm.role || "cashier",
-                          branchIds: [branchId],
-                        },
-                        "Invitation created. Check delivery status before assuming it was sent.",
-                      ),
-                    )}
-                  >
-                    {field("Staff email", "email", "email")}
-                    <label>
-                      Role
-                      <select
-                        value={tabForm.role || "cashier"}
-                        onChange={(event) =>
-                          updateForm("role", event.target.value)
-                        }
-                      >
-                        {[
-                          "organization_admin",
-                          "branch_manager",
-                          "cashier",
-                          "waiter",
-                          "kitchen",
-                          "bar",
-                          "front_desk",
-                          "stock_controller",
-                          "reports_only",
-                        ].map((role) => (
-                          <option key={role} value={role}>
-                            {sourceLabel(role)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <div className="mw-wide">
-                      <button className="primary" disabled={busy || offline}>
-                        Create branch invitation
-                      </button>
-                    </div>
-                  </form>
-                  <div className="mw-note">
-                    Delivery requires a configured email provider. Creating an
-                    invitation is not evidence that an email was sent.
-                  </div>
+                  <RoleManager
+                    key={branchBase}
+                    organizationId={organizationId}
+                    branchId={branchId}
+                    permissions={permissions}
+                    onAccessChanged={() => void loadContext(true)}
+                    disabled={busy || offline}
+                    save={mutate}
+                  />
                 </section>
               )}
               {activeSection === "billing" && (

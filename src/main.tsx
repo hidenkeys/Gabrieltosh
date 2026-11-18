@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./styles.css";
 import "./mera/platform.css";
+import "./mera/signup.css";
+import Signup from "./mera/Signup";
 import "./mera/marketing/marketing.css";
 import "./mera/customer/customer.css";
 import "./mera/workspace/workspace.css";
@@ -57,6 +59,8 @@ createRoot(document.getElementById("root")!).render(
         <Marketing />
       ) : window.location.pathname === "/mera/legal" ? (
         <LegalInformation />
+      ) : window.location.pathname === "/mera/signup" ? (
+        <Signup />
       ) : /^\/mera\/(menu|store)\//.test(window.location.pathname) ? (
         <CustomerExperience />
       ) : window.location.pathname === "/mera/platform" ? (

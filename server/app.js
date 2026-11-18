@@ -2,6 +2,7 @@ import express from "express";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { meraPublicLimits } from "./mera-security.js";
+import { meraHostRoutes } from "./mera/domains.js";
 import bcrypt from "bcryptjs";
 import { randomUUID, randomBytes, createHash } from "node:crypto";
 import { z } from "zod";
@@ -104,6 +105,7 @@ export function createApp() {
       crossOriginEmbedderPolicy: false,
     }),
   );
+  app.use(meraHostRoutes(query));
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
   // Hosted MERA must never expose the unscoped legacy POS data routes.

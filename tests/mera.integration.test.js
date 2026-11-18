@@ -260,7 +260,19 @@ test(
         )
       ).data;
       assert.equal(order.paid, 380000);
-      for (const status of ["preparing", "ready", "collected", "completed"]) {
+      assert.equal((await call(B+"/orders/"+order.id+"/status","POST",{status:"preparing",version:order.version})).status,200);
+      order=(await call("/public/orders/"+order.id,"GET",undefined,null,winner.cookie)).data;
+      assert.equal((await call(B+"/orders/"+order.id+"/status","POST",{status:"ready",version:order.version})).status,409);
+      const stationTicket=(await db.query("SELECT data FROM mera_records WHERE kind='ticket' AND data->>'orderId'=$1",[order.id])).rows[0].data;
+      const partial=await call(B+"/tickets/"+stationTicket.id+"/items/"+stationTicket.items[0].orderLineId,"POST",{preparedQuantity:0,version:1});
+      assert.equal(partial.status,200,JSON.stringify(partial.data));
+      assert.equal(partial.data.order.status,"preparing");
+      assert.equal((await call(B+"/tickets/"+stationTicket.id+"/status","POST",{status:"ready",version:1})).status,409);
+      const stationReady=await call(B+"/tickets/"+stationTicket.id+"/status","POST",{status:"ready",version:2});
+      assert.equal(stationReady.status,200,JSON.stringify(stationReady.data));
+      assert.equal(stationReady.data.order.status,"ready");
+      order=stationReady.data.order;
+      for (const status of ["collected", "completed"]) {
         const r = await call(B + "/orders/" + order.id + "/status", "POST", {
           status,
           version: order.version,
@@ -853,12 +865,26 @@ test(
         403,
       );
       const exportDate = new Date().toISOString().slice(0, 10);
+      const customRole=await call("/organizations/"+org+"/roles","POST",{name:"Menu auditor",permissions:["reports.view"]});
+      assert.equal(customRole.status,201,JSON.stringify(customRole.data));
+      assert.equal((await call("/organizations/"+org+"/roles/"+customRole.data.id,"PATCH",{name:"Menu auditor",permissions:["reports.view","menu.edit"],active:true,version:1})).status,200);
+      assert.equal((await call("/organizations/"+org+"/roles/"+customRole.data.id,"PATCH",{name:"Stale role",permissions:["reports.view"],active:true,version:1})).status,409);
+      const customInvite=await call("/organizations/"+org+"/invitations","POST",{email:"auditor@example.invalid",role:customRole.data.id,branchIds:[branch]});
+      assert.equal(customInvite.status,201,JSON.stringify(customInvite.data));
+      assert.ok((await call("/organizations/"+org+"/invitations")).data.some(i=>i.id===customInvite.data.id));
       const exportJob = await call(B + "/exports", "POST", {
         date: exportDate,
         requestKey: randomUUID(),
       });
       assert.equal(exportJob.status, 202, JSON.stringify(exportJob.data));
       assert.equal(await processMeraJobs(db), true);
+      const stolenJob=await call(B+"/exports","POST",{date:"2026-01-01",requestKey:randomUUID()});
+      let claim=true;
+      const competingDb={...db,transaction:async(fn)=>{const result=await db.transaction(fn);if(claim){claim=false;await db.query("UPDATE mera_records SET data=jsonb_set(data,'{leaseToken}',to_jsonb('new-worker-lease'::text)) WHERE id=$1",[stolenJob.data.id]);}return result;}};
+      assert.equal(await processMeraJobs(competingDb),true);
+      assert.equal((await db.query("SELECT id FROM mera_records WHERE id=$1 AND kind='export'",[stolenJob.data.artifactId])).rowCount,0);
+      assert.equal((await db.query("SELECT data FROM mera_records WHERE id=$1",[stolenJob.data.id])).rows[0].data.leaseToken,"new-worker-lease");
+
       const completedJob = (await call(B + "/jobs")).data.find(
         (j) => j.id === exportJob.data.id,
       );
@@ -1134,6 +1160,106 @@ test(
       workspace = (await call(B + "/workspace")).data;
       assert(workspace.report.grossOrderValue > workspace.report.grossSales);
       assert.equal(workspace.report.grossSales, 380000);
+      const sized=await call(B+"/products","POST",{name:"Last sized tea",code:"SIZE1",category:"Tests",price:10000,variants:[{id:"large",name:"Large",price:20000,stockMode:"counted",stock:1}]});
+      assert.equal(sized.status,201,JSON.stringify(sized.data));
+      const publication=await call(B+"/menu/publish","POST",{});
+      const sizeIntent={requestKey:randomUUID(),menuVersion:publication.data.version,displayName:"Size tester",items:[{productId:sized.data.id,variantId:"large",quantity:1,modifiers:[]}]};
+      const sizeRace=await Promise.all([call(B+"/orders","POST",sizeIntent),call(B+"/orders","POST",{...sizeIntent,requestKey:randomUUID()})]);
+      assert.deepEqual(sizeRace.map(r=>r.status).sort(),[201,409]);
+      const sizeOrder=sizeRace.find(r=>r.status===201).data;
+      assert.equal(sizeOrder.items[0].variantId,"large");
+      await db.query("UPDATE mera_records SET data=jsonb_set(data,'{holdExpiresAt}',to_jsonb('2020-01-01T00:00:00Z'::text)) WHERE id=$1",[sizeOrder.id]);
+      await call(P+"/menu","GET",undefined,null);
+      assert.equal((await db.query("SELECT data FROM mera_records WHERE id=$1",[sized.data.id])).rows[0].data.variants[0].stock,1);
+      const currentSize=(await db.query("SELECT data FROM mera_records WHERE id=$1",[sized.data.id])).rows[0].data;
+      const stockEdit=await call(B+"/products/"+sized.data.id,"PUT",{...currentSize,stock:999,variants:currentSize.variants.map(v=>({...v,stock:999}))});
+      assert.equal(stockEdit.status,200,JSON.stringify(stockEdit.data));
+      assert.equal(stockEdit.data.variants[0].stock,1);
+      assert.equal(stockEdit.data.stock,0);
+      assert.equal((await call(B+"/settings","PATCH",{timezone:"Invalid/Timezone"})).status,400);
+      const local=new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Lagos",weekday:"short"}).format(new Date());
+      const tomorrow=(["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].indexOf(local)+1)%7;
+      await call(B+"/settings","PATCH",{serviceHours:[{days:[tomorrow],start:"00:00",end:"23:59"}],timezone:"Africa/Lagos",cutoff:240});
+      assert.equal((await call(P+"/menu","GET",undefined,null)).data.orderingAvailable,false);
+      assert.equal((await call(B+"/orders","POST",{...sizeIntent,requestKey:randomUUID()})).status,409);
+      await call(B+"/settings","PATCH",{serviceHours:[],cutoff:0});
+      const providerIntent={eventId:"fixture-settlement-first",transactionId:"fixture-provider-reference",orderId:winner.order.id,sequence:2,type:"settlement_reported",amount:380000,occurredAt:new Date().toISOString()};
+      assert.equal((await call(B+"/provider-simulator/events","POST",providerIntent)).status,201);
+      assert.equal((await call(B+"/reconciliation")).data.transactions[0].status,"awaiting_events");
+      assert.equal((await call(B+"/provider-simulator/events","POST",providerIntent)).status,200);
+      assert.equal((await call(B+"/provider-simulator/events","POST",{...providerIntent,amount:1})).status,409);
+      const providerCollection=await call(B+"/provider-simulator/events","POST",{...providerIntent,eventId:"fixture-collection-later",sequence:1,type:"collection_reported"});
+      assert.equal(providerCollection.status,201);
+      const reconciliation=(await call(B+"/reconciliation")).data;
+      assert.equal(reconciliation.fundsMoved,false);
+      assert.equal(reconciliation.transactions[0].status,"mismatch");
+      assert.deepEqual(reconciliation.transactions[0].missingSequences,[]);
+      assert.equal(reconciliation.transactions[0].fee.assessed,null);
+      await assert.rejects(db.query("UPDATE mera_records SET data=data||'{\"amount\":1}'::jsonb WHERE id=$1",[providerCollection.data.event.id]),/append-only/i);
+      const sharedMenu=await call("/organizations/"+org+"/menus","POST",{name:"Regional menu",items:[{...currentSize,stock:999}]});
+      assert.equal(sharedMenu.status,201,JSON.stringify(sharedMenu.data));
+      const sharedApply=await call(B+"/menu/shared-use","POST",{menuId:sharedMenu.data.id,version:1,overrides:[{code:"SIZE1",price:25000}]});
+      assert.equal(sharedApply.status,200,JSON.stringify(sharedApply.data));
+      const appliedMenu=(await call(P+"/menu","GET",undefined,null)).data;
+      assert.equal(appliedMenu.products[0].id,sized.data.id);
+      assert.equal(appliedMenu.products[0].price,25000);
+      assert.equal(appliedMenu.products[0].variants[0].stock,1);
+      assert.equal((await call(B+"/menu/shared-use","POST",{menuId:sharedMenu.data.id,version:999,overrides:[]})).status,409);
+      await call(B+"/settings","PATCH",{payLater:true});
+      await call(B+"/stock","POST",{productId:sized.data.id,variantId:"large",quantity:5,reason:"Partial cancellation fixture"});
+      const partialOrder=await call(B+"/orders","POST",{...sizeIntent,menuVersion:sharedApply.data.version,requestKey:randomUUID(),items:[{productId:sized.data.id,variantId:"large",quantity:3,modifiers:[]}]});
+      assert.equal(partialOrder.status,201,JSON.stringify(partialOrder.data));
+      const partialBill=(await db.query("SELECT data FROM mera_records WHERE kind='bill' AND data->'charges' @> $1::jsonb",[JSON.stringify([{orderId:partialOrder.data.id}])])).rows[0].data;
+      assert.equal((await call(B+"/bills/"+partialBill.id+"/split","POST",{name:"Small separate amount",amount:10000})).status,200);
+      const acceptPartial=await call(B+"/orders/"+partialOrder.data.id+"/status","POST",{status:"accepted",version:1});
+      const partialTicket=(await db.query("SELECT data FROM mera_records WHERE kind='ticket' AND data->>'orderId'=$1",[partialOrder.data.id])).rows[0].data;
+      const preparedPartial=await call(B+"/tickets/"+partialTicket.id+"/items/"+partialTicket.items[0].orderLineId,"POST",{preparedQuantity:1,version:1});
+      assert.equal(preparedPartial.status,200,JSON.stringify(preparedPartial.data));
+      const cancelPath=B+"/orders/"+partialOrder.data.id+"/items/"+partialOrder.data.items[0].orderLineId+"/cancel";
+      const cancelIntent={requestKey:randomUUID(),quantity:1,version:preparedPartial.data.order.version,reason:"One unprepared drink no longer wanted"};
+      assert.equal((await call(cancelPath,"POST",{...cancelIntent,quantity:3})).status,409);
+      const cancelledItem=await call(cancelPath,"POST",cancelIntent);
+      assert.equal(cancelledItem.status,200,JSON.stringify(cancelledItem.data));
+      assert.equal(cancelledItem.data.order.total,40000);
+      assert.equal((await call(cancelPath,"POST",cancelIntent)).status,200);
+      assert.equal((await db.query("SELECT data FROM mera_records WHERE id=$1",[sized.data.id])).rows[0].data.variants[0].stock,3);
+      const partialBills=(await db.query("SELECT data FROM mera_records WHERE kind='bill' AND data->'charges' @> $1::jsonb",[JSON.stringify([{orderId:partialOrder.data.id}])])).rows.map(r=>r.data);
+      assert.equal(partialBills.reduce((n,b)=>n+b.charges.filter(l=>l.orderId===partialOrder.data.id).reduce((a,l)=>a+l.amount,0),0),40000);
+      await call(B+"/orders/"+partialOrder.data.id+"/payments","POST",{requestKey:randomUUID(),method:"cash",amount:20000});
+      const paidPartial=(await db.query("SELECT data FROM mera_records WHERE id=$1",[partialOrder.data.id])).rows[0].data;
+      assert.equal((await call(cancelPath,"POST",{...cancelIntent,requestKey:randomUUID(),version:paidPartial.version})).data.code,"PAID_ITEM_REVIEW_REQUIRED");
+      const activity=(await call(P+"/activity","GET",undefined,null,g1)).data;
+      assert.ok(activity.reservations.some(r=>r.id===depositReservation.id));
+      assert.ok(!(await call(P+"/activity","GET",undefined,null,g2)).data.reservations.some(r=>r.id===depositReservation.id));
+      const bookingFuture={...reservation,requestKey:randomUUID(),startsAt:new Date(Date.now()+5*86400000).toISOString(),endsAt:new Date(Date.now()+5*86400000+3600000).toISOString(),partySize:1};
+      const heldBooking=await call(P+"/reservations","POST",bookingFuture,null,g1);
+      assert.equal(heldBooking.status,201,JSON.stringify(heldBooking.data));
+      assert.equal((await call(B+"/reservations/"+heldBooking.data.id+"/deposits","POST",{requestKey:randomUUID(),amount:100000,method:"cash"})).status,200);
+      const guestCancelPath=P+"/reservations/"+heldBooking.data.id+"/cancellation",cancelBooking={requestKey:randomUUID(),reason:"Plans changed before the booking"};
+      assert.equal((await call(guestCancelPath,"POST",cancelBooking,null,g2)).status,404);
+      const heldCancel=await call(guestCancelPath,"POST",cancelBooking,null,g1);
+      assert.equal(heldCancel.status,200,JSON.stringify(heldCancel.data));
+      assert.equal(heldCancel.data.depositReviewRequired,true);
+      assert.equal(heldCancel.data.refundConfirmed,false);
+      assert.notEqual(heldCancel.data.status,"cancelled");
+      assert.equal((await call(guestCancelPath,"POST",cancelBooking,null,g1)).status,200);
+      const originalDemo=process.env.MERA_DEMO;
+      process.env.MERA_DEMO="false";
+      assert.equal((await call(P+"/menu","GET",undefined,null)).status,404);
+      await db.query("UPDATE mera_organizations SET onboarding=jsonb_set(onboarding,'{status}',to_jsonb('published'::text)) WHERE id=$1",[org]);
+      assert.equal((await call(P+"/menu","GET",undefined,null)).status,404);
+      await db.query("UPDATE mera_branches SET settings=settings||'{\"launchState\":\"published\",\"manualPaymentMethods\":[\"cash\"]}'::jsonb WHERE id=$1",[branch]);
+      assert.equal((await call(P+"/menu","GET",undefined,null)).status,200);
+      process.env.MERA_DEMO=originalDemo;
+      assert.equal((await call(B+"/orders/"+partialOrder.data.id+"/payments","POST",{requestKey:randomUUID(),method:"external_pos",amount:1000})).data.code,"PAYMENT_METHOD_DISABLED");
+      const signup=await call("/identity/register","POST",{name:"Demo owner",email:"demo-owner@example.invalid",password:"FixtureTemporaryPassword!"},null);
+      assert.equal(signup.status,201,JSON.stringify(signup.data));
+      assert.equal(signup.data.emailSent,false);
+      assert.equal((await call("/identity/verify","POST",{token:signup.data.verificationToken},null)).data.realEmailVerified,false);
+      assert.equal((await call("/identity/verify","POST",{token:signup.data.verificationToken},null)).status,401);
+      const expiredSignup=await call("/identity/register","POST",{name:"Expired demo",email:"expired-owner@example.invalid",password:"FixtureTemporaryPassword!"},null);
+      await db.query("UPDATE mera_identity_challenges SET expires_at=CURRENT_TIMESTAMP-INTERVAL '1 hour' WHERE token_hash=$1",[createHash("sha256").update(expiredSignup.data.verificationToken).digest("hex")]);
+      assert.equal((await call("/identity/verify","POST",{token:expiredSignup.data.verificationToken},null)).status,401);
       const membership = (
         await call("/organizations/" + org + "/members")
       ).data.find((m) => m.userId === owner);

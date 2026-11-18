@@ -236,11 +236,35 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
         "SELECT id,action,organization_id,details,created_at FROM mera_platform_audit ORDER BY created_at DESC,id LIMIT 100",
       )
     ).rows;
+    const jobStates = (
+      await db.query(
+        "SELECT COALESCE(data->>'status','unknown') AS status,COUNT(*)::int AS count FROM mera_records WHERE kind='job' GROUP BY data->>'status'",
+      )
+    ).rows;
+    const delayed =
+      (
+        await db.query(
+          "SELECT COUNT(*)::int AS count FROM mera_records WHERE kind='order' AND data->>'status' IN ('submitted','accepted','preparing') AND created_at<CURRENT_TIMESTAMP-INTERVAL '15 minutes'",
+        )
+      ).rows[0]?.count || 0;
+    const invoiceStates = (
+      await db.query(
+        "SELECT COALESCE(data->>'status','unknown') AS status,COUNT(*)::int AS count FROM mera_records WHERE kind='invoice' GROUP BY data->>'status'",
+      )
+    ).rows;
     res.json({
       organizations,
       audits,
       providers,
       policy: proposedPolicy,
+      operationalSignals: {
+        jobs: jobStates,
+        ordersOlderThan15Minutes: delayed,
+        invoices: invoiceStates,
+        observedAt: new Date().toISOString(),
+        monitoringScope: "application_database_snapshot",
+        externalAlertsConfigured: false,
+      },
       liveMoneyEnabled: false,
       supportImpersonationEnabled: false,
       blockedCapabilities: [

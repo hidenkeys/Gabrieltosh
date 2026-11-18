@@ -21,6 +21,7 @@ export async function processMeraJobs(db) {
     row.data.status = "processing";
     row.data.attempts++;
     row.data.leaseAt = now();
+    row.data.leaseToken = randomUUID();
     await c.query("UPDATE mera_records SET data=$1 WHERE id=$2", [
       JSON.stringify(row.data),
       row.id,
@@ -28,10 +29,11 @@ export async function processMeraJobs(db) {
     return row;
   });
   if (!job) return false;
+  let artifact = null;
   try {
     const m = (
       await db.query(
-        "SELECT * FROM mera_memberships WHERE user_id=$1 AND organization_id=$2 AND active=true",
+        "SELECT m.* FROM mera_memberships m JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND m.organization_id=$2 AND m.active=true AND u.active=true",
         [job.data.requestedBy, job.organization_id],
       )
     ).rows[0];
@@ -68,7 +70,7 @@ export async function processMeraJobs(db) {
           .filter(([, v]) => typeof v === "number" || typeof v === "string")
           .map(([k, v]) => [k, v].map(cell).join(",")),
       ].join("\r\n");
-      const artifact = {
+      artifact = {
         id: job.data.artifactId,
         jobId: job.id,
         date: job.data.date,
@@ -76,15 +78,6 @@ export async function processMeraJobs(db) {
         content: csv,
         createdAt: now(),
       };
-      await db.query(
-        "INSERT INTO mera_records(id,organization_id,branch_id,kind,data) VALUES($1,$2,$3,'export',$4) ON CONFLICT(id) DO UPDATE SET data=EXCLUDED.data WHERE mera_records.organization_id=EXCLUDED.organization_id AND mera_records.branch_id=EXCLUDED.branch_id",
-        [
-          artifact.id,
-          job.organization_id,
-          job.branch_id,
-          JSON.stringify(artifact),
-        ],
-      );
       job.data.status = "complete";
       job.data.completedAt = now();
       job.data.error = null;
@@ -96,10 +89,19 @@ export async function processMeraJobs(db) {
       Date.now() + job.data.attempts * 10000,
     ).toISOString();
   }
-  await db.query(
-    "UPDATE mera_records SET data=$1 WHERE id=$2 AND organization_id=$3 AND branch_id=$4 AND kind='job'",
-    [JSON.stringify(job.data), job.id, job.organization_id, job.branch_id],
-  );
+  await db.transaction(async (c) => {
+    const current = (await c.query("SELECT data FROM mera_records WHERE id=$1 AND organization_id=$2 AND branch_id=$3 AND kind='job' FOR UPDATE", [job.id, job.organization_id, job.branch_id])).rows[0];
+    if (!current || current.data.status !== "processing" || current.data.leaseToken !== job.data.leaseToken) return;
+    // A stale worker can neither publish an artifact nor overwrite a newer lease.
+    const member = (await c.query("SELECT m.* FROM mera_memberships m JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND m.organization_id=$2 AND m.active=true AND u.active=true FOR SHARE OF m,u", [job.data.requestedBy, job.organization_id])).rows[0];
+    if (!member || !member.permissions.includes("reports.export") || (!member.organization_wide && !member.branch_ids.includes(job.branch_id))) {
+      job.data.status = "cancelled";
+      job.data.error = "Export permission was revoked.";
+      artifact = null;
+    }
+    if (artifact && job.data.status === "complete") await c.query("INSERT INTO mera_records(id,organization_id,branch_id,kind,data) VALUES($1,$2,$3,'export',$4) ON CONFLICT(id) DO NOTHING", [artifact.id, job.organization_id, job.branch_id, JSON.stringify(artifact)]);
+    await c.query("UPDATE mera_records SET data=$1 WHERE id=$2 AND organization_id=$3 AND branch_id=$4 AND kind='job'", [JSON.stringify(job.data), job.id, job.organization_id, job.branch_id]);
+  });
   return true;
 }
 export function mountMeraOperations(

@@ -272,3 +272,94 @@
     flex-wrap: wrap;
   }
 }
+
+.mw-navigation {
+  margin: 12px 0 20px;
+  min-width: 0;
+}
+.mw-nav-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+}
+.mw-nav-tools label {
+  display: grid;
+  gap: 6px;
+  font-size: 11px;
+  color: #756c74;
+  max-width: 340px;
+  flex: 1;
+}
+.mw-nav-tools .mw-actions {
+  margin: 0;
+  flex-wrap: nowrap;
+}
+.mw-nav-tools .mw-actions button {
+  min-width: 44px;
+  font-size: 20px;
+}
+.mw-navigation .mw-tabs {
+  margin: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e9e6e2;
+  scrollbar-width: thin;
+}
+.mera-workspace button,
+.mera-workspace select,
+.mera-workspace input:not([type="checkbox"]):not([type="radio"]) {
+  min-height: 44px;
+}
+.mera-workspace :is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 3px solid #2f7df6;
+  outline-offset: 3px;
+}
+.mera-workspace .mw-row label,
+.mera-workspace label.mw-row {
+  min-height: 44px;
+}
+.mera-workspace table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+.mera-workspace th,
+.mera-workspace td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #eeebe6;
+}
+@media (max-width: 680px) {
+  .mw-card {
+    padding: 18px;
+  }
+  .mw-actions > button {
+    flex-grow: 1;
+  }
+  .mw-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mw-nav-tools {
+    gap: 8px;
+  }
+  .mw-navigation .mw-tabs {
+    scroll-snap-type: x proximity;
+  }
+  .mw-navigation .mw-tabs button {
+    scroll-snap-align: start;
+  }
+}
+.mw-window-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mw-window-days label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid #e9e6e2;
+  border-radius: 8px;
+}

@@ -615,3 +615,556 @@ test("exports stay queued until a canonical completed artifact is available", as
     globalThis.fetch = originalFetch;
   }
 });
+
+test("station partial fulfillment sends a versioned SET quantity and never bypasses another station", async () => {
+  const { default: Tickets } = await import("../src/mera/workspace/Tickets");
+  const calls: any[] = [];
+  try {
+    render(
+      React.createElement(Tickets, {
+        base: "/organizations/org/branches/branch",
+        tickets: [
+          {
+            id: "bar-ticket",
+            orderId: "order",
+            station: "bar",
+            status: "preparing",
+            version: 7,
+            items: [
+              {
+                orderLineId: "tea-line",
+                name: "Milk tea",
+                quantity: 3,
+                preparedQuantity: 1,
+              },
+            ],
+          },
+        ],
+        orders: [
+          {
+            id: "order",
+            reference: "BC001",
+            displayName: "Ada",
+            status: "preparing",
+          },
+        ],
+        disabled: false,
+        save: async (...args: any[]) => {
+          calls.push(args);
+          return {};
+        },
+      }),
+    );
+    fireEvent.change(
+      screen.getByLabelText("Prepared quantity for Milk tea on bar"),
+      { target: { value: "2" } },
+    );
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Save prepared quantity" }),
+      ),
+    );
+    assert.equal(
+      calls[0][0],
+      "/organizations/org/branches/branch/tickets/bar-ticket/items/tea-line",
+    );
+    assert.deepEqual(calls[0][2], { preparedQuantity: 2, version: 7 });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Mark station ready" }),
+      ),
+    );
+    assert.equal(
+      calls[1][0],
+      "/organizations/org/branches/branch/tickets/bar-ticket/status",
+    );
+    assert.deepEqual(calls[1][2], { status: "ready", version: 7 });
+    assert.equal(
+      calls.some((call) => call[0].includes("/orders/")),
+      false,
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("returning to the same branch still rejects a response from its earlier scope generation", async () => {
+  try {
+    render(React.createElement(Workspace, { user, notify: () => {} }));
+    await screen.findByText("Surulere customer", { exact: false });
+    deferOldRefresh = true;
+    fireEvent.click(screen.getByRole("button", { name: "Refresh workspace" }));
+    await waitFor(() => assert(resolveOldRefresh));
+    const staleResolver = resolveOldRefresh!;
+    fireEvent.change(screen.getByLabelText("Branch"), {
+      target: { value: "branch-2" },
+    });
+    await screen.findByText("Ikeja customer", { exact: false });
+    deferOldRefresh = false;
+    fireEvent.change(screen.getByLabelText("Branch"), {
+      target: { value: "branch-1" },
+    });
+    await screen.findByText("Surulere customer", { exact: false });
+    await act(async () => {
+      const stale = snapshot("branch-1");
+      stale.orders[0].displayName = "Stale earlier generation";
+      staleResolver(Response.json(stale));
+      await Promise.resolve();
+    });
+    assert.equal(
+      screen.queryByText("Stale earlier generation", { exact: false }),
+      null,
+    );
+    assert(screen.getByText("Surulere customer", { exact: false }));
+  } finally {
+    deferOldRefresh = false;
+    resolveOldRefresh = null;
+    cleanup();
+  }
+});
+
+test("workspace navigation exposes all pages and supports roving keyboard focus", async () => {
+  try {
+    render(React.createElement(Workspace, { user, notify: () => {} }));
+    await screen.findByText("Surulere customer", { exact: false });
+    const ordersTab = screen.getByRole("tab", { name: "Orders" });
+    assert.equal(ordersTab.tabIndex, 0);
+    fireEvent.keyDown(ordersTab, { key: "End" });
+    const transactions = screen.getByRole("tab", { name: "Transactions" });
+    assert.equal(transactions.getAttribute("aria-selected"), "true");
+    assert.equal(transactions.tabIndex, 0);
+    assert.equal(document.activeElement, transactions);
+    fireEvent.change(screen.getByLabelText("Workspace page"), {
+      target: { value: "orders" },
+    });
+    assert.equal(ordersTab.getAttribute("aria-selected"), "true");
+    assert.equal(
+      screen.getByRole("tabpanel").getAttribute("aria-labelledby"),
+      ordersTab.id,
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("custom roles expose only actor-grantable permissions and invite using a scoped custom role id", async () => {
+  const { default: RoleManager } =
+    await import("../src/mera/workspace/RoleManager");
+  const originalFetch = globalThis.fetch;
+  const calls: any[] = [];
+  globalThis.fetch = (async (input: any) =>
+    Response.json(
+      String(input).endsWith("/roles")
+        ? {
+            templates: [
+              { id: "owner", name: "Owner", permissions: ["billing.manage"] },
+              { id: "cashier", name: "Cashier", permissions: ["orders.view"] },
+            ],
+            custom: [
+              {
+                id: "custom-role",
+                name: "Host",
+                permissions: ["orders.view"],
+                version: 2,
+                active: true,
+              },
+            ],
+          }
+        : [],
+    )) as any;
+  try {
+    render(
+      React.createElement(RoleManager, {
+        organizationId: "org",
+        branchId: "branch",
+        permissions: ["orders.view", "members.manage"],
+        disabled: false,
+        save: async (...args: any[]) => {
+          calls.push(args);
+          return { delivery: "not_sent", reason: "Provider unavailable" };
+        },
+      }),
+    );
+    await screen.findByRole("option", { name: "Host" });
+    assert.equal(screen.queryByRole("option", { name: "Owner" }), null);
+    assert.equal(screen.queryByText("billing · manage"), null);
+    fireEvent.change(screen.getByLabelText("Staff email"), {
+      target: { value: "staff@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("Invitation role"), {
+      target: { value: "custom-role" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Create branch invitation" }),
+      ),
+    );
+    assert.deepEqual(calls[0][2], {
+      email: "staff@example.com",
+      role: "custom-role",
+      branchIds: ["branch"],
+    });
+    assert(screen.getByText("Delivery: not_sent"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit role" }));
+    fireEvent.change(screen.getByLabelText("Role name"), {
+      target: { value: "Evening host" },
+    });
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Save custom role" })),
+    );
+    assert.equal(calls[1][0], "/organizations/org/roles/custom-role");
+    assert.deepEqual(calls[1][2], {
+      name: "Evening host",
+      permissions: ["orders.view"],
+      active: true,
+      version: 2,
+    });
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("branch service windows save local timezone and trading cutoff without assuming overnight hours", async () => {
+  const { default: BranchSettings } =
+    await import("../src/mera/workspace/BranchSettings");
+  const calls: any[] = [];
+  try {
+    render(
+      React.createElement(BranchSettings, {
+        branch: { timezone: "Africa/Lagos", cutoff: 240, settings: {} },
+        organization: { id: "org", name: "Bing Chun", branding: {} },
+        base: "/organizations/org/branches/branch",
+        disabled: false,
+        save: async (...args: any[]) => {
+          calls.push(args);
+          return {};
+        },
+      }),
+    );
+    fireEvent.change(screen.getByLabelText("Trading day starts"), {
+      target: { value: "05:30" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add availability window" }),
+    );
+    fireEvent.change(screen.getByLabelText("Window 1 starts"), {
+      target: { value: "10:00" },
+    });
+    fireEvent.change(screen.getByLabelText("Window 1 ends"), {
+      target: { value: "22:00" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Save branch policies" }),
+      ),
+    );
+    assert.equal(calls[0][2].timezone, "Africa/Lagos");
+    assert.equal(calls[0][2].cutoff, 330);
+    assert.deepEqual(calls[0][2].serviceHours, [
+      { days: [0, 1, 2, 3, 4, 5, 6], start: "10:00", end: "22:00" },
+    ]);
+  } finally {
+    cleanup();
+  }
+});
+
+test("authorization denial clears protected records immediately and stale successes cannot restore them", async () => {
+  const originalFetch = globalThis.fetch;
+  let reads = 0;
+  let release: ((value: Response) => void) | undefined;
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    if (String(input).endsWith("/workspace")) {
+      reads++;
+      if (reads === 2)
+        return new Promise<Response>((resolve) => {
+          release = resolve;
+        });
+      if (reads >= 3)
+        return Response.json(
+          { error: "Membership suspended" },
+          { status: 403 },
+        );
+    }
+    return originalFetch(input, init);
+  }) as any;
+  try {
+    render(React.createElement(Workspace, { user, notify: () => {} }));
+    await screen.findByText("Surulere customer", { exact: false });
+    fireEvent.click(screen.getByRole("button", { name: "Refresh workspace" }));
+    await waitFor(() => assert(release));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh workspace" }));
+    await screen.findByText("Membership suspended", { exact: false });
+    assert.equal(
+      screen.queryByText("Surulere customer", { exact: false }),
+      null,
+    );
+    await act(async () => {
+      release!(Response.json(snapshot("branch-1")));
+      await Promise.resolve();
+    });
+    assert.equal(
+      screen.queryByText("Surulere customer", { exact: false }),
+      null,
+    );
+    const afterDenial = reads;
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 2600));
+    });
+    assert.equal(reads, afterDenial);
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("launch readiness remains blocked and reservation cutoffs stay unresolved until explicit review", async () => {
+  const { default: LaunchReadiness } =
+    await import("../src/mera/workspace/LaunchReadiness");
+  const { default: ReservationPolicy } =
+    await import("../src/mera/workspace/ReservationPolicy");
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    Response.json({
+      checks: [{ id: "owner", label: "Verified owner", status: "blocked" }],
+      canPublish: false,
+      launchState: "draft",
+      paymentProviderState: "blocked",
+      simulation: true,
+      publicHostingVerified: false,
+    })) as any;
+  try {
+    render(
+      React.createElement(LaunchReadiness, {
+        base: "/organizations/org/branches/branch",
+        settings: {},
+        disabled: false,
+        save: async () => ({}),
+      }),
+    );
+    await screen.findByText("Verified owner · blocked");
+    assert.equal(
+      (
+        screen.getByRole("button", {
+          name: "Publish branch menu",
+        }) as HTMLButtonElement
+      ).disabled,
+      true,
+    );
+    assert(
+      screen.getByText(/No website deployment or live payment activation/),
+    );
+    cleanup();
+    const calls: any[] = [];
+    render(
+      React.createElement(ReservationPolicy, {
+        base: "/organizations/org/branches/branch",
+        policy: {},
+        disabled: false,
+        save: async (...args: any[]) => {
+          calls.push(args);
+          return {};
+        },
+      }),
+    );
+    assert.equal(
+      (
+        screen.getByRole("button", {
+          name: "Save reviewed reservation policy",
+        }) as HTMLButtonElement
+      ).disabled,
+      true,
+    );
+    fireEvent.click(
+      screen.getByLabelText(
+        "I reviewed this timing policy and its unresolved cutoffs.",
+      ),
+    );
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Save reviewed reservation policy",
+        }),
+      ),
+    );
+    assert.equal(calls[0][2].cancellationCutoffMinutes, null);
+    assert.equal(calls[0][2].lateAfterMinutes, null);
+    assert.equal(calls[0][2].approved, true);
+    assert.equal(calls[0][2].refundHandling, "manual_review");
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("shared menu publication sends explicit branch overrides and a canonical template version", async () => {
+  const { default: SharedMenus } =
+    await import("../src/mera/workspace/SharedMenus");
+  const originalFetch = globalThis.fetch;
+  const calls: any[] = [];
+  globalThis.fetch = (async () =>
+    Response.json([
+      {
+        id: "shared",
+        name: "Curated menu",
+        version: 4,
+        items: [
+          { code: "TEA", name: "Milk tea", price: 150000, category: "Tea" },
+        ],
+      },
+    ])) as any;
+  try {
+    render(
+      React.createElement(SharedMenus, {
+        organizationId: "org",
+        base: "/organizations/org/branches/branch",
+        products: [],
+        disabled: false,
+        canPublish: true,
+        save: async (...args: any[]) => {
+          calls.push(args);
+          return {};
+        },
+      }),
+    );
+    await screen.findByRole("option", { name: "Curated menu · version 4" });
+    fireEvent.change(screen.getByLabelText("Shared template"), {
+      target: { value: "shared" },
+    });
+    fireEvent.change(
+      screen.getByLabelText("Override price for Milk tea (naira)"),
+      { target: { value: "1750" } },
+    );
+    fireEvent.change(screen.getByLabelText("Availability for Milk tea"), {
+      target: { value: "false" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Apply & publish to this branch" }),
+      ),
+    );
+    assert.equal(
+      calls[0][0],
+      "/organizations/org/branches/branch/menu/shared-use",
+    );
+    assert.deepEqual(calls[0][2], {
+      menuId: "shared",
+      version: 4,
+      overrides: [{ code: "TEA", price: 175000, available: false }],
+    });
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("a held staff write times out as uncertain and retry preserves its original request key", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalTimeout = globalThis.setTimeout;
+  const previous = [...context.organizations[0].permissions];
+  context.organizations[0].permissions.push("orders.create");
+  let latestDeadline: (() => void) | undefined;
+  let heldDeadline: (() => void) | undefined;
+  let hold = true;
+  const writes: any[] = [];
+  globalThis.setTimeout = ((callback: any, delay: any, ...args: any[]) => {
+    if (delay === 15000) latestDeadline = () => callback(...args);
+    return originalTimeout(callback, delay, ...args);
+  }) as any;
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    if (String(input).endsWith("/workspace"))
+      return Response.json({
+        ...snapshot("branch-1"),
+        menuVersion: 1,
+        products: [
+          { id: "tea", name: "Milk tea", price: 150000, available: true },
+        ],
+      });
+    if (String(input).endsWith("/orders") && init.method === "POST") {
+      writes.push(JSON.parse(init.body));
+      if (hold) {
+        heldDeadline = latestDeadline;
+        return new Promise<Response>(() => {});
+      }
+      return Response.json({ id: "order-created" });
+    }
+    return originalFetch(input, init);
+  }) as any;
+  try {
+    render(React.createElement(Workspace, { user, notify: () => {} }));
+    await screen.findByText("Surulere customer", { exact: false });
+    fireEvent.change(screen.getByLabelText("Customer display name"), {
+      target: { value: "Ada" },
+    });
+    fireEvent.change(screen.getByLabelText("Quantity of Milk tea"), {
+      target: { value: "1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
+    assert(heldDeadline);
+    await act(async () => {
+      heldDeadline!();
+      await Promise.resolve();
+    });
+    assert(screen.getByText("Submission not confirmed"));
+    assert(screen.getByText(/Connection timed out/, { exact: false }));
+    hold = false;
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Retry original submission" }),
+      );
+      await new Promise((resolve) => originalTimeout(resolve, 0));
+    });
+    assert.equal(writes.length, 2);
+    assert.deepEqual(writes[0], writes[1]);
+    assert.equal(screen.queryByText("Submission not confirmed"), null);
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+    globalThis.setTimeout = originalTimeout;
+    context.organizations[0].permissions = previous;
+  }
+});
+
+test("scope aborts remain AbortError while a stalled response body receives the full response timeout", async () => {
+  const { workspaceApi, WorkspaceError } =
+    await import("../src/mera/workspace/api");
+  const originalFetch = globalThis.fetch;
+  const originalTimeout = globalThis.setTimeout;
+  let deadline: (() => void) | undefined;
+  globalThis.setTimeout = ((callback: any, delay: any, ...args: any[]) => {
+    if (delay === 15000) deadline = () => callback(...args);
+    return originalTimeout(callback, delay, ...args);
+  }) as any;
+  globalThis.fetch = (async () => ({
+    ok: true,
+    json: () => new Promise(() => {}),
+  })) as any;
+  try {
+    const controller = new AbortController();
+    const externallyAborted = workspaceApi(
+      "/held-read",
+      "GET",
+      undefined,
+      controller.signal,
+    );
+    controller.abort();
+    await assert.rejects(
+      externallyAborted,
+      (error: any) => error.name === "AbortError",
+    );
+    const stalledBody = workspaceApi("/held-write", "POST", {
+      requestKey: "original-key",
+    });
+    deadline!();
+    await assert.rejects(
+      stalledBody,
+      (error: any) =>
+        error instanceof WorkspaceError &&
+        error.status === 0 &&
+        /timed out/.test(error.message),
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    globalThis.setTimeout = originalTimeout;
+  }
+});

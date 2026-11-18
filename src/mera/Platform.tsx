@@ -175,7 +175,9 @@ export default function Platform() {
               ["Organizations", data.organizations.length],
               [
                 "Proposed monthly base",
-                data.policy?.monthlyPrice == null ? "Unresolved" : formatMoney(data.policy.monthlyPrice),
+                data.policy?.monthlyPrice == null
+                  ? "Unresolved"
+                  : formatMoney(data.policy.monthlyPrice),
               ],
               ["Live collections", "Disabled"],
               ["Support access", "Configuration only"],
@@ -190,6 +192,42 @@ export default function Platform() {
               </article>
             ))}
           </section>
+          {data.operationalSignals && (
+            <section
+              className="mera-panel"
+              style={{ padding: 24, marginBottom: 20 }}
+              aria-label="Operational signals"
+            >
+              <h2>Operational signals</h2>
+              <p>
+                Orders waiting over 15 minutes:{" "}
+                <strong>
+                  {data.operationalSignals.ordersOlderThan15Minutes}
+                </strong>
+                . Review these with the organization; elapsed time alone does
+                not establish a service failure.
+              </p>
+              <p>
+                Export jobs:{" "}
+                {(data.operationalSignals.jobs || [])
+                  .map((j: any) => `${j.status}: ${j.count}`)
+                  .join(" · ") || "No jobs recorded"}
+                .
+              </p>
+              <p>
+                Invoices:{" "}
+                {(data.operationalSignals.invoices || [])
+                  .map((i: any) => `${i.status}: ${i.count}`)
+                  .join(" · ") || "No invoices recorded"}
+                . Draft invoices are not collected revenue.
+              </p>
+              <p>
+                Database snapshot at{" "}
+                {new Date(data.operationalSignals.observedAt).toLocaleString()}.
+                External alerts require hosting configuration.
+              </p>
+            </section>
+          )}
           <section className="mera-panel" style={{ padding: 24 }}>
             <h2>Organization directory</h2>
             <label>

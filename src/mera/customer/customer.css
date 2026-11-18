@@ -27,6 +27,8 @@
   .mera-customer .mc-tabs,
   .mera-customer .mc-footer,
   .mera-customer .mc-print-control,
+  .mera-customer .mc-consent,
+  .mera-customer .mc-activity,
   .mera-customer form,
   .mera-customer .mc-alert {
     display: none !important;
@@ -450,3 +452,5 @@
   color: #29262b;
   max-width: 230px;
 }
+
+.mera-customer .mc-activity article { border-top:1px solid #e8e6e0; padding:16px 0; overflow-wrap:anywhere; }

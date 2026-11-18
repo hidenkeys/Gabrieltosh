@@ -35,7 +35,7 @@ export function meraPublicLimits({
   const entries = new Map();
   return (req, res, next) => {
     if (
-      !req.path.startsWith("/public/") ||
+      !(req.path.startsWith("/public/") || req.path.startsWith("/identity/")) ||
       !["POST", "PUT", "PATCH", "DELETE"].includes(req.method)
     )
       return next();

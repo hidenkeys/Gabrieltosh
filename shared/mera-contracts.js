@@ -111,6 +111,7 @@ export const reservationInputSchema = z
     (v) => Date.parse(v.endsAt) > Date.parse(v.startsAt),
     "Reservation must end after it starts",
   );
+export const availabilityWindowSchema=z.object({days:z.array(z.number().int().min(0).max(6)).min(1).max(7),start:z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),end:z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)}).refine(v=>v.end>v.start,"End must follow start; split overnight windows");
 export const productInputSchema = z.object({
   name: z.string().trim().min(1).max(120),
   code: z.string().max(30),
@@ -123,12 +124,15 @@ export const productInputSchema = z.object({
   stockMode: z.enum(["unlimited", "counted"]).default("unlimited"),
   stock: z.number().int().min(0).max(1000000).default(0),
   station: z.enum(["kitchen", "bar"]).default("bar"),
+  availabilityWindows:z.array(availabilityWindowSchema).max(30).default([]),
   variants: z
     .array(
       z.object({
         id: z.string().min(1),
         name: z.string().min(1),
         price: moneySchema,
+        stockMode:z.enum(["unlimited","counted"]).default("unlimited"),
+        stock:z.number().int().min(0).max(1000000).default(0),
       }),
     )
     .max(30)

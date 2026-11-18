@@ -1,4 +1,5 @@
 import { useState } from "react";
+import TimeWindows from "./TimeWindows";
 type Props = {
   branch: any;
   organization: any;
@@ -26,6 +27,9 @@ export default function BranchSettings({
     holdMinutes: branch.settings?.holdMinutes || 10,
     showSoldOut: branch.settings?.showSoldOut ?? false,
     address: branch.settings?.address || "",
+    serviceHours: branch.settings?.serviceHours || [],
+    timezone: branch.timezone || "Africa/Lagos",
+    cutoff: branch.cutoff ?? 0,
   });
   const [branding, setBranding] = useState({
     primary: organization.branding?.primary || "#1558c9",
@@ -127,6 +131,43 @@ export default function BranchSettings({
               }
             />
           </label>
+          <label>
+            Branch timezone
+            <input
+              required
+              value={settings.timezone}
+              placeholder="Africa/Lagos"
+              onChange={(event) =>
+                setSettings({ ...settings, timezone: event.target.value })
+              }
+            />
+          </label>
+          <label>
+            Trading day starts
+            <input
+              required
+              type="time"
+              value={
+                String(Math.floor(settings.cutoff / 60)).padStart(2, "0") +
+                ":" +
+                String(settings.cutoff % 60).padStart(2, "0")
+              }
+              onChange={(event) => {
+                const [hours, minutes] = event.target.value
+                  .split(":")
+                  .map(Number);
+                setSettings({ ...settings, cutoff: hours * 60 + minutes });
+              }}
+            />
+          </label>
+          <TimeWindows
+            label="Branch service hours"
+            value={settings.serviceHours}
+            disabled={disabled}
+            onChange={(serviceHours) =>
+              setSettings({ ...settings, serviceHours })
+            }
+          />
           <div className="mw-wide">
             <button className="primary" disabled={disabled}>
               Save branch policies

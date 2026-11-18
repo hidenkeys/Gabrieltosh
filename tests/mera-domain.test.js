@@ -131,3 +131,11 @@ test("Mera sales recognition uses immutable fulfillment time, not order creation
   assert.equal(report(records, branch, "2026-11-19").grossSales, 0);
   assert.equal(report(records, branch, "2026-11-19").netSales, -5000);
 });
+
+test("Mera availability windows use branch timezone and exclude end boundary",async()=>{
+ const {availableNow}=await import("../server/mera/domain.js");
+ const windows=[{days:[3],start:"10:00",end:"11:00"}];
+ assert.equal(availableNow(windows,"Africa/Lagos",new Date("2026-11-18T09:00:00Z")),true);
+ assert.equal(availableNow(windows,"Africa/Lagos",new Date("2026-11-18T10:00:00Z")),false);
+ assert.equal(availableNow([],"Africa/Lagos"),true);
+});
