@@ -25,6 +25,7 @@ import { chooseWorkspaceLanding, getSectionPresentation } from "./presentation";
 import WorkspaceAccount from "./WorkspaceAccount";
 import OperationalOverview from "./OperationalOverview";
 import PolicyEditor from "./PolicyEditor";
+import BillingManagement from "./BillingManagement";
 import Bills from "./Bills";
 import ReservationSettlement from "./ReservationSettlement";
 import TableEditor from "./TableEditor";
@@ -1813,22 +1814,136 @@ export default function OrganizationWorkspace({
                   save={mutate}
                 />
               )}
-              {activeSection === "billing" && (
-                <Reconciliation
-                  key={branchBase + "reconciliation"}
-                  base={branchBase}
-                  orders={liveOrders}
-                  demo={!!context?.demo}
-                  disabled={busy || offline}
-                  save={mutate}
-                />
-              )}
-              {activeSection === "billing" && (
-                <Invoices
-                  key={organizationId}
-                  organizationId={organizationId}
-                  disabled={busy || offline}
-                  save={mutate}
+              {activeSection === "billing" && allowed("billing.manage") && (
+                <BillingManagement
+                  status={
+                    <p className="mw-billing-status">
+                      {data.subscription?.status
+                        ? sourceLabel(data.subscription.status)
+                        : "Subscription status unavailable"}
+                    </p>
+                  }
+                  services={
+                    <dl className="mw-billing-service-list">
+                      {[
+                        [
+                          "New orders",
+                          typeof data.entitlements?.newOrdersAllowed ===
+                          "boolean"
+                            ? data.entitlements.newOrdersAllowed
+                              ? "Allowed"
+                              : "Restricted"
+                            : "Unavailable",
+                        ],
+                        [
+                          "Existing paid orders",
+                          typeof data.entitlements
+                            ?.existingPaidOrdersContinue === "boolean"
+                            ? data.entitlements.existingPaidOrdersContinue
+                              ? "Continue service"
+                              : "Review required"
+                            : "Unavailable",
+                        ],
+                        [
+                          "Report exports",
+                          typeof data.entitlements?.exportsAllowed === "boolean"
+                            ? data.entitlements.exportsAllowed
+                              ? "Available with permission"
+                              : "Restricted"
+                            : "Unavailable",
+                        ],
+                      ].map(([label, value]) => (
+                        <div key={label}>
+                          <dt>{label}</dt>
+                          <dd>{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  }
+                  invoices={
+                    <Invoices
+                      key={organizationId}
+                      organizationId={organizationId}
+                      showServiceSummary={false}
+                      disabled={busy || offline}
+                      save={mutate}
+                    />
+                  }
+                  proposedPolicy={
+                    <>
+                      <section className="mw-card">
+                        <h2>Proposed pricing</h2>
+                        <p>
+                          Proposal version:{" "}
+                          {data.policy?.version ||
+                            context?.policy?.version ||
+                            "Not configured"}
+                        </p>
+                        <dl className="mw-billing-service-list">
+                          <div>
+                            <dt>Monthly price</dt>
+                            <dd>
+                              {Number.isSafeInteger(data.policy?.monthlyPrice)
+                                ? formatMoney(data.policy.monthlyPrice)
+                                : "Unresolved"}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>Included branches</dt>
+                            <dd>
+                              {Number.isSafeInteger(
+                                data.policy?.includedBranches,
+                              )
+                                ? data.policy.includedBranches
+                                : "Unresolved"}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>Additional branch price</dt>
+                            <dd>
+                              {Number.isSafeInteger(
+                                data.policy?.additionalBranchPrice,
+                              )
+                                ? formatMoney(data.policy.additionalBranchPrice)
+                                : "Unresolved"}
+                            </dd>
+                          </div>
+                        </dl>
+                        <div className="mw-note">
+                          <ShieldCheck size={16} />
+                          Live billing is disabled. Fee payer, calculation,
+                          rounding, refunds, trial and grace periods require
+                          approval before charging.
+                        </div>
+                        <p>
+                          Proposed integrated collection rate:{" "}
+                          {Number.isSafeInteger(data.policy?.integratedFeeBps)
+                            ? `${data.policy.integratedFeeBps / 100}%`
+                            : "Unresolved"}
+                          . Recorded cash, external POS and manually verified
+                          external transfers are excluded from the integrated
+                          collection fee.
+                        </p>
+                      </section>
+                      <PolicyEditor
+                        key={data.policy?.version || organizationId}
+                        organizationId={organizationId}
+                        policy={data.policy || context?.policy || {}}
+                        disabled={busy || offline}
+                        save={mutate}
+                      />
+                    </>
+                  }
+                  reconciliation={
+                    <Reconciliation
+                      key={branchBase + "reconciliation"}
+                      base={branchBase}
+                      orders={liveOrders}
+                      demo={!!context?.demo}
+                      disabled={busy || offline}
+                      save={mutate}
+                    />
+                  }
                 />
               )}
               {activeSection === "printing" && (
@@ -3727,61 +3842,9 @@ export default function OrganizationWorkspace({
                   />
                 </section>
               )}
-              {activeSection === "billing" && (
-                <section className="mw-card">
-                  <h2>Subscription & commercial policy</h2>
-                  <div className="mw-grid">
-                    <div>
-                      <div className="mw-eyebrow">Subscription</div>
-                      <h3>
-                        {sourceLabel(
-                          data.subscription?.status || "not configured",
-                        )}
-                      </h3>
-                      <p>
-                        Current policy:{" "}
-                        {data.policy?.version ||
-                          context?.policy?.version ||
-                          "not approved"}
-                      </p>
-                    </div>
-                    <div>
-                      <div className="mw-eyebrow">Proposed monthly price</div>
-                      <h3>
-                        {Number.isSafeInteger(data.policy?.monthlyPrice)
-                          ? formatMoney(data.policy.monthlyPrice)
-                          : "Unresolved"}
-                      </h3>
-                      <p>
-                        One organization, one included branch. Additional branch
-                        pricing remains unresolved.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mw-note">
-                    <ShieldCheck size={16} /> Live billing is disabled. Fee
-                    payer, basis, rounding, refund treatment, trial and grace
-                    policies need approval before charging.
-                  </div>
-                  <p>
-                    The proposed integrated collection rate is 0.1%. Recorded
-                    cash, external POS and manually verified external transfers
-                    do not incur this integrated collection fee.
-                  </p>
-                </section>
-              )}
             </main>
           )}
         </>
-      )}
-      {data && activeSection === "billing" && allowed("billing.manage") && (
-        <PolicyEditor
-          key={data.policy?.version || organizationId}
-          organizationId={organizationId}
-          policy={data.policy || context?.policy || {}}
-          disabled={busy || offline}
-          save={mutate}
-        />
       )}
       <footer className="mw-footer">
         Mera workspace · Changes require a connection.

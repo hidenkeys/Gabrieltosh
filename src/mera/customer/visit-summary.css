@@ -1,0 +1,123 @@
+.mera-customer .mc-visit-summary {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mera-customer .mc-visit-summary-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.mera-customer .mc-visit-summary-heading h3 {
+  margin: 0;
+  font-size: 24px;
+  color: #111b2f;
+}
+.mera-customer .mc-visit-eyebrow {
+  font-size: 12px;
+  color: #51647d;
+  margin: 0 0 6px;
+}
+.mera-customer .mc-visit-balance-card,
+.mera-customer .mc-visit-minimum {
+  padding: 20px;
+  border: 1px solid #e9e6e2;
+  border-radius: 10px;
+  background: #f8f7f4;
+}
+.mera-customer .mc-visit-balance {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 15px;
+}
+.mera-customer .mc-visit-balance strong {
+  font-size: 24px;
+  color: #111b2f;
+  font-variant-numeric: tabular-nums;
+}
+.mera-customer .mc-visit-bill-grid,
+.mera-customer .mc-visit-rounds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 14px;
+}
+.mera-customer .mc-visit-detail-card {
+  border: 1px solid #e9e6e2;
+  border-radius: 10px;
+  padding: 16px;
+  min-width: 0;
+  background: #fffefa;
+}
+.mera-customer .mc-visit-detail-card h4 {
+  margin: 0 0 10px;
+  font-size: 17px;
+}
+.mera-customer .mc-visit-summary dl {
+  display: grid;
+  gap: 8px;
+  margin-block: 14px;
+}
+.mera-customer .mc-visit-summary dl > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+.mera-customer .mc-visit-summary dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.mera-customer .mc-visit-summary summary {
+  min-height: 44px;
+  padding-block: 12px;
+  cursor: pointer;
+}
+.mera-customer .mc-visit-summary details ul {
+  list-style: none;
+  padding: 0;
+}
+.mera-customer .mc-visit-summary details li {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding-block: 10px;
+  border-top: 1px solid #e9e6e2;
+}
+.mera-customer .mc-visit-summary details li > span {
+  min-width: 0;
+}
+.mera-customer .mc-visit-summary small {
+  display: block;
+  line-height: 1.5;
+  color: #51647d;
+}
+.mera-customer .mc-visit-summary button {
+  min-height: 44px;
+}
+.mera-customer .mc-visit-summary summary:focus-visible {
+  outline: 3px solid var(--mc-link, #2f7df6);
+  outline-offset: 3px;
+}
+.mera-customer .mc-visit-privacy-note {
+  color: #51647d;
+  font-size: 13px;
+}
+@media (max-width: 640px) {
+  .mera-customer .mc-visit-summary-heading {
+    flex-direction: column;
+  }
+  .mera-customer .mc-visit-summary-heading button,
+  .mera-customer .mc-visit-balance-card button {
+    width: 100%;
+  }
+  .mera-customer .mc-visit-balance-card,
+  .mera-customer .mc-visit-minimum {
+    padding: 16px;
+  }
+}

@@ -150,8 +150,9 @@ test("an expired table visit removes the previous private bill", async (t) => {
     target: { value: "1234" },
   });
   fireEvent.click(screen.getByRole("button", { name: "Join current visit" }));
-  await screen.findByRole("button", { name: "Your order" });
-  fireEvent.click(screen.getByRole("button", { name: "Join a table" }));
+  await screen.findByRole("button", { name: "Your table" });
+  fireEvent.click(screen.getByRole("button", { name: "Your table" }));
+  fireEvent.click(await screen.findByText(/View items for/));
   await screen.findByText("1 × Private table dessert");
   closed = true;
   fireEvent.click(screen.getByRole("button", { name: "Refresh bill" }));

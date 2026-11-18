@@ -27,6 +27,7 @@ import {
 import SessionOrders from "./SessionOrders";
 import HelpRequests from "./HelpRequests";
 import GuestActivity from "./GuestActivity";
+import VisitSummary from "./VisitSummary";
 import {
   reservationStatusLabel,
   reservationDateLabel,
@@ -113,6 +114,10 @@ export default function CustomerExperience({
   const cover = assetUrl(menu?.organization?.branding?.coverImage);
   const [quote, setQuote] = useState<any>(null);
   const [billRefreshing, setBillRefreshing] = useState(false);
+  const [visitReadError, setVisitReadError] = useState("");
+  const [joinError, setJoinError] = useState("");
+  const visitReadGeneration = useRef(0);
+  const visitManualRead = useRef(false);
   const [, tickQuoteClock] = useState(0);
   useEffect(() => {
     if (!quote?.expiresAt) return;
@@ -246,6 +251,11 @@ export default function CustomerExperience({
     setCart([]);
     setOrder(null);
     setVisit(null);
+    visitReadGeneration.current++;
+    visitManualRead.current = false;
+    setVisitReadError("");
+    setJoinError("");
+    setBillRefreshing(false);
     setHasGuest(false);
     setReservation(null);
     setReservationIntent(null);
@@ -504,39 +514,63 @@ export default function CustomerExperience({
       window.removeEventListener("online", refresh);
     };
   }, [order?.id]);
+  async function refreshVisit(id: string, manual = false) {
+    const scope = checkoutGeneration.current;
+    const version = ++visitReadGeneration.current;
+    if (manual) {
+      visitManualRead.current = true;
+      setBillRefreshing(true);
+    }
+    try {
+      const next = await customerRequest(`/public/visits/${id}`);
+      if (
+        scope !== checkoutGeneration.current ||
+        version !== visitReadGeneration.current
+      )
+        return;
+      setVisit(next);
+      setVisitReadError("");
+    } catch (failure) {
+      if (
+        scope !== checkoutGeneration.current ||
+        version !== visitReadGeneration.current
+      )
+        return;
+      if ((failure as any).status === 401) {
+        clearGuestView(
+          "Your guest session expired. Existing orders and visits remain unchanged.",
+        );
+        return;
+      }
+      if ([403, 404].includes((failure as any).status)) {
+        setVisit(null);
+        if (!checkoutIntentRef.current) setFulfillment("counter_pickup");
+        setError(
+          "This visit is no longer available. Ask staff for the current joining code.",
+        );
+      } else
+        setVisitReadError(
+          "Table updates are interrupted. The last confirmed bill is shown. Check your connection and refresh before relying on this balance.",
+        );
+    } finally {
+      if (
+        scope === checkoutGeneration.current &&
+        version === visitReadGeneration.current
+      ) {
+        visitManualRead.current = false;
+        setBillRefreshing(false);
+      }
+    }
+  }
   useEffect(() => {
     if (!visit?.visit?.id) return;
     let active = true,
       refreshing = false;
     const refresh = async () => {
-      if (refreshing) return;
+      if (!active || refreshing || visitManualRead.current) return;
       refreshing = true;
       try {
-        const current = await customerRequest(
-          `/public/visits/${visit.visit.id}`,
-        );
-        if (active) setVisit(current);
-      } catch (e) {
-        if (active) {
-          if ((e as any).status === 401) {
-            clearGuestView(
-              "Your guest session expired. Existing orders and visits remain unchanged.",
-            );
-            return;
-          }
-          if (
-            [401, 403, 404].includes((e as Error & { status: number }).status)
-          ) {
-            setVisit(null);
-            if (!checkoutIntentRef.current) setFulfillment("counter_pickup");
-            setError(
-              "This visit is no longer available. Ask staff for the current joining code.",
-            );
-          } else
-            setError(
-              "Table updates are interrupted. The last confirmed bill is shown; check the connection before making another request.",
-            );
-        }
+        await refreshVisit(visit.visit.id);
       } finally {
         refreshing = false;
       }
@@ -545,6 +579,7 @@ export default function CustomerExperience({
     window.addEventListener("online", refresh);
     return () => {
       active = false;
+      visitReadGeneration.current++;
       clearInterval(timer);
       window.removeEventListener("online", refresh);
     };
@@ -603,6 +638,11 @@ export default function CustomerExperience({
       });
     setOrder(null);
     setVisit(null);
+    visitReadGeneration.current++;
+    visitManualRead.current = false;
+    setVisitReadError("");
+    setJoinError("");
+    setBillRefreshing(false);
     setReservation(null);
     setHasGuest(false);
     setDisplayName("");
@@ -1153,10 +1193,12 @@ export default function CustomerExperience({
   async function join(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
+    const generation = checkoutGeneration.current;
     setBusy(true);
-    setError("");
+    setJoinError("");
     try {
-      await guest();
+      await guest(displayName.trim(), generation);
+      if (generation !== checkoutGeneration.current) return;
       let terms = joinTerms;
       if (!terms) {
         const intent = {
@@ -1170,6 +1212,7 @@ export default function CustomerExperience({
           "POST",
           intent,
         );
+        if (generation !== checkoutGeneration.current) return;
         terms = { ...checked, intent };
         setJoinTerms(terms);
         setJoinAcknowledged(false);
@@ -1189,8 +1232,13 @@ export default function CustomerExperience({
             }
           : {}),
       });
+      if (generation !== checkoutGeneration.current) return;
       const id = result.visit?.id || result.id || terms.visitId;
-      setVisit(await customerRequest(`/public/visits/${id}`));
+      const current = await customerRequest(`/public/visits/${id}`);
+      if (generation !== checkoutGeneration.current) return;
+      visitReadGeneration.current++;
+      setVisitReadError("");
+      setVisit(current);
       if (!checkoutIntentRef.current) setFulfillment("table_service");
       setJoinTerms(null);
       setJoinAcknowledged(false);
@@ -1199,9 +1247,10 @@ export default function CustomerExperience({
         "You have joined this visit. Additional rounds will be linked to this table.",
       );
     } catch (e) {
-      setError((e as Error).message);
+      if (generation === checkoutGeneration.current)
+        setJoinError((e as Error).message);
     } finally {
-      setBusy(false);
+      if (generation === checkoutGeneration.current) setBusy(false);
     }
   }
   return (
@@ -1338,7 +1387,7 @@ export default function CustomerExperience({
             ["menu", "Menu"],
             ["track", "Your order"],
             ["reserve", "Reserve a table"],
-            ["visit", "Join a table"],
+            ["visit", visit ? "Your table" : "Join a table"],
             ["help", "Ask for help"],
           ].map(([value, label]) => (
             <button
@@ -2331,153 +2380,20 @@ export default function CustomerExperience({
         {tab === "visit" && (
           <section className="mc-panel mc-visit-panel">
             <h2>{visit ? "Your table & bill" : "Join your table"}</h2>
+            {!visit && joinError && (
+              <p className="mc-alert" role="alert">
+                {joinError}
+              </p>
+            )}
             {visit ? (
-              <>
-                <p>
-                  You have access to this visit only. A new visit cannot view
-                  this bill.
-                </p>
-                <p>
-                  {Number(visit.balance) < 0
-                    ? "Unused deposit credit: "
-                    : "Outstanding balance: "}
-                  <b>{money(Math.abs(visit.balance || 0))}</b>
-                </p>
-                <h3>{visit.visit?.tableName || "Your table"} · shared bill</h3>
-                {(visit.bills || []).length > 0 && (
-                  <div
-                    className="mc-bill-splits"
-                    aria-label="Staff-managed bills"
-                  >
-                    <h3>Bill allocation</h3>
-                    {visit.bills.map((bill: any) => (
-                      <div className="mc-line" key={bill.id}>
-                        <strong>{bill.name || "Table bill"}</strong>
-                        <ul className="mc-history">
-                          {(bill.charges || []).map((charge: any) => (
-                            <li key={charge.id}>
-                              {charge.quantity ? `${charge.quantity} × ` : ""}
-                              {charge.name}
-                              <b> · {money(charge.amount)}</b>
-                            </li>
-                          ))}
-                        </ul>
-                        <p>
-                          Total {money(bill.total)} · Recorded payments{" "}
-                          {money(bill.paid)} ·{" "}
-                          {bill.balance < 0
-                            ? `Unused deposit credit ${money(-bill.balance)}`
-                            : `Outstanding ${money(bill.balance)}`}
-                        </p>
-                        {bill.balance < 0 && (
-                          <p>
-                            Unused credit is not available for withdrawal. Ask
-                            staff about the approved deposit or refund policy.
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {(visit.orders || []).length === 0 ? (
-                  <p>No orders have been linked to this visit yet.</p>
-                ) : (
-                  (visit.orders || []).map((billOrder: any) => (
-                    <div className="mc-line" key={billOrder.id}>
-                      <strong>
-                        {billOrder.reference} · {billOrder.displayName}
-                      </strong>
-                      <small>{billOrder.status}</small>
-                      <ul className="mc-history">
-                        {(billOrder.items || []).map(
-                          (line: any, index: number) => (
-                            <li key={index}>
-                              {line.quantity} × {line.name}
-                              <small>
-                                {line.size}
-                                {line.modifiers?.length
-                                  ? " · " +
-                                    line.modifiers
-                                      .map((m: any) => m.name)
-                                      .join(", ")
-                                  : ""}
-                              </small>
-                              <b>{money(line.total ?? line.lineTotal ?? 0)}</b>
-                            </li>
-                          ),
-                        )}
-                      </ul>
-                      <p>
-                        Total {money(billOrder.total)} · Recorded payments{" "}
-                        {money(billOrder.paid || 0)}
-                      </p>
-                    </div>
-                  ))
-                )}
-                {visit.minimumSpend?.policy?.enabled && (
-                  <div className="mc-alert">
-                    <p>
-                      Visit minimum spend:{" "}
-                      {money(visit.minimumSpend.policy.amount)} · net paid bill.
-                    </p>
-                    <p>{visit.minimumSpend.policy.disclosure}</p>
-                    {visit.minimumSpend.summary ? (
-                      <p>
-                        Qualifying paid:{" "}
-                        {money(visit.minimumSpend.summary.netPaid)} · manager
-                        waiver: {money(visit.minimumSpend.summary.waived)} ·
-                        remaining shortfall:{" "}
-                        {money(visit.minimumSpend.summary.shortfall)}.
-                      </p>
-                    ) : (
-                      <p>
-                        The qualifying-spend summary is unavailable. Ask staff
-                        to confirm it.
-                      </p>
-                    )}
-                    <p>
-                      No shortfall charge is added automatically. Additional
-                      orders or an authorized manager waiver resolve it.
-                    </p>
-                  </div>
-                )}
-                <p>
-                  Please ask staff to split your bill or confirm a payment.
-                  Online payment is not available. Joining your table does not
-                  make a payment.
-                </p>
-                <button
-                  className="mc-secondary"
-                  disabled={billRefreshing}
-                  onClick={async () => {
-                    const generation = checkoutGeneration.current;
-                    setBillRefreshing(true);
-                    try {
-                      const nextVisit = await customerRequest(
-                        `/public/visits/${visit.visit.id}`,
-                      );
-                      if (generation !== checkoutGeneration.current) return;
-                      setVisit(nextVisit);
-                    } catch (e) {
-                      if (generation !== checkoutGeneration.current) return;
-                      setError((e as Error).message);
-                      if (
-                        [401, 403, 404].includes(
-                          (e as Error & { status: number }).status,
-                        )
-                      ) {
-                        setVisit(null);
-                        if (!checkoutIntentRef.current)
-                          setFulfillment("counter_pickup");
-                      }
-                    } finally {
-                      setBillRefreshing(false);
-                    }
-                  }}
-                >
-                  {billRefreshing ? "Checking your bill…" : "Refresh bill"}
-                </button>
-              </>
+              <VisitSummary
+                data={visit}
+                refreshing={billRefreshing}
+                refreshError={visitReadError}
+                disabled={busy}
+                onRefresh={() => void refreshVisit(visit.visit.id, true)}
+                onOrderMore={() => setTab("menu")}
+              />
             ) : (
               <form onSubmit={join}>
                 <fieldset
