@@ -1,6 +1,7 @@
 import React from "react";
 type Props = {
   basics?: React.ReactNode;
+  branchAdministration?: React.ReactNode;
   appearance?: React.ReactNode;
   operations?: React.ReactNode;
   booking?: React.ReactNode;
@@ -12,6 +13,7 @@ type Props = {
 /** Layout only: supplied forms retain their existing permissions, state and save handlers. */
 export default function SetupChecklist({
   basics,
+  branchAdministration,
   appearance,
   operations,
   booking,
@@ -22,6 +24,12 @@ export default function SetupChecklist({
 }: Props) {
   const hasBasics = basics != null && basics !== false;
   const optional = [
+    {
+      id: "branches",
+      title: "Branches",
+      description: "Review branch locations and organization-wide setup.",
+      content: branchAdministration,
+    },
     {
       id: "operations",
       title: "Operations & appearance",

@@ -9,6 +9,12 @@ import {
 } from "lucide-react";
 import { uuid } from "../../api";
 import BranchSettings from "./BranchSettings";
+import BusinessDetails from "./BusinessDetails";
+import BranchAdministration from "./BranchAdministration";
+import MenuManagement from "./MenuManagement";
+import { catalogPriceLabel } from "./catalogPresentation";
+import MenuPublication from "./MenuPublication";
+import { ProductImage } from "../../ProductImage";
 import SetupChecklist from "./SetupChecklist";
 import RefundRequests from "./RefundRequests";
 import StaffPos from "./StaffPos";
@@ -147,6 +153,15 @@ export default function OrganizationWorkspace({
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [productEdit, setProductEdit] = useState<RecordData | null>(null);
+  const productEditorRef = useRef<HTMLElement | null>(null);
+  const productEditorTrigger = useRef<HTMLElement | null>(null);
+  const beginProductEdit = (product: RecordData) => {
+    productEditorTrigger.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    setProductEdit(product);
+  };
   const [orderDraft, setOrderDraft] = useState<RecordData>({
     displayName: "",
     fulfillment: "counter_pickup",
@@ -221,6 +236,19 @@ export default function OrganizationWorkspace({
       setSectionSelection({ section, scopeKey: navigationScope });
   };
   const pagePresentation = getSectionPresentation(activeSection);
+  useEffect(() => {
+    if (!productEdit) {
+      if (productEditorTrigger.current?.isConnected)
+        productEditorTrigger.current.focus();
+      productEditorTrigger.current = null;
+      return;
+    }
+    const input = productEditorRef.current?.querySelector<HTMLInputElement>(
+      "input:not(:disabled)",
+    );
+    input?.focus();
+    input?.scrollIntoView?.({ block: "center", behavior: "instant" });
+  }, [!!productEdit, productEdit?.id, branchBase]);
   const scopeEpoch = useRef({
     path: "",
     generation: 0,
@@ -1583,61 +1611,32 @@ export default function OrganizationWorkspace({
                 <SetupChecklist
                   key={branchBase}
                   basics={
-                    <>
-                      <section className="mw-card">
-                        <h2>Make this workspace yours</h2>
-                        <p>
-                          Save progress as you configure the business. Provider
-                          verification remains separate from organization
-                          readiness.
-                        </p>
-                        <form
-                          className="mw-form"
-                          onSubmit={submit(() =>
-                            mutate(
-                              `/organizations/${organizationId}/onboarding`,
-                              "PATCH",
-                              { step: 1, data: tabForm },
-                              "Onboarding progress saved.",
-                            ),
-                          )}
-                        >
-                          {field("Business contact", "contact")}
-                          {field("Phone", "phone", "tel", false)}
-                          <label>
-                            Service modes
-                            <select
-                              value={tabForm.serviceMode || "counter_takeaway"}
-                              onChange={(event) =>
-                                updateForm("serviceMode", event.target.value)
-                              }
-                            >
-                              <option value="counter_takeaway">
-                                Counter & takeaway
-                              </option>
-                              <option value="table_service">
-                                Table service
-                              </option>
-                              <option value="reservations">Reservations</option>
-                              <option value="lounge">Lounge & club</option>
-                            </select>
-                          </label>
-                          <div className="mw-wide mw-actions">
-                            <button
-                              className="primary"
-                              disabled={busy || offline}
-                            >
-                              Save business details
-                            </button>
-                          </div>
-                        </form>
-                        <div className="mw-note">
-                          Live wallet approval, domains and commercial policies
-                          require verified provider and owner decisions. Saving
-                          this step does not activate online collection.
-                        </div>
-                      </section>
-                    </>
+                    <BusinessDetails
+                      key={organizationId}
+                      organizationId={organizationId}
+                      onboarding={data.onboarding || organization?.onboarding}
+                      canEdit={
+                        organization?.organizationWide === true &&
+                        allowed("organization.manage")
+                      }
+                      disabled={busy || offline}
+                      save={mutate}
+                    />
+                  }
+                  branchAdministration={
+                    <BranchAdministration
+                      actorId={context?.user?.id}
+                      organizationId={organizationId}
+                      branches={branches}
+                      activeBranchId={branchId}
+                      canManage={allowed("organization.manage")}
+                      organizationWide={organization?.organizationWide === true}
+                      creationIdempotencyReady={true}
+                      disabled={busy || offline}
+                      onChoose={setBranchId}
+                      onRefresh={loadContext}
+                      save={mutate}
+                    />
                   }
                   operations={
                     <BranchSettings
@@ -1824,59 +1823,13 @@ export default function OrganizationWorkspace({
               )}
 
               {activeSection === "menu" && (
-                <>
-                  <Categories
-                    key={branchBase + "categories"}
-                    base={branchBase}
-                    disabled={busy || offline}
-                    save={mutate}
-                    onCategories={(rows) => {
-                      if (
-                        activeScope.current === branchBase &&
-                        scopeEpoch.current.generation === scopeVersion &&
-                        authorizationEpoch.current ===
-                          renderedAuthorizationVersion
-                      )
-                        setCategories(rows);
-                    }}
-                  />
-                  <CatalogOperations
-                    key={branchBase + "catalog-operations"}
-                    base={branchBase}
-                    products={products}
-                    alerts={list(data.lowStockAlerts)}
-                    disabled={busy || offline}
-                    save={mutate}
-                  />
-                  {allowed("stock.adjust") && (
-                    <StockMovements
-                      key={branchBase}
-                      base={branchBase}
-                      products={products}
-                      disabled={busy || offline}
-                      save={mutate}
-                    />
-                  )}
-                </>
-              )}
-              {activeSection === "menu" && (
-                <SharedMenus
+                <MenuManagement
                   key={branchBase}
-                  organizationId={organizationId}
-                  base={branchBase}
                   products={products}
-                  categories={categories}
-                  disabled={busy || offline}
-                  canPublish={allowed("menu.publish")}
-                  save={mutate}
-                />
-              )}
-              {activeSection === "menu" && (
-                <>
-                  <section className="mw-card">
+                  header={
                     <div className="mw-heading">
                       <div>
-                        <h2>Your menu, carefully curated</h2>
+                        <h2>Product catalog</h2>
                         <p>
                           Publication version{" "}
                           {data.menuVersion || "not published"}. Historical
@@ -1887,7 +1840,7 @@ export default function OrganizationWorkspace({
                         {button(
                           "New product",
                           () =>
-                            setProductEdit({
+                            beginProductEdit({
                               name: "",
                               code: "",
                               category: "",
@@ -1901,478 +1854,584 @@ export default function OrganizationWorkspace({
                             }),
                           "menu.edit",
                         )}
-                        {button(
-                          "Publish menu",
-                          () =>
-                            act(
-                              branchBase + "/menu/publish",
-                              {},
-                              "Menu published.",
-                            ),
-                          "menu.publish",
+                        {allowed("menu.publish") && (
+                          <MenuPublication
+                            key={branchBase + (context?.user?.id || "")}
+                            base={branchBase}
+                            actorId={context?.user?.id || ""}
+                            organizationName={organization?.name}
+                            branchName={branch?.name}
+                            disabled={busy || offline}
+                            onSuccess={async () => {
+                              const requestedScope = branchBase;
+                              const requestedActor = context?.user?.id;
+                              await refresh();
+                              if (
+                                activeScope.current === requestedScope &&
+                                confirmedPrincipal.current === requestedActor
+                              )
+                                notify("Menu published.");
+                            }}
+                          />
                         )}
                       </div>
                     </div>
+                  }
+                  renderProducts={(visibleProducts) => (
                     <div className="mw-list">
-                      {products.map((product) => (
-                        <div className="mw-row" key={product.id}>
-                          <div>
-                            <b>{product.name}</b>
-                            <small>
-                              {product.category} · {product.size} ·{" "}
-                              {formatMoney(product.price)}
-                            </small>
+                      {visibleProducts.map((product) => (
+                        <div
+                          className="mw-row mw-menu-product-row"
+                          key={product.id}
+                        >
+                          <div className="mw-menu-product-identity">
+                            {product.image ||
+                            organization?.slug === "bing-chun" ? (
+                              <ProductImage
+                                product={{
+                                  ...product,
+                                  code: product.code || "",
+                                  category: product.category || "",
+                                }}
+                                className="mw-menu-product-photo"
+                                decorative
+                              />
+                            ) : (
+                              <span
+                                className="mw-menu-product-photo mw-menu-product-fallback"
+                                aria-hidden="true"
+                              >
+                                {product.name?.slice(0, 2)}
+                              </span>
+                            )}
+                            <div>
+                              <b>{product.name}</b>
+                              <small>
+                                {product.category} · {product.size} ·{" "}
+                                {catalogPriceLabel(product)}
+                              </small>
+                            </div>
                           </div>
                           <span className="mw-pill">
-                            {product.stockMode === "counted"
-                              ? `${product.stock} in stock`
-                              : "Unlimited stock"}
+                            {product.variants?.length
+                              ? `${product.variants.length} ${product.variants.length === 1 ? "size" : "sizes"}`
+                              : product.stockMode === "counted"
+                                ? `${product.stock} in stock`
+                                : "Unlimited stock"}
+                          </span>
+                          <span className="mw-pill">
+                            {product.available === false
+                              ? "Unavailable"
+                              : product.available === true
+                                ? "Available"
+                                : "Availability unknown"}
                           </span>
                           <div className="mw-actions">
                             {button(
                               "Edit",
-                              () => setProductEdit({ ...product }),
+                              () => beginProductEdit({ ...product }),
                               "menu.edit",
                             )}
                             {allowed("stock.adjust") && (
-                              <form
-                                onSubmit={submit(async () => {
-                                  const form = document.getElementById(
-                                    "stock-" + product.id,
-                                  ) as HTMLInputElement;
-                                  const reason = document.getElementById(
-                                    "reason-" + product.id,
-                                  ) as HTMLInputElement;
-                                  const variant = document.getElementById(
-                                    "variant-" + product.id,
-                                  ) as HTMLSelectElement | null;
-                                  await mutate(
-                                    branchBase + "/stock",
-                                    "POST",
-                                    {
-                                      productId: product.id,
-                                      ...(variant?.value
-                                        ? { variantId: variant.value }
-                                        : {}),
-                                      quantity: Number(form.value),
-                                      reason: reason.value,
-                                    },
-                                    "Stock balance updated.",
-                                  );
-                                })}
-                                className="mw-actions"
-                              >
-                                {!!product.variants?.length && (
-                                  <select
-                                    aria-label={
-                                      "Stock target for " + product.name
-                                    }
-                                    id={"variant-" + product.id}
-                                  >
-                                    <option value="">Product balance</option>
-                                    {product.variants.map((variant: any) => (
-                                      <option
-                                        key={variant.id}
-                                        value={variant.id}
-                                      >
-                                        {variant.name} ·{" "}
-                                        {variant.stockMode === "counted"
-                                          ? (variant.stock || 0) + " in stock"
-                                          : "unlimited"}
-                                      </option>
-                                    ))}
-                                  </select>
-                                )}
-                                <input
-                                  id={"stock-" + product.id}
-                                  aria-label={
-                                    "Stock balance for " + product.name
-                                  }
-                                  type="number"
-                                  min="0"
-                                  required
-                                  placeholder="Count"
-                                  style={{ width: 90 }}
-                                />
-                                <input
-                                  id={"reason-" + product.id}
-                                  aria-label={
-                                    "Stock reason for " + product.name
-                                  }
-                                  required
-                                  placeholder="Adjustment reason"
-                                  style={{ width: 150 }}
-                                />
-                                <button
-                                  className="secondary"
-                                  disabled={busy || offline}
+                              <details className="mw-menu-stock-adjust">
+                                <summary>Adjust stock</summary>
+                                <form
+                                  onSubmit={submit(async () => {
+                                    const form = document.getElementById(
+                                      "stock-" + product.id,
+                                    ) as HTMLInputElement;
+                                    const reason = document.getElementById(
+                                      "reason-" + product.id,
+                                    ) as HTMLInputElement;
+                                    const variant = document.getElementById(
+                                      "variant-" + product.id,
+                                    ) as HTMLSelectElement | null;
+                                    await mutate(
+                                      branchBase + "/stock",
+                                      "POST",
+                                      {
+                                        productId: product.id,
+                                        ...(variant?.value
+                                          ? { variantId: variant.value }
+                                          : {}),
+                                        quantity: Number(form.value),
+                                        reason: reason.value,
+                                      },
+                                      "Stock balance updated.",
+                                    );
+                                  })}
+                                  className="mw-actions"
                                 >
-                                  Set stock
-                                </button>
-                              </form>
+                                  {!!product.variants?.length && (
+                                    <select
+                                      aria-label={
+                                        "Stock target for " + product.name
+                                      }
+                                      id={"variant-" + product.id}
+                                    >
+                                      <option value="">Product balance</option>
+                                      {product.variants.map((variant: any) => (
+                                        <option
+                                          key={variant.id}
+                                          value={variant.id}
+                                        >
+                                          {variant.name} ·{" "}
+                                          {variant.stockMode === "counted"
+                                            ? (variant.stock || 0) + " in stock"
+                                            : "unlimited"}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  )}
+                                  <input
+                                    id={"stock-" + product.id}
+                                    aria-label={
+                                      "Stock balance for " + product.name
+                                    }
+                                    type="number"
+                                    min="0"
+                                    required
+                                    placeholder="Count"
+                                    style={{ width: 90 }}
+                                  />
+                                  <input
+                                    id={"reason-" + product.id}
+                                    aria-label={
+                                      "Stock reason for " + product.name
+                                    }
+                                    required
+                                    placeholder="Adjustment reason"
+                                    style={{ width: 150 }}
+                                  />
+                                  <button
+                                    className="secondary"
+                                    disabled={busy || offline}
+                                  >
+                                    Set stock
+                                  </button>
+                                </form>
+                              </details>
                             )}
                           </div>
                         </div>
                       ))}
                     </div>
-                  </section>
-                  {productEdit && (
-                    <section className="mw-card" aria-label="Product editor">
-                      <h2>
-                        {productEdit.id ? "Edit product" : "Add a product"}
-                      </h2>
-                      <form
-                        className="mw-form"
-                        onSubmit={submit(async () => {
-                          const {
-                            variantsJson,
-                            modifierGroupsJson,
-                            allergensText,
-                            dietaryText,
-                            imagePreview,
-                            ...product
-                          } = productEdit;
-                          for (const [key, text] of [
-                            ["allergens", allergensText],
-                            ["dietary", dietaryText],
-                          ])
-                            if (text !== undefined)
-                              product[key as string] = (text as string)
-                                .split(",")
-                                .map((value) => value.trim())
-                                .filter(Boolean);
-                          try {
-                            product.variants =
-                              variantsJson === undefined
-                                ? product.variants || []
-                                : JSON.parse(variantsJson);
-                            product.modifierGroups =
-                              modifierGroupsJson === undefined
-                                ? product.modifierGroups || []
-                                : JSON.parse(modifierGroupsJson);
-                          } catch {
-                            throw new Error(
-                              "Variants and modifier groups must be valid JSON arrays.",
-                            );
-                          }
-                          await mutate(
-                            branchBase +
-                              "/products" +
-                              (productEdit.id ? "/" + productEdit.id : ""),
-                            productEdit.id ? "PUT" : "POST",
-                            product,
-                            "Product saved.",
-                          );
-                          setProductEdit(null);
-                        })}
+                  )}
+                  editor={
+                    productEdit && (
+                      <section
+                        className="mw-card"
+                        aria-label="Product editor"
+                        ref={productEditorRef}
                       >
-                        {[
-                          ["Product name", "name"],
-                          ["Product code", "code"],
+                        <h2>
+                          {productEdit.id ? "Edit product" : "Add a product"}
+                        </h2>
+                        <form
+                          className="mw-form"
+                          onSubmit={submit(async () => {
+                            const {
+                              variantsJson,
+                              modifierGroupsJson,
+                              allergensText,
+                              dietaryText,
+                              imagePreview,
+                              ...product
+                            } = productEdit;
+                            for (const [key, text] of [
+                              ["allergens", allergensText],
+                              ["dietary", dietaryText],
+                            ])
+                              if (text !== undefined)
+                                product[key as string] = (text as string)
+                                  .split(",")
+                                  .map((value) => value.trim())
+                                  .filter(Boolean);
+                            try {
+                              product.variants =
+                                variantsJson === undefined
+                                  ? product.variants || []
+                                  : JSON.parse(variantsJson);
+                              product.modifierGroups =
+                                modifierGroupsJson === undefined
+                                  ? product.modifierGroups || []
+                                  : JSON.parse(modifierGroupsJson);
+                            } catch {
+                              throw new Error(
+                                "Variants and modifier groups must be valid JSON arrays.",
+                              );
+                            }
+                            await mutate(
+                              branchBase +
+                                "/products" +
+                                (productEdit.id ? "/" + productEdit.id : ""),
+                              productEdit.id ? "PUT" : "POST",
+                              product,
+                              "Product saved.",
+                            );
+                            setProductEdit(null);
+                          })}
+                        >
+                          {[
+                            ["Product name", "name"],
+                            ["Product code", "code"],
 
-                          ["Size", "size"],
-                        ].map(([label, key]) => (
-                          <label key={key}>
-                            {label}
+                            ["Size", "size"],
+                          ].map(([label, key]) => (
+                            <label key={key}>
+                              {label}
+                              <input
+                                value={productEdit[key] || ""}
+                                required={
+                                  key !== "parentCategory" && key !== "size"
+                                }
+                                onChange={(event) =>
+                                  setProductEdit({
+                                    ...productEdit,
+                                    [key]:
+                                      event.target.value ||
+                                      (key === "parentCategory" ? null : ""),
+                                  })
+                                }
+                              />
+                            </label>
+                          ))}
+                          <label>
+                            Menu category
+                            <select
+                              value={productEdit.categoryId || ""}
+                              onChange={(event) => {
+                                const category = categories.find(
+                                  (row) => row.id === event.target.value,
+                                );
+                                setProductEdit({
+                                  ...productEdit,
+                                  categoryId: event.target.value || null,
+                                  ...(category
+                                    ? {
+                                        category: category.name,
+                                        categoryPath: categoryPath(
+                                          category,
+                                          categories,
+                                        ),
+                                      }
+                                    : {}),
+                                });
+                              }}
+                            >
+                              <option value="">Use a category name</option>
+                              {categories
+                                .filter((category) => category.active)
+                                .map((category) => (
+                                  <option key={category.id} value={category.id}>
+                                    {categoryPath(category, categories)}
+                                  </option>
+                                ))}
+                            </select>
+                          </label>
+                          {!productEdit.categoryId && (
+                            <>
+                              <label>
+                                Category
+                                <input
+                                  required
+                                  value={productEdit.category || ""}
+                                  onChange={(event) =>
+                                    setProductEdit({
+                                      ...productEdit,
+                                      category: event.target.value,
+                                    })
+                                  }
+                                />
+                              </label>
+                              <label>
+                                Parent category
+                                <input
+                                  value={productEdit.parentCategory || ""}
+                                  onChange={(event) =>
+                                    setProductEdit({
+                                      ...productEdit,
+                                      parentCategory:
+                                        event.target.value || null,
+                                    })
+                                  }
+                                />
+                              </label>
+                            </>
+                          )}
+                          <label>
+                            Low-stock alert threshold
                             <input
-                              value={productEdit[key] || ""}
-                              required={
-                                key !== "parentCategory" && key !== "size"
-                              }
+                              required
+                              type="number"
+                              min={0}
+                              max={1000000}
+                              step={1}
+                              value={productEdit.lowStockThreshold ?? 5}
                               onChange={(event) =>
                                 setProductEdit({
                                   ...productEdit,
-                                  [key]:
-                                    event.target.value ||
-                                    (key === "parentCategory" ? null : ""),
+                                  lowStockThreshold: Number(event.target.value),
                                 })
                               }
                             />
                           </label>
-                        ))}
-                        <label>
-                          Structured category
-                          <select
-                            value={productEdit.categoryId || ""}
-                            onChange={(event) => {
-                              const category = categories.find(
-                                (row) => row.id === event.target.value,
-                              );
-                              setProductEdit({
-                                ...productEdit,
-                                categoryId: event.target.value || null,
-                                ...(category
-                                  ? {
-                                      category: category.name,
-                                      categoryPath: categoryPath(
-                                        category,
-                                        categories,
-                                      ),
-                                    }
-                                  : {}),
-                              });
-                            }}
-                          >
-                            <option value="">Use existing text category</option>
-                            {categories
-                              .filter((category) => category.active)
-                              .map((category) => (
-                                <option key={category.id} value={category.id}>
-                                  {categoryPath(category, categories)}
-                                </option>
-                              ))}
-                          </select>
-                        </label>
-                        {!productEdit.categoryId && (
-                          <>
-                            <label>
-                              Category
-                              <input
-                                required
-                                value={productEdit.category || ""}
-                                onChange={(event) =>
-                                  setProductEdit({
-                                    ...productEdit,
-                                    category: event.target.value,
-                                  })
+                          <label>
+                            Price in naira
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={productEdit.price / 100}
+                              required
+                              onChange={(event) =>
+                                setProductEdit({
+                                  ...productEdit,
+                                  price: Math.round(
+                                    Number(event.target.value) * 100,
+                                  ),
+                                })
+                              }
+                            />
+                          </label>
+                          <label>
+                            Stock mode
+                            <select
+                              value={productEdit.stockMode}
+                              disabled={!!productEdit.id}
+                              onChange={(event) =>
+                                setProductEdit({
+                                  ...productEdit,
+                                  stockMode: event.target.value,
+                                })
+                              }
+                            >
+                              <option value="unlimited">Unlimited</option>
+                              <option value="counted">
+                                Counted sellable stock
+                              </option>
+                            </select>
+                          </label>
+                          <label>
+                            Preparation station
+                            <select
+                              value={productEdit.station}
+                              onChange={(event) =>
+                                setProductEdit({
+                                  ...productEdit,
+                                  station: event.target.value,
+                                })
+                              }
+                            >
+                              <option value="bar">Bar</option>
+                              <option value="kitchen">Kitchen</option>
+                            </select>
+                          </label>
+                          <label>
+                            Available
+                            <select
+                              value={String(productEdit.available)}
+                              onChange={(event) =>
+                                setProductEdit({
+                                  ...productEdit,
+                                  available: event.target.value === "true",
+                                })
+                              }
+                            >
+                              <option value="true">Available</option>
+                              <option value="false">Unavailable</option>
+                            </select>
+                          </label>
+                          <label className="mw-wide">
+                            Description
+                            <textarea
+                              value={productEdit.description}
+                              onChange={(event) =>
+                                setProductEdit({
+                                  ...productEdit,
+                                  description: event.target.value,
+                                })
+                              }
+                            />
+                          </label>
+                          <div className="mw-wide">
+                            <h3>Product photo</h3>
+                            {productEdit.image && (
+                              <img
+                                alt="Selected product"
+                                style={{
+                                  width: 160,
+                                  height: 160,
+                                  objectFit: "cover",
+                                  borderRadius: 12,
+                                }}
+                                src={
+                                  productEdit.imagePreview ||
+                                  productEdit.image.replace(
+                                    "/api/mera/v1/public/assets/",
+                                    "/api/mera/v1" + branchBase + "/assets/",
+                                  )
                                 }
                               />
-                            </label>
-                            <label>
-                              Parent category
-                              <input
-                                value={productEdit.parentCategory || ""}
-                                onChange={(event) =>
-                                  setProductEdit({
-                                    ...productEdit,
-                                    parentCategory: event.target.value || null,
-                                  })
-                                }
-                              />
-                            </label>
-                          </>
-                        )}
-                        <label>
-                          Low-stock alert threshold
-                          <input
-                            required
-                            type="number"
-                            min={0}
-                            max={1000000}
-                            step={1}
-                            value={productEdit.lowStockThreshold ?? 5}
-                            onChange={(event) =>
-                              setProductEdit({
-                                ...productEdit,
-                                lowStockThreshold: Number(event.target.value),
-                              })
-                            }
-                          />
-                        </label>
-                        <label>
-                          Price in naira
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={productEdit.price / 100}
-                            required
-                            onChange={(event) =>
-                              setProductEdit({
-                                ...productEdit,
-                                price: Math.round(
-                                  Number(event.target.value) * 100,
-                                ),
-                              })
-                            }
-                          />
-                        </label>
-                        <label>
-                          Stock mode
-                          <select
-                            value={productEdit.stockMode}
-                            disabled={!!productEdit.id}
-                            onChange={(event) =>
-                              setProductEdit({
-                                ...productEdit,
-                                stockMode: event.target.value,
-                              })
-                            }
-                          >
-                            <option value="unlimited">Unlimited</option>
-                            <option value="counted">
-                              Counted sellable stock
-                            </option>
-                          </select>
-                        </label>
-                        <label>
-                          Preparation station
-                          <select
-                            value={productEdit.station}
-                            onChange={(event) =>
-                              setProductEdit({
-                                ...productEdit,
-                                station: event.target.value,
-                              })
-                            }
-                          >
-                            <option value="bar">Bar</option>
-                            <option value="kitchen">Kitchen</option>
-                          </select>
-                        </label>
-                        <label>
-                          Available
-                          <select
-                            value={String(productEdit.available)}
-                            onChange={(event) =>
-                              setProductEdit({
-                                ...productEdit,
-                                available: event.target.value === "true",
-                              })
-                            }
-                          >
-                            <option value="true">Available</option>
-                            <option value="false">Unavailable</option>
-                          </select>
-                        </label>
-                        <label className="mw-wide">
-                          Description
-                          <textarea
-                            value={productEdit.description}
-                            onChange={(event) =>
-                              setProductEdit({
-                                ...productEdit,
-                                description: event.target.value,
-                              })
-                            }
-                          />
-                        </label>
-                        <div className="mw-wide">
-                          <h3>Product photo</h3>
-                          {productEdit.image && (
-                            <img
-                              alt="Selected product"
-                              style={{
-                                width: 160,
-                                height: 160,
-                                objectFit: "cover",
-                                borderRadius: 12,
-                              }}
-                              src={
-                                productEdit.imagePreview ||
-                                productEdit.image.replace(
-                                  "/api/mera/v1/public/assets/",
-                                  "/api/mera/v1" + branchBase + "/assets/",
+                            )}
+                            <MediaUpload
+                              endpoint={"/api/mera/v1" + branchBase + "/assets"}
+                              disabled={busy || offline}
+                              onUploaded={(asset) =>
+                                setProductEdit((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        image: asset.url,
+                                        imagePreview: asset.previewUrl,
+                                      }
+                                    : current,
                                 )
                               }
                             />
-                          )}
-                          <MediaUpload
-                            endpoint={"/api/mera/v1" + branchBase + "/assets"}
-                            disabled={busy || offline}
-                            onUploaded={(asset) =>
-                              setProductEdit((current) =>
-                                current
-                                  ? {
-                                      ...current,
-                                      image: asset.url,
-                                      imagePreview: asset.previewUrl,
-                                    }
-                                  : current,
-                              )
-                            }
-                          />
-                        </div>
-                        <details className="mw-wide">
-                          <summary>
-                            Sizes, modifier groups & dietary information
-                          </summary>
-                          <p className="mw-muted">
-                            Configure sizes, add-ons and dietary details. Prices
-                            are entered in naira; availability is checked limits
-                            and final totals.
-                          </p>
-                          <VariantsEditor
-                            value={productEdit.variants || []}
-                            onChange={(variants) =>
-                              setProductEdit({
-                                ...productEdit,
-                                variants,
-                                variantsJson: undefined,
-                              })
-                            }
-                          />
-                          <TimeWindows
-                            label="Product availability schedule"
-                            value={productEdit.availabilityWindows || []}
-                            onChange={(availabilityWindows) =>
-                              setProductEdit({
-                                ...productEdit,
-                                availabilityWindows,
-                              })
-                            }
-                          />
-                          <ModifierGroupsEditor
-                            value={productEdit.modifierGroups || []}
-                            disabled={busy || offline}
-                            onChange={(modifierGroups) =>
-                              setProductEdit({
-                                ...productEdit,
-                                modifierGroups,
-                                modifierGroupsJson: undefined,
-                              })
-                            }
-                          />
-                          <label>
-                            Allergens (comma separated)
-                            <input
-                              value={
-                                productEdit.allergensText ??
-                                (productEdit.allergens || []).join(", ")
-                              }
-                              onChange={(e) =>
+                          </div>
+                          <details className="mw-wide">
+                            <summary>
+                              Sizes, modifier groups & dietary information
+                            </summary>
+                            <p className="mw-muted">
+                              Configure sizes, add-ons and dietary details.
+                              Prices are entered in naira. Availability and
+                              final totals are checked before an order is
+                              accepted.
+                            </p>
+                            <VariantsEditor
+                              value={productEdit.variants || []}
+                              onChange={(variants) =>
                                 setProductEdit({
                                   ...productEdit,
-                                  allergensText: e.target.value,
+                                  variants,
+                                  variantsJson: undefined,
                                 })
                               }
                             />
-                          </label>
-                          <label>
-                            Dietary labels (comma separated)
-                            <input
-                              value={
-                                productEdit.dietaryText ??
-                                (productEdit.dietary || []).join(", ")
-                              }
-                              onChange={(e) =>
+                            <TimeWindows
+                              label="Product availability schedule"
+                              value={productEdit.availabilityWindows || []}
+                              onChange={(availabilityWindows) =>
                                 setProductEdit({
                                   ...productEdit,
-                                  dietaryText: e.target.value,
+                                  availabilityWindows,
                                 })
                               }
                             />
-                          </label>
-                        </details>
-                        <div className="mw-actions mw-wide">
-                          <button
-                            className="primary"
-                            disabled={busy || offline}
-                          >
-                            Save product
-                          </button>
-                          <button
-                            type="button"
-                            className="secondary"
-                            onClick={() => setProductEdit(null)}
-                          >
-                            Close editor
-                          </button>
-                        </div>
-                      </form>
-                    </section>
-                  )}
-                </>
+                            <ModifierGroupsEditor
+                              value={productEdit.modifierGroups || []}
+                              disabled={busy || offline}
+                              onChange={(modifierGroups) =>
+                                setProductEdit({
+                                  ...productEdit,
+                                  modifierGroups,
+                                  modifierGroupsJson: undefined,
+                                })
+                              }
+                            />
+                            <label>
+                              Allergens (comma separated)
+                              <input
+                                value={
+                                  productEdit.allergensText ??
+                                  (productEdit.allergens || []).join(", ")
+                                }
+                                onChange={(e) =>
+                                  setProductEdit({
+                                    ...productEdit,
+                                    allergensText: e.target.value,
+                                  })
+                                }
+                              />
+                            </label>
+                            <label>
+                              Dietary labels (comma separated)
+                              <input
+                                value={
+                                  productEdit.dietaryText ??
+                                  (productEdit.dietary || []).join(", ")
+                                }
+                                onChange={(e) =>
+                                  setProductEdit({
+                                    ...productEdit,
+                                    dietaryText: e.target.value,
+                                  })
+                                }
+                              />
+                            </label>
+                          </details>
+                          <div className="mw-actions mw-wide">
+                            <button
+                              className="primary"
+                              disabled={busy || offline}
+                            >
+                              Save product
+                            </button>
+                            <button
+                              type="button"
+                              className="secondary"
+                              onClick={() => setProductEdit(null)}
+                            >
+                              Close editor
+                            </button>
+                          </div>
+                        </form>
+                      </section>
+                    )
+                  }
+                  categories={
+                    <Categories
+                      key={branchBase + "categories"}
+                      base={branchBase}
+                      disabled={busy || offline}
+                      save={mutate}
+                      onCategories={(rows) => {
+                        if (
+                          activeScope.current === branchBase &&
+                          scopeEpoch.current.generation === scopeVersion &&
+                          authorizationEpoch.current ===
+                            renderedAuthorizationVersion
+                        )
+                          setCategories(rows);
+                      }}
+                    />
+                  }
+                  stock={
+                    <>
+                      <CatalogOperations
+                        key={branchBase + "catalog-operations"}
+                        base={branchBase}
+                        products={products}
+                        alerts={list(data.lowStockAlerts)}
+                        disabled={busy || offline}
+                        save={mutate}
+                      />
+                      {allowed("stock.adjust") && (
+                        <StockMovements
+                          key={branchBase}
+                          base={branchBase}
+                          products={products}
+                          disabled={busy || offline}
+                          save={mutate}
+                        />
+                      )}
+                    </>
+                  }
+                  shared={
+                    <SharedMenus
+                      key={branchBase}
+                      organizationId={organizationId}
+                      base={branchBase}
+                      products={products}
+                      categories={categories}
+                      disabled={busy || offline}
+                      canPublish={allowed("menu.publish")}
+                      save={mutate}
+                    />
+                  }
+                />
               )}
               {activeSection === "preparation" && (
                 <Tickets

@@ -3,6 +3,7 @@ import { Search, ShoppingBag, Plus } from "lucide-react";
 import { ProductImage } from "../../ProductImage";
 import StaffOrderItems from "./StaffOrderItems";
 import { formatMoney } from "./api";
+import { catalogPriceLabel } from "./catalogPresentation";
 
 export default function StaffPos({
   products,
@@ -168,7 +169,7 @@ export default function StaffPos({
                 <p>{p.category}</p>
                 <h3>{p.name}</h3>
                 <div className="product-bottom">
-                  <strong>{formatMoney(p.price)}</strong>
+                  <strong>{catalogPriceLabel(p)}</strong>
                   <span>{p.size}</span>
                   <i aria-hidden="true">
                     <Plus size={16} />

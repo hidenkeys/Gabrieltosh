@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
 export function categoryPath(category: any, categories: any[]) {
   const names: string[] = [];
@@ -11,12 +11,7 @@ export function categoryPath(category: any, categories: any[]) {
   }
   return names.join(" / ");
 }
-export default function Categories({
-  base,
-  disabled,
-  save,
-  onCategories,
-}: {
+type Props = {
   base: string;
   disabled: boolean;
   save: (
@@ -26,7 +21,11 @@ export default function Categories({
     message: string,
   ) => Promise<any>;
   onCategories: (categories: any[]) => void;
-}) {
+};
+export default function Categories(props: Props) {
+  return <ScopedCategories key={props.base} {...props} />;
+}
+function ScopedCategories({ base, disabled, save, onCategories }: Props) {
   const [rows, setRows] = useState<any[]>([]);
   const [draft, setDraft] = useState<any>({
     name: "",
@@ -37,23 +36,54 @@ export default function Categories({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const active = useRef(true),
+    generation = useRef(0),
+    onRows = useRef(onCategories);
+  onRows.current = onCategories;
+  const read = async (signal?: AbortSignal) => {
+    const version = ++generation.current;
+    setLoading(true);
+    setLoadError("");
+    try {
+      const result = await workspaceApi(
+        base + "/categories",
+        "GET",
+        undefined,
+        signal,
+      );
+      if (!active.current || signal?.aborted || version !== generation.current)
+        return false;
+      if (!Array.isArray(result.categories))
+        throw new Error(
+          "Category groups could not be loaded. Please try again.",
+        );
+      setRows(result.categories);
+      onRows.current(result.categories);
+      return true;
+    } catch (failure: any) {
+      if (
+        active.current &&
+        !signal?.aborted &&
+        version === generation.current &&
+        failure.name !== "AbortError"
+      )
+        setLoadError("Category groups could not be loaded. Please try again.");
+      return false;
+    } finally {
+      if (active.current && !signal?.aborted && version === generation.current)
+        setLoading(false);
+    }
+  };
   useEffect(() => {
+    active.current = true;
     const controller = new AbortController();
-    workspaceApi(base + "/categories", "GET", undefined, controller.signal)
-      .then((result) => {
-        if (controller.signal.aborted) return;
-        if (!Array.isArray(result.categories))
-          throw new Error("Category response is invalid.");
-        setRows(result.categories);
-        onCategories(result.categories);
-      })
-      .catch((e) => {
-        if (e.name !== "AbortError") setError(e.message);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
+    void read(controller.signal);
+    return () => {
+      active.current = false;
+      generation.current++;
+      controller.abort();
+    };
   }, [base]);
   const isDescendant = (row: any) => {
     const seen = new Set();
@@ -74,6 +104,19 @@ export default function Categories({
         and products before retiring a category.
       </p>
       {error && <p role="alert">{error}</p>}
+      {loadError && (
+        <div role="alert">
+          <p>{loadError}</p>
+          <button
+            type="button"
+            className="secondary"
+            disabled={disabled || working || loading}
+            onClick={() => void read()}
+          >
+            Retry loading categories
+          </button>
+        </div>
+      )}
       <form
         onSubmit={async (event) => {
           event.preventDefault();
@@ -87,21 +130,23 @@ export default function Categories({
               { ...fields, ...(id ? { version } : {}) },
               id ? "Category updated." : "Category created.",
             );
-            const result = await workspaceApi(base + "/categories");
-            if (!Array.isArray(result.categories))
-              throw new Error("Category response is invalid.");
-            setRows(result.categories);
-            onCategories(result.categories);
-            setDraft({ name: "", parentId: null, sortOrder: 0, active: true });
+            if (!active.current) return;
+            if (await read())
+              setDraft({
+                name: "",
+                parentId: null,
+                sortOrder: 0,
+                active: true,
+              });
           } catch (e) {
-            setError((e as Error).message);
+            if (active.current) setError((e as Error).message);
           } finally {
-            setWorking(false);
+            if (active.current) setWorking(false);
           }
         }}
       >
         <fieldset
-          disabled={disabled || working || loading}
+          disabled={disabled || working || loading || !!loadError}
           style={{ border: 0, padding: 0 }}
         >
           <legend>{draft.id ? "Edit category" : "Create category"}</legend>
@@ -184,10 +229,9 @@ export default function Categories({
       </form>
       {loading ? (
         <p role="status">Loading categories…</p>
-      ) : !rows.length ? (
+      ) : loadError ? null : !rows.length ? (
         <p>
-          No structured categories yet. Existing text categories remain in the
-          catalog.
+          No category groups yet. Your existing category names are still used.
         </p>
       ) : (
         rows.map((row) => (

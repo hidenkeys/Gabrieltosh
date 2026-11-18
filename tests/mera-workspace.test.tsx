@@ -4031,3 +4031,60 @@ test("refund request load failure offers retry and is never presented as an empt
     globalThis.fetch = original;
   }
 });
+
+test("menu management keeps an unsaved product across local views and restores the editor trigger focus", async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = (async (input: any, init: any) => {
+    const path = String(input);
+    if (path.endsWith("/context"))
+      return Response.json({
+        ...context,
+        organizations: [
+          {
+            ...context.organizations[0],
+            role: "stock_controller",
+            permissions: ["menu.edit"],
+          },
+        ],
+      });
+    if (path.endsWith("/categories")) return Response.json({ categories: [] });
+    return original(input, init);
+  }) as any;
+  try {
+    render(<Workspace user={user} notify={() => {}} />);
+    await screen.findByRole("heading", {
+      name: "Product catalog",
+    });
+    const open = screen.getByRole("button", { name: "New product" });
+    open.focus();
+    fireEvent.click(open);
+    const name = screen.getByRole("textbox", {
+      name: "Product name",
+      exact: true,
+    });
+    await waitFor(() => assert.equal(document.activeElement, name));
+    fireEvent.change(name, { target: { value: "Unsaved UI draft" } });
+    fireEvent.click(
+      screen.getByRole("tab", { name: "Stock & availability", exact: true }),
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "Products", exact: true }));
+    assert.equal(
+      (
+        screen.getByRole("textbox", {
+          name: "Product name",
+          exact: true,
+        }) as HTMLInputElement
+      ).value,
+      "Unsaved UI draft",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Close editor" }));
+    await waitFor(() => assert.equal(document.activeElement, open));
+    assert.equal(
+      screen.queryByRole("region", { name: "Product editor" }),
+      null,
+    );
+  } finally {
+    cleanup();
+    globalThis.fetch = original;
+  }
+});

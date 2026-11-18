@@ -9,7 +9,7 @@
     "start": "node --env-file-if-exists=.env server/index.js",
     "worker": "node --env-file-if-exists=.env server/worker.js",
     "worker:mera": "node --env-file-if-exists=.env scripts/mera-worker.js",
-    "test": "node --import tsx --test tests/*.test.js tests/*.test.tsx",
+    "test": "node --import tsx --test --test-concurrency=4 tests/*.test.js tests/*.test.tsx",
     "bootstrap": "node --env-file-if-exists=.env scripts/bootstrap.js",
     "test:postgres": "node scripts/test-postgres.js",
     "format": "prettier --write src server scripts/*.js tests *.json *.ts index.html",

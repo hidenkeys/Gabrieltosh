@@ -1,0 +1,17 @@
+# Menu publication leaf
+
+`src/mera/workspace/MenuPublication.tsx` exports a leaf with `{base, actorId, disabled?, onSuccess}`. `base` is the canonical `/organizations/:organizationId/branches/:branchId`; `actorId` is the current authenticated workspace user's UUID. Parent renders it only with `menu.publish`, includes `workspace/publication.css`, and refreshes its own current scope on success. This leaf uses the existing `workspaceApi` request timeout and access-denied behavior. It adds no financial or provider operation.
+
+GET `/menu/publication-preview` supplies actual products, active categories, published version, hash and guard-proven actor/organization/branch. Product names/prices/category names and counts are displayed directly from this response; the UI does not calculate a hypothetical published total. Explicit **Publish reviewed menu** sends only `{requestKey,previewHash,expectedVersion}`. The validated actor/branch-bound tab journal is written and read back before that POST. A missing, corrupt or unwritable journal cannot silently enable a replacement submission.
+
+An unresolved journal exposes **Recover publication**, rather than a fresh preview. No POST runs on mounting or reopening. **Check original publication** resolves only an authoritative recorded/abandoned response; not-found keeps the intent frozen. Retry and stop first read guard-proven current actor/branch identity. A wrong identity cannot write. Network, auth, rate or domain errors retain the original intent. Explicit stopping requires a reason and confirmation, retains an already published version, or uses a durable server tombstone before permitting a fresh review. Closing/Escape retains the journal. This is tab-lifetime recovery, not a cross-device queue.
+
+Executed focused tests: eight passing cases cover deliberate review/write, pre-POST journal, uncertain→403→refresh→exact retry, not-found staying frozen, actor mismatch, recorded-first stop, corrupt/unwritable storage, malformed versus valid abandonment proof, Escape return focus, and unmount before success. JSDOM explicitly substitutes missing native dialog methods; it does not prove top-layer modality or real keyboard trapping. Backend owner separately reported disposable PostgreSQL publication/attempt integration passing.
+
+Browser acceptance still required after parent mount and preview restart:
+
+- Open **Review & publish**: native modal focus stays inside, Close/Escape returns to the trigger, the background cannot be operated. Verify keyboard order and screen-reader title.
+- At handheld/tablet widths, long product/category names wrap; content scrolls within bounded dialog; header/close and confirmation actions stay accessible with 44px targets.
+- Confirm actual included products/categories/version against the scoped draft; opening the review makes no publication write. A changed draft or version rejects the old review without claiming success.
+- In isolated fixtures only, explicitly publish and confirm the canonical returned version, parent refresh and exactly one version increment. No production publish is authorized by this document.
+- With a deliberately interrupted result, reload and reopen: no new preview or automatic POST; unchanged key/hash/version survives subsequent errors. Check/not-found retains the original. Explicit stop cannot undo an already recorded publication.
