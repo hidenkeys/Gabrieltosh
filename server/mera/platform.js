@@ -9,6 +9,7 @@ import {
 } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
+import { hostedBackupPolicy } from "./backup-policy.js";
 const fail = (message, status = 403, code = "PLATFORM_ACCESS_REQUIRED") =>
   Object.assign(new Error(message), { status, code });
 const hash = (value) => createHash("sha256").update(value).digest("hex");
@@ -226,6 +227,20 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
     );
   }
   router.get("/platform", guard, async (_req, res) => {
+    let backupConfiguration;
+    try {
+      backupConfiguration = hostedBackupPolicy();
+    } catch {
+      backupConfiguration = {
+        enabled: false,
+        reason: "Backup configuration requires operator review.",
+      };
+    }
+    const backups = (
+      await db.query(
+        "SELECT id,status,cloud_status,created_at,(path LIKE '%.enc') AS encrypted FROM backup_runs ORDER BY created_at DESC LIMIT 20",
+      )
+    ).rows;
     const organizations = (
       await db.query(
         "SELECT id,name,slug,policy,subscription,onboarding FROM mera_organizations ORDER BY name",
@@ -275,6 +290,8 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
       },
       liveMoneyEnabled: false,
       supportImpersonationEnabled: false,
+      backups,
+      backupConfiguration,
       blockedCapabilities: [
         "rubies_collections",
         "withdrawals",
@@ -283,6 +300,40 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
         "zidi_live",
       ],
     });
+  });
+  router.post("/platform/backups/:id/retry-upload", guard, async (req, res) => {
+    const { reason } = z
+        .object({ reason: z.string().trim().min(10).max(500) })
+        .strict()
+        .parse(req.body),
+      id = z.string().uuid().parse(req.params.id);
+    if (!hostedBackupPolicy().enabled || !process.env.S3_BUCKET)
+      throw fail(
+        "Configured encrypted cloud backup delivery is required before retrying.",
+        503,
+      );
+    await db.transaction(async (c) => {
+      const row = (
+        await c.query(
+          "SELECT id FROM backup_runs WHERE id=$1 AND status='complete' AND cloud_status='failed' AND path LIKE '%.enc' FOR UPDATE",
+          [id],
+        )
+      ).rows[0];
+      if (!row)
+        throw fail(
+          "Only a failed encrypted backup transfer can be retried.",
+          409,
+        );
+      await c.query(
+        "UPDATE backup_runs SET cloud_status='pending',error=NULL WHERE id=$1",
+        [id],
+      );
+      await audit(c, req, "backup_upload_retry_requested", null, {
+        backupId: id,
+        reason,
+      });
+    });
+    res.status(202).json({ status: "pending", uploaded: false });
   });
   router.post(
     "/platform/organizations/:organizationId/lookup",

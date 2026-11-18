@@ -262,7 +262,17 @@ export default function App() {
     );
   if (!user) return <Login onLogin={setUser} />;
   if (window.location.pathname.startsWith("/mera/workspace"))
-    return <OrganizationWorkspace user={user} notify={notify} />;
+    return (
+      <OrganizationWorkspace
+        user={user}
+        notify={notify}
+        onLogout={async () => {
+          await api("/logout", "POST");
+          window.dispatchEvent(new Event("mera:logout"));
+          setUser(null);
+        }}
+      />
+    );
   const admin = user.role === "admin",
     manager = user.role !== "cashier";
   const nav = [
@@ -367,6 +377,7 @@ export default function App() {
               onClick={async () => {
                 try {
                   await api("/logout", "POST");
+                  window.dispatchEvent(new Event("mera:logout"));
                   setUser(null);
                 } catch (e) {
                   notify((e as Error).message);

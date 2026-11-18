@@ -15,6 +15,7 @@ export default function Platform() {
     [pendingChange, setPendingChange] = useState<any>(null),
     [reference, setReference] = useState(""),
     [lookup, setLookup] = useState<any>(null),
+    [backupReason, setBackupReason] = useState(""),
     [dates, setDates] = useState<Record<string, string>>({
       trialEndsAt: "",
       paidThrough: "",
@@ -146,6 +147,20 @@ export default function Platform() {
         { version: selected.policy.version, reason },
       );
       setSelected(null);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function retryBackup(id: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await workspaceApi("/platform/backups/" + id + "/retry-upload", "POST", {
+        reason: backupReason,
+      });
       await load();
     } catch (e) {
       setError((e as Error).message);
@@ -557,6 +572,77 @@ export default function Platform() {
               )}
             </section>
           )}
+          <section
+            className="mera-panel"
+            style={{ padding: 24, marginTop: 20 }}
+          >
+            <h2>Backup readiness</h2>
+            <p>
+              {data.backupConfiguration?.enabled
+                ? "Encrypted snapshots are scheduled. Check transfer status and run restore exercises regularly."
+                : "Backups are not enabled in this environment. Configure the schedule, retention and encryption key before enabling them."}
+            </p>
+            {!!data.backups?.length ? (
+              <>
+                <label>
+                  Reason for retrying a failed transfer
+                  <input
+                    value={backupReason}
+                    onChange={(e) => setBackupReason(e.target.value)}
+                    maxLength={500}
+                  />
+                </label>
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Snapshot time</th>
+                        <th>Snapshot</th>
+                        <th>Cloud transfer</th>
+                        <th>Encryption</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.backups.map((backup: any) => (
+                        <tr key={backup.id}>
+                          <td>
+                            {new Date(backup.created_at).toLocaleString()}
+                          </td>
+                          <td>{backup.status}</td>
+                          <td>{backup.cloud_status}</td>
+                          <td>
+                            {backup.encrypted
+                              ? "Encrypted"
+                              : backup.status === "pruned"
+                                ? "Removed by retention policy"
+                                : "Not confirmed"}
+                          </td>
+                          <td>
+                            {backup.cloud_status === "failed" && (
+                              <button
+                                className="secondary"
+                                disabled={
+                                  busy ||
+                                  !data.backupConfiguration?.enabled ||
+                                  backupReason.trim().length < 10
+                                }
+                                onClick={() => retryBackup(backup.id)}
+                              >
+                                Retry upload
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <p>No backup runs recorded.</p>
+            )}
+          </section>
           <section
             className="mera-panel"
             style={{ padding: 24, marginTop: 20 }}

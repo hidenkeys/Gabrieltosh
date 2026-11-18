@@ -4,7 +4,14 @@ import { JSDOM } from "jsdom";
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {
   url: "http://localhost:3003/mera/workspace",
 });
-for (const key of ["window", "document", "HTMLElement", "Event", "MouseEvent"])
+for (const key of [
+  "window",
+  "document",
+  "HTMLElement",
+  "Event",
+  "MouseEvent",
+  "sessionStorage",
+])
   Object.defineProperty(globalThis, key, {
     value: (dom.window as any)[key],
     configurable: true,
@@ -64,6 +71,8 @@ let deferOldRefresh = false;
 let resolveOldRefresh: ((value: Response) => void) | null = null;
 globalThis.fetch = (async (input: any, init: any = {}) => {
   const path = String(input);
+  if (path.endsWith("/help-requests"))
+    return Response.json({ requests: [], externalDelivery: false });
   if (path.endsWith("/refunds")) {
     submittedRefund = JSON.parse(init.body);
     return Response.json({ id: "refund-1" });
@@ -730,6 +739,10 @@ test("workspace navigation exposes all pages and supports roving keyboard focus"
     const ordersTab = screen.getByRole("tab", { name: "Orders" });
     assert.equal(ordersTab.tabIndex, 0);
     fireEvent.keyDown(ordersTab, { key: "End" });
+    const finalPage = screen.getByRole("tab", { name: "Customer requests" });
+    assert.equal(finalPage.getAttribute("aria-selected"), "true");
+    fireEvent.keyDown(finalPage, { key: "Home" });
+    fireEvent.keyDown(ordersTab, { key: "ArrowRight" });
     const transactions = screen.getByRole("tab", { name: "Transactions" });
     assert.equal(transactions.getAttribute("aria-selected"), "true");
     assert.equal(transactions.tabIndex, 0);
@@ -1800,5 +1813,514 @@ test("absence from canonical lookup never abandons financial uncertainty; a reco
     cleanup();
     globalThis.fetch = originalFetch;
     failPayment = true;
+  }
+});
+
+test("financial session recovery validates actor, branch, route and payload allowlist", async () => {
+  const journal = await import("../src/mera/workspace/financialJournal");
+  const actor = "00000001-0000-4000-8000-000000000001",
+    other = "00000002-0000-4000-8000-000000000001",
+    org = "10000000-0000-4000-8000-000000000001",
+    branch = "20000000-0000-4000-8000-000000000001";
+  const intent: any = {
+    path: `/organizations/${org}/branches/${branch}/orders/30000000-0000-4000-8000-000000000001/payments`,
+    method: "POST",
+    body: {
+      requestKey: "40000000-0000-4000-8000-000000000001",
+      amount: 150000,
+      method: "cash",
+      reference: "TILL-1",
+    },
+    signature: "ignored",
+  };
+  try {
+    journal.clearFinancialJournals();
+    assert.equal(
+      journal.storeFinancialIntent(actor, org, branch, intent),
+      true,
+    );
+    assert.equal(
+      journal.restoreFinancialIntent(actor, org, branch)?.restored,
+      true,
+    );
+    assert.deepEqual(
+      journal.restoreFinancialIntent(actor, org, branch)?.body,
+      intent.body,
+    );
+    assert.equal(journal.restoreFinancialIntent(other, org, branch), null);
+    assert.equal(
+      journal.storeFinancialIntent(actor, org, branch, {
+        ...intent,
+        body: { ...intent.body, token: "do-not-store" },
+      }),
+      false,
+    );
+    assert.equal(
+      journal.storeFinancialIntent(actor, org, branch, {
+        ...intent,
+        path: "https://outside.example/payments",
+      }),
+      false,
+    );
+    assert.equal(
+      journal.storeFinancialIntent(other, org, branch, intent),
+      true,
+    );
+    journal.clearFinancialJournals(actor);
+    assert.equal(journal.restoreFinancialIntent(other, org, branch), null);
+    assert(journal.restoreFinancialIntent(actor, org, branch));
+  } finally {
+    journal.clearFinancialJournals();
+  }
+});
+
+test("sign out warns about unresolved requests and only clears recovery after explicit successful logout", async () => {
+  const journal = await import("../src/mera/workspace/financialJournal");
+  attempts = [];
+  failPayment = true;
+  let signedOut = 0;
+  try {
+    render(
+      React.createElement(Workspace, {
+        user,
+        notify: () => {},
+        onLogout: async () => {
+          signedOut++;
+        },
+      }),
+    );
+    await screen.findByText("Surulere customer", { exact: false });
+    assert(screen.getByText("Teni", { exact: true }));
+    fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
+    fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
+      target: { value: "order-branch-1" },
+    });
+    fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
+      target: { value: "1000" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Record verified collection" }),
+      ),
+    );
+    await screen.findByText("Financial submission not confirmed");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Sign out", exact: true }),
+    );
+    assert(screen.getByRole("alertdialog"));
+    assert.equal(signedOut, 0);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Keep this session open" }),
+    );
+    assert.equal(screen.queryByRole("alertdialog"), null);
+    assert(screen.getByText("Financial submission not confirmed"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Sign out", exact: true }),
+    );
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Sign out and clear tab recovery" }),
+      ),
+    );
+    assert.equal(signedOut, 1);
+    assert.equal(screen.queryByRole("alertdialog"), null);
+    assert.equal(
+      screen.queryByText("Financial submission not confirmed"),
+      null,
+    );
+  } finally {
+    cleanup();
+    journal.clearFinancialJournals();
+    failPayment = true;
+  }
+});
+
+test("category reparenting excludes descendants and saves a versioned branch-scoped edit", async () => {
+  const { default: Categories } =
+    await import("../src/mera/workspace/Categories");
+  const originalFetch = globalThis.fetch;
+  const calls: any[] = [];
+  const rows = [
+    {
+      id: "root",
+      name: "Drinks",
+      parentId: null,
+      sortOrder: 0,
+      active: true,
+      version: 3,
+    },
+    {
+      id: "tea",
+      name: "Tea",
+      parentId: "root",
+      sortOrder: 1,
+      active: true,
+      version: 1,
+    },
+  ];
+  globalThis.fetch = (async () => Response.json({ categories: rows })) as any;
+  try {
+    render(
+      React.createElement(Categories, {
+        base: "/organizations/org/branches/branch",
+        disabled: false,
+        onCategories: () => {},
+        save: async (...args: any[]) => {
+          calls.push(args);
+          return {};
+        },
+      }),
+    );
+    await screen.findByRole("button", { name: "Edit Tea" });
+    fireEvent.click(screen.getByRole("button", { name: "Edit Drinks" }));
+    assert.equal(screen.queryByRole("option", { name: "Drinks / Tea" }), null);
+    fireEvent.change(screen.getByLabelText("Category name"), {
+      target: { value: "Beverages" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Save category changes" }),
+      ),
+    );
+    assert.equal(
+      calls[0][0],
+      "/organizations/org/branches/branch/categories/root",
+    );
+    assert.deepEqual(calls[0][2], {
+      name: "Beverages",
+      parentId: null,
+      sortOrder: 0,
+      active: true,
+      version: 3,
+    });
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("only a canonical abandoned fence releases uncertainty and a new explicit entry gets a fresh key", async () => {
+  const originalFetch = globalThis.fetch;
+  attempts = [];
+  failPayment = true;
+  const fences: any[] = [];
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    if (String(input).endsWith("/abandon")) {
+      fences.push(JSON.parse(init.body));
+      return Response.json({
+        status: "abandoned",
+        kind: "payment",
+        id: "fence",
+      });
+    }
+    return originalFetch(input, init);
+  }) as any;
+  try {
+    render(React.createElement(Workspace, { user, notify: () => {} }));
+    await screen.findByText("Surulere customer", { exact: false });
+    fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
+    fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
+      target: { value: "order-branch-1" },
+    });
+    fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
+      target: { value: "1000" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Record verified collection" }),
+      ),
+    );
+    await screen.findByText("Financial submission not confirmed");
+    fireEvent.change(screen.getByLabelText("Resolution reason"), {
+      target: { value: "Till verified no payment was collected" },
+    });
+    fireEvent.click(
+      screen.getByLabelText(
+        "I want to prevent the unresolved original request from posting if it is not already recorded.",
+      ),
+    );
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Fence original request or confirm its recorded result",
+          hidden: true,
+        }),
+      ),
+    );
+    assert.deepEqual(fences, [
+      { kind: "payment", reason: "Till verified no payment was collected" },
+    ]);
+    assert.equal(
+      screen.queryByText("Financial submission not confirmed"),
+      null,
+    );
+    failPayment = false;
+    fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
+      target: { value: "order-branch-1" },
+    });
+    fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
+      target: { value: "1000" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Record verified collection" }),
+      ),
+    );
+    assert.equal(attempts.length, 2);
+    assert.notEqual(attempts[0].requestKey, attempts[1].requestKey);
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+    failPayment = true;
+  }
+});
+
+test("a tab restores scoped recovery only after the current principal is authenticated and never autosubmits", async () => {
+  const journal = await import("../src/mera/workspace/financialJournal");
+  const originalFetch = globalThis.fetch;
+  const actor = "00000001-0000-4000-8000-000000000001",
+    org = "10000000-0000-4000-8000-000000000001",
+    branch = "20000000-0000-4000-8000-000000000001";
+  let confirm: ((response: Response) => void) | undefined;
+  let writes = 0;
+  const intent: any = {
+    path: `/organizations/${org}/branches/${branch}/orders/30000000-0000-4000-8000-000000000001/payments`,
+    method: "POST",
+    body: {
+      requestKey: "40000000-0000-4000-8000-000000000001",
+      amount: 150000,
+      method: "cash",
+      reference: "AUTH-RECOVERY",
+    },
+    signature: "ignored",
+  };
+  journal.clearFinancialJournals();
+  assert.equal(journal.storeFinancialIntent(actor, org, branch, intent), true);
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    if (init.method === "POST") writes++;
+    if (String(input).endsWith("/context"))
+      return new Promise<Response>((resolve) => {
+        confirm = resolve;
+      });
+    if (String(input).endsWith("/workspace"))
+      return Response.json(snapshot("branch-1"));
+    return Response.json({});
+  }) as any;
+  try {
+    render(
+      React.createElement(Workspace, {
+        user: { id: actor, name: "Verified staff" },
+        notify: () => {},
+      }),
+    );
+    assert.equal(screen.queryByText("AUTH-RECOVERY"), null);
+    assert.equal(
+      screen.queryByText("Restored unconfirmed financial submission"),
+      null,
+    );
+    assert(confirm);
+    await act(async () =>
+      confirm!(
+        Response.json({
+          user: { id: actor, name: "Verified staff" },
+          organizations: [
+            {
+              id: org,
+              name: "Bing Chun",
+              role: "cashier",
+              permissions: ["orders.view", "payments.record"],
+              branchIds: [branch],
+              branches: [{ id: branch, name: "Surulere" }],
+            },
+          ],
+        }),
+      ),
+    );
+    await screen.findByText("Restored unconfirmed financial submission");
+    assert(screen.getByText("AUTH-RECOVERY"));
+    assert.equal(writes, 0);
+    window.dispatchEvent(new window.Event("mera:logout"));
+    assert.equal(journal.restoreFinancialIntent(actor, org, branch), null);
+  } finally {
+    cleanup();
+    journal.clearFinancialJournals();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("bulk availability uses one audited scoped operation and alerts remain canonical", async () => {
+  const { default: CatalogOperations } =
+    await import("../src/mera/workspace/CatalogOperations");
+  const calls: any[] = [];
+  try {
+    render(
+      React.createElement(CatalogOperations, {
+        base: "/organizations/org/branches/branch",
+        products: [{ id: "tea", name: "Milk tea", available: true }],
+        alerts: [
+          {
+            productId: "tea",
+            variantId: "large",
+            name: "Milk tea",
+            size: "Large",
+            stock: 2,
+            threshold: 3,
+          },
+        ],
+        disabled: false,
+        save: async (...args: any[]) => {
+          calls.push(args);
+          return {};
+        },
+      }),
+    );
+    assert(screen.getByText("2 left · threshold 3"));
+    fireEvent.click(screen.getByLabelText("Milk tea · available"));
+    fireEvent.change(screen.getByLabelText("Bulk availability reason"), {
+      target: { value: "Milk unavailable during restocking" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Update selected availability",
+          hidden: true,
+        }),
+      ),
+    );
+    assert.deepEqual(calls[0].slice(0, 3), [
+      "/organizations/org/branches/branch/products/availability",
+      "POST",
+      {
+        productIds: ["tea"],
+        available: false,
+        reason: "Milk unavailable during restocking",
+      },
+    ]);
+    assert.equal(calls.length, 1);
+  } finally {
+    cleanup();
+  }
+});
+
+test("priced item cancellation reviews original-policy totals then records only an explicitly verified manual refund", async () => {
+  const { default: ItemCancellation } =
+    await import("../src/mera/workspace/ItemCancellation");
+  const calls: any[] = [];
+  const quote = {
+    id: "review",
+    previousTotal: 360000,
+    newTotal: 180000,
+    creditRequired: 180000,
+    refundTaxAmount: 30000,
+    expiresAt: new Date(Date.now() + 300000).toISOString(),
+  };
+  try {
+    render(
+      React.createElement(ItemCancellation, {
+        base: "/organizations/org/branches/branch",
+        order: {
+          id: "order",
+          version: 4,
+          status: "accepted",
+          paid: 360000,
+          total: 360000,
+          pricing: { policyVersion: "p1", policySnapshot: { enabled: true } },
+          items: [
+            {
+              orderLineId: "line",
+              name: "Milk tea",
+              quantity: 2,
+              unitPrice: 150000,
+            },
+          ],
+        },
+        tickets: [],
+        refunds: [],
+        canRefund: true,
+        disabled: false,
+        save: async (...args: any[]) => {
+          calls.push(args);
+          return args[0].endsWith("cancel-quote")
+            ? quote
+            : args[0].endsWith("/refunds")
+              ? { id: "refund", amount: 180000 }
+              : {};
+        },
+      }),
+    );
+    fireEvent.change(screen.getByLabelText("Item to cancel"), {
+      target: { value: "line" },
+    });
+    fireEvent.change(screen.getByLabelText("Cancellation reason"), {
+      target: { value: "Customer cancelled one unprepared drink" },
+    });
+    assert.equal(
+      (
+        screen.getByRole("button", {
+          name: "Cancel selected quantity",
+          hidden: true,
+        }) as HTMLButtonElement
+      ).disabled,
+      true,
+    );
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Review cancellation total",
+          hidden: true,
+        }),
+      ),
+    );
+    assert.equal(
+      calls[0][0],
+      "/organizations/org/branches/branch/orders/order/items/line/cancel-quote",
+    );
+    assert.equal(
+      (
+        screen.getByRole("button", {
+          name: "Record verified refund for this cancellation",
+          hidden: true,
+        }) as HTMLButtonElement
+      ).disabled,
+      true,
+    );
+    fireEvent.change(
+      screen.getByLabelText("Reviewed cancellation refund method"),
+      { target: { value: "cash" } },
+    );
+    fireEvent.change(
+      screen.getByLabelText("Reviewed cancellation refund reason"),
+      { target: { value: "Cash already returned and verified" } },
+    );
+    fireEvent.click(
+      screen.getByLabelText(
+        "I verified this refund was already paid manually.",
+      ),
+    );
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Record verified refund for this cancellation",
+          hidden: true,
+        }),
+      ),
+    );
+    assert.equal(calls[1][2].amount, 180000);
+    assert.equal(calls[1][2].cancellationQuoteId, "review");
+    assert.equal(calls[1][2].method, "cash");
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Cancel selected quantity",
+          hidden: true,
+        }),
+      ),
+    );
+    assert.equal(calls[2][2].cancellationQuoteId, "review");
+    assert.deepEqual(calls[2][2].refundAllocations, [
+      { refundId: "refund", amount: 180000 },
+    ]);
+  } finally {
+    cleanup();
   }
 });

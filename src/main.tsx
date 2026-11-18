@@ -43,11 +43,15 @@ class WorkspaceBoundary extends React.Component<
   render() {
     return this.state.failed ? (
       <div className="workspace-recovery" role="alert">
-        <img src="/brand/brand-logo.png" alt="Bing Chun" />
+        {window.location.pathname.startsWith("/mera") ? (
+          <p className="mera-wordmark">mera.</p>
+        ) : (
+          <img src="/brand/brand-logo.png" alt="Bing Chun" />
+        )}
         <h1>Let’s reopen your workspace.</h1>
         <p>
-          A page could not be displayed. Your saved orders remain on the store
-          server.
+          A page could not be displayed. Saved records remain on the server.
+          Check your connection before reopening this page.
         </p>
         <button className="primary" onClick={() => window.location.reload()}>
           Reopen workspace

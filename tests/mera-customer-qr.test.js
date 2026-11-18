@@ -283,3 +283,46 @@ test("customization modal contains keyboard focus and restores its trigger", asy
   assert.equal(document.activeElement, trigger);
   cleanup();
 });
+
+test("help request uncertainty retries original intent without claiming external delivery", async (t) => {
+  const { default: HelpRequests } =
+    await import("../src/mera/customer/HelpRequests.tsx");
+  const attempts = [];
+  t.mock.method(globalThis, "fetch", async (input, init) => {
+    assert.equal(String(input), "/api/mera/v1/public/org/branch/help-requests");
+    if (init.method === "POST") {
+      attempts.push(JSON.parse(init.body));
+      throw new TypeError("Failed to fetch");
+    }
+    return Response.json({ requests: [], externalDelivery: false });
+  });
+  render(
+    React.createElement(HelpRequests, {
+      prefix: "/public/org/branch",
+      ensureGuest: async () => {},
+      hasGuest: false,
+      displayName: "Ada",
+      onName: () => {},
+      visitId: undefined,
+    }),
+  );
+  assert.equal(
+    screen.queryByRole("option", { name: "My joined table visit" }),
+    null,
+  );
+  fireEvent.change(
+    screen.getByRole("textbox", { name: "How can staff help?" }),
+    { target: { value: "Please bring water" } },
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Send help request" }));
+  await screen.findByRole("alert");
+  assert(screen.getByText(/Email, SMS and push notifications are not sent/));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Retry original help request" }),
+  );
+  await screen.findByRole("alert");
+  assert.equal(attempts.length, 2);
+  assert.deepEqual(attempts[0], attempts[1]);
+  assert.equal("visitId" in attempts[0], false);
+  cleanup();
+});

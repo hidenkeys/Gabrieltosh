@@ -48,6 +48,22 @@ export default function VariantsEditor({
               }
             />
           </label>
+          <label>
+            Size low-stock alert threshold
+            <input
+              required
+              type="number"
+              min={0}
+              max={1000000}
+              step={1}
+              value={variant.lowStockThreshold ?? 5}
+              onChange={(event) =>
+                update(variant.id, {
+                  lowStockThreshold: Number(event.target.value),
+                })
+              }
+            />
+          </label>
           <div>
             <p>
               {variant.stockMode === "counted"
@@ -77,6 +93,7 @@ export default function VariantsEditor({
               price: 0,
               stockMode: "unlimited",
               stock: 0,
+              lowStockThreshold: 5,
             },
           ])
         }

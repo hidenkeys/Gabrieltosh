@@ -29,6 +29,7 @@
   .mera-customer .mc-print-control,
   .mera-customer .mc-consent,
   .mera-customer .mc-activity,
+  .mera-customer .mc-help,
   .mera-customer form,
   .mera-customer .mc-alert {
     display: none !important;

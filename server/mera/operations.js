@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { subscriptionEntitlement } from "./subscriptions.js";
 import { randomUUID } from "node:crypto";
-import { report, fail } from "./domain.js";
+import { report, fail,assertMoney } from "./domain.js";
 const now = () => new Date().toISOString();
 const cell = (value) => {
   let text = String(value ?? "");
@@ -253,6 +253,7 @@ export function mountMeraOperations(
               [req.params.organizationId],
             )
           ).rows[0];
+          const invoicePolicy=org.subscription?.approvedPolicySnapshot||org.policy;
           const branch = (
             await c.query(
               "SELECT id FROM mera_branches WHERE organization_id=$1 ORDER BY id LIMIT 1",
@@ -278,14 +279,14 @@ export function mountMeraOperations(
               )
             ).rows[0].count,
           );
-          if (!Number.isSafeInteger(org.policy.monthlyPrice))
+          if (!Number.isSafeInteger(invoicePolicy.monthlyPrice))
             throw fail(
               "Monthly pricing has not been approved.",
               409,
               "POLICY_BLOCKED",
             );
-          const additional = Math.max(0, count - org.policy.includedBranches);
-          if (additional && org.policy.additionalBranchPrice === null)
+          const additional = Math.max(0, count - invoicePolicy.includedBranches);
+          if (additional && invoicePolicy.additionalBranchPrice === null)
             throw fail(
               "Additional branch pricing has not been approved.",
               409,
@@ -298,11 +299,10 @@ export function mountMeraOperations(
             {
               ...input,
               status: "draft",
-              amount:
-                org.policy.monthlyPrice +
-                additional * (org.policy.additionalBranchPrice || 0),
-              currency: org.policy.currency,
-              policySnapshot: org.policy,
+              amount:assertMoney(invoicePolicy.monthlyPrice + additional * (invoicePolicy.additionalBranchPrice || 0)),
+              policyBasis:invoicePolicy.status==="approved"?"approved_subscription":"unapproved_draft_preview",
+              currency: invoicePolicy.currency,
+              policySnapshot: invoicePolicy,
               notCharged: true,
               createdAt: now(),
             },

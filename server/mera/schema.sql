@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS mera_invitations(id TEXT PRIMARY KEY,organization_id 
 CREATE TABLE IF NOT EXISTS mera_platform_members(user_id TEXT PRIMARY KEY REFERENCES users(id),active BOOLEAN NOT NULL DEFAULT true,strong_auth_verified BOOLEAN NOT NULL DEFAULT false);
 CREATE OR REPLACE FUNCTION mera_record_immutability() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
- IF TG_OP <> 'INSERT' AND OLD.kind IN ('ledger','audit','provider_event') THEN
+ IF TG_OP <> 'INSERT' AND OLD.kind IN ('ledger','audit','provider_event','financial_request_resolution') THEN
   RAISE EXCEPTION 'Mera ledger and audit records are append-only';
  END IF;
  IF TG_OP <> 'DELETE' AND NEW.kind='ledger' THEN

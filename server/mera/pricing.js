@@ -35,8 +35,12 @@ export function mountMeraPricing(router,{guard,scope,locked,record,readRecords,e
    await event(c,scope(req),"pricing_policy_approved",req.user,{policy});return policy;
   }));
  });
- async function make(req,s,actor,guestId){
-  const input=orderInputSchema.pick({menuVersion:true,items:true}).strict().parse(req.body);
+ router.post(B+"/quote",guard("orders.create"),async(req,res)=>res.status(201).json(await createPricingQuote({locked,record,readRecords},scope(req),req.body,req.user,null)));
+ router.post(P+"/quote",async(req,res)=>{const {organization,s}=await publicContext(req),g=await guest(req,organization.id);res.status(201).json(await createPricingQuote({locked,record,readRecords},s,req.body,null,g.id));});
+}
+
+export async function createPricingQuote({locked,record,readRecords},s,body,actor,guestId){
+  const input=orderInputSchema.pick({menuVersion:true,items:true}).strict().parse(body);
   return locked(s,async(c,b)=>{
    if(input.menuVersion!==b.menu_version)throw fail("Menu changed. Refresh before requesting a quote.",409,"MENU_CHANGED");
    const live=(await readRecords(c,s.organizationId,s.branchId,"product")).map(r=>r.data);
@@ -46,6 +50,3 @@ export function mountMeraPricing(router,{guard,scope,locked,record,readRecords,e
    const {actorId,guestId:ignored,intentHash,policySnapshot,...safe}=stored;return safe;
   });
  }
- router.post(B+"/quote",guard("orders.create"),async(req,res)=>res.status(201).json(await make(req,scope(req),req.user,null)));
- router.post(P+"/quote",async(req,res)=>{const {organization,s}=await publicContext(req),g=await guest(req,organization.id);res.status(201).json(await make(req,s,null,g.id));});
-}

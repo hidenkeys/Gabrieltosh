@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { brandingStyle } from "../branding";
+import HelpRequests from "./HelpRequests";
 import GuestActivity from "./GuestActivity";
 import { ProductImage } from "../../ProductImage";
 import { money } from "../../api";
@@ -549,6 +550,7 @@ export default function CustomerExperience({
             ["track", "Your order"],
             ["reserve", "Reserve a table"],
             ["visit", "Join a table"],
+            ["help", "Ask for help"],
           ].map(([value, label]) => (
             <button
               key={value}
@@ -797,6 +799,17 @@ export default function CustomerExperience({
               </button>
             </aside>
           </div>
+        )}
+        {tab === "help" && (
+          <HelpRequests
+            prefix={prefix}
+            ensureGuest={guest}
+            hasGuest={hasGuest}
+            displayName={displayName}
+            onName={setDisplayName}
+            orderId={order?.id}
+            visitId={visit?.visit?.id}
+          />
         )}
         {tab === "track" && (
           <section className="mc-panel">

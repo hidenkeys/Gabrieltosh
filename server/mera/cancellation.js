@@ -1,3 +1,5 @@
+import { assertFinancialRequestActive } from "./financial-requests.js";
+import { priceBreakdown } from "./pricing.js";
 import { z } from "zod";
 import { createHash } from "node:crypto";
 import { fail,paymentStatus,paidForBill } from "./domain.js";
@@ -5,31 +7,57 @@ const stamp=()=>new Date().toISOString();
 export function mountMeraCancellation(router,{guard,scope,locked,find,readRecords,record,event}) {
  const B="/organizations/:organizationId/branches/:branchId";
  const save=(c,s,kind,id,data)=>c.query("UPDATE mera_records SET data=$1 WHERE id=$2 AND organization_id=$3 AND branch_id=$4 AND kind=$5",[JSON.stringify(data),id,s.organizationId,s.branchId,kind]);
+ router.post(B+"/orders/:id/items/:orderLineId/cancel-quote",guard("orders.fulfill"),async(req,res)=>{
+  const input=z.object({quantity:z.number().int().positive(),version:z.number().int().positive()}).strict().parse(req.body);
+  res.status(201).json(await locked(scope(req),async c=>{
+   const s=scope(req),order=await find(c,s,"order",req.params.id),line=order.items.find(l=>l.orderLineId===req.params.orderLineId);
+   if(order.version!==input.version)throw fail("Order changed. Refresh before reviewing cancellation.",409,"STALE_VERSION");
+   if(!line||input.quantity>line.quantity||!["submitted","accepted","preparing"].includes(order.status))throw fail("This item cannot be cancelled.",409);
+   const tickets=(await readRecords(c,s.organizationId,s.branchId,"ticket")).map(r=>r.data).filter(t=>t.orderId===order.id);
+   const prepared=tickets.flatMap(t=>t.items).find(i=>i.orderLineId===line.orderLineId)?.preparedQuantity||0;
+   if(input.quantity>line.quantity-Math.max(prepared,line.fulfilledQuantity||0))throw fail("Prepared or handed-over quantities cannot be cancelled as unused stock.",409);
+   const subtotal=(order.pricing?.subtotal??order.items.reduce((n,l)=>n+l.total,0))-line.unitPrice*input.quantity;
+   const pricing=priceBreakdown(subtotal,order.pricing?.policySnapshot),amount=order.total-pricing.total;
+   const quote=await record(c,s,"cancellation_quote",{orderId:order.id,orderLineId:line.orderLineId,quantity:input.quantity,lineQuantity:line.quantity,actorId:req.user.id,previousTotal:order.total,newTotal:pricing.total,creditRequired:amount,refundTaxAmount:(order.pricing?.tax||0)-pricing.tax,pricing,policyVersion:order.pricing?.policyVersion||null,expiresAt:new Date(Date.now()+5*60000).toISOString(),createdAt:stamp()});
+   return quote;
+  }));
+ });
  router.post(B+"/orders/:id/items/:orderLineId/cancel",guard("orders.fulfill"),async(req,res)=>{
-  const input=z.object({requestKey:z.string().uuid(),quantity:z.number().int().positive(),version:z.number().int().positive(),reason:z.string().trim().min(3).max(300),refundAllocations:z.array(z.object({refundId:z.string().uuid(),amount:z.number().int().positive()})).max(100).optional()}).strict().parse(req.body);
+  const input=z.object({requestKey:z.string().uuid(),quantity:z.number().int().positive(),version:z.number().int().positive(),reason:z.string().trim().min(3).max(300),cancellationQuoteId:z.string().uuid().optional(),refundAllocations:z.array(z.object({refundId:z.string().uuid(),amount:z.number().int().positive()})).max(100).optional()}).strict().parse(req.body);
   const intentHash=createHash("sha256").update(JSON.stringify({...input,orderId:req.params.id,orderLineId:req.params.orderLineId,actor:req.user.id})).digest("hex");
   res.json(await locked(scope(req),async c=>{
    const s=scope(req),previous=(await readRecords(c,s.organizationId,s.branchId,"item_cancellation")).map(r=>r.data).find(r=>r.requestKey===input.requestKey);
    const order=await find(c,s,"order",req.params.id);
    if(previous){if(previous.intentHash!==intentHash)throw fail("Cancellation request key conflict.",409,"IDEMPOTENCY_CONFLICT");return {order,cancellation:previous};}
+   await assertFinancialRequestActive(c,s,input.requestKey,"item_cancellation",req.user.id);
    if(order.version!==input.version)throw fail("Order changed. Refresh before cancelling.",409,"STALE_VERSION");
    if(!["submitted","accepted","preparing"].includes(order.status))throw fail("Items can only be cancelled before readiness or collection.",409);
-   if(order.paid>0 && (!input.refundAllocations?.length || !req.meraMembership.permissions.includes("refunds.approve")))throw fail("Paid cancellation requires approved refund allocations and refund approval permission.",409,"PAID_ITEM_REVIEW_REQUIRED");
-   if(order.pricing?.policySnapshot?.enabled)throw fail("Configured charge and tax orders require a reviewed replacement quote for item changes.",409,"PRICING_REVIEW_REQUIRED");
+
+
    const lineIndex=order.items.findIndex(l=>l.orderLineId===req.params.orderLineId),line=order.items[lineIndex];
    if(!line||input.quantity>line.quantity)throw fail("Invalid item quantity.",409);
    const tickets=(await readRecords(c,s.organizationId,s.branchId,"ticket")).map(r=>r.data).filter(t=>t.orderId===order.id);
    const ticket=tickets.find(t=>t.items.some(i=>i.orderLineId===line.orderLineId)),ticketLine=ticket?.items.find(i=>i.orderLineId===line.orderLineId);
-   if(input.quantity>line.quantity-(ticketLine?.preparedQuantity||0))throw fail("Already prepared quantities cannot be cancelled as unprepared stock.",409);
-   const amount=line.unitPrice*input.quantity;
+   if(input.quantity>line.quantity-Math.max(ticketLine?.preparedQuantity||0,line.fulfilledQuantity||0))throw fail("Already prepared quantities cannot be cancelled as unprepared stock.",409);
+   let reviewed;
+   if(order.pricing?.policySnapshot?.enabled){
+    if(!input.cancellationQuoteId)throw fail("Review the original-policy cancellation quote first.",409,"PRICING_REVIEW_REQUIRED");
+    reviewed=await find(c,s,"cancellation_quote",input.cancellationQuoteId);
+    if(reviewed.orderId!==order.id||reviewed.orderLineId!==line.orderLineId||reviewed.actorId!==req.user.id||reviewed.quantity!==input.quantity||reviewed.lineQuantity!==line.quantity||reviewed.previousTotal!==order.total||reviewed.policyVersion!==order.pricing.policyVersion||Date.parse(reviewed.expiresAt)<=Date.now())throw fail("The cancellation quote changed or expired.",409,"CANCELLATION_QUOTE_CHANGED");
+   }
+   const amount=reviewed?reviewed.creditRequired:line.unitPrice*input.quantity;
+   if(order.paid>0 && (!req.meraMembership.permissions.includes("refunds.approve") || (amount>0&&!input.refundAllocations?.length)))throw fail("Paid cancellation requires refund approval permission and existing credits for any positive return.",409,"PAID_ITEM_REVIEW_REQUIRED");
+   const allocations=input.refundAllocations||[];
    let remaining=amount;
    const bills=(await readRecords(c,s.organizationId,s.branchId,"bill")).map(r=>r.data).filter(b=>b.status==="open");
    if(order.paid>0){
-    if(new Set(input.refundAllocations.map(a=>a.refundId)).size!==input.refundAllocations.length || input.refundAllocations.reduce((n,a)=>n+a.amount,0)!==amount) throw fail("Refund allocations must uniquely equal the cancelled item value.",409);
-    for(const allocation of input.refundAllocations){
+    if(new Set(allocations.map(a=>a.refundId)).size!==allocations.length || allocations.reduce((n,a)=>n+a.amount,0)!==amount) throw fail("Refund allocations must uniquely equal the cancelled item value.",409);
+    let allocatedTax=0;
+    for(const allocation of allocations){
      const refund=await find(c,s,"refund",allocation.refundId);
      const used=(await readRecords(c,s.organizationId,s.branchId,"item_cancellation")).map(r=>r.data).flatMap(r=>r.refundAllocations||[]).filter(a=>a.refundId===refund.id).reduce((n,a)=>n+a.amount,0);
      if(refund.orderId!==order.id || allocation.amount>refund.amount-used) throw fail("Refund credit is unavailable or already applied.",409);
+     allocatedTax+=allocation.amount===refund.amount?(refund.taxAmount||0):Number((BigInt(allocation.amount)*BigInt(refund.taxAmount||0)+BigInt(refund.amount)/2n)/BigInt(refund.amount));
      let creditLeft=allocation.amount;
      for(const bill of bills){for(const charge of bill.charges.filter(l=>l.refundId===refund.id && l.amount<0)){
        const available=-charge.amount-(charge.cancellationAppliedAmount||0),part=Math.min(creditLeft,available);
@@ -37,6 +65,8 @@ export function mountMeraCancellation(router,{guard,scope,locked,find,readRecord
      }await save(c,s,"bill",bill.id,bill);}
      if(creditLeft)throw fail("Refund bill credits do not cover this cancellation.",409);
     }
+    if(reviewed && allocatedTax!==reviewed.refundTaxAmount)throw fail("Approved refund tax credits do not match the reviewed cancellation. Record a refund using this cancellation quote.",409,"REFUND_TAX_REVIEW_REQUIRED");
+    order.recognitionPricing??=order.pricing;
     order.recognitionTotal??=order.total+(order.cancellationRefundApplied||0);
     order.cancellationRefundApplied=(order.cancellationRefundApplied||0)+amount;
     remaining=0;
@@ -60,13 +90,13 @@ export function mountMeraCancellation(router,{guard,scope,locked,find,readRecord
    }
    order.originalTotal??=order.total;
    line.originalQuantity??=line.quantity;line.cancelledQuantity=(line.cancelledQuantity||0)+input.quantity;line.quantity-=input.quantity;line.total=line.quantity*line.unitPrice;
-   order.total-=amount;if(order.pricing){order.pricing.subtotal-=amount;order.pricing.total-=amount;}order.effectivePaid=paidForBill(order);order.version++;order.paymentStatus=paymentStatus(order);
+   order.total-=amount;if(reviewed)order.pricing=reviewed.pricing;else if(order.pricing){order.pricing={...order.pricing,subtotal:order.pricing.subtotal-line.unitPrice*input.quantity,total:order.total};}order.effectivePaid=paidForBill(order);order.version++;order.paymentStatus=paymentStatus(order);
    if(ticketLine){ticketLine.quantity-=input.quantity;ticketLine.cancelledQuantity=(ticketLine.cancelledQuantity||0)+input.quantity;ticket.version=(ticket.version||1)+1;ticket.status=ticket.items.every(i=>i.quantity===0)?"cancelled":ticket.items.every(i=>(i.preparedQuantity||0)===i.quantity)?"ready":ticket.status;await save(c,s,"ticket",ticket.id,ticket);}
    if(order.items.every(i=>!i.quantity)){order.status="cancelled";order.stockHeld=false;}
    else if(order.status!=="submitted" && tickets.length && tickets.every(t=>["ready","cancelled"].includes(t.status))) order.status="ready";
    order.history.push({action:"item_cancelled",actorId:req.user.id,actorName:req.user.name,orderLineId:line.orderLineId,quantity:input.quantity,amount,reason:input.reason,at:stamp()});
    await save(c,s,"order",order.id,order);
-   const cancellation=await record(c,s,"item_cancellation",{...input,intentHash,orderId:order.id,orderLineId:line.orderLineId,amount,actorId:req.user.id,createdAt:stamp()});
+   const cancellation=await record(c,s,"item_cancellation",{...input,intentHash,orderId:order.id,orderLineId:line.orderLineId,amount,actorId:req.user.id,pricingDifference:reviewed?{previousTotal:reviewed.previousTotal,newTotal:reviewed.newTotal,tax:reviewed.refundTaxAmount,policyVersion:reviewed.policyVersion}:null,createdAt:stamp()});
    await event(c,s,"order_item_cancelled",req.user,{orderId:order.id,cancellationId:cancellation.id,quantity:input.quantity,amount,reason:input.reason});
    return {order,cancellation};
   }));

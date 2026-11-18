@@ -1,5 +1,5 @@
 import { z } from "zod";
-export const CONTRACT_VERSION = "1.0.0";
+export const CONTRACT_VERSION = "1.1.0";
 export const MERA_API = "/api/mera/v1";
 export const permissions = [
   "organization.manage",
@@ -118,12 +118,14 @@ export const productInputSchema = z.object({
   code: z.string().max(30),
   category: z.string().trim().min(1).max(100),
   parentCategory: z.string().max(100).nullable().default(null),
+  categoryId:z.string().uuid().nullable().default(null),
   description: z.string().max(1000).default(""),
   price: moneySchema,
   size: z.string().max(40).default(""),
   available: z.boolean().default(true),
   stockMode: z.enum(["unlimited", "counted"]).default("unlimited"),
   stock: z.number().int().min(0).max(1000000).default(0),
+  lowStockThreshold:z.number().int().min(0).max(1000000).default(5),
   station: z.enum(["kitchen", "bar"]).default("bar"),
   availabilityWindows:z.array(availabilityWindowSchema).max(30).default([]),
   variants: z
@@ -134,6 +136,7 @@ export const productInputSchema = z.object({
         price: moneySchema,
         stockMode:z.enum(["unlimited","counted"]).default("unlimited"),
         stock:z.number().int().min(0).max(1000000).default(0),
+        lowStockThreshold:z.number().int().min(0).max(1000000).default(5),
       }),
     )
     .max(30)

@@ -11,7 +11,8 @@ import {
   reservationInputSchema,
   CONTRACT_VERSION,
 } from "../../shared/mera-contracts.js";
-import { fail } from "./domain.js";
+import { fail,availableNow } from "./domain.js";
+import { subscriptionEntitlement } from "./subscriptions.js";
 const digest = (value) => createHash("sha256").update(value).digest("hex");
 const allowed = [
   "published_menu.read",
@@ -31,6 +32,7 @@ export function mountMeraZidi(
     find,
     event,
     createOrder,
+    quoteOrder,
     reservation,
   },
 ) {
@@ -202,19 +204,25 @@ export function mountMeraZidi(
     const live = (
       await readRecords(db, s.organizationId, s.branchId, "product")
     ).map((r) => r.data);
+    const organization=(await db.query("SELECT policy,subscription FROM mera_organizations WHERE id=$1",[s.organizationId])).rows[0];
     res.json({
       mode: "simulator",
       contractVersion: CONTRACT_VERSION,
       organizationId: s.organizationId,
       branchId: s.branchId,
       menuVersion: b.menu_version,
-      orderingAvailable: !b.settings.orderingPaused && b.menu_version > 0,
+      pricingPolicy:b.settings.pricingPolicy||null,
+      pricingPolicyRequired:!!b.settings.pricingPolicy?.enabled,
+      categories:b.settings.publishedCategories||[],
+      capabilities:{quote:true,outboundEvents:{state:"blocked",reason:"Signed outbound events require a verified external Zidi contract and delivery configuration."}},
+      orderingAvailable: !b.settings.orderingPaused && b.menu_version > 0 && availableNow(b.settings.serviceHours,b.timezone) && subscriptionEntitlement(organization.subscription,organization.subscription?.approvedPolicySnapshot||organization.policy,Date.now(),true).newOrdersAllowed,
       products: b.published_menu
         .map((p) => {
           const current = live.find((l) => l.id === p.id);
           return {
             ...p,
-            available: !!current?.available,
+            available: !!current?.available && availableNow(p.availabilityWindows,b.timezone),
+            variants:p.variants.map(v=>({...v,stockMode:current?.variants.find(i=>i.id===v.id)?.stockMode||"unlimited",stock:current?.variants.find(i=>i.id===v.id)?.stock||0})),
             stock: current?.stock || 0,
             stockMode: current?.stockMode || "unlimited",
           };
@@ -222,6 +230,7 @@ export function mountMeraZidi(
         .filter((p) => p.available),
     });
   });
+  router.post(I+"/quote",async(req,res)=>{const i=authorize(req,"orders.create");res.status(201).json({mode:"simulator",quote:await quoteOrder(i.scope,req.body,i.actor)});});
   router.post(I + "/orders", async (req, res) => {
     const i = authorize(req, "orders.create");
     const input = orderInputSchema.parse(req.body);
@@ -238,6 +247,7 @@ export function mountMeraZidi(
           status: order.status,
           paymentStatus: order.paymentStatus,
           total: order.total,
+          pricing:order.pricing?{subtotal:order.pricing.subtotal,discount:order.pricing.discount,serviceCharge:order.pricing.serviceCharge,tax:order.pricing.tax,total:order.pricing.total,lines:order.pricing.lines,policyVersion:order.pricing.policyVersion}:null,
           items: order.items,
           version: order.version,
         },

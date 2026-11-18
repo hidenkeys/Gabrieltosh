@@ -36,10 +36,25 @@ import CashMovement from "./CashMovement";
 import ShiftActions from "./ShiftActions";
 import MediaUpload from "../MediaUpload";
 import PricingPolicy from "./PricingPolicy";
+import {
+  financialKind,
+  storeFinancialIntent,
+  restoreFinancialIntent,
+  removeFinancialIntent,
+  clearFinancialJournals,
+} from "./financialJournal";
+import ItemFulfillment from "./ItemFulfillment";
+import Categories, { categoryPath } from "./Categories";
+import CatalogOperations from "./CatalogOperations";
+import HelpRequests from "./HelpRequests";
 import { workspaceApi, formatMoney, WorkspaceError } from "./api";
 
 type RecordData = Record<string, any>;
-type Props = { user: any; notify: (message: string) => void };
+type Props = {
+  user: any;
+  notify: (message: string) => void;
+  onLogout?: () => Promise<void>;
+};
 const nextState: Record<string, string> = {
   submitted: "accepted",
   ready: "collected",
@@ -63,6 +78,7 @@ const sections = [
   ["care", "Customer care", "organization.manage"],
   ["waitlist", "Front desk", "reservations.manage"],
   ["exports", "Report exports", "reports.export"],
+  ["help", "Customer requests", "help.manage"],
 ];
 const sourceLabel = (value: string) => value?.replaceAll("_", " ") || "—";
 const list = (value: any) => (Array.isArray(value) ? value : []);
@@ -74,12 +90,24 @@ const dateLabel = (value: any) =>
       })
     : "—";
 
-export default function OrganizationWorkspace({ user, notify }: Props) {
+export default function OrganizationWorkspace({
+  user,
+  notify,
+  onLogout,
+}: Props) {
+  const [principal, setPrincipal] = useState("");
+  const confirmedPrincipal = useRef("");
+  const [logoutConfirm, setLogoutConfirm] = useState(false);
+  const [logoutBusy, setLogoutBusy] = useState(false);
+  const [journalWarning, setJournalWarning] = useState(false);
+  const [abandonReason, setAbandonReason] = useState("");
+  const [abandonConfirmed, setAbandonConfirmed] = useState(false);
   const [context, setContext] = useState<RecordData | null>(null);
   const [organizationId, setOrganizationId] = useState("");
   const [branchId, setBranchId] = useState("");
   const [section, setSection] = useState("overview");
   const [data, setData] = useState<RecordData | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [orderFilters, setOrderFilters] = useState({
     query: "",
@@ -104,7 +132,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
   const [uncertainOrder, setUncertainOrder] = useState<RecordData | null>(null);
   const pendingRequests = useRef(new Map<string, string>());
   const financialRequests = useRef(new Map<string, any>());
-  const [, setFinancialRevision] = useState(0);
+  const [financialRevision, setFinancialRevision] = useState(0);
   const uncertainOrders = useRef(new Map<string, RecordData>());
   const [tabForm, setTabForm] = useState<RecordData>({});
   const organizations = list(context?.organizations);
@@ -118,6 +146,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
       !organization?.branchIds?.length ||
       organization.branchIds.includes(branch.id),
   );
+  const branchScopeKey = branches.map((branch: any) => branch.id).join("|");
   const tabsRef = useRef<HTMLDivElement | null>(null);
   const activeScope = useRef("");
   const contextGeneration = useRef(0);
@@ -144,6 +173,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
   const clearProtected = useCallback(() => {
     authorizationEpoch.current++;
     setData(null);
+    setCategories([]);
     setMembers([]);
     setProductEdit(null);
     setTabForm({});
@@ -158,6 +188,53 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
       note: "",
     });
   }, []);
+  useEffect(() => {
+    const logout = () => {
+      clearFinancialJournals();
+      financialRequests.current.clear();
+      pendingRequests.current.clear();
+      confirmedPrincipal.current = "";
+      setPrincipal("");
+      clearProtected();
+      setFinancialRevision((revision) => revision + 1);
+    };
+    window.addEventListener("mera:logout", logout);
+    return () => window.removeEventListener("mera:logout", logout);
+  }, [clearProtected]);
+  useEffect(() => {
+    if (
+      !principal ||
+      principal !== user.id ||
+      principal !== confirmedPrincipal.current ||
+      !organization ||
+      !branches.some((branch: any) => branch.id === branchId)
+    )
+      return;
+    const restored = restoreFinancialIntent(
+      principal,
+      organizationId,
+      branchId,
+    );
+    const kind = restored && financialKind(restored.path);
+    const permission =
+      kind === "refund"
+        ? "refunds.approve"
+        : kind === "cash_movement"
+          ? "shifts.manage"
+          : kind === "item_cancellation"
+            ? "orders.fulfill"
+            : "payments.record";
+    if (
+      restored &&
+      permissions.includes(permission) &&
+      (!restored.body.refundAllocations?.length ||
+        permissions.includes("refunds.approve")) &&
+      !financialRequests.current.has(branchBase)
+    ) {
+      financialRequests.current.set(branchBase, restored);
+      setFinancialRevision((revision) => revision + 1);
+    }
+  }, [principal, organizationId, branchId, context]);
   const loadContext = useCallback(
     async (quiet = false) => {
       const generation = ++contextGeneration.current;
@@ -190,6 +267,21 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
           accessDenied.current = false;
         }
         permissionFingerprint.current = fingerprint;
+        const actor = result.user?.id;
+        if (typeof actor === "string") {
+          if (
+            confirmedPrincipal.current &&
+            confirmedPrincipal.current !== actor
+          ) {
+            clearProtected();
+            financialRequests.current.clear();
+            pendingRequests.current.clear();
+            setFinancialRevision((revision) => revision + 1);
+          }
+          confirmedPrincipal.current = actor;
+          setPrincipal(actor);
+          clearFinancialJournals(actor);
+        }
         setContext(result);
         setOffline(false);
         setOrganizationId((current) =>
@@ -215,7 +307,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
           setLoading(false);
       }
     },
-    [clearProtected],
+    [clearProtected, user.id],
   );
   useEffect(() => {
     void loadContext();
@@ -251,6 +343,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
   }, [clearProtected, loadContext]);
   useEffect(() => {
     setData(null);
+    setCategories([]);
     setMembers([]);
     setTabForm({});
     setOrderDraft({
@@ -265,7 +358,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
         ? current
         : branches[0]?.id || "",
     );
-  }, [organizationId]);
+  }, [organizationId, branchScopeKey]);
   const refresh = useCallback(
     async (signal?: AbortSignal) => {
       if (!organizationId || !branchId || accessDenied.current) return;
@@ -307,6 +400,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
   useEffect(() => {
     accessDenied.current = false;
     setData(null);
+    setCategories([]);
     setTabForm({});
     setProductEdit(null);
     setOrderFilters({
@@ -382,6 +476,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
     success: string,
   ) => {
     const requestedScope = activeScope.current;
+    const requestedActor = confirmedPrincipal.current;
     const authorizationVersion = authorizationEpoch.current;
     const generation = ++mutationGeneration.current;
     setBusy(true);
@@ -414,9 +509,15 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
       }
       attemptedBody = body;
       const result = await workspaceApi(path, method, body);
-      if (financial) {
+      if (financial && requestedActor === confirmedPrincipal.current) {
+        const match = requestedScope.match(
+          /^\/organizations\/([^/]+)\/branches\/([^/]+)$/,
+        );
+        if (match && requestedActor)
+          removeFinancialIntent(requestedActor, match[1], match[2]);
+        const hadPending = financialRequests.current.has(requestedScope);
         financialRequests.current.delete(requestedScope);
-        if (activeScope.current === requestedScope)
+        if (activeScope.current === requestedScope && hadPending)
           setFinancialRevision((revision) => revision + 1);
       }
       if (signature) pendingRequests.current.delete(signature);
@@ -444,6 +545,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
     } catch (e) {
       if (
         financial &&
+        requestedActor === confirmedPrincipal.current &&
         attemptedBody &&
         e instanceof WorkspaceError &&
         (!e.status || e.status >= 500)
@@ -454,6 +556,20 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
           body: JSON.parse(JSON.stringify(attemptedBody)),
           signature: financialSignature,
         });
+        const match = requestedScope.match(
+          /^\/organizations\/([^/]+)\/branches\/([^/]+)$/,
+        );
+        if (
+          match &&
+          requestedActor &&
+          !storeFinancialIntent(
+            requestedActor,
+            match[1],
+            match[2],
+            financialRequests.current.get(requestedScope),
+          )
+        )
+          setJournalWarning(true);
         if (activeScope.current === requestedScope)
           setFinancialRevision((revision) => revision + 1);
       }
@@ -605,9 +721,20 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
     );
   const empty = (text: string) => <div className="mw-empty">{text}</div>;
   const visibleSections = sections.filter(([, , permission]) =>
-    permission === "qr.manage"
-      ? allowed("menu.publish") || allowed("tables.manage")
-      : allowed(permission),
+    permission === "help.manage"
+      ? permissions.some((permission: string) =>
+          [
+            "orders.fulfill",
+            "tables.manage",
+            "payments.record",
+            "refunds.approve",
+            "reservations.manage",
+            "organization.manage",
+          ].includes(permission),
+        )
+      : permission === "qr.manage"
+        ? allowed("menu.publish") || allowed("tables.manage")
+        : allowed(permission),
   );
   const activeSection = visibleSections.some(([id]) => id === section)
     ? section
@@ -635,6 +762,20 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
     );
   });
   const entitlements = data?.entitlements || organization?.entitlements;
+  const signOut = async () => {
+    if (!onLogout) return;
+    setLogoutBusy(true);
+    setError("");
+    try {
+      await onLogout();
+      window.dispatchEvent(new window.Event("mera:logout"));
+      setLogoutConfirm(false);
+    } catch (error) {
+      setError((error as Error).message);
+    } finally {
+      setLogoutBusy(false);
+    }
+  };
   const pendingFinancial = financialRequests.current.get(branchBase);
   const canResolveFinancial = permissions.some((permission: string) =>
     [
@@ -659,18 +800,64 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
       authorization !== authorizationEpoch.current
     )
       return;
-    if (result.status === "recorded") {
+    if (["recorded", "abandoned"].includes(result.status)) {
+      removeFinancialIntent(
+        confirmedPrincipal.current,
+        organizationId,
+        branchId,
+      );
+      pendingRequests.current.delete(
+        current.path +
+          JSON.stringify({ ...current.body, requestKey: undefined }),
+      );
       financialRequests.current.delete(branchBase);
       setFinancialRevision((revision) => revision + 1);
       setTabForm({});
       await refresh();
       notify(
-        "The original financial submission is recorded. No second entry was created.",
+        result.status === "recorded"
+          ? "The original financial submission is recorded. No second entry was created."
+          : "The original request is fenced as abandoned. A delayed retry cannot create an entry.",
       );
     } else
       setError(
         "The original submission is not yet recorded. This does not prove it was rejected. Retry the unchanged original request to resolve it safely.",
       );
+  };
+  const fenceFinancial = async () => {
+    const current = pendingFinancial;
+    if (!current) return;
+    const kind = financialKind(current.path);
+    if (!kind)
+      throw new Error("Original financial request type is not recognized.");
+    const result = await mutate(
+      branchBase +
+        "/financial-requests/" +
+        encodeURIComponent(current.body.requestKey) +
+        "/abandon",
+      "POST",
+      { kind, reason: abandonReason },
+      "Original financial request outcome verified.",
+    );
+    if (!["recorded", "abandoned"].includes(result.status))
+      throw new Error(
+        "No safe resolution was returned. The original request remains blocked.",
+      );
+    removeFinancialIntent(confirmedPrincipal.current, organizationId, branchId);
+    pendingRequests.current.delete(
+      current.path + JSON.stringify({ ...current.body, requestKey: undefined }),
+    );
+    financialRequests.current.delete(branchBase);
+    setFinancialRevision((revision) => revision + 1);
+    setTabForm({});
+    setAbandonReason("");
+    setAbandonConfirmed(false);
+    setJournalWarning(false);
+    notify(
+      result.status === "recorded"
+        ? "The original entry was already recorded and remains intact."
+        : "The original request is abandoned and fenced against delayed retries. No posted funds were reversed.",
+    );
   };
   const quoteIntent = JSON.stringify({
     menuVersion: data?.menuVersion,
@@ -724,6 +911,34 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
               ))}
             </select>
           </label>
+          <div className="mw-staff-profile">
+            <span className="mw-staff-avatar" aria-hidden="true">
+              {String(context?.user?.name || user?.name || "Staff")
+                .split(" ")
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((name) => name[0])
+                .join("")
+                .toUpperCase()}
+            </span>
+            <span>{context?.user?.name || user?.name || "Staff member"}</span>
+          </div>
+          {onLogout && (
+            <button
+              className="secondary"
+              disabled={busy || logoutBusy}
+              onClick={() => {
+                if (
+                  financialRequests.current.size ||
+                  uncertainOrders.current.size
+                )
+                  setLogoutConfirm(true);
+                else void signOut();
+              }}
+            >
+              {logoutBusy ? "Signing out…" : "Sign out"}
+            </button>
+          )}
           <button
             className="secondary"
             onClick={() => {
@@ -737,6 +952,63 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
           </button>
         </div>
       </header>
+      {logoutConfirm && (
+        <div className="mw-dialog-backdrop">
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="mw-signout-title"
+            aria-describedby="mw-signout-detail"
+            className="mw-card"
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && !logoutBusy)
+                setLogoutConfirm(false);
+              if (event.key === "Tab") {
+                const buttons =
+                  event.currentTarget.querySelectorAll<HTMLButtonElement>(
+                    "button:not(:disabled)",
+                  );
+                const first = buttons[0],
+                  last = buttons[buttons.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                  event.preventDefault();
+                  last?.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                  event.preventDefault();
+                  first?.focus();
+                }
+              }
+            }}
+          >
+            <h2 id="mw-signout-title">
+              An original submission still needs resolution
+            </h2>
+            <p id="mw-signout-detail">
+              Signing out clears this tab’s recovery details. It does not
+              cancel, abandon or reverse the server request. Keep the session
+              open to check its result, or make an explicit choice to sign out
+              and arrange reconciliation.
+            </p>
+            <div className="mw-actions">
+              <button
+                autoFocus
+                className="primary"
+                disabled={logoutBusy}
+                onClick={() => setLogoutConfirm(false)}
+              >
+                Keep this session open
+              </button>
+              <button
+                className="secondary"
+                disabled={logoutBusy}
+                onClick={() => void signOut()}
+              >
+                Sign out and clear tab recovery
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
       <div className="mw-heading">
         <div>
           <div className="mw-eyebrow">
@@ -830,9 +1102,62 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
           )}
         </div>
       )}
-      {pendingFinancial && canResolveFinancial && (
+      {pendingFinancial && canResolveFinancial && data && (
         <div role="status" className="mw-note">
-          <strong>Financial submission not confirmed</strong>
+          <strong>
+            {pendingFinancial.restored
+              ? "Restored unconfirmed financial submission"
+              : "Financial submission not confirmed"}
+          </strong>
+          <details>
+            <summary>Review original intended entry</summary>
+            <dl>
+              <dt>Entry type</dt>
+              <dd>
+                {financialKind(pendingFinancial.path)?.replaceAll("_", " ")}
+              </dd>
+              {pendingFinancial.body.amount !== undefined && (
+                <>
+                  <dt>Amount</dt>
+                  <dd>{formatMoney(pendingFinancial.body.amount)}</dd>
+                </>
+              )}
+              {pendingFinancial.body.quantity !== undefined && (
+                <>
+                  <dt>Item quantity</dt>
+                  <dd>{pendingFinancial.body.quantity}</dd>
+                </>
+              )}
+              {pendingFinancial.body.method && (
+                <>
+                  <dt>Manual payment method</dt>
+                  <dd>{sourceLabel(pendingFinancial.body.method)}</dd>
+                </>
+              )}
+              {pendingFinancial.body.reference && (
+                <>
+                  <dt>Manual reference</dt>
+                  <dd>{pendingFinancial.body.reference}</dd>
+                </>
+              )}
+              {pendingFinancial.body.reason && (
+                <>
+                  <dt>Reason</dt>
+                  <dd>{pendingFinancial.body.reason}</dd>
+                </>
+              )}
+              <dt>Recovery request ID</dt>
+              <dd style={{ overflowWrap: "anywhere" }}>
+                {pendingFinancial.body.requestKey}
+              </dd>
+            </dl>
+          </details>
+          {journalWarning && (
+            <p>
+              This tab could not save recovery details. Keep it open until the
+              original result is resolved.
+            </p>
+          )}
           <p>
             This session has an unresolved financial action for this branch.
             Changes to its amount, reference or target and other financial
@@ -870,6 +1195,57 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
               Check original financial record
             </button>
           </div>
+          <details>
+            <summary>
+              Resolve an original request that should no longer post
+            </summary>
+            <p>
+              The server checks the original request under a lock. If already
+              recorded, its entry remains intact. Otherwise a durable fence
+              prevents delayed retries from posting. This never reverses a
+              recorded payment or refund.
+            </p>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void fenceFinancial().catch((error) => {
+                  if (
+                    activeScope.current === branchBase &&
+                    scopeEpoch.current.generation === scopeVersion
+                  )
+                    setError(error.message);
+                });
+              }}
+            >
+              <label>
+                Resolution reason
+                <input
+                  required
+                  minLength={3}
+                  maxLength={300}
+                  value={abandonReason}
+                  onChange={(event) => setAbandonReason(event.target.value)}
+                />
+              </label>
+              <label className="mw-row">
+                <span>
+                  I want to prevent the unresolved original request from posting
+                  if it is not already recorded.
+                </span>
+                <input
+                  type="checkbox"
+                  required
+                  checked={abandonConfirmed}
+                  onChange={(event) =>
+                    setAbandonConfirmed(event.target.checked)
+                  }
+                />
+              </label>
+              <button disabled={busy || offline || !abandonConfirmed}>
+                Fence original request or confirm its recorded result
+              </button>
+            </form>
+          </details>
         </div>
       )}
       {!!organizations.length && (
@@ -1014,6 +1390,15 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                   key={branchBase + "pricing"}
                   base={branchBase}
                   policy={branch?.settings?.pricingPolicy}
+                  disabled={busy || offline}
+                  save={mutate}
+                />
+              )}
+              {activeSection === "help" && (
+                <HelpRequests
+                  key={branchBase}
+                  base={branchBase}
+                  permissions={permissions}
                   disabled={busy || offline}
                   save={mutate}
                 />
@@ -1210,6 +1595,31 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                     save={mutate}
                   />
                 )}
+              {activeSection === "menu" && (
+                <>
+                  <Categories
+                    key={branchBase + "categories"}
+                    base={branchBase}
+                    disabled={busy || offline}
+                    save={mutate}
+                    onCategories={(rows) => {
+                      if (
+                        activeScope.current === branchBase &&
+                        scopeEpoch.current.generation === scopeVersion
+                      )
+                        setCategories(rows);
+                    }}
+                  />
+                  <CatalogOperations
+                    key={branchBase + "catalog-operations"}
+                    base={branchBase}
+                    products={products}
+                    alerts={list(data.lowStockAlerts)}
+                    disabled={busy || offline}
+                    save={mutate}
+                  />
+                </>
+              )}
               {activeSection === "menu" && (
                 <SharedMenus
                   key={branchBase}
@@ -1419,8 +1829,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                         {[
                           ["Product name", "name"],
                           ["Product code", "code"],
-                          ["Category", "category"],
-                          ["Parent category", "parentCategory"],
+
                           ["Size", "size"],
                         ].map(([label, key]) => (
                           <label key={key}>
@@ -1441,6 +1850,85 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                             />
                           </label>
                         ))}
+                        <label>
+                          Structured category
+                          <select
+                            value={productEdit.categoryId || ""}
+                            onChange={(event) => {
+                              const category = categories.find(
+                                (row) => row.id === event.target.value,
+                              );
+                              setProductEdit({
+                                ...productEdit,
+                                categoryId: event.target.value || null,
+                                ...(category
+                                  ? {
+                                      category: category.name,
+                                      categoryPath: categoryPath(
+                                        category,
+                                        categories,
+                                      ),
+                                    }
+                                  : {}),
+                              });
+                            }}
+                          >
+                            <option value="">Use existing text category</option>
+                            {categories
+                              .filter((category) => category.active)
+                              .map((category) => (
+                                <option key={category.id} value={category.id}>
+                                  {categoryPath(category, categories)}
+                                </option>
+                              ))}
+                          </select>
+                        </label>
+                        {!productEdit.categoryId && (
+                          <>
+                            <label>
+                              Category
+                              <input
+                                required
+                                value={productEdit.category || ""}
+                                onChange={(event) =>
+                                  setProductEdit({
+                                    ...productEdit,
+                                    category: event.target.value,
+                                  })
+                                }
+                              />
+                            </label>
+                            <label>
+                              Parent category
+                              <input
+                                value={productEdit.parentCategory || ""}
+                                onChange={(event) =>
+                                  setProductEdit({
+                                    ...productEdit,
+                                    parentCategory: event.target.value || null,
+                                  })
+                                }
+                              />
+                            </label>
+                          </>
+                        )}
+                        <label>
+                          Low-stock alert threshold
+                          <input
+                            required
+                            type="number"
+                            min={0}
+                            max={1000000}
+                            step={1}
+                            value={productEdit.lowStockThreshold ?? 5}
+                            onChange={(event) =>
+                              setProductEdit({
+                                ...productEdit,
+                                lowStockThreshold: Number(event.target.value),
+                              })
+                            }
+                          />
+                        </label>
                         <label>
                           Price in naira
                           <input
@@ -1850,7 +2338,20 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                                   )}
                                 </details>
                                 {allowed("orders.fulfill") && (
+                                  <ItemFulfillment
+                                    key={branchBase + order.id}
+                                    base={branchBase}
+                                    order={order}
+                                    tickets={list(data.tickets)}
+                                    disabled={busy || offline}
+                                    save={mutate}
+                                  />
+                                )}
+                                {allowed("orders.fulfill") && (
                                   <ItemCancellation
+                                    key={
+                                      branchBase + order.id + financialRevision
+                                    }
                                     base={branchBase}
                                     order={order}
                                     refunds={list(data.refunds)}
@@ -2269,6 +2770,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
               )}
               {activeSection === "tables" && (
                 <Bills
+                  key={branchBase + financialRevision}
                   bills={list(data.bills)}
                   base={branchBase}
                   disabled={busy || offline}
@@ -2295,6 +2797,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                         </span>
                       </div>
                       <ReservationSettlement
+                        key={branchBase + reservation.id + financialRevision}
                         reservation={reservation}
                         tables={list(data.tables)}
                         base={branchBase}
@@ -2596,6 +3099,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                       />
                       {shift.status === "open" && (
                         <CashMovement
+                          key={branchBase + shift.id + financialRevision}
                           base={branchBase}
                           shiftId={shift.id}
                           disabled={busy || offline}
@@ -2709,6 +3213,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                     organizationId={organizationId}
                     branchId={branchId}
                     permissions={permissions}
+                    canGrantOwner={organization?.role === "owner"}
                     onAccessChanged={() => void loadContext(true)}
                     disabled={busy || offline}
                     save={mutate}

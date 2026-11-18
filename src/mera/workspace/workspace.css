@@ -363,3 +363,33 @@
   border: 1px solid #e9e6e2;
   border-radius: 8px;
 }
+.mw-staff-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #625d65;
+}
+.mw-staff-avatar {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8effb;
+  color: #2459b5;
+  font-weight: 650;
+}
+.mw-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(25, 23, 30, 0.4);
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.mw-dialog-backdrop > .mw-card {
+  width: min(100%, 540px);
+  box-shadow: 0 16px 80px #29262b25;
+}

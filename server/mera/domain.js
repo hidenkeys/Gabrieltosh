@@ -79,6 +79,9 @@ export function quote(items, products) {
       productId: p.id,
       variantId: variant?.id || null,
       code: p.code,
+      categoryId:p.categoryId||null,
+      category:p.category,
+      categoryPath:p.categoryPath||[],
       name: p.name,
       size: variant?.name || p.size,
       quantity: line.quantity,
@@ -213,7 +216,7 @@ export function report(records, branch, date) {
   const recognized = allOrders.filter(
     (o) => recognizedAt(o) && day(recognizedAt(o)) === date,
   );
-  const grossSales = recognized.reduce((n, o) => n + (o.recognitionTotal??o.total)-(o.pricing?.tax||0), 0);
+  const grossSales = recognized.reduce((n, o) => n + (o.recognitionTotal??o.total)-(o.recognitionPricing?.tax??o.pricing?.tax??0), 0);
   const salesReturns = records
     .filter((r) => r.kind === "refund")
     .map((r) => r.data)
@@ -234,9 +237,9 @@ export function report(records, branch, date) {
       .reduce((n, o) => n + o.total, 0),
     recognitionBasis: "immutable_collected_at",
     grossSales,
-    recognizedTax:recognized.reduce((n,o)=>n+(o.pricing?.tax||0),0),
-    discounts:recognized.reduce((n,o)=>n+(o.pricing?.discount||0),0),
-    serviceCharges:recognized.reduce((n,o)=>n+(o.pricing?.serviceCharge||0),0),
+    recognizedTax:recognized.reduce((n,o)=>n+(o.recognitionPricing?.tax??o.pricing?.tax??0),0),
+    discounts:recognized.reduce((n,o)=>n+(o.recognitionPricing?.discount??o.pricing?.discount??0),0),
+    serviceCharges:recognized.reduce((n,o)=>n+(o.recognitionPricing?.serviceCharge??o.pricing?.serviceCharge??0),0),
     deposits:records.filter(r=>r.kind==="deposit" && day(r.data.createdAt)===date).reduce((n,r)=>n+r.data.amount,0),
     collections: payments.reduce((n, p) => n + p.amount, 0),
     refunds: refunds.reduce((n, r) => n + r.amount, 0),

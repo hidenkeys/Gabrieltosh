@@ -49,3 +49,13 @@ Images are limited to PNG/JPEG/WebP raster uploads,512KB each and4096px per side
 Platform status changes can configure trial end/paid-through/due dates explicitly. Proposed merchant commercial edits do not replace the approved snapshot used for entitlements. A production trial without an explicit date stays restricted; unknown grace periods do not silently become an unlimited trial. Paid active service and authorized exports continue. Commercial approval requires resolved fee/duration choices and an audit reason, and always leaves live billing disabled.
 
 Financial validation rule: make source/test edits in normal calls, inspect assertions on disk, then run the isolated PG command separately. An approval timeout means the command did not execute; never report intended edits or tests as completed. Review the exact assertion and actual stdout before closing a financial gate.
+
+## Opt-in encrypted hosted backups
+
+Set `MERA_BACKUPS_ENABLED=true` only in an approved environment with a protected persistent backup directory, a unique `BACKUP_ENCRYPTION_KEY`, explicit `BACKUP_INTERVAL_HOURS` (1–168) and `BACKUP_RETENTION_DAYS` (1–3650). The preview forces DISABLE_BACKUPS=true. Its worker does not make cloud backup calls.
+
+The worker uses a database advisory transaction lease so concurrent workers cannot duplicate a scheduled snapshot. It limits failed snapshots to3 attempts per configured interval with backoff. Ciphertext is streamed to a0600 partial file, authenticated and atomically renamed using the existing BC01 format. Libpq variables are reconstructed from the configured database URL; inherited PG service/options cannot redirect the dump. Verify pg_dump/server version compatibility in the target environment.
+
+Encrypted local files follow explicit retention; when cloud is configured, local pruning waits for successful upload. Cloud uploads use encrypted files, bounded SDK retries and a row lock to prevent concurrent upload claims. Failed transfers remain visible and require an audited platform-MFA retry reason. Snapshot metadata excludes artifact paths and ciphertext from the web API. No actual S3 destination or transfer has been validated. Key custody, storage IAM/lifecycle, host alerts, capacity and a target-environment restore exercise remain deployment requirements.
+
+Session financial journals contain only allowlisted operational request fields; they are scoped to the authenticated actor and branch and never contain session tokens or passwords. A restored intent is unconfirmed until the server resolves it. Explicit logout warns before clearing local recovery; it does not cancel a server request. Use the fenced abandonment outcome when an unrecorded request needs to be cancelled safely.

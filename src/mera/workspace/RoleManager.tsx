@@ -6,6 +6,7 @@ type Props = {
   permissions: string[];
   disabled: boolean;
   onAccessChanged?: () => void;
+  canGrantOwner?: boolean;
   save: (
     path: string,
     method: string,
@@ -19,6 +20,7 @@ export default function RoleManager({
   permissions,
   disabled,
   onAccessChanged,
+  canGrantOwner = false,
   save,
 }: Props) {
   const base = "/organizations/" + encodeURIComponent(organizationId);
@@ -51,6 +53,7 @@ export default function RoleManager({
   const eligible = [...(data?.templates || []), ...(data?.custom || [])].filter(
     (row) =>
       row.active !== false &&
+      (row.id !== "owner" || canGrantOwner) &&
       row.permissions.every((permission: string) =>
         permissions.includes(permission),
       ),
@@ -271,6 +274,13 @@ export default function RoleManager({
                   ))}
                 </div>
               </fieldset>
+              {edit.id && (
+                <p>
+                  Deactivating a custom role suspends linked members and revokes
+                  pending invitations. Restoring the role does not automatically
+                  restore those accounts or invitations.
+                </p>
+              )}
               {edit.id && (
                 <label className="mw-row">
                   <span>Role active</span>

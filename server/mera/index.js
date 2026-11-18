@@ -1,8 +1,12 @@
 import express from "express";
-import { mountMeraFinancialRequests } from "./financial-requests.js";
+import { mountMeraCategories } from "./categories.js";
+import { mountMeraHelp } from "./help.js";
+import { mountMeraFulfillment } from "./fulfillment.js";
+import { bindProductCategory } from "./catalog.js";
+import { mountMeraFinancialRequests,assertFinancialRequestActive } from "./financial-requests.js";
 import { subscriptionEntitlement } from "./subscriptions.js";
 import { migrateMeraAssets,mountMeraAssets,assertMeraAsset } from "./assets.js";
-import { mountMeraPricing, resolveQuotedPricing } from "./pricing.js";
+import { mountMeraPricing, resolveQuotedPricing, createPricingQuote } from "./pricing.js";
 import { mountMeraShifts } from "./shifts.js";
 import { mountMeraTableService } from "./table-service.js";
 import { mountMeraCancellation } from "./cancellation.js";
@@ -514,6 +518,11 @@ export function createMeraRouter(db) {
                 .map(billAmounts)
             : [],
         tickets: access.includes("orders.prepare") ? by("ticket") : [],
+        categories:access.includes("menu.edit")?by("category"):(b.settings.publishedCategories||[]),
+        lowStockAlerts:access.some(p=>["menu.edit","stock.adjust"].includes(p))?by("product").flatMap(p=>[
+          ...(p.stockMode==="counted"&&p.stock<=(p.lowStockThreshold??5)?[{productId:p.id,variantId:null,name:p.name,size:p.size,stock:p.stock,threshold:p.lowStockThreshold??5}]:[]),
+          ...p.variants.filter(v=>v.stockMode==="counted"&&v.stock<=(v.lowStockThreshold??5)).map(v=>({productId:p.id,variantId:v.id,name:p.name,size:v.name,stock:v.stock,threshold:v.lowStockThreshold??5})),
+        ]):[],
         menuVersion: b.menu_version,
         orders: access.includes("orders.view") ? by("order") : [],
         tables: access.includes("tables.manage") ? by("table") : [],
@@ -554,7 +563,7 @@ export function createMeraRouter(db) {
     if(!req.meraMembership.permissions.includes("stock.adjust") && (input.stock>0 || input.variants.some(v=>v.stock>0))) throw fail("Opening stock requires stock adjustment permission.",403);
     res.status(201).json(
       await locked(scope(req), async (c) => {
-        const p = await record(c, scope(req), "product", input);
+        const p = await record(c, scope(req), "product", await bindProductCategory(c,scope(req),input));
         await event(c, scope(req), "product_created", req.user, {
           productId: p.id,
         });
@@ -574,10 +583,8 @@ export function createMeraRouter(db) {
         const removed=old.variants.filter(v=>!input.variants.some(i=>i.id===v.id));
         const activeOrders=(await readRecords(c,scope(req).organizationId,scope(req).branchId,"order")).map(r=>r.data).filter(o=>o.stockHeld);
         if(removed.some(v=>(v.stockMode==="counted" && v.stock>0) || activeOrders.some(o=>o.items.some(l=>l.productId===old.id && l.variantId===v.id)))) throw fail("Retain sizes with remaining stock or active stock holds.",409);
-        const p = await update(c, scope(req), "product", old.id, {
-          ...input,
-          id: old.id,
-        });
+        if(!Object.hasOwn(req.body,"categoryId"))input.categoryId=old.categoryId||null;
+        const p = await update(c, scope(req), "product", old.id, await bindProductCategory(c,scope(req),{...input,id:old.id}));
         await event(c, scope(req), "product_updated", req.user, {
           productId: p.id,
         });
@@ -585,17 +592,22 @@ export function createMeraRouter(db) {
       }),
     );
   });
+  router.post(B+"/products/availability",guard("menu.edit"),async(req,res)=>{
+    const input=z.object({productIds:z.array(uuid).min(1).max(200).refine(v=>new Set(v).size===v.length),available:z.boolean(),reason:z.string().trim().min(3).max(300)}).strict().parse(req.body);
+    res.json(await locked(scope(req),async c=>{
+      const products=await Promise.all(input.productIds.map(id=>find(c,scope(req),"product",id)));
+      for(const product of products){product.available=input.available;await update(c,scope(req),"product",product.id,product);}
+      await event(c,scope(req),"bulk_product_availability",req.user,input);return {updated:products.length,available:input.available};
+    }));
+  });
   router.post(B + "/menu/publish", guard("menu.publish"), async (req, res) => {
     res.json(
       await locked(scope(req), async (c, b) => {
-        const products = (
-          await readRecords(c, b.organization_id, b.id, "product")
-        )
-          .map((r) => r.data)
-          .filter((p) => p.available);
+        const products = await Promise.all((await readRecords(c,b.organization_id,b.id,"product")).map(r=>r.data).filter(p=>p.available).map(p=>bindProductCategory(c,scope(req),p)));
+        const categories=(await readRecords(c,b.organization_id,b.id,"category")).map(r=>r.data).filter(c=>c.active);
         await c.query(
-          "UPDATE mera_branches SET published_menu=$1,menu_version=menu_version+1 WHERE id=$2 AND organization_id=$3",
-          [JSON.stringify(products), b.id, b.organization_id],
+          "UPDATE mera_branches SET published_menu=$1,menu_version=menu_version+1,settings=jsonb_set(settings,'{publishedCategories}',$2::jsonb) WHERE id=$3 AND organization_id=$4",
+          [JSON.stringify(products),JSON.stringify(categories), b.id, b.organization_id],
         );
         await event(c, scope(req), "menu_published", req.user, {
           version: b.menu_version + 1,
@@ -1014,11 +1026,13 @@ export function createMeraRouter(db) {
           o.stockHeld = false;
         }
         o.status = input.status;
+        if(input.status==="collected")for(const line of o.items){line.fulfilledQuantity=line.quantity;line.lastFulfilledAt=now();}
         if (input.status === "collected" && !o.collectedAt) {
           o.collectedAt = now();
+          const recognitionTax=o.recognitionPricing?.tax??o.pricing?.tax??0;
           const postings = [
-            { account: "merchant_sales", debit: 0, credit: (o.recognitionTotal??o.total)-(o.pricing?.tax||0) },
-            ...(o.pricing?.tax?[{account:"tax_payable",debit:0,credit:o.pricing.tax}]:[]),
+            { account: "merchant_sales", debit: 0, credit: (o.recognitionTotal??o.total)-recognitionTax },
+            ...(recognitionTax?[{account:"tax_payable",debit:0,credit:recognitionTax}]:[]),
           ];
           if (o.paid - o.refunded > 0)
             postings.push({
@@ -1153,7 +1167,7 @@ export function createMeraRouter(db) {
             )
           ).find((r) => r.data.requestKey === input.requestKey);
           if (existing) {
-            if (existing.data.intentHash !== intentHash(input))
+            if (existing.data.intentHash !== intentHash(input) || existing.data.recordedBy !== req.user.id)
               throw fail(
                 "This request key was used for different payment details.",
                 409,
@@ -1180,6 +1194,7 @@ export function createMeraRouter(db) {
               409,
               "EXCESS_PAYMENT",
             );
+          await assertFinancialRequestActive(c,scope(req),input.requestKey,"payment",req.user.id);
           await assertManualMethod(c,scope(req),input.method);
           const payment = await record(c, scope(req), "payment", {
             ...input,
@@ -1250,6 +1265,7 @@ export function createMeraRouter(db) {
           reason: z.string().trim().min(3).max(300),
           method: z.enum(["cash", "external_pos", "external_transfer"]),
           reference:z.string().max(200).default(""),
+          cancellationQuoteId:uuid.optional(),
         })
         .parse(req.body);
       res.json(
@@ -1263,7 +1279,7 @@ export function createMeraRouter(db) {
             )
           ).find((r) => r.data.requestKey === input.requestKey);
           if (existing) {
-            if (existing.data.intentHash !== intentHash(input))
+            if ((existing.data.intentHash !== intentHash(input) || existing.data.approvedBy !== req.user.id))
               throw fail(
                 "This request key was used for different payment details.",
                 409,
@@ -1277,9 +1293,22 @@ export function createMeraRouter(db) {
             return existing.data;
           }
           const o = await find(c, scope(req), "order", req.params.id);
+          if(input.cancellationQuoteId && (await readRecords(c,scope(req).organizationId,scope(req).branchId,"refund")).some(r=>r.data.cancellationQuoteId===input.cancellationQuoteId))throw fail("This cancellation quote already has a recorded refund.",409);
           if (input.amount > o.paid - o.refunded)
             throw fail("Refund exceeds collected funds.");
-          const taxAmount=Math.min((o.pricing?.tax||0)-(o.refundedTax||0),Number((BigInt(input.amount)*BigInt(o.pricing?.tax||0)+BigInt(o.recognitionTotal??o.total)/2n)/BigInt(o.recognitionTotal??o.total)));
+          await assertFinancialRequestActive(c,scope(req),input.requestKey,"refund",req.user.id);
+          let plannedTax=null;
+          if(input.cancellationQuoteId){
+            const review=await find(c,scope(req),"cancellation_quote",input.cancellationQuoteId);
+            const line=o.items.find(l=>l.orderLineId===review.orderLineId);
+            if(review.orderId!==o.id||review.previousTotal!==o.total||review.creditRequired!==input.amount||review.lineQuantity!==line?.quantity||review.policyVersion!==o.pricing?.policyVersion||Date.parse(review.expiresAt)<=Date.now())throw fail("Review a current cancellation quote before recording its refund.",409,"CANCELLATION_QUOTE_CHANGED");
+            if((await readRecords(c,scope(req).organizationId,scope(req).branchId,"refund")).some(r=>r.data.cancellationQuoteId===review.id))throw fail("This cancellation quote already has a recorded refund.",409);
+            plannedTax=review.refundTaxAmount;
+          }
+          const originalTax=o.recognitionPricing?.tax??o.pricing?.tax??0;
+          const remainingTax=originalTax-(o.refundedTax||0);
+          const taxAmount=plannedTax??Math.min(remainingTax,Number((BigInt(input.amount)*BigInt(originalTax)+BigInt(o.recognitionTotal??o.total)/2n)/BigInt(o.recognitionTotal??o.total)));
+          if(taxAmount<0||taxAmount>remainingTax)throw fail("Refund tax credits require accounting review.",409,"REFUND_TAX_REVIEW_REQUIRED");
           const refund = await record(c, scope(req), "refund", {
             taxAmount,
             ...input,
@@ -1698,6 +1727,7 @@ export function createMeraRouter(db) {
         await locked(scope(req), async (c) => {
           const previous=(await readRecords(c,scope(req).organizationId,scope(req).branchId,"cash_movement")).map(r=>r.data).find(r=>r.requestKey===input.requestKey);
           if(previous){if(previous.intentHash!==intentHash(input)||previous.shiftId!==req.params.id||previous.actorId!==req.user.id)throw fail("Cash movement request key conflict.",409,"IDEMPOTENCY_CONFLICT");return previous;}
+          await assertFinancialRequestActive(c,scope(req),input.requestKey,"cash_movement",req.user.id);
           const shift = await find(c, scope(req), "shift", req.params.id);
           if (shift.status !== "open") throw fail("The shift is closed.", 409);
           return record(c, scope(req), "cash_movement", {
@@ -2041,6 +2071,7 @@ export function createMeraRouter(db) {
       branch: branchView(b),
       version: b.menu_version,
       products,
+      categories:b.settings.publishedCategories||[],
       tables,
       providers,
       orderingAvailable: !b.settings.orderingPaused && !!b.menu_version && availableNow(b.settings.serviceHours,b.timezone) && subscriptionEntitlement(organization.subscription,organization.subscription?.approvedPolicySnapshot||organization.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production").newOrdersAllowed,
@@ -2634,7 +2665,7 @@ export function createMeraRouter(db) {
             )
           ).find((r) => r.data.requestKey === input.requestKey);
           if (existing) {
-            if (existing.data.intentHash !== intentHash(input))
+            if ((existing.data.intentHash !== intentHash(input) || existing.data.recordedBy !== req.user.id))
               throw fail(
                 "This request key was used for different payment details.",
                 409,
@@ -2658,6 +2689,7 @@ export function createMeraRouter(db) {
           );
           if (bill.status !== "open" || input.amount > bill.balance)
             throw fail("Payment exceeds this open bill balance.", 409);
+          await assertFinancialRequestActive(c,scope(req),input.requestKey,"payment",req.user.id);
           await assertManualMethod(c,scope(req),input.method);
           const payment = await record(c, scope(req), "payment", {
             ...input,
@@ -2824,7 +2856,7 @@ export function createMeraRouter(db) {
             )
           ).find((r) => r.data.requestKey === input.requestKey);
           if (existing) {
-            if (existing.data.intentHash !== intentHash(input))
+            if ((existing.data.intentHash !== intentHash(input) || existing.data.recordedBy !== req.user.id))
               throw fail(
                 "This request key was used for different payment details.",
                 409,
@@ -2859,6 +2891,7 @@ export function createMeraRouter(db) {
             policy.amount - deposits.reduce((n, d) => n + d.amount, 0)
           )
             throw fail("Deposit exceeds the required deposit balance.", 409);
+          await assertFinancialRequestActive(c,scope(req),input.requestKey,"deposit",req.user.id);
           await assertManualMethod(c,scope(req),input.method);
           const deposit = await record(c, scope(req), "deposit", {
             ...input,
@@ -3106,7 +3139,10 @@ export function createMeraRouter(db) {
     },
   );
 
-  mountMeraFinancialRequests(router,{db,guard});
+  mountMeraCategories(router,{db,guard,scope,locked,record,readRecords,find,update,event});
+  mountMeraHelp(router,{db,guard,scope,locked,record,readRecords,find,update,event,publicContext,guest});
+  mountMeraFulfillment(router,{guard,scope,locked,record,readRecords,find,update,event,paidForBill});
+  mountMeraFinancialRequests(router,{db,guard,scope,locked,record,event});
   mountMeraAssets(router,{db,guard,scope,event});
   mountMeraPricing(router,{guard,scope,locked,record,readRecords,event,publicContext,guest});
   mountMeraShifts(router,{db,guard,scope,locked,find,update,event});
@@ -3139,6 +3175,7 @@ export function createMeraRouter(db) {
     readRecords,
     find,
     event,
+    quoteOrder:(s,body,actor)=>createPricingQuote({locked,record,readRecords},s,body,actor,null),
     createOrder,
     reservation,
   });

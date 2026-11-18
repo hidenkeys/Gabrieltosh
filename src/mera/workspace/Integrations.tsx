@@ -54,6 +54,24 @@ export default function Integrations({
           initiate real payments.
         </p>
       </div>
+      <details>
+        <summary>Zidi adapter capabilities & quote flow</summary>
+        <p>
+          Internal test adapter v1.1.0. The orders.create capability authorizes
+          credential-bound pricing quotes and orders. Request a quote at POST
+          /api/mera/v1/integrations/zidi/v1/quote with the current menu version
+          and selected items, then submit its quoteId with the order before
+          expiry. Quotes from staff sessions or another credential cannot be
+          reused.
+        </p>
+        <p>
+          Published menu responses include category snapshots, branch-local
+          schedules, live size stock and pricing-policy requirements. Outbound
+          event delivery remains blocked until the external signed-event
+          contract is verified. This adapter does not confirm payments or move
+          funds.
+        </p>
+      </details>
       {error && <p role="alert">{error}</p>}
       {token && (
         <div className="mw-note">
