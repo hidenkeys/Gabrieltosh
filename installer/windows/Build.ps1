@@ -26,7 +26,7 @@ function Checked([scriptblock]$Command) {
 }
 Checked { npm ci }
 Checked { npm run build }
-Copy-Item 'dist', 'server', 'scripts', 'docs', 'public' $app -Recurse
+Copy-Item 'dist', 'server', 'scripts', 'docs', 'public', 'shared' $app -Recurse
 Copy-Item 'package.json', 'package-lock.json', 'README.md' $app
 Checked { npm ci --omit=dev --prefix $app }
 

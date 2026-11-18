@@ -1,6 +1,7 @@
 import { store } from "./brand";
 import { ProductImage } from "./ProductImage";
 import { CustomerMenu } from "./CustomerMenu";
+import OrganizationWorkspace from "./mera/workspace/OrganizationWorkspace";
 import React, { useEffect, useState, useCallback } from "react";
 import {
   LayoutGrid,
@@ -241,6 +242,7 @@ export default function App() {
   }, []);
   useEffect(() => {
     if (!user) return;
+    if (window.location.pathname.startsWith("/mera/")) return;
     refresh();
     const interval = setInterval(refresh, 5000);
     return () => clearInterval(interval);
@@ -259,6 +261,8 @@ export default function App() {
       </div>
     );
   if (!user) return <Login onLogin={setUser} />;
+  if (window.location.pathname.startsWith("/mera/workspace"))
+    return <OrganizationWorkspace user={user} notify={notify} />;
   const admin = user.role === "admin",
     manager = user.role !== "cashier";
   const nav = [
@@ -474,7 +478,9 @@ export default function App() {
               notify={notify}
             />
           )}
-          {page === "customer-menu" && admin && <CustomerMenu products={products} notify={notify} />}
+          {page === "customer-menu" && admin && (
+            <CustomerMenu products={products} notify={notify} />
+          )}
           {page === "team" && <Team notify={notify} />}
           {page === "audit" && <Audit />}
           {page === "system" && <System printing={printing} />}
@@ -493,6 +499,7 @@ export default function App() {
   );
 }
 function Login({ onLogin }: { onLogin: (u: User) => void }) {
+  const mera = window.location.pathname.startsWith("/mera/");
   const [username, setUsername] = useState(""),
     [password, setPassword] = useState(""),
     [error, setError] = useState(""),
@@ -504,7 +511,8 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
         <div className="brand light">
           <img className="brand-logo" src={store.logo} alt="Bing Chun mascot" />
           <span>
-            Bing Chun<small>STORE WORKSPACE</small>
+            {mera ? "Mera" : "Bing Chun"}
+            <small>{mera ? "HOSPITALITY WORKSPACE" : "STORE WORKSPACE"}</small>
           </span>
         </div>
         <div className="login-copy">
@@ -536,7 +544,8 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
       <section className="login-form">
         <div className="login-card">
           <span className="pill">
-            <span className="online-dot" /> YOUR LOCAL STORE
+            <span className="online-dot" />{" "}
+            {mera ? "YOUR ORGANIZATION WORKSPACE" : "YOUR LOCAL STORE"}
           </span>
           <h2>Welcome to your shift.</h2>
           <p>Sign in with the account your administrator created.</p>
@@ -598,14 +607,20 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
           <div className="login-footnote">
             <ShieldCheck size={17} />
             <span>
-              Staff access on handhelds.
+              {mera
+                ? "Access follows your organization and branch permissions."
+                : "Staff access on handhelds."}
               <br />
-              Administration on the store computer.
+              {mera
+                ? "Use the account assigned to your team."
+                : "Administration on the store computer."}
             </span>
           </div>
         </div>
         <small className="login-version">
-          BING CHUN POS · LOCAL-FIRST WORKSPACE
+          {mera
+            ? "MERA · DEVELOPMENT WORKSPACE"
+            : "BING CHUN POS · LOCAL-FIRST WORKSPACE"}
         </small>
       </section>
     </div>

@@ -1,0 +1,219 @@
+.mera-marketing {
+  background: #fffdf8;
+  color: #29262b;
+  min-height: 100vh;
+}
+.mera-marketing header,
+.mera-marketing main,
+.mera-marketing footer {
+  width: min(1160px, calc(100% - 48px));
+  margin: auto;
+}
+.mera-marketing header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 26px 0;
+  border-bottom: 1px solid var(--line);
+}
+.mera-wordmark {
+  font-size: 34px;
+  font-weight: 850;
+  letter-spacing: -2px;
+  text-decoration: none;
+}
+.mera-wordmark span {
+  color: var(--brand);
+}
+.mera-marketing nav,
+.mera-marketing footer {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.mera-marketing nav a {
+  text-decoration: none;
+}
+.mera-hero {
+  padding: 90px 0 70px;
+  max-width: 850px;
+}
+.mera-hero h1 {
+  font-size: clamp(48px, 7vw, 88px);
+  line-height: 1.03;
+  letter-spacing: -4px;
+  margin: 20px 0 26px;
+}
+.mera-hero > p:not(.eyebrow) {
+  font-size: 20px;
+  line-height: 1.6;
+  max-width: 650px;
+  color: #6d6770;
+}
+.mera-hero > div {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 30px 0 16px;
+}
+.mera-marketing .primary,
+.mera-marketing .secondary {
+  text-decoration: none;
+  display: inline-flex;
+  padding: 15px 22px;
+  border-radius: 12px;
+}
+.mera-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.mera-features article {
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #fff;
+}
+.mera-features h2,
+.mera-pricing h2 {
+  font-size: 30px;
+  margin: 16px 0;
+}
+.mera-features article > p:last-child,
+.mera-pricing > p {
+  line-height: 1.7;
+  color: #6d6770;
+}
+.mera-pricing {
+  padding: 60px 0;
+  max-width: 760px;
+}
+.mera-pricing > p {
+  margin: 14px 0;
+}
+.mera-marketing footer {
+  padding: 30px 0;
+  border-top: 1px solid var(--line);
+  color: #6d6770;
+}
+.mera-marketing small {
+  color: #6d6770;
+}
+@media (max-width: 700px) {
+  .mera-features {
+    grid-template-columns: 1fr;
+  }
+  .mera-hero {
+    padding: 55px 0;
+  }
+  .mera-hero h1 {
+    letter-spacing: -2px;
+  }
+  .mera-marketing nav {
+    gap: 12px;
+    font-size: 12px;
+  }
+}
+.mera-mode-list {
+  display: grid;
+  gap: 12px;
+  margin: 24px 0;
+}
+.mera-mode-list article {
+  background: white;
+  border: 1px solid var(--line);
+  padding: 20px;
+  border-radius: 15px;
+}
+.mera-mode-list h3 {
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+.mera-mode-list p {
+  line-height: 1.6;
+  color: #6d6770;
+}
+.mera-readiness-note {
+  padding: 16px;
+  border-left: 3px solid #1558c9;
+  background: #edf5ff;
+  border-radius: 0 12px 12px 0;
+  font-size: 13px;
+}
+.mera-price-card {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 28px;
+  background: white;
+  margin: 25px 0;
+}
+.mera-price-card > span {
+  display: block;
+  letter-spacing: 1.5px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #1558c9;
+}
+.mera-price-card > strong {
+  display: block;
+  font-size: 40px;
+  letter-spacing: -1.5px;
+  margin: 16px 0;
+}
+.mera-price-card small {
+  font-size: 13px;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+.mera-price-card p {
+  line-height: 1.7;
+  color: #6d6770;
+}
+.mera-support-links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+.mera-contact {
+  border-top: 1px solid var(--line);
+}
+.mera-marketing .mera-pricing h1 {
+  font-family: Georgia, serif;
+  font-size: 40px;
+  margin: 20px 0;
+}
+.mera-marketing .mera-pricing section {
+  margin: 24px 0;
+}
+.mera-marketing .mera-pricing section h2 {
+  font-size: 24px;
+}
+.mera-marketing .mera-pricing section p {
+  line-height: 1.7;
+  color: #6d6770;
+}
+@media (max-width: 500px) {
+  .mera-marketing header,
+  .mera-marketing main,
+  .mera-marketing footer {
+    width: calc(100% - 30px);
+  }
+  .mera-price-card {
+    padding: 20px;
+  }
+  .mera-price-card > strong {
+    font-size: 33px;
+  }
+  .mera-price-card small {
+    display: block;
+    margin-top: 6px;
+  }
+  .mera-marketing header {
+    align-items: flex-start;
+    gap: 15px;
+  }
+  .mera-marketing nav {
+    justify-content: flex-end;
+  }
+}

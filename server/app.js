@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { randomUUID, randomBytes, createHash } from "node:crypto";
 import { z } from "zod";
 import { mountCustomerMenu } from "./customer-menu.js";
+import { createMeraRouter } from "./mera/index.js";
 import { query, transaction } from "./db.js";
 import {
   priceOrder,
@@ -104,6 +105,17 @@ export function createApp() {
   );
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
+  // Hosted MERA must never expose the unscoped legacy POS data routes.
+  app.use("/api", (req, res, next) => {
+    if (
+      process.env.MERA_ENABLED === "true" &&
+      process.env.MERA_DEMO !== "true" &&
+      !["/login", "/logout", "/me", "/health"].includes(req.path) &&
+      !req.path.startsWith("/mera/v1/")
+    )
+      return res.status(404).json({ error: "Endpoint not found." });
+    next();
+  });
   app.use("/api", (req, res, next) => {
     res.set("Cache-Control", "no-store");
     if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
@@ -135,6 +147,8 @@ export function createApp() {
       next(e);
     }
   });
+  if (process.env.MERA_ENABLED === "true")
+    app.use("/api/mera/v1", createMeraRouter({ query, transaction }));
   app.get("/api/health", async (req, res) => {
     await query("SELECT 1");
     res.json({
@@ -173,6 +187,7 @@ export function createApp() {
     if (
       user.role === "admin" &&
       !local(req) &&
+      process.env.MERA_ENABLED !== "true" &&
       process.env.ADMIN_ALLOW_REMOTE !== "true"
     )
       throw fail(
