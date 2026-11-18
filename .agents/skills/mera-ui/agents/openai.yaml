@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mera UI"
+  short_description: "Preserve Bing Chun design and verify Mera workflows"
+  default_prompt: "Use $mera-ui to improve this Mera screen using verified Bing Chun components and browser comparisons."
