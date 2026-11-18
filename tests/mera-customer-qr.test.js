@@ -480,6 +480,8 @@ test("reservation acknowledgement and original details survive uncertain deliver
     if (path.endsWith("/guests")) return Response.json({ displayName: "Ada" });
     if (path.endsWith("/reservations")) {
       attempts.push(JSON.parse(init.body));
+      if (attempts.length === 2)
+        return Response.json({ error: "Please try later" }, { status: 429 });
       throw new TypeError("Failed to fetch");
     }
     throw Error("Unexpected request");
@@ -529,6 +531,13 @@ test("reservation acknowledgement and original details survive uncertain deliver
   assert.equal(attempts[0].minimumSpendPolicyVersion, "booking-v1");
   assert.equal(attempts[0].minimumSpendAcknowledged, true);
   assert.equal(attempts[0].tableId, "table-preference");
+  assert.equal(document.querySelector("fieldset").disabled, true);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Retry original reservation" }),
+  );
+  await screen.findByRole("alert");
+  assert.equal(attempts.length, 3);
+  assert.deepEqual(attempts[0], attempts[2]);
   cleanup();
 });
 

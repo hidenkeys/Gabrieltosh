@@ -1050,3 +1050,38 @@
     margin-top: 10px;
   }
 }
+
+.mera-customer .mc-reservation-panel {
+  max-width: 780px;
+  margin-inline: auto;
+  overflow-wrap: anywhere;
+}
+.mera-customer .mc-reservation-panel .mc-form-grid {
+  gap: 16px;
+}
+.mera-customer .mc-reservation-panel label small {
+  display: block;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #51647d;
+}
+.mera-customer .mc-reservation-panel input,
+.mera-customer .mc-reservation-panel select,
+.mera-customer .mc-reservation-panel button {
+  min-height: 44px;
+}
+.mera-customer .mc-reservation-panel input[type="checkbox"] {
+  min-height: 24px;
+  min-width: 24px;
+}
+.mera-customer .mc-reservation-panel fieldset {
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .mera-customer .mc-reservation-panel .mc-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mera-customer .mc-reservation-panel .mc-primary {
+    width: 100%;
+  }
+}

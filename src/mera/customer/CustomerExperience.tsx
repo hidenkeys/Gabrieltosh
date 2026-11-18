@@ -175,6 +175,9 @@ export default function CustomerExperience({
   const basketHeadingRef = useRef<HTMLHeadingElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const reservationKey = useRef(requestId());
+  const reservationSessionRef = useRef<string | null>(null);
+  const reservationInFlight = useRef(false);
+  const [reservationError, setReservationError] = useState("");
   async function load() {
     setError("");
     try {
@@ -221,6 +224,9 @@ export default function CustomerExperience({
     setVisit(null);
     setHasGuest(false);
     setReservation(null);
+    setReservationIntent(null);
+    setReservationError("");
+    reservationSessionRef.current = null;
     customerRequest(prefix + "/guest")
       .then(async (session) => {
         if (!active) return;
@@ -532,6 +538,8 @@ export default function CustomerExperience({
     setJoinAcknowledged(false);
     setReservationIntent(null);
     setReservationAcknowledged(false);
+    setReservationError("");
+    reservationSessionRef.current = null;
     setFulfillment("counter_pickup");
     setTrackingError("");
     setError("");
@@ -880,10 +888,12 @@ export default function CustomerExperience({
   async function reserve(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
+    if (reservationInFlight.current) return;
+    reservationInFlight.current = true;
+    const generation = checkoutGeneration.current;
     setBusy(true);
-    setError("");
+    setReservationError("");
     try {
-      await guest();
       const start = new Date(String(data.get("startsAt")));
       const intent = reservationIntent || {
         requestKey: reservationKey.current,
@@ -906,20 +916,35 @@ export default function CustomerExperience({
           : {}),
       };
       setReservationIntent(intent);
+      if (!reservationIntent) await guest();
+      const session = await customerRequest(prefix + "/guest");
+      const sessionRef = currentSessionRef(session);
+      if (generation !== checkoutGeneration.current) return;
+      if (
+        reservationIntent &&
+        (!reservationSessionRef.current ||
+          reservationSessionRef.current !== sessionRef)
+      )
+        throw new Error(
+          "This reservation cannot be retried in a different guest session. Ask staff to check your original request before making another.",
+        );
+      reservationSessionRef.current = sessionRef;
       const next = await customerRequest(
         prefix + "/reservations",
         "POST",
         intent,
       );
+      if (generation !== checkoutGeneration.current) return;
       setReservationIntent(null);
+      reservationSessionRef.current = null;
       setReservation(next);
       reservationKey.current = requestId();
     } catch (e) {
-      if ((e as any).status && (e as any).status < 500)
-        setReservationIntent(null);
-      setError((e as Error).message);
+      if (generation === checkoutGeneration.current)
+        setReservationError((e as Error).message);
     } finally {
-      setBusy(false);
+      reservationInFlight.current = false;
+      if (generation === checkoutGeneration.current) setBusy(false);
     }
   }
   async function join(event: React.FormEvent<HTMLFormElement>) {
@@ -1747,8 +1772,16 @@ export default function CustomerExperience({
           </section>
         )}
         {tab === "reserve" && (
-          <section className="mc-panel">
+          <section className="mc-panel mc-reservation-panel">
             <h2>A table for your plans</h2>
+            <p>
+              Request a table, then check the venue’s reply under Your order.
+            </p>
+            {reservationError && (
+              <p className="mc-alert" role="alert">
+                {reservationError}
+              </p>
+            )}
             {reservation ? (
               <div>
                 <div className="mc-alert mc-success" role="status">
@@ -1855,7 +1888,12 @@ export default function CustomerExperience({
                       </label>
                     )}
                     <label>
-                      Date & time <small>Shown in this device’s timezone</small>
+                      Date & time
+                      <small>
+                        Enter your device’s local time (
+                        {Intl.DateTimeFormat().resolvedOptions().timeZone}). The
+                        venue is in {menu?.branch?.timezone || "Africa/Lagos"}.
+                      </small>
                       <input name="startsAt" type="datetime-local" required />
                     </label>
                     <label>
@@ -1901,7 +1939,7 @@ export default function CustomerExperience({
                     </div>
                   ) : menu?.reservationPolicy?.depositRequired ? (
                     <div className="mc-alert">
-                      Deposit policy approval is pending. Contact the venue
+                      Please contact the venue to arrange the required deposit
                       before booking.
                     </div>
                   ) : null}
@@ -1931,15 +1969,17 @@ export default function CustomerExperience({
                   )}
                   {minimumBlocked && (
                     <div className="mc-alert">
-                      Minimum-spend terms require approval before online booking
-                      is available.
+                      Please contact the venue to confirm minimum-spend terms
+                      before booking.
                     </div>
                   )}
                 </fieldset>
                 {reservationIntent && (
                   <p role="status">
-                    The reservation outcome is uncertain. Its original details
-                    and policy acknowledgement are preserved for this retry.
+                    Your reservation has not been confirmed here. Its original
+                    details stay locked for the same request. Keep this tab
+                    open; refreshing will not save these retry details. Check
+                    Your order or ask staff before making another booking.
                   </p>
                 )}
                 <button
@@ -1947,13 +1987,12 @@ export default function CustomerExperience({
                   disabled={
                     busy ||
                     !menu ||
-                    menu.reservationPolicy?.enabled === false ||
-                    (!!menu.reservationPolicy?.depositRequired &&
-                      !menu.reservationPolicy?.depositPolicy?.approved) ||
-                    minimumBlocked ||
-                    (minimumPolicy?.enabled &&
-                      !reservationAcknowledged &&
-                      !reservationIntent)
+                    (!reservationIntent &&
+                      (menu.reservationPolicy?.enabled === false ||
+                        (!!menu.reservationPolicy?.depositRequired &&
+                          !menu.reservationPolicy?.depositPolicy?.approved) ||
+                        minimumBlocked ||
+                        (minimumPolicy?.enabled && !reservationAcknowledged)))
                   }
                 >
                   {busy
