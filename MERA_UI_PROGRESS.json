@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-18T17:17:08+01:00",
-  "revision": "748880b",
+  "lastUpdated": "2026-11-18T17:29:28+01:00",
+  "revision": "88b8acc",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -168,7 +168,7 @@
       "workstream": "F",
       "title": "Compact shared shell, account menu and role landing",
       "weight": 4,
-      "checkpoint": 0,
+      "checkpoint": 80,
       "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
@@ -178,7 +178,11 @@
       "acceptance": "Grouped permission-aware navigation on all workspace screens; compact context/account menu; role-specific entry; diagnostics restricted; loading/error/denial/recovery states.",
       "evidence": [
         "src/mera/workspace/WorkspaceAccount.tsx",
-        "tests/mera-ui-pilot.test.tsx"
+        "tests/mera-ui-pilot.test.tsx",
+        "src/mera/workspace/presentation.ts",
+        "tests/mera-workspace.test.tsx",
+        "docs/mera/ui-audit/SHELL-BROWSER-CHECK.json",
+        "docs/mera/ui-audit/SHARED-SHELL-CHECKPOINT.md"
       ],
       "blockers": [],
       "history": [
@@ -191,6 +195,11 @@
           "at": "2026-11-18T16:10:03+01:00",
           "checkpoint": 0,
           "note": "Account menu mounted only overview/POS; full permission-aware shell and role landing pending Q1."
+        },
+        {
+          "at": "2026-11-18T17:29:28+01:00",
+          "checkpoint": 80,
+          "note": "All20 destinations use one compact grouped sidebar/account shell. Permission-based role landing, scoped selection/revocation/no-access integration tests pass. Desktop/narrow shell and Escape/focus reviewed; full role/device/content matrix remains."
         }
       ]
     },
@@ -305,7 +314,12 @@
       "acceptance": "Coherent steps, branding previews, resumable drafts and policy approvals; readable readiness/errors and branch management where real APIs allow.",
       "evidence": [
         "tests/mera-management-ui.test.tsx",
-        "src/mera/workspace/management.css"
+        "src/mera/workspace/management.css",
+        "src/mera/workspace/SetupChecklist.tsx",
+        "docs/mera/ui-audit/SETUP-MOUNT.md",
+        "docs/mera/ui-audit/screenshots/35-setup-desktop.jpg",
+        "docs/mera/ui-audit/screenshots/36-setup-narrow.jpg",
+        "docs/mera/ui-audit/screenshots/37-setup-tablet.jpg"
       ],
       "blockers": [],
       "history": [
@@ -318,6 +332,11 @@
           "at": "2026-11-18T16:10:03+01:00",
           "checkpoint": 0,
           "note": "Bounded branch settings/readiness hierarchy and state pilot; remaining branch CRUD and onboarding grouping not complete."
+        },
+        {
+          "at": "2026-11-18T17:29:28+01:00",
+          "checkpoint": 0,
+          "note": "Setup grouped into essentials, collapsed operations/appearance/policies and publication-last; existing controls preserved and desktop/tablet/narrow reviewed. Task stillpartial: full branch management and complete save/failure/launch workflow acceptance remain."
         }
       ]
     },
@@ -583,7 +602,7 @@
       "workstream": "C",
       "title": "Checkout, pending recovery, tracking and receipts",
       "weight": 5,
-      "checkpoint": 0,
+      "checkpoint": 40,
       "status": "IN_PROGRESS",
       "owner": "customer",
       "dependencies": [
@@ -591,7 +610,12 @@
       ],
       "acceptance": "Transparent server totals, immutable uncertain intent, readable statuses and receipts/history; never imply client confirmation proves payment.",
       "evidence": [
-        "tests/mera-customer-ui-correction.test.tsx"
+        "tests/mera-customer-ui-correction.test.tsx",
+        "src/mera/customer/checkoutRecovery.ts",
+        "src/mera/customer/quoteClock.ts",
+        "tests/mera-customer-recovery.test.tsx",
+        "tests/mera-customer-quote-clock.test.js",
+        "docs/mera/ui-audit/screenshots/39-customer-unpaid-tracking.jpg"
       ],
       "blockers": [],
       "history": [
@@ -604,6 +628,11 @@
           "at": "2026-11-18T16:10:03+01:00",
           "checkpoint": 0,
           "note": "Exact checkout intent protection in review; no full workflow acceptance."
+        },
+        {
+          "at": "2026-11-18T17:29:28+01:00",
+          "checkpoint": 40,
+          "note": "Immutable tab-scoped checkout recovery, authoritative attempt resolution, conservative quote expiry and self-contained receipts implemented. Actual unpaid order submitted/tracked/reopened after reload in isolated preview, no payment/receipt-print action. Controlled uncertain-network and paid-print browser fixtures remain."
         }
       ]
     },
@@ -613,19 +642,28 @@
       "title": "Visit joining, bills, rounds and help",
       "weight": 4,
       "checkpoint": 0,
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "owner": "customer",
       "dependencies": [
         "C1"
       ],
       "acceptance": "Clear branch/table context and secure code flow, private bills/service/help with loading/expiry/recovery; no staff/admin jargon.",
-      "evidence": [],
+      "evidence": [
+        "src/mera/customer/HelpRequests.tsx",
+        "docs/mera/ui-audit/screenshots/40-customer-help-narrow.jpg",
+        "docs/mera/ui-audit/screenshots/41-customer-join-narrow.jpg"
+      ],
       "blockers": [],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 0,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T17:29:28+01:00",
+          "checkpoint": 0,
+          "note": "Visit/bill/help hierarchy and loading/privacy guards corrected; unit tests pass. Browser checked help empty form and private join form only. Successful private visit, multi-round bills and deposit fixture acceptance remain."
         }
       ]
     },
@@ -762,20 +800,31 @@
       "title": "Mera platform administration",
       "weight": 4,
       "checkpoint": 0,
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "owner": "backend",
       "dependencies": [
         "F2",
         "F4"
       ],
       "acceptance": "Selected Mera identity adapted to efficient authorized tables/drilldowns, MFA, directory/subscriptions/provider/fees/exceptions/support/audit; preserve security.",
-      "evidence": [],
-      "blockers": [],
+      "evidence": [
+        "src/mera/Platform.tsx",
+        "tests/mera-platform-ui.test.tsx",
+        "docs/mera/ui-audit/screenshots/38-platform-access-state.jpg"
+      ],
+      "blockers": [
+        "Authenticated platform visual acceptance requires an authorized platform operator with MFA; current browser session has organization access only."
+      ],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 0,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T17:29:28+01:00",
+          "checkpoint": 0,
+          "note": "Ivory/green platform styling, compact section directory/filter and accessible review dialog implemented;5 DOM regressions pass. Browser inspected access-denied state only: existing demo principal has organization scope, no platform-operator MFA session."
         }
       ]
     },
@@ -1773,6 +1822,13 @@
       "scopeWeight": 100,
       "weightedPoints": 27.6,
       "roundedCompletion": 27
+    },
+    {
+      "at": "2026-11-18T17:29:28+01:00",
+      "event": "Shared all-page shell visual/role checks accepted; checkout recovery state implementation credited. Setup/platform/customer follow-on slices remain partial; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 32.8,
+      "roundedCompletion": 32
     }
   ],
   "baselineRevision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd"

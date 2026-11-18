@@ -2,6 +2,10 @@ import { useEffect, useState, useRef } from "react";
 import { workspaceApi, formatMoney, WorkspaceError } from "./workspace/api";
 
 export default function Platform() {
+  const reviewDialog = useRef<HTMLDialogElement>(null);
+  const reviewTrigger = useRef<HTMLButtonElement | null>(null);
+  const [panel, setPanel] = useState("organizations");
+  const [subscriptionFilter, setSubscriptionFilter] = useState("all");
   const accessEpoch = useRef(0);
   const principal = useRef<string | null>(null);
   const [data, setData] = useState<any>(null),
@@ -28,6 +32,17 @@ export default function Platform() {
     [supportCases, setSupportCases] = useState<any[]>([]),
     [caseDrafts, setCaseDrafts] = useState<Record<string, any>>({}),
     [caseError, setCaseError] = useState("");
+  useEffect(() => {
+    const dialog = reviewDialog.current;
+    if (!selected || !dialog) return;
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    else dialog.setAttribute("open", "");
+    dialog.querySelector<HTMLElement>("button, input")?.focus();
+    return () => {
+      if (dialog.open && typeof dialog.close === "function") dialog.close();
+      reviewTrigger.current?.focus();
+    };
+  }, [selected]);
   async function loadCases(epoch = accessEpoch.current) {
     try {
       const result = await workspaceApi("/platform/support-cases");
@@ -309,29 +324,36 @@ export default function Platform() {
       setBusy(false);
     }
   }
-  const organizations = (data?.organizations || []).filter((o: any) =>
-    (o.name + " " + o.slug).toLowerCase().includes(search.toLowerCase()),
+  const organizations = (data?.organizations || []).filter(
+    (o: any) =>
+      (o.name + " " + o.slug).toLowerCase().includes(search.toLowerCase()) &&
+      (subscriptionFilter === "all" ||
+        o.subscription?.status === subscriptionFilter),
   );
   return (
-    <main
-      className="mera-workspace mera-platform"
-      style={{ maxWidth: 1200, margin: "32px auto", padding: 24 }}
-    >
-      <a href="/mera">mera. / platform</a>
-      <header className="mera-page-heading" style={{ margin: "28px 0" }}>
+    <main className="mera-platform">
+      <div className="mera-platform-topbar">
+        <a
+          className="mera-platform-wordmark"
+          href="/mera"
+          aria-label="Mera home"
+        >
+          mera<span>.</span>
+        </a>
+        <span>Platform console</span>
+        <a href="/mera/workspace">Organization workspace</a>
+      </div>
+      <header className="mera-page-heading">
         <div>
-          <p className="eyebrow">Restricted operations</p>
+          <p className="eyebrow">Mera operations</p>
           <h1>Platform administration</h1>
-          <p>
-            Organization access, service status and configuration support.
-            Merchant collections remain separate from platform revenue.
-          </p>
+          <p>Manage organizations, service access and support.</p>
         </div>
         <button className="secondary" onClick={load} disabled={busy}>
           {busy ? "Checking…" : "Refresh access"}
         </button>
       </header>
-      {error && (
+      {error && !selected && (
         <div role="alert" className="info-box">
           {error} <a href="/mera/workspace">Organization sign-in</a>
         </div>
@@ -373,15 +395,30 @@ export default function Platform() {
       )}
       {data && (
         <>
-          <section
-            className="mera-stat-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
-              gap: 16,
-              margin: "24px 0",
-            }}
-          >
+          <nav className="mera-platform-nav" aria-label="Platform sections">
+            {[
+              ["organizations", "Organizations"],
+              ["support", "Support inbox"],
+              ["health", "Service health"],
+              ["backups", "Backups"],
+              ["audit", "Audit log"],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-current={panel === id ? "page" : undefined}
+                onClick={() => setPanel(id)}
+              >
+                {label}
+                {id === "support" && supportCases.length > 0 && (
+                  <span className="mera-platform-count">
+                    {supportCases.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+          <section className="mera-stat-grid">
             {[
               ["Organizations", data.organizations.length],
               [
@@ -395,19 +432,20 @@ export default function Platform() {
             ].map(([label, value]) => (
               <article
                 className="mera-panel"
-                style={{ padding: 20 }}
+
                 key={label}
               >
                 <p>{label}</p>
-                <strong style={{ fontSize: 24 }}>{value}</strong>
+                <strong>{value}</strong>
               </article>
             ))}
           </section>
           {data.operationalSignals && (
             <section
               className="mera-panel"
-              style={{ padding: 24, marginBottom: 20 }}
+
               aria-label="Operational signals"
+              hidden={panel !== "health"}
             >
               <h2>Operational signals</h2>
               <p>
@@ -439,10 +477,7 @@ export default function Platform() {
               </p>
             </section>
           )}
-          <section
-            className="mera-panel"
-            style={{ padding: 24, marginBottom: 20 }}
-          >
+          <section hidden={panel !== "support"} className="mera-panel">
             <h2>Organization support</h2>
             <p>
               Replies appear in the organization's support inbox. Operator notes
@@ -529,17 +564,46 @@ export default function Platform() {
               );
             })}
           </section>
-          <section className="mera-panel" style={{ padding: 24 }}>
-            <h2>Organization directory</h2>
-            <label>
-              Find an organization
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Name or subdomain"
-              />
-            </label>
+          <section hidden={panel !== "organizations"} className="mera-panel">
+            <div className="mera-platform-section-heading">
+              <div>
+                <h2>Organization directory</h2>
+                <p>{organizations.length} organizations shown</p>
+              </div>
+            </div>
+            <div className="mera-platform-filters">
+              <label>
+                Find an organization
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Name or organization address"
+                />
+              </label>
+              <label>
+                Subscription status
+                <select
+                  value={subscriptionFilter}
+                  onChange={(event) =>
+                    setSubscriptionFilter(event.target.value)
+                  }
+                >
+                  <option value="all">All statuses</option>
+                  {[
+                    "trialing",
+                    "active",
+                    "past_due",
+                    "suspended",
+                    "cancelled",
+                  ].map((value) => (
+                    <option key={value} value={value}>
+                      {value.replaceAll("_", " ")}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -566,7 +630,8 @@ export default function Platform() {
                         <button
                           className="secondary"
                           disabled={busy || !!pendingChange}
-                          onClick={() => {
+                          onClick={(event) => {
+                            reviewTrigger.current = event.currentTarget;
                             setSelected(org);
                             setFeatureDraft(
                               Object.fromEntries(
@@ -611,12 +676,40 @@ export default function Platform() {
             )}
           </section>
           {selected && (
-            <section
-              className="mera-panel"
-              style={{ padding: 24, marginTop: 20 }}
-              aria-label="Organization operations"
+            <dialog
+              ref={reviewDialog}
+              className="mera-platform-review"
+              aria-labelledby="mera-organization-title"
+              onCancel={(event) => {
+                event.preventDefault();
+                if (!pendingChange) setSelected(null);
+              }}
             >
-              <h2>{selected.name}</h2>
+              <div className="mera-platform-review-heading">
+                <div>
+                  <p className="eyebrow">Organization review</p>
+                  <h2 id="mera-organization-title">{selected.name}</h2>
+                </div>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={!!pendingChange}
+                  onClick={() => setSelected(null)}
+                >
+                  Close organization
+                </button>
+              </div>
+              {error && (
+                <p className="info-box" role="alert">
+                  {error}
+                </p>
+              )}
+              {pendingChange && (
+                <p className="info-box" role="status">
+                  The last status change has an uncertain result. Retry the
+                  original request before starting another action.
+                </p>
+              )}
               <form onSubmit={renameOrganization} style={{ marginBottom: 24 }}>
                 <h3>Organization address</h3>
                 <p>
@@ -888,12 +981,9 @@ export default function Platform() {
                   </button>
                 </section>
               )}
-            </section>
+            </dialog>
           )}
-          <section
-            className="mera-panel"
-            style={{ padding: 24, marginTop: 20 }}
-          >
+          <section hidden={panel !== "backups"} className="mera-panel">
             <h2>Backup readiness</h2>
             <p>
               {data.backupConfiguration?.enabled
@@ -961,10 +1051,7 @@ export default function Platform() {
               <p>No backup runs recorded.</p>
             )}
           </section>
-          <section
-            className="mera-panel"
-            style={{ padding: 24, marginTop: 20 }}
-          >
+          <section hidden={panel !== "health"} className="mera-panel">
             <h2>Provider readiness</h2>
             <p>
               Production collections, settlements, withdrawals, email delivery
@@ -979,10 +1066,7 @@ export default function Platform() {
               ))}
             </div>
           </section>
-          <section
-            className="mera-panel"
-            style={{ padding: 24, marginTop: 20 }}
-          >
+          <section hidden={panel !== "audit"} className="mera-panel">
             <h2>Operator audit</h2>
             <div className="table-wrap">
               <table>

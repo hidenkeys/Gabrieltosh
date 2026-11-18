@@ -9,10 +9,12 @@ import {
 } from "lucide-react";
 import { uuid } from "../../api";
 import BranchSettings from "./BranchSettings";
+import SetupChecklist from "./SetupChecklist";
 import RefundRequests from "./RefundRequests";
 import StaffPos from "./StaffPos";
 import PosOrderContext from "./PosOrderContext";
 import WorkspaceNavigation from "./WorkspaceNavigation";
+import { chooseWorkspaceLanding, getSectionPresentation } from "./presentation";
 import WorkspaceAccount from "./WorkspaceAccount";
 import OperationalOverview from "./OperationalOverview";
 import PolicyEditor from "./PolicyEditor";
@@ -124,7 +126,10 @@ export default function OrganizationWorkspace({
   const [context, setContext] = useState<RecordData | null>(null);
   const [organizationId, setOrganizationId] = useState("");
   const [branchId, setBranchId] = useState("");
-  const [section, setSection] = useState("overview");
+  const [sectionSelection, setSectionSelection] = useState<{
+    section: string;
+    scopeKey: string;
+  } | null>(null);
   const [data, setData] = useState<RecordData | null>(null);
   const [privateAccess, setPrivateAccess] = useState<any>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -169,7 +174,6 @@ export default function OrganizationWorkspace({
       organization.branchIds.includes(branch.id),
   );
   const branchScopeKey = branches.map((branch: any) => branch.id).join("|");
-  const tabsRef = useRef<HTMLDivElement | null>(null);
   const activeScope = useRef("");
   const contextGeneration = useRef(0);
   const permissionFingerprint = useRef("");
@@ -179,6 +183,44 @@ export default function OrganizationWorkspace({
   const lastDenialCheck = useRef(0);
   const mutationGeneration = useRef(0);
   const branchBase = `/organizations/${encodeURIComponent(organizationId)}/branches/${encodeURIComponent(branchId)}`;
+  const visibleSections = sections.filter(([, , permission]) =>
+    permission === "support.manage"
+      ? allowed("organization.manage") &&
+        organization?.organizationWide === true
+      : permission === "help.manage"
+        ? permissions.some((permission: string) =>
+            [
+              "orders.fulfill",
+              "tables.manage",
+              "payments.record",
+              "refunds.approve",
+              "reservations.manage",
+              "organization.manage",
+            ].includes(permission),
+          )
+        : permission === "qr.manage"
+          ? allowed("menu.publish") || allowed("tables.manage")
+          : allowed(permission),
+  );
+  const navigationScope = JSON.stringify([
+    context?.user?.id || principal,
+    organizationId,
+    branchId,
+  ]);
+  const activeSection =
+    chooseWorkspaceLanding({
+      role: organization?.role,
+      permissions,
+      visibleSectionIds: visibleSections.map(([id]) => id),
+      organizationWide: organization?.organizationWide === true,
+      scopeKey: navigationScope,
+      selection: sectionSelection,
+    }) || "";
+  const selectSection = (section: string) => {
+    if (visibleSections.some(([id]) => id === section))
+      setSectionSelection({ section, scopeKey: navigationScope });
+  };
+  const pagePresentation = getSectionPresentation(activeSection);
   const scopeEpoch = useRef({
     path: "",
     generation: 0,
@@ -468,7 +510,11 @@ export default function OrganizationWorkspace({
   }, [refresh]);
   useEffect(() => {
     setTabForm({});
-    if (section === "team" && organizationId && allowed("members.manage")) {
+    if (
+      activeSection === "team" &&
+      organizationId &&
+      allowed("members.manage")
+    ) {
       const requestedScope = branchBase;
       const authorizationVersion = authorizationEpoch.current;
       const controller = new AbortController();
@@ -498,7 +544,7 @@ export default function OrganizationWorkspace({
         });
       return () => controller.abort();
     }
-  }, [section, organizationId, branchBase]);
+  }, [activeSection, organizationId, branchBase]);
   const mutate = async (
     path: string,
     method: string,
@@ -756,28 +802,6 @@ export default function OrganizationWorkspace({
       </button>
     );
   const empty = (text: string) => <div className="mw-empty">{text}</div>;
-  const visibleSections = sections.filter(([, , permission]) =>
-    permission === "support.manage"
-      ? allowed("organization.manage") &&
-        organization?.organizationWide === true
-      : permission === "help.manage"
-        ? permissions.some((permission: string) =>
-            [
-              "orders.fulfill",
-              "tables.manage",
-              "payments.record",
-              "refunds.approve",
-              "reservations.manage",
-              "organization.manage",
-            ].includes(permission),
-          )
-        : permission === "qr.manage"
-          ? allowed("menu.publish") || allowed("tables.manage")
-          : allowed(permission),
-  );
-  const activeSection = visibleSections.some(([id]) => id === section)
-    ? section
-    : visibleSections[0]?.[0] || "";
   const orders = list(data?.orders);
   const liveOrders = orders.filter((order: any) => !order.historicalReadOnly);
   const filteredOrders = orders.filter((order: any) => {
@@ -874,7 +898,7 @@ export default function OrganizationWorkspace({
       notify(
         result.status === "recorded"
           ? "The original financial submission is recorded. No second entry was created."
-          : "The original request is fenced as abandoned. A delayed retry cannot create an entry.",
+          : "The original request was stopped. A delayed retry cannot create an entry.",
       );
     } else
       setError(
@@ -913,7 +937,7 @@ export default function OrganizationWorkspace({
     notify(
       result.status === "recorded"
         ? "The original entry was already recorded and remains intact."
-        : "The original request is abandoned and fenced against delayed retries. No posted funds were reversed.",
+        : "The original request was stopped. No recorded payment or refund was reversed.",
     );
   };
   const minimumSpendPolicy = data?.branch?.settings?.minimumSpendPolicy;
@@ -1047,14 +1071,7 @@ export default function OrganizationWorkspace({
     data?.branch || branches.find((row: any) => row.id === branchId);
 
   return (
-    <div
-      className={
-        "mera-workspace" +
-        (["overview", "counter"].includes(activeSection)
-          ? " mw-operational"
-          : "")
-      }
-    >
+    <div className="mera-workspace mw-operational">
       <header className="mw-header">
         <a href="/mera" className="mw-brand" aria-label="Mera home">
           mera<span>.</span>
@@ -1088,71 +1105,36 @@ export default function OrganizationWorkspace({
               ))}
             </select>
           </label>
-          {["overview", "counter"].includes(activeSection) ? (
-            <WorkspaceAccount
-              name={context?.user?.name || user?.name || "Staff member"}
-              role={sourceLabel(organization?.role)}
-              disabled={busy}
-              signingOut={logoutBusy}
-              notice={
-                allowed("billing.manage") &&
-                entitlements?.warning ===
-                  "Development trial duration is unresolved." &&
-                entitlements.newOrdersAllowed !== false
-                  ? {
-                      message: "Trial end date needs review.",
-                      label: "Review subscription",
-                      onReview: () => setSection("billing"),
-                    }
-                  : undefined
-              }
-              onSignOut={
-                onLogout
-                  ? () => {
-                      if (
-                        financialRequests.current.size ||
-                        uncertainOrders.current.size
-                      )
-                        setLogoutConfirm(true);
-                      else void signOut();
-                    }
-                  : undefined
-              }
-            />
-          ) : (
-            <>
-              <div className="mw-staff-profile">
-                <span className="mw-staff-avatar" aria-hidden="true">
-                  {String(context?.user?.name || user?.name || "Staff")
-                    .split(" ")
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((name) => name[0])
-                    .join("")
-                    .toUpperCase()}
-                </span>
-                <span>
-                  {context?.user?.name || user?.name || "Staff member"}
-                </span>
-              </div>
-              {onLogout && (
-                <button
-                  className="secondary"
-                  disabled={busy || logoutBusy}
-                  onClick={() => {
+          <WorkspaceAccount
+            name={context?.user?.name || user?.name || "Staff member"}
+            role={sourceLabel(organization?.role)}
+            disabled={busy}
+            signingOut={logoutBusy}
+            notice={
+              allowed("billing.manage") &&
+              entitlements?.warning ===
+                "Development trial duration is unresolved." &&
+              entitlements.newOrdersAllowed !== false
+                ? {
+                    message: "Trial end date needs review.",
+                    label: "Review subscription",
+                    onReview: () => selectSection("billing"),
+                  }
+                : undefined
+            }
+            onSignOut={
+              onLogout
+                ? () => {
                     if (
                       financialRequests.current.size ||
                       uncertainOrders.current.size
                     )
                       setLogoutConfirm(true);
                     else void signOut();
-                  }}
-                >
-                  {logoutBusy ? "Signing out…" : "Sign out"}
-                </button>
-              )}
-            </>
-          )}
+                  }
+                : undefined
+            }
+          />
           <button
             className="secondary"
             onClick={() => {
@@ -1198,10 +1180,10 @@ export default function OrganizationWorkspace({
               An original submission still needs resolution
             </h2>
             <p id="mw-signout-detail">
-              Signing out clears this tab’s recovery details. It does not
-              cancel, abandon or reverse the server request. Keep the session
-              open to check its result, or make an explicit choice to sign out
-              and arrange reconciliation.
+              Signing out clears this tab’s recovery details. It does not cancel
+              a submission or reverse a recorded transaction. Keep this tab open
+              to check its result, or make an explicit choice to sign out and
+              arrange reconciliation.
             </p>
             <div className="mw-actions">
               <button
@@ -1234,19 +1216,14 @@ export default function OrganizationWorkspace({
               ? "Branch overview."
               : activeSection === "counter"
                 ? "The counter."
-                : "A good service starts here."}
+                : pagePresentation.title}
           </h1>
           <p>
-            {activeSection === "overview" ? (
-              "Today’s sales and service, in one place."
-            ) : activeSection === "counter" ? (
-              "Good things, made to order."
-            ) : (
-              <>
-                Welcome, {user?.name || "team member"}. Keep every order,
-                handoff and collection in view.
-              </>
-            )}
+            {activeSection === "overview"
+              ? "Today’s sales and service, in one place."
+              : activeSection === "counter"
+                ? "Good things, made to order."
+                : pagePresentation.description}
           </p>
         </div>
         <span className="mw-pill">{sourceLabel(organization?.role)}</span>
@@ -1316,9 +1293,9 @@ export default function OrganizationWorkspace({
             </div>
           </form>
           <p className="mw-muted">
-            Subdomain ownership and uniqueness are checked by the server.
-            Creating a development organization does not publish a hosted site
-            or activate a wallet.
+            The requested address must be available and verified before
+            publication. Creating a development organization does not publish a
+            hosted site or activate a wallet.
           </p>
         </div>
       )}
@@ -1355,7 +1332,7 @@ export default function OrganizationWorkspace({
             attention
           </strong>
           <p>
-            These orders have been waiting longer than the server’s{" "}
+            These orders have been waiting longer than the configured{" "}
             {data?.delayedOrderThresholdMinutes || 15}-minute threshold. Review
             the current handoffs with your branch team.
           </p>
@@ -1380,7 +1357,7 @@ export default function OrganizationWorkspace({
                 payment: "",
                 unassigned: false,
               });
-              setSection("orders");
+              selectSection("orders");
             }}
           >
             Review branch orders
@@ -1389,7 +1366,6 @@ export default function OrganizationWorkspace({
       )}
       {entitlements?.warning &&
         !(
-          ["overview", "counter"].includes(activeSection) &&
           entitlements.warning ===
             "Development trial duration is unresolved." &&
           entitlements.newOrdersAllowed !== false
@@ -1397,9 +1373,8 @@ export default function OrganizationWorkspace({
           <div role="status" className="mw-note">
             <strong>Subscription attention</strong>
             <p>
-              {["overview", "counter"].includes(activeSection) &&
-              entitlements.warning ===
-                "Development trial duration is unresolved."
+              {entitlements.warning ===
+              "Development trial duration is unresolved."
                 ? "Trial end date needs review."
                 : entitlements.warning}
             </p>
@@ -1412,7 +1387,7 @@ export default function OrganizationWorkspace({
             {allowed("billing.manage") && (
               <button
                 className="secondary"
-                onClick={() => setSection("billing")}
+                onClick={() => selectSection("billing")}
               >
                 Review subscription
               </button>
@@ -1520,10 +1495,10 @@ export default function OrganizationWorkspace({
               Resolve an original request that should no longer post
             </summary>
             <p>
-              The server checks the original request under a lock. If already
-              recorded, its entry remains intact. Otherwise a durable fence
-              prevents delayed retries from posting. This never reverses a
-              recorded payment or refund.
+              We will check whether this request was recorded. If it was, its
+              entry stays unchanged. Otherwise, it will be stopped so that a
+              delayed retry cannot record it. This does not reverse a recorded
+              payment or refund.
             </p>
             <form
               onSubmit={(event) => {
@@ -1562,7 +1537,7 @@ export default function OrganizationWorkspace({
                 />
               </label>
               <button disabled={busy || offline || !abandonConfirmed}>
-                Fence original request or confirm its recorded result
+                Resolve original request
               </button>
             </form>
           </details>
@@ -1570,11 +1545,11 @@ export default function OrganizationWorkspace({
       )}
       {!!organizations.length && (
         <>
-          {["overview", "counter"].includes(activeSection) ? (
+          {branchId && branches.some((row: any) => row.id === branchId) && (
             <WorkspaceNavigation
               sections={visibleSections}
               active={activeSection}
-              onSelect={setSection}
+              onSelect={selectSection}
               organization={organization?.name || "Organization"}
               branch={branch?.name || "Choose a branch"}
               logo={organization?.branding?.logo}
@@ -1582,98 +1557,16 @@ export default function OrganizationWorkspace({
                 offline ? "offline" : data ? "connected" : "connecting"
               }
             />
-          ) : (
-            <nav className="mw-navigation" aria-label="Organization workspace">
-              <div className="mw-nav-tools">
-                <label>
-                  All workspace pages
-                  <select
-                    aria-label="Workspace page"
-                    value={activeSection}
-                    onChange={(event) => setSection(event.target.value)}
-                  >
-                    {visibleSections.map(([id, name]) => (
-                      <option key={id} value={id}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="mw-actions">
-                  <button
-                    type="button"
-                    aria-label="Scroll workspace pages left"
-                    onClick={() =>
-                      tabsRef.current?.scrollBy?.({
-                        left: -300,
-                        behavior: "smooth",
-                      })
-                    }
-                  >
-                    ←
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Scroll workspace pages right"
-                    onClick={() =>
-                      tabsRef.current?.scrollBy?.({
-                        left: 300,
-                        behavior: "smooth",
-                      })
-                    }
-                  >
-                    →
-                  </button>
-                </div>
-              </div>
-              <div
-                role="tablist"
-                aria-label="Workspace pages"
-                className="mw-tabs"
-                ref={tabsRef}
-              >
-                {visibleSections.map(([id, name], index) => (
-                  <button
-                    key={id}
-                    id={"mw-tab-" + id}
-                    type="button"
-                    role="tab"
-                    aria-controls="mw-workspace-panel"
-                    tabIndex={activeSection === id ? 0 : -1}
-                    aria-selected={activeSection === id}
-                    onClick={() => setSection(id)}
-                    onKeyDown={(event) => {
-                      let target: number;
-                      if (event.key === "ArrowRight")
-                        target = (index + 1) % visibleSections.length;
-                      else if (event.key === "ArrowLeft")
-                        target =
-                          (index - 1 + visibleSections.length) %
-                          visibleSections.length;
-                      else if (event.key === "Home") target = 0;
-                      else if (event.key === "End")
-                        target = visibleSections.length - 1;
-                      else return;
-                      event.preventDefault();
-                      setSection(visibleSections[target][0]);
-                      const element =
-                        tabsRef.current?.querySelectorAll<HTMLButtonElement>(
-                          '[role="tab"]',
-                        )[target];
-                      element?.focus();
-                      element?.scrollIntoView?.({
-                        block: "nearest",
-                        inline: "nearest",
-                      });
-                    }}
-                  >
-                    {name}
-                  </button>
-                ))}
-              </div>
-            </nav>
           )}
-          {!data ? (
+          {!activeSection ? (
+            <section className="mw-card" role="status">
+              <h2>No tasks assigned</h2>
+              <p>
+                Your account has no available workspace pages for this branch.
+                Ask your organization administrator to review your access.
+              </p>
+            </section>
+          ) : !data ? (
             <div className="mw-card" role="status">
               {branchId
                 ? "Loading branch records…"
@@ -1686,6 +1579,123 @@ export default function OrganizationWorkspace({
               aria-labelledby={"mw-tab-" + activeSection}
               tabIndex={0}
             >
+              {activeSection === "onboarding" && (
+                <SetupChecklist
+                  key={branchBase}
+                  basics={
+                    <>
+                      <section className="mw-card">
+                        <h2>Make this workspace yours</h2>
+                        <p>
+                          Save progress as you configure the business. Provider
+                          verification remains separate from organization
+                          readiness.
+                        </p>
+                        <form
+                          className="mw-form"
+                          onSubmit={submit(() =>
+                            mutate(
+                              `/organizations/${organizationId}/onboarding`,
+                              "PATCH",
+                              { step: 1, data: tabForm },
+                              "Onboarding progress saved.",
+                            ),
+                          )}
+                        >
+                          {field("Business contact", "contact")}
+                          {field("Phone", "phone", "tel", false)}
+                          <label>
+                            Service modes
+                            <select
+                              value={tabForm.serviceMode || "counter_takeaway"}
+                              onChange={(event) =>
+                                updateForm("serviceMode", event.target.value)
+                              }
+                            >
+                              <option value="counter_takeaway">
+                                Counter & takeaway
+                              </option>
+                              <option value="table_service">
+                                Table service
+                              </option>
+                              <option value="reservations">Reservations</option>
+                              <option value="lounge">Lounge & club</option>
+                            </select>
+                          </label>
+                          <div className="mw-wide mw-actions">
+                            <button
+                              className="primary"
+                              disabled={busy || offline}
+                            >
+                              Save business details
+                            </button>
+                          </div>
+                        </form>
+                        <div className="mw-note">
+                          Live wallet approval, domains and commercial policies
+                          require verified provider and owner decisions. Saving
+                          this step does not activate online collection.
+                        </div>
+                      </section>
+                    </>
+                  }
+                  operations={
+                    <BranchSettings
+                      key={branchId}
+                      branch={branch}
+                      organization={organization}
+                      base={branchBase}
+                      disabled={busy || offline}
+                      save={mutate}
+                    />
+                  }
+                  booking={
+                    <ReservationPolicy
+                      key={branchBase + "reservation-policy"}
+                      base={branchBase}
+                      policy={branch?.settings?.reservationPolicy}
+                      disabled={busy || offline}
+                      save={mutate}
+                    />
+                  }
+                  pricing={
+                    <PricingPolicy
+                      key={branchBase + "pricing"}
+                      base={branchBase}
+                      policy={branch?.settings?.pricingPolicy}
+                      disabled={busy || offline}
+                      save={mutate}
+                    />
+                  }
+                  minimumSpend={
+                    <MinimumSpendPolicy
+                      key={branchBase + "minimum-spend-policy"}
+                      base={branchBase}
+                      policy={minimumSpendPolicy}
+                      disabled={busy || offline}
+                      save={mutate}
+                    />
+                  }
+                  deposits={
+                    <DepositPolicy
+                      key={branchId}
+                      policy={branch?.settings?.depositPolicy}
+                      base={branchBase}
+                      disabled={busy || offline}
+                      save={mutate}
+                    />
+                  }
+                  readiness={
+                    <LaunchReadiness
+                      key={branchBase + "launch"}
+                      base={branchBase}
+                      settings={branch?.settings}
+                      disabled={busy || offline}
+                      save={mutate}
+                    />
+                  }
+                />
+              )}
               {activeSection === "qr" && (
                 <QrCodes
                   key={branchBase}
@@ -1702,33 +1712,7 @@ export default function OrganizationWorkspace({
                   newAccessAllowed={features?.flags?.zidi !== false}
                 />
               )}
-              {activeSection === "onboarding" && (
-                <>
-                  <LaunchReadiness
-                    key={branchBase + "launch"}
-                    base={branchBase}
-                    settings={branch?.settings}
-                    disabled={busy || offline}
-                    save={mutate}
-                  />
-                  <ReservationPolicy
-                    key={branchBase + "reservation-policy"}
-                    base={branchBase}
-                    policy={branch?.settings?.reservationPolicy}
-                    disabled={busy || offline}
-                    save={mutate}
-                  />
-                </>
-              )}
-              {activeSection === "onboarding" && (
-                <PricingPolicy
-                  key={branchBase + "pricing"}
-                  base={branchBase}
-                  policy={branch?.settings?.pricingPolicy}
-                  disabled={busy || offline}
-                  save={mutate}
-                />
-              )}
+
               {activeSection === "help" && (
                 <HelpRequests
                   key={branchBase}
@@ -1738,15 +1722,7 @@ export default function OrganizationWorkspace({
                   save={mutate}
                 />
               )}
-              {activeSection === "onboarding" && (
-                <MinimumSpendPolicy
-                  key={branchBase + "minimum-spend-policy"}
-                  base={branchBase}
-                  policy={minimumSpendPolicy}
-                  disabled={busy || offline}
-                  save={mutate}
-                />
-              )}
+
               {privateAccess &&
                 ["tables", "reservations"].includes(activeSection) && (
                   <PrivateVisitAccess
@@ -1843,78 +1819,10 @@ export default function OrganizationWorkspace({
                   }
                   canCreate={allowed("orders.create")}
                   canViewOrders={allowed("orders.view")}
-                  onNavigate={setSection}
+                  onNavigate={selectSection}
                 />
               )}
-              {activeSection === "onboarding" && (
-                <section className="mw-card">
-                  <h2>Make this workspace yours</h2>
-                  <p>
-                    Save progress as you configure the business. Provider
-                    verification remains separate from organization readiness.
-                  </p>
-                  <form
-                    className="mw-form"
-                    onSubmit={submit(() =>
-                      mutate(
-                        `/organizations/${organizationId}/onboarding`,
-                        "PATCH",
-                        { step: 1, data: tabForm },
-                        "Onboarding progress saved.",
-                      ),
-                    )}
-                  >
-                    {field("Business contact", "contact")}
-                    {field("Phone", "phone", "tel", false)}
-                    <label>
-                      Service modes
-                      <select
-                        value={tabForm.serviceMode || "counter_takeaway"}
-                        onChange={(event) =>
-                          updateForm("serviceMode", event.target.value)
-                        }
-                      >
-                        <option value="counter_takeaway">
-                          Counter & takeaway
-                        </option>
-                        <option value="table_service">Table service</option>
-                        <option value="reservations">Reservations</option>
-                        <option value="lounge">Lounge & club</option>
-                      </select>
-                    </label>
-                    <div className="mw-wide mw-actions">
-                      <button className="primary" disabled={busy || offline}>
-                        Save business details
-                      </button>
-                    </div>
-                  </form>
-                  <div className="mw-note">
-                    Live wallet approval, domains and commercial policies
-                    require verified provider and owner decisions. Saving this
-                    step does not activate online collection.
-                  </div>
-                </section>
-              )}
-              {activeSection === "onboarding" && (
-                <BranchSettings
-                  key={branchId}
-                  branch={branch}
-                  organization={organization}
-                  base={branchBase}
-                  disabled={busy || offline}
-                  save={mutate}
-                />
-              )}
-              {activeSection === "onboarding" &&
-                allowed("organization.manage") && (
-                  <DepositPolicy
-                    key={branchId}
-                    policy={branch?.settings?.depositPolicy}
-                    base={branchBase}
-                    disabled={busy || offline}
-                    save={mutate}
-                  />
-                )}
+
               {activeSection === "menu" && (
                 <>
                   <Categories
@@ -2381,8 +2289,8 @@ export default function OrganizationWorkspace({
                           </summary>
                           <p className="mw-muted">
                             Configure sizes, add-ons and dietary details. Prices
-                            are entered in naira; the server validates selection
-                            limits and final totals.
+                            are entered in naira; availability is checked limits
+                            and final totals.
                           </p>
                           <VariantsEditor
                             value={productEdit.variants || []}
@@ -2493,11 +2401,8 @@ export default function OrganizationWorkspace({
                     {activeSection === "orders" && (
                       <>
                         <p className="mw-note">
-                          {data.history?.bounded
-                            ? `The live view contains active orders and up to ${data.history.recentOrderLimit} recent orders, plus records needed for current service.`
-                            : "This live view is an operational snapshot."}{" "}
-                          Browse bounded history pages for older and imported
-                          records.
+                          Active and recent orders appear here. Open order
+                          history to find older or imported orders.
                         </p>
                         <details
                           open={historyOpen}
@@ -2979,8 +2884,8 @@ export default function OrganizationWorkspace({
                         <strong>Submission not confirmed</strong>
                         <p>
                           This draft is locked while its original request is
-                          unresolved. Check the queue or retry the exact same
-                          submission with its original request key.
+                          unresolved. Check its result or retry the same order.
+                          Keep this tab open until the outcome is confirmed.
                         </p>
                         <button
                           type="button"
@@ -3385,7 +3290,7 @@ export default function OrganizationWorkspace({
                     </div>
                   </form>
                   <div className="mw-note">
-                    Capacity and overlapping bookings are checked by the server.
+                    Availability is checked before a reservation is confirmed.
                     Deposits and cancellation/refund policies must be approved
                     before live collection.
                   </div>
@@ -3769,9 +3674,7 @@ export default function OrganizationWorkspace({
         />
       )}
       <footer className="mw-footer">
-        {["overview", "counter"].includes(activeSection)
-          ? "Mera workspace · Changes require a connection."
-          : "Mera development workspace · Canonical server state refreshes every 2.5 seconds. Offline actions are not queued or assumed successful."}
+        Mera workspace · Changes require a connection.
       </footer>
     </div>
   );

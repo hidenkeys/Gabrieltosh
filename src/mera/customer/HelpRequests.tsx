@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { customerRequest, requestId } from "./client";
-export default function HelpRequests({
+export default function HelpRequests(
+  props: Parameters<typeof ScopedHelpRequests>[0],
+) {
+  return <ScopedHelpRequests key={props.prefix} {...props} />;
+}
+function ScopedHelpRequests({
   prefix,
   ensureGuest,
   hasGuest,
@@ -26,19 +31,50 @@ export default function HelpRequests({
     [message, setMessage] = useState(""),
     [context, setContext] = useState(""),
     [pending, setPending] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const mounted = useRef(true);
+  const readGeneration = useRef(0);
   const currentScope = useRef(prefix);
   currentScope.current = prefix;
   async function load() {
     const scope = prefix;
+    const generation = ++readGeneration.current;
+    setLoading(true);
     try {
       const result = await customerRequest(prefix + "/help-requests");
-      if (currentScope.current === scope) setRequests(result.requests);
+      if (
+        mounted.current &&
+        currentScope.current === scope &&
+        generation === readGeneration.current
+      ) {
+        setRequests(result.requests);
+        setError("");
+      }
     } catch (e) {
-      if (currentScope.current !== scope) return;
+      if (
+        !mounted.current ||
+        currentScope.current !== scope ||
+        generation !== readGeneration.current
+      )
+        return;
       if ([401, 403, 404].includes((e as any).status)) setRequests([]);
       setError((e as Error).message);
+    } finally {
+      if (
+        mounted.current &&
+        currentScope.current === scope &&
+        generation === readGeneration.current
+      )
+        setLoading(false);
     }
   }
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      readGeneration.current++;
+    };
+  }, []);
   useEffect(() => {
     setRequests([]);
     setPending(null);
@@ -46,6 +82,11 @@ export default function HelpRequests({
   }, [prefix]);
   useEffect(() => {
     if (hasGuest) void load();
+    else {
+      readGeneration.current++;
+      setRequests([]);
+      setLoading(false);
+    }
   }, [prefix, hasGuest]);
   async function send() {
     setBusy(true);
@@ -62,27 +103,33 @@ export default function HelpRequests({
     };
     try {
       await ensureGuest();
-      if (currentScope.current !== prefix) return;
+      if (!mounted.current || currentScope.current !== prefix) return;
       await customerRequest(prefix + "/help-requests", "POST", attempt);
-      if (currentScope.current !== prefix) return;
+      if (!mounted.current || currentScope.current !== prefix) return;
       setPending(null);
       setMessage("");
       await load();
     } catch (e) {
-      if (currentScope.current !== prefix) return;
-      if (!(e as any).status || (e as any).status >= 500) setPending(attempt);
+      if (!mounted.current || currentScope.current !== prefix) return;
+      if (
+        pending ||
+        !(e as any).status ||
+        (e as any).status >= 500 ||
+        [401, 403, 404, 408, 429].includes((e as any).status)
+      )
+        setPending(attempt);
       else setPending(null);
       setError((e as Error).message);
     } finally {
-      setBusy(false);
+      if (mounted.current && currentScope.current === prefix) setBusy(false);
     }
   }
   return (
     <section className="mc-panel mc-help">
       <h2>Ask the team for help</h2>
       <p>
-        Your request appears inside the venue’s workspace. Email, SMS and push
-        notifications are not sent. For urgent assistance, speak to staff.
+        Send a request to the team and check their reply here. For urgent
+        assistance, speak to staff. We will not send a text or email.
       </p>
       {error && <p role="alert">{error}</p>}
       <form
@@ -149,8 +196,9 @@ export default function HelpRequests({
       {pending && (
         <>
           <p>
-            Delivery to the workspace is not confirmed. Retry the original
-            request before sending another.
+            The team may already have received your request. Retry the same
+            request or refresh its status before sending another. Keep this tab
+            open; leaving this page does not save these retry details.
           </p>
           <button
             className="mc-secondary"
@@ -164,14 +212,15 @@ export default function HelpRequests({
       {hasGuest && (
         <button
           className="mc-secondary"
-          disabled={busy}
+          disabled={busy || loading}
           onClick={() => void load()}
         >
           Refresh help status
         </button>
       )}
       <h3>Your requests in this guest session</h3>
-      {requests.length === 0 ? (
+      {loading && <p role="status">Checking your help requests…</p>}
+      {!loading && requests.length === 0 ? (
         <p>No help requests shown in this session.</p>
       ) : (
         requests.map((request) => (

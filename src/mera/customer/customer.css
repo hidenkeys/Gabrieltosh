@@ -22,6 +22,19 @@
   background: #f2f7fa;
 }
 @media print {
+  .mera-customer:has(.mc-receipt) main > :not(.mc-tracking-panel),
+  .mera-customer .mc-tracking-panel > :not(.mc-receipt) {
+    display: none !important;
+  }
+  .mera-customer .mc-receipt {
+    color: #000;
+    background: #fff;
+    border: 0;
+  }
+  .mera-customer .mc-receipt .mc-line {
+    break-inside: avoid;
+    overflow-wrap: anywhere;
+  }
   .mera-customer .mc-top,
   .mera-customer .mc-hero,
   .mera-customer .mc-tabs,
@@ -218,9 +231,11 @@
   margin-bottom: 20px;
 }
 .mc-panel h2 {
-  font-family: Georgia, serif;
-  font-size: 25px;
-  font-weight: 500;
+  font-family: inherit;
+  font-size: 19px;
+  line-height: 1.25;
+  font-weight: 750;
+  letter-spacing: -0.4px;
   margin: 0 0 16px;
 }
 .mc-panel p {
@@ -991,4 +1006,47 @@
 .mera-customer .mc-modal:focus-visible {
   outline: 3px solid var(--mc-link, #1558c9);
   outline-offset: 3px;
+}
+
+/* Table and help views keep private detail readable on handheld screens. */
+.mera-customer .mc-visit-panel,
+.mera-customer .mc-help {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mera-customer .mc-help fieldset {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.mera-customer .mc-help textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+.mera-customer .mc-help article,
+.mera-customer .mc-bill-splits > .mc-line {
+  padding: 16px;
+  margin-top: 12px;
+  border: 1px solid #e9e6e2;
+  border-radius: 10px;
+  background: #fffefa;
+}
+.mera-customer .mc-help article h4 {
+  margin-top: 0;
+}
+.mera-customer .mc-bill-splits ul {
+  padding-left: 20px;
+}
+.mera-customer .mc-visit-panel button,
+.mera-customer .mc-help button,
+.mera-customer .mc-visit-panel select,
+.mera-customer .mc-help select {
+  min-height: 44px;
+}
+@media (max-width: 640px) {
+  .mera-customer .mc-visit-panel > button,
+  .mera-customer .mc-help > button {
+    width: 100%;
+    margin-top: 10px;
+  }
 }

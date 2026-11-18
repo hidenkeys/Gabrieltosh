@@ -12,6 +12,7 @@ export async function customerRequest<T = any>(
   path: string,
   method = "GET",
   body?: unknown,
+  metadata?: { onServerDate?: (date: string | null) => void },
 ): Promise<T> {
   const organizationSlug = customerOrganizationSlug(window.location.pathname);
   let response: Response;
@@ -33,6 +34,7 @@ export async function customerRequest<T = any>(
       signal: controller.signal,
     });
     data = await response.json();
+    metadata?.onServerDate?.(response.headers.get("Date"));
   } catch {
     throw new Error(
       "Connection interrupted. Your basket is still here. Check your connection before trying again; an order may already have reached the venue.",

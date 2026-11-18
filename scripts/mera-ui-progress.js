@@ -122,7 +122,7 @@ lines.push(
   "- F2: owner selected option1, ivory and green. Exact reference saved and homepage comparison accepted; platform adapts the identity with task-appropriate layouts.",
   "- F4/F5: lead owns shared shell/primitives; workers request mounts rather than competing edits to OrganizationWorkspace/main/global styles.",
   "- C1: menu/cart and dialog pilot integrated and exercised. Source comparison passed; complete broader checkout, visit, reservation and theme state acceptance.",
-  "- Some newly written backend leaves remain unmounted: stock-history, refund-requests, workspace-admin; print/alias/end-session PostgreSQL assertions remain pending. Show real unavailability, never mock success or label an error as empty data.",
+  "- Stock-history, refund-requests and workspace-admin are now mounted with actual PostgreSQL integration checks. Dedicated print/alias/end-session assertions remain pending. Show real unavailability, never mock success or label an error as empty data.",
   "- The first two old pilot screens are reopened under expanded requirements (header/account menu, role landing, operational widgets). Existing screenshots prove only their captured states.",
   "- Preserve current uncommitted work. No production deployment, real funds, external sending or production data changes authorized.",
   "",

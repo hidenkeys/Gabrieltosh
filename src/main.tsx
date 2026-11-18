@@ -9,6 +9,7 @@ import "./mera/marketing/marketing.css";
 import "./mera/customer/customer.css";
 import "./mera/workspace/workspace.css";
 import "./mera/workspace/management.css";
+import "./mera/workspace/setup.css";
 const Marketing = React.lazy(() => import("./mera/marketing/Marketing"));
 const LegalInformation = React.lazy(() =>
   import("./mera/marketing/Marketing").then((module) => ({

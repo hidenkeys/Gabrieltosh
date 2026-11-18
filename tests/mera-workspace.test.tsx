@@ -388,11 +388,12 @@ test("staff table orders freeze uncertain intent and retry the same request with
   }) as any;
   try {
     render(React.createElement(Workspace, { user, notify: () => {} }));
-    await screen.findByText("Surulere customer", { exact: false });
+    await screen.findByRole("tab", { name: "Point of sale" });
     fireEvent.click(screen.getByRole("tab", { name: "Point of sale" }));
     fireEvent.click(
-      screen.getByRole("button", { name: "Add Milk tea to order" }),
+      await screen.findByRole("button", { name: "Add Milk tea to order" }),
     );
+    fireEvent.click(screen.getByText("Customer & order note", { exact: true }));
     fireEvent.change(screen.getByLabelText("Customer name (optional)"), {
       target: { value: "Ada" },
     });
@@ -773,19 +774,37 @@ test("workspace navigation exposes all pages and supports roving keyboard focus"
     await screen.findByText("Surulere customer", { exact: false });
     const ordersTab = screen.getByRole("tab", { name: "Orders" });
     assert.equal(ordersTab.tabIndex, 0);
+    ordersTab.focus();
     fireEvent.keyDown(ordersTab, { key: "End" });
-    const finalPage = screen.getByRole("tab", { name: "Customer requests" });
-    assert.equal(finalPage.getAttribute("aria-selected"), "true");
-    fireEvent.keyDown(finalPage, { key: "Home" });
-    fireEvent.keyDown(ordersTab, { key: "ArrowRight" });
     const transactions = screen.getByRole("tab", { name: "Transactions" });
+    assert.equal(document.activeElement, transactions);
+    fireEvent.click(transactions);
+    assert.equal(transactions.getAttribute("aria-selected"), "true");
+    fireEvent.keyDown(transactions, { key: "Home" });
+    assert.equal(document.activeElement, ordersTab);
+    fireEvent.click(ordersTab);
+    fireEvent.keyDown(ordersTab, { key: "ArrowDown" });
+    const customerRequests = screen.getByRole("tab", {
+      name: "Customer requests",
+    });
+    assert.equal(document.activeElement, customerRequests);
+    assert.equal(ordersTab.getAttribute("aria-selected"), "true");
+    fireEvent.click(customerRequests);
+    assert.equal(customerRequests.getAttribute("aria-selected"), "true");
+    fireEvent.keyDown(customerRequests, { key: "ArrowDown" });
+    assert.equal(document.activeElement, transactions);
+    fireEvent.click(transactions);
     assert.equal(transactions.getAttribute("aria-selected"), "true");
     assert.equal(transactions.tabIndex, 0);
     assert.equal(document.activeElement, transactions);
-    fireEvent.change(screen.getByLabelText("Workspace page"), {
-      target: { value: "orders" },
-    });
+    fireEvent.click(ordersTab);
     assert.equal(ordersTab.getAttribute("aria-selected"), "true");
+    assert.equal(screen.queryByLabelText("Workspace page"), null);
+    assert.equal(
+      screen.getAllByRole("navigation", { name: "Organization workspace" })
+        .length,
+      1,
+    );
     assert.equal(
       screen.getByRole("tabpanel").getAttribute("aria-labelledby"),
       ordersTab.id,
@@ -1159,11 +1178,12 @@ test("a held staff write times out as uncertain and retry preserves its original
   }) as any;
   try {
     render(React.createElement(Workspace, { user, notify: () => {} }));
-    await screen.findByText("Surulere customer", { exact: false });
+    await screen.findByRole("tab", { name: "Point of sale" });
     fireEvent.click(screen.getByRole("tab", { name: "Point of sale" }));
     fireEvent.click(
-      screen.getByRole("button", { name: "Add Milk tea to order" }),
+      await screen.findByRole("button", { name: "Add Milk tea to order" }),
     );
+    fireEvent.click(screen.getByText("Customer & order note", { exact: true }));
     fireEvent.change(screen.getByLabelText("Customer name (optional)"), {
       target: { value: "Ada" },
     });
@@ -1621,11 +1641,12 @@ test("configured pricing requires canonical quote review and expired quotes perm
   }) as any;
   try {
     render(React.createElement(Workspace, { user, notify: () => {} }));
-    await screen.findByText("Surulere customer", { exact: false });
+    await screen.findByRole("tab", { name: "Point of sale" });
     fireEvent.click(screen.getByRole("tab", { name: "Point of sale" }));
     fireEvent.click(
-      screen.getByRole("button", { name: "Add Milk tea to order" }),
+      await screen.findByRole("button", { name: "Add Milk tea to order" }),
     );
+    fireEvent.click(screen.getByText("Customer & order note", { exact: true }));
     fireEvent.change(screen.getByLabelText("Customer name (optional)"), {
       target: { value: "Ada" },
     });
@@ -1952,7 +1973,7 @@ test("sign out warns about unresolved requests and only clears recovery after ex
       }),
     );
     await screen.findByText("Surulere customer", { exact: false });
-    assert(screen.getByText("Teni", { exact: true }));
+    assert(screen.getByLabelText("Account for Teni"));
     fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
     fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
       target: { value: "order-branch-1" },
@@ -1966,6 +1987,7 @@ test("sign out warns about unresolved requests and only clears recovery after ex
       ),
     );
     await screen.findByText("Financial submission not confirmed");
+    fireEvent.click(screen.getByLabelText("Account for Teni"));
     fireEvent.click(
       screen.getByRole("button", { name: "Sign out", exact: true }),
     );
@@ -1976,6 +1998,7 @@ test("sign out warns about unresolved requests and only clears recovery after ex
     );
     assert.equal(screen.queryByRole("alertdialog"), null);
     assert(screen.getByText("Financial submission not confirmed"));
+    fireEvent.click(screen.getByLabelText("Account for Teni"));
     fireEvent.click(
       screen.getByRole("button", { name: "Sign out", exact: true }),
     );
@@ -2104,7 +2127,7 @@ test("only a canonical abandoned fence releases uncertainty and a new explicit e
     await act(async () =>
       fireEvent.click(
         screen.getByRole("button", {
-          name: "Fence original request or confirm its recorded result",
+          name: "Resolve original request",
           hidden: true,
         }),
       ),
@@ -2496,7 +2519,7 @@ test("imported orders are fetched from bounded history and remain outside prepar
       screen.queryByText("Old source order", { exact: false }),
       null,
     );
-    assert(screen.getByText(/up to 200 recent orders/));
+    assert(screen.getByText(/Active and recent orders appear here/));
     fireEvent.click(screen.getByText("Browse full order history"));
     const history = await screen.findByRole("region", {
       name: "Order history",
@@ -2992,6 +3015,7 @@ test("merchant support is visible only to explicitly organization-wide administr
     organization.organizationWide = true;
     render(React.createElement(Workspace, { user, notify: () => {} }));
     const support = await screen.findByRole("tab", { name: "Mera support" });
+    await screen.findByText("Surulere customer", { exact: false });
     fireEvent.click(support);
     await screen.findByText("Contact Mera support", { exact: false });
   } finally {
@@ -3052,12 +3076,13 @@ test("new-service flags pause new visits and bookings while staff orders and exi
   }) as any;
   try {
     render(React.createElement(Workspace, { user, notify: () => {} }));
-    await screen.findByText("Surulere customer", { exact: false });
-    assert(screen.getByText("Some new services are paused"));
+    await screen.findByRole("tab", { name: "Point of sale" });
+    assert(await screen.findByText("Some new services are paused"));
     fireEvent.click(screen.getByRole("tab", { name: "Point of sale" }));
     fireEvent.click(
-      screen.getByRole("button", { name: "Add Milk tea to order" }),
+      await screen.findByRole("button", { name: "Add Milk tea to order" }),
     );
+    fireEvent.click(screen.getByText("Customer & order note", { exact: true }));
     fireEvent.change(screen.getByLabelText("Customer name (optional)"), {
       target: { value: "Ada" },
     });
@@ -3826,5 +3851,183 @@ test("refund-request financial recovery retains only a validated request referen
     );
   } finally {
     journal.clearFinancialJournals();
+  }
+});
+
+test("F5 integrated first landing follows actual role grants and uses one navigation", async () => {
+  const original = globalThis.fetch;
+  const cases: [string, string[], string][] = [
+    ["owner", ["reports.view", "orders.view"], "Overview"],
+    ["cashier", ["orders.view", "orders.create"], "Point of sale"],
+    ["kitchen", ["orders.view", "orders.prepare"], "Preparation"],
+    ["bar", ["orders.view", "orders.prepare"], "Preparation"],
+    ["waiter", ["orders.view", "tables.manage"], "Tables & visits"],
+    [
+      "front_desk",
+      ["orders.view", "tables.manage", "reservations.manage"],
+      "Reservations",
+    ],
+    ["stock_controller", ["stock.adjust", "menu.edit"], "Menu & stock"],
+  ];
+  try {
+    for (const [role, permissions, landing] of cases) {
+      globalThis.fetch = (async (input: any, init: any) =>
+        String(input).endsWith("/context")
+          ? Response.json({
+              ...context,
+              organizations: [
+                { ...context.organizations[0], role, permissions },
+              ],
+            })
+          : original(input, init)) as any;
+      render(<Workspace user={user} notify={() => {}} />);
+      await waitFor(() =>
+        assert.equal(
+          screen
+            .getByRole("tab", { name: landing })
+            .getAttribute("aria-selected"),
+          "true",
+        ),
+      );
+      assert.equal(
+        screen.getAllByRole("navigation", { name: "Organization workspace" })
+          .length,
+        1,
+      );
+      assert.equal(screen.queryByLabelText("Workspace page"), null);
+      cleanup();
+    }
+  } finally {
+    cleanup();
+    globalThis.fetch = original;
+  }
+});
+test("F5 integrated selection resets at branch switch and falls back promptly after revocation", async () => {
+  const original = globalThis.fetch;
+  let permissions = ["orders.view", "orders.create"];
+  globalThis.fetch = (async (input: any, init: any) =>
+    String(input).endsWith("/context")
+      ? Response.json({
+          ...context,
+          organizations: [
+            { ...context.organizations[0], role: "cashier", permissions },
+          ],
+        })
+      : original(input, init)) as any;
+  try {
+    render(<Workspace user={user} notify={() => {}} />);
+    await waitFor(() =>
+      assert.equal(
+        screen
+          .getByRole("tab", { name: "Point of sale" })
+          .getAttribute("aria-selected"),
+        "true",
+      ),
+    );
+    await screen.findByRole("heading", { name: "The whole collection" });
+    fireEvent.click(screen.getByRole("tab", { name: "Orders" }));
+    await screen.findByText("Surulere customer", { exact: false });
+    fireEvent.change(screen.getByLabelText("Branch"), {
+      target: { value: "branch-2" },
+    });
+    await waitFor(() =>
+      assert.equal(
+        screen
+          .getByRole("tab", { name: "Point of sale" })
+          .getAttribute("aria-selected"),
+        "true",
+      ),
+    );
+    assert.equal(
+      screen.queryByText("Surulere customer", { exact: false }),
+      null,
+    );
+    await screen.findByRole("heading", { name: "The whole collection" });
+    permissions = ["orders.view"];
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Refresh workspace" }),
+      ),
+    );
+    await waitFor(() =>
+      assert.equal(screen.queryByRole("tab", { name: "Point of sale" }), null),
+    );
+    assert.equal(
+      screen.getByRole("tab", { name: "Orders" }).getAttribute("aria-selected"),
+      "true",
+    );
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Refresh workspace" }),
+      ),
+    );
+    await screen.findByText("Ikeja customer", { exact: false });
+  } finally {
+    cleanup();
+    globalThis.fetch = original;
+  }
+});
+test("F5 integrated no-access state never falls back to an owner or stock-edit screen", async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = (async (input: any, init: any) =>
+    String(input).endsWith("/context")
+      ? Response.json({
+          ...context,
+          organizations: [
+            {
+              ...context.organizations[0],
+              role: "custom-stock-only",
+              permissions: ["stock.adjust"],
+            },
+          ],
+        })
+      : original(input, init)) as any;
+  try {
+    render(<Workspace user={user} notify={() => {}} />);
+    await screen.findByRole("heading", { name: "No tasks assigned" });
+    assert.equal(screen.queryByRole("tab"), null);
+    assert.equal(screen.queryByRole("button", { name: "Save product" }), null);
+  } finally {
+    cleanup();
+    globalThis.fetch = original;
+  }
+});
+
+test("refund request load failure offers retry and is never presented as an empty list", async () => {
+  const { default: RefundRequests } =
+    await import("../src/mera/workspace/RefundRequests");
+  const original = globalThis.fetch;
+  let reads = 0;
+  globalThis.fetch = async () =>
+    ++reads === 1
+      ? Response.json({ error: "Unavailable" }, { status: 503 })
+      : Response.json({ requests: [] });
+  try {
+    render(
+      <RefundRequests
+        base="/organizations/org-1/branches/branch-1"
+        userId="me"
+        orders={[]}
+        canRequest={false}
+        canApprove
+        disabled={false}
+        save={async () => {
+          throw new Error("No writes expected");
+        }}
+      />,
+    );
+    assert(screen.getByRole("status"));
+    assert.equal(screen.queryByText("No visible refund requests."), null);
+    const retry = await screen.findByRole("button", {
+      name: "Retry loading requests",
+    });
+    assert.equal(screen.queryByText("No visible refund requests."), null);
+    fireEvent.click(retry);
+    await screen.findByText("No visible refund requests.");
+    assert.equal(screen.queryByRole("alert"), null);
+    assert.equal(reads, 2);
+  } finally {
+    cleanup();
+    globalThis.fetch = original;
   }
 });

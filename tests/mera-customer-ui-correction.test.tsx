@@ -654,3 +654,61 @@ test("C2 feedback confirmation resets when another completed order is selected",
   );
   cleanup();
 });
+
+test("expired price review cannot submit and requires a deliberate fresh review", async (t) => {
+  let quotes = 0,
+    orders = 0;
+  mockGuestSessionFetch(t, async (input: any, init: any) => {
+    const path = String(input);
+    if (path.endsWith("/menu"))
+      return Response.json({ ...menu, pricingPolicy: { enabled: true } });
+    if (path.endsWith("/branches")) return Response.json({ branches: [] });
+    if (path.endsWith("/guest"))
+      return Response.json({ error: "guest" }, { status: 401 });
+    if (path.endsWith("/guests")) return Response.json({ displayName: "Ada" });
+    if (path.endsWith("/quote")) {
+      quotes++;
+      return Response.json(
+        {
+          id: "50000000-0000-4000-8000-000000000001",
+          menuVersion: 1,
+          currency: "NGN",
+          subtotal: 380000,
+          discount: 0,
+          serviceCharge: 0,
+          tax: 0,
+          total: 380000,
+          lines: [],
+          policyVersion: "v1",
+          expiresAt:
+            quotes === 1 ? "2026-11-18T12:00:01.150Z" : "2026-11-18T12:05:00Z",
+        },
+        { headers: { Date: "Wed, 18 Nov 2026 12:00:00 GMT" } },
+      );
+    }
+    if (path.endsWith("/orders")) {
+      orders++;
+      throw Error("Must not submit automatically");
+    }
+    throw Error("Unexpected request");
+  });
+  render(React.createElement(CustomerExperience));
+  await screen.findByRole("heading", { name: "Your basket" });
+  fireEvent.click(
+    screen.getByRole("button", { name: "Choose: Brown Sugar Boba" }),
+  );
+  fireEvent.click(screen.getByRole("checkbox", { name: "Less sugar" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
+    target: { value: "Ada" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Review total" }));
+  await screen.findByRole("button", { name: "Review latest total" });
+  assert.equal(screen.queryByRole("button", { name: "Submit order" }), null);
+  assert.equal(quotes, 1);
+  assert.equal(orders, 0);
+  fireEvent.click(screen.getByRole("button", { name: "Review latest total" }));
+  await screen.findByRole("button", { name: "Submit order" });
+  assert.equal(quotes, 2);
+  assert.equal(orders, 0);
+});

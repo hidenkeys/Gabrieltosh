@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { brandingStyle } from "../branding";
 import { categoryNavigation, matchesCategory } from "./categories";
+import { quoteDeadline, quoteReviewExpired } from "./quoteClock";
 import {
   assertCheckoutSession,
   parseAttemptResolution,
@@ -97,6 +98,24 @@ export default function CustomerExperience({
   const logo = assetUrl(menu?.organization?.branding?.logo);
   const cover = assetUrl(menu?.organization?.branding?.coverImage);
   const [quote, setQuote] = useState<any>(null);
+  const [billRefreshing, setBillRefreshing] = useState(false);
+  const [, tickQuoteClock] = useState(0);
+  useEffect(() => {
+    if (!quote?.expiresAt) return;
+    const update = () => tickQuoteClock((value) => value + 1);
+    const delay = Math.max(0, (quote.reviewDeadline ?? 0) - performance.now());
+    const timer = setTimeout(
+      update,
+      Math.min(Math.ceil(delay) + 1, 2147483647),
+    );
+    window.addEventListener("focus", update);
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("focus", update);
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, [quote]);
   const [joinTerms, setJoinTerms] = useState<any>(null);
   const [joinAcknowledged, setJoinAcknowledged] = useState(false);
   const [reservationAcknowledged, setReservationAcknowledged] = useState(false);
@@ -593,6 +612,8 @@ export default function CustomerExperience({
         quote?.menuVersion === menu?.version
       ? quote
       : null;
+  const expiredReview =
+    !checkoutIntent && currentQuote && quoteReviewExpired(currentQuote);
   async function submitOrder() {
     if (checkoutInFlight.current || checkoutRecovery.phase !== "ready") return;
     checkoutInFlight.current = true;
@@ -602,14 +623,38 @@ export default function CustomerExperience({
     let attempt = checkoutIntentRef.current;
     let sessionVerified = false;
     try {
-      if (!attempt && menu.pricingPolicy?.enabled && !currentQuote) {
+      if (
+        !attempt &&
+        menu.pricingPolicy?.enabled &&
+        (!currentQuote || quoteReviewExpired(currentQuote))
+      ) {
         await guest();
-        const nextQuote = await customerRequest(prefix + "/quote", "POST", {
-          menuVersion: menu.version,
-          items: JSON.parse(cartSignature),
-        });
+        const startedAt = performance.now();
+        let serverDate: string | null = null;
+        const nextQuote = await customerRequest(
+          prefix + "/quote",
+          "POST",
+          {
+            menuVersion: menu.version,
+            items: JSON.parse(cartSignature),
+          },
+          {
+            onServerDate: (date) => {
+              serverDate = date;
+            },
+          },
+        );
         if (generation === checkoutGeneration.current)
-          setQuote({ ...nextQuote, cartSignature });
+          setQuote({
+            ...nextQuote,
+            cartSignature,
+            reviewDeadline: quoteDeadline(
+              nextQuote.expiresAt,
+              serverDate,
+              startedAt,
+              performance.now(),
+            ),
+          });
         return;
       }
       if (!attempt) {
@@ -1411,6 +1456,13 @@ export default function CustomerExperience({
                       </p>
                     </div>
                   )}
+                  {expiredReview && (
+                    <p className="mc-alert" role="status">
+                      This price review has expired or its time could not be
+                      verified. Review the latest total before submitting. No
+                      order has been sent.
+                    </p>
+                  )}
                   <div className="mc-total">
                     <span>
                       {menu.pricingPolicy?.enabled && !currentQuote
@@ -1517,8 +1569,11 @@ export default function CustomerExperience({
                       ? "Checking…"
                       : checkoutIntent
                         ? "Retry original order"
-                        : menu.pricingPolicy?.enabled && !currentQuote
-                          ? "Review total"
+                        : menu.pricingPolicy?.enabled &&
+                            (!currentQuote || expiredReview)
+                          ? expiredReview
+                            ? "Review latest total"
+                            : "Review total"
                           : "Submit order"}
                   </button>
                 </>
@@ -1541,11 +1596,11 @@ export default function CustomerExperience({
           />
         )}
         {tab === "track" && (
-          <section className="mc-panel">
+          <section className="mc-panel mc-tracking-panel">
             <h2>Your order</h2>
             <p className="mc-note">
-              This is your current guest session. Verified phone/email sign-in
-              and cross-device history are not connected in this preview.
+              Follow orders from this guest session. To check an order from
+              another device, please ask staff for help.
             </p>
             {!order && trackingError && (
               <div className="mc-alert" role="alert">
@@ -1585,6 +1640,12 @@ export default function CustomerExperience({
                   <h3>
                     {menu?.organization?.name} · {menu?.branch?.name}
                   </h3>
+                  <p>Order reference: {order.reference || order.id}</p>
+                  <p>
+                    Order status: {String(order.status).replaceAll("_", " ")}
+                    {" · "}Payment status:{" "}
+                    {String(order.paymentStatus).replaceAll("_", " ")}
+                  </p>
                   {order.createdAt && (
                     <p>
                       {new Date(order.createdAt).toLocaleString("en-GB", {
@@ -1628,13 +1689,26 @@ export default function CustomerExperience({
                       ),
                     )}
                   </p>
+                  <p>Recorded payments: {money(order.paid || 0)}</p>
+                  {order.refunded > 0 && (
+                    <p>Recorded refunds: {money(order.refunded)}</p>
+                  )}
+                  {order.writtenOff > 0 && (
+                    <p>Authorized write-off: {money(order.writtenOff)}</p>
+                  )}
                   {order.paymentStatus === "paid" && (
-                    <button
-                      className="mc-secondary mc-print-control"
-                      onClick={() => window.print()}
-                    >
-                      Print payment receipt
-                    </button>
+                    <div className="mc-print-control">
+                      <p>
+                        Opens your device’s print options. This does not send
+                        another copy to the venue’s printers.
+                      </p>
+                      <button
+                        className="mc-secondary"
+                        onClick={() => window.print()}
+                      >
+                        Print payment receipt
+                      </button>
+                    </div>
                   )}
                 </div>
                 {trackingError && (
@@ -1905,8 +1979,8 @@ export default function CustomerExperience({
           </>
         )}
         {tab === "visit" && (
-          <section className="mc-panel">
-            <h2>Join your table</h2>
+          <section className="mc-panel mc-visit-panel">
+            <h2>{visit ? "Your table & bill" : "Join your table"}</h2>
             {visit ? (
               <>
                 <p>
@@ -1914,7 +1988,10 @@ export default function CustomerExperience({
                   this bill.
                 </p>
                 <p>
-                  Outstanding balance: <b>{money(visit.balance || 0)}</b>
+                  {Number(visit.balance) < 0
+                    ? "Unused deposit credit: "
+                    : "Outstanding balance: "}
+                  <b>{money(Math.abs(visit.balance || 0))}</b>
                 </p>
                 <h3>{visit.visit?.tableName || "Your table"} · shared bill</h3>
                 {(visit.bills || []).length > 0 && (
@@ -2015,21 +2092,24 @@ export default function CustomerExperience({
                   </div>
                 )}
                 <p>
-                  Ask staff to split this bill or verify a payment. Online
-                  collection is unavailable until the payment provider and
-                  policies are approved. Joining a visit does not itself confirm
-                  any payment.
+                  Please ask staff to split your bill or confirm a payment.
+                  Online payment is not available. Joining your table does not
+                  make a payment.
                 </p>
                 <button
                   className="mc-secondary"
+                  disabled={billRefreshing}
                   onClick={async () => {
+                    const generation = checkoutGeneration.current;
+                    setBillRefreshing(true);
                     try {
-                      setVisit(
-                        await customerRequest(
-                          `/public/visits/${visit.visit.id}`,
-                        ),
+                      const nextVisit = await customerRequest(
+                        `/public/visits/${visit.visit.id}`,
                       );
+                      if (generation !== checkoutGeneration.current) return;
+                      setVisit(nextVisit);
                     } catch (e) {
+                      if (generation !== checkoutGeneration.current) return;
                       setError((e as Error).message);
                       if (
                         [401, 403, 404].includes(
@@ -2040,10 +2120,12 @@ export default function CustomerExperience({
                         if (!checkoutIntentRef.current)
                           setFulfillment("counter_pickup");
                       }
+                    } finally {
+                      setBillRefreshing(false);
                     }
                   }}
                 >
-                  Refresh bill
+                  {billRefreshing ? "Checking your bill…" : "Refresh bill"}
                 </button>
               </>
             ) : (
@@ -2053,9 +2135,9 @@ export default function CustomerExperience({
                   style={{ border: 0, padding: 0 }}
                 >
                   <p>
-                    Choose your table and ask staff for its current joining
-                    code, or enter a visit reference. Scanning a table QR alone
-                    does not unlock a private bill.
+                    Choose your table and ask staff for its joining code. If
+                    staff gave you a visit reference, you can use that instead.
+                    Your table’s bill stays private until the code is checked.
                   </p>
                   <label>
                     Your name

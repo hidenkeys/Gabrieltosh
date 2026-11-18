@@ -90,11 +90,10 @@ export function mountMeraRefundRequests(router, services) {
         orderId = z.string().uuid().parse(req.params.id);
       res.json(
         await locked(s, async (c) => {
-          const previous = (
-            await readRecords(c, s.organizationId, s.branchId, "refund_request")
-          )
-            .map((r) => r.data)
-            .find((r) => r.requestKey === input.requestKey);
+          const previous = (await c.query(
+            "SELECT data FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='refund_request' AND data->>'requestKey'=$3 LIMIT 1",
+            [s.organizationId,s.branchId,input.requestKey],
+          )).rows[0]?.data;
           if (previous) {
             if (
               previous.orderId !== orderId ||

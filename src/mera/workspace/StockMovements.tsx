@@ -25,6 +25,8 @@ export default function StockMovements({
     [rows, setRows] = useState<any[]>([]),
     [older, setOlder] = useState(false),
     [error, setError] = useState(""),
+    [loadError, setLoadError] = useState(""),
+    [loading, setLoading] = useState(false),
     [revision, setRevision] = useState(0);
   const product = products.find((p) => p.id === productId),
     target = variantId
@@ -33,7 +35,13 @@ export default function StockMovements({
   useEffect(() => {
     const controller = new AbortController();
     setRows([]);
-    setError("");
+    setLoadError("");
+    setOlder(false);
+    if (!productId) {
+      setLoading(false);
+      return () => controller.abort();
+    }
+    setLoading(true);
     workspaceApi(
       base +
         "/stock/movements?take=100" +
@@ -43,13 +51,18 @@ export default function StockMovements({
       controller.signal,
     )
       .then((result) => {
+        if (controller.signal.aborted) return;
         if (!Array.isArray(result.movements))
           throw new Error("Stock history is unavailable.");
         setRows(result.movements);
         setOlder(result.hasOlder);
       })
       .catch((e) => {
-        if (e.name !== "AbortError") setError(e.message);
+        if (!controller.signal.aborted && e.name !== "AbortError")
+          setLoadError("Stock movements could not be loaded. Try again.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
   }, [base, productId, revision]);
@@ -185,7 +198,23 @@ export default function StockMovements({
           {row.reason}
         </p>
       ))}
-      {!rows.length && <p>No movements loaded.</p>}
+      {!productId && <p>Choose a product to see its stock movements.</p>}
+      {loading && <p role="status">Loading stock movements…</p>}
+      {loadError && (
+        <div role="alert">
+          <p>{loadError}</p>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => setRevision((v) => v + 1)}
+          >
+            Retry loading movements
+          </button>
+        </div>
+      )}
+      {productId && !loading && !loadError && !rows.length && (
+        <p>No stock movements for this product.</p>
+      )}
       {older && (
         <p>
           Showing latest 100 movements; older records remain in the audit

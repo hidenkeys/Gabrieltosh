@@ -200,7 +200,10 @@ test("remount restores exact review only after cookie proof, with no automatic w
       created = true;
       return Response.json({ displayName: "Ada", sessionRef });
     }
-    if (path.endsWith("/quote")) return Response.json(quote);
+    if (path.endsWith("/quote"))
+      return Response.json(quote, {
+        headers: { Date: "Wed, 18 Nov 2026 12:00:00 GMT" },
+      });
     if (path.endsWith("/orders")) {
       bodies.push(JSON.parse(init.body));
       assert(readCheckoutJournal(scope), "journal must exist before the write");

@@ -220,21 +220,24 @@ test("configured charges require server review and uncertain retries preserve qu
     if (path.endsWith("/guests")) return Response.json({ displayName: "Ada" });
     if (path.endsWith("/quote")) {
       quotes++;
-      return Response.json({
-        id: "50000000-0000-4000-8000-000000000001",
-        currency: "NGN",
-        policyVersion: "pricing-v1",
-        menuVersion: 1,
-        expiresAt: "2099-01-01T00:00:00Z",
-        subtotal: 380000,
-        discount: 0,
-        serviceCharge: 38000,
-        tax: 0,
-        total: 418000,
-        lines: [
-          { type: "service_charge", label: "Service charge", amount: 38000 },
-        ],
-      });
+      return Response.json(
+        {
+          id: "50000000-0000-4000-8000-000000000001",
+          currency: "NGN",
+          policyVersion: "pricing-v1",
+          menuVersion: 1,
+          expiresAt: "2099-01-01T00:00:00Z",
+          subtotal: 380000,
+          discount: 0,
+          serviceCharge: 38000,
+          tax: 0,
+          total: 418000,
+          lines: [
+            { type: "service_charge", label: "Service charge", amount: 38000 },
+          ],
+        },
+        { headers: { Date: "Wed, 18 Nov 2026 12:00:00 GMT" } },
+      );
     }
     if (path.endsWith("/orders")) {
       orders.push(JSON.parse(init.body));
@@ -307,6 +310,11 @@ test("help request uncertainty retries original intent without claiming external
     assert.equal(String(input), "/api/mera/v1/public/org/branch/help-requests");
     if (init.method === "POST") {
       attempts.push(JSON.parse(init.body));
+      if (attempts.length === 2)
+        return Response.json(
+          { error: "Guest access interrupted" },
+          { status: 401 },
+        );
       throw new TypeError("Failed to fetch");
     }
     return Response.json({ requests: [], externalDelivery: false });
@@ -331,13 +339,19 @@ test("help request uncertainty retries original intent without claiming external
   );
   fireEvent.click(screen.getByRole("button", { name: "Send help request" }));
   await screen.findByRole("alert");
-  assert(screen.getByText(/Email, SMS and push notifications are not sent/));
+  assert(screen.getByText(/We will not send a text or email/));
   fireEvent.click(
     screen.getByRole("button", { name: "Retry original help request" }),
   );
   await screen.findByRole("alert");
   assert.equal(attempts.length, 2);
   assert.deepEqual(attempts[0], attempts[1]);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Retry original help request" }),
+  );
+  await screen.findByRole("alert");
+  assert.equal(attempts.length, 3);
+  assert.deepEqual(attempts[0], attempts[2]);
   assert.equal("visitId" in attempts[0], false);
   cleanup();
 });
@@ -645,6 +659,15 @@ test("canonical outstanding and authorized writeoff are disclosed instead of rec
   await screen.findByText("M-WRITEOFF");
   assert(screen.getByText(/Order total ₦3,800 · Outstanding ₦0/));
   assert(screen.getByText(/Authorized write-off ₦2,800/));
+  const receipt = screen.getByLabelText("Order details");
+  assert.match(receipt.textContent, /Order reference: M-WRITEOFF/);
+  assert.match(receipt.textContent, /Recorded payments: ₦1,000/);
+  assert.match(receipt.textContent, /Authorized write-off: ₦2,800/);
+  assert.equal(receipt.querySelector(".mc-history"), null);
+  assert.equal(
+    screen.queryByRole("button", { name: "Print payment receipt" }),
+    null,
+  );
   cleanup();
 });
 

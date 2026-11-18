@@ -1,3 +1,6 @@
+import { mountMeraRefundRequests, reviewRefundRequest, completeRefundRequest } from "./refund-requests.js";
+import { mountMeraWorkspaceAdmin } from "./workspace-admin.js";
+import { mountMeraStockHistory } from "./stock-history.js";
 import { assertOrderRequestActive, mountMeraOrderAttempts } from "./order-attempts.js";
 import express from "express";
 import { organizationSlugSchema,migrateMeraAliases,claimOrganizationSlug,resolveOrganizationSlug,mountMeraOrganizationAliases } from "./organization-aliases.js";
@@ -1258,6 +1261,7 @@ export function createMeraRouter(db) {
           method: z.enum(["cash", "external_pos", "external_transfer"]),
           reference:z.string().max(200).default(""),
           cancellationQuoteId:uuid.optional(),
+          refundRequestId:uuid.optional(),
         })
         .parse(req.body);
       res.json(
@@ -1278,6 +1282,7 @@ export function createMeraRouter(db) {
             return existing.data;
           }
           const o = assertHistoricalWritable(await find(c, scope(req), "order", req.params.id));
+          const reviewedRequest = await reviewRefundRequest(c,{find},scope(req),input,o,req.user.id);
           if(input.cancellationQuoteId && (await readRecords(c,scope(req).organizationId,scope(req).branchId,"refund")).some(r=>r.data.cancellationQuoteId===input.cancellationQuoteId))throw fail("This cancellation quote already has a recorded refund.",409);
           if (input.amount > o.paid - o.refunded)
             throw fail("Refund exceeds collected funds.");
@@ -1362,6 +1367,7 @@ export function createMeraRouter(db) {
             orderId: o.id,
             amount: input.amount,
           });
+          await completeRefundRequest(c,{update,event},scope(req),reviewedRequest,refund,req.user);
           return refund;
         }),
       );
@@ -3121,6 +3127,9 @@ export function createMeraRouter(db) {
     },
   );
 
+  mountMeraRefundRequests(router,{db,guard,scope,locked,readRecords,find,record,update,event});
+  mountMeraWorkspaceAdmin(router,{db,guard,scope,event});
+  mountMeraStockHistory(router,{db,guard,scope,locked,find,record,update,event});
   mountMeraOrderAttempts(router,{guard,scope,locked,record,event,publicContext,guest,publicOrder});
   mountMeraPrinting(router,{db,guard,scope,locked,find,record,update,event});
   mountMeraQueries(router,{db,guard,scope});

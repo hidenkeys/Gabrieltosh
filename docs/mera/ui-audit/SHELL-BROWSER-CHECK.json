@@ -1,0 +1,271 @@
+{
+  "desktop": {
+    "width": 1440,
+    "height": 1000,
+    "pages": [
+      {
+        "page": "Point of sale",
+        "alerts": [],
+        "heading": "The counter.",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Orders",
+        "alerts": [
+          "Endpoint not found."
+        ],
+        "heading": "Orders",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Preparation",
+        "alerts": [],
+        "heading": "Preparation",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Tables & visits",
+        "alerts": [],
+        "heading": "Tables & visits",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Reservations",
+        "alerts": [],
+        "heading": "Reservations",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Front desk",
+        "alerts": [],
+        "heading": "Front desk",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Customer requests",
+        "alerts": [],
+        "heading": "Customer requests",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Overview",
+        "alerts": [],
+        "heading": "Branch overview.",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Menu & stock",
+        "alerts": [
+          "Endpoint not found."
+        ],
+        "heading": "Menu & stock",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Transactions",
+        "alerts": [],
+        "heading": "Transactions",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Shifts & cash",
+        "alerts": [],
+        "heading": "Shifts & cash",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "People",
+        "alerts": [],
+        "heading": "People & access",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Customer care",
+        "alerts": [],
+        "heading": "Customer care",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Report exports",
+        "alerts": [],
+        "heading": "Report exports",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Getting started",
+        "alerts": [],
+        "heading": "Branch setup",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Receipt studio",
+        "alerts": [],
+        "heading": "Receipts & stickers",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Menu QR codes",
+        "alerts": [],
+        "heading": "Menu QR codes",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Subscription",
+        "alerts": [],
+        "heading": "Subscription",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Integrations",
+        "alerts": [],
+        "heading": "Integrations",
+        "navigations": 1,
+        "overflow": false
+      },
+      {
+        "page": "Mera support",
+        "alerts": [],
+        "heading": "Mera support",
+        "navigations": 1,
+        "overflow": false
+      }
+    ]
+  },
+  "narrow": {
+    "width": 433,
+    "height": 938,
+    "pages": [
+      {
+        "page": "Orders",
+        "heading": "Orders",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Preparation",
+        "heading": "Preparation",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Tables & visits",
+        "heading": "Tables & visits",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Reservations",
+        "heading": "Reservations",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Front desk",
+        "heading": "Front desk",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Customer requests",
+        "heading": "Customer requests",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Menu & stock",
+        "heading": "Menu & stock",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Transactions",
+        "heading": "Transactions",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Shifts & cash",
+        "heading": "Shifts & cash",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "People",
+        "heading": "People & access",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Customer care",
+        "heading": "Customer care",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Report exports",
+        "heading": "Report exports",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Getting started",
+        "heading": "Branch setup",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Receipt studio",
+        "heading": "Receipts & stickers",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Menu QR codes",
+        "heading": "Menu QR codes",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Subscription",
+        "heading": "Subscription",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Integrations",
+        "heading": "Integrations",
+        "menuExpanded": "false",
+        "overflow": false
+      },
+      {
+        "page": "Mera support",
+        "heading": "Mera support",
+        "menuExpanded": "false",
+        "overflow": false
+      }
+    ]
+  },
+  "scope": "Shell navigation/heading/overflow only; does not certify all async content or workflows.",
+  "notes": [
+    "Initial desktop pass found missing refund/stock routes. All three existing server leaves were subsequently mounted and PostgreSQL-tested. Final browser: refund GET succeeded with no alerts; product-scoped stock GET showed a successful empty result after selecting Fresh Lemonade Juice, with no alerts. Initial no-product GET was removed and regression-tested.",
+    "Navigation/heading/overflow review is separate from full async content and workflow acceptance."
+  ]
+}

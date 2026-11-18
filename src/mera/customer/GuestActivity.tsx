@@ -5,38 +5,61 @@ const money = (amount: number) =>
     amount / 100,
   );
 export default function GuestActivity({ prefix }: { prefix: string }) {
+  // A venue change must synchronously discard the previous venue's private view
+  // and pending cancellation intents, before the next request completes.
+  return <ScopedGuestActivity key={prefix} prefix={prefix} />;
+}
+function ScopedGuestActivity({ prefix }: { prefix: string }) {
   const [activity, setActivity] = useState<any>(null),
     [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [loading, setLoading] = useState(true);
+  const mounted = useRef(true);
+  const loadGeneration = useRef(0);
   const cancellationIntents = useRef(
     new Map<string, { requestKey: string; reason: string }>(),
   );
   async function load() {
+    const generation = ++loadGeneration.current;
+    if (!mounted.current) return;
+    setLoading(true);
     try {
-      setActivity(await customerRequest(prefix + "/activity"));
+      const next = await customerRequest(prefix + "/activity");
+      if (!mounted.current || generation !== loadGeneration.current) return;
+      setActivity(next);
       setError("");
     } catch (e) {
+      if (!mounted.current || generation !== loadGeneration.current) return;
       if ([401, 403, 404].includes((e as any).status)) setActivity(null);
       setError((e as Error).message);
+    } finally {
+      if (mounted.current && generation === loadGeneration.current)
+        setLoading(false);
     }
   }
   useEffect(() => {
+    mounted.current = true;
     void load();
+    return () => {
+      mounted.current = false;
+      loadGeneration.current++;
+    };
   }, [prefix]);
   return (
     <section className="mc-panel mc-activity">
       <h2>Your visits & feedback</h2>
       <p>
-        Visible only in this organization’s current guest session. Verified
-        cross-device history is unavailable.
+        Your reservations and feedback from this guest session. Opening another
+        device will not show this history.
       </p>
       <button
         className="mc-secondary"
-        disabled={busy}
+        disabled={busy || loading}
         onClick={() => void load()}
       >
         Refresh your activity
       </button>
+      {loading && <p role="status">Loading your activity…</p>}
       {error && <p role="alert">{error}</p>}
       {activity && (
         <>
@@ -105,11 +128,12 @@ export default function GuestActivity({ prefix }: { prefix: string }) {
                           "POST",
                           intent,
                         );
+                        if (!mounted.current) return;
                         await load();
                       } catch (e) {
-                        setError((e as Error).message);
+                        if (mounted.current) setError((e as Error).message);
                       } finally {
-                        setBusy(false);
+                        if (mounted.current) setBusy(false);
                       }
                     }}
                   >

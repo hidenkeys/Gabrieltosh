@@ -128,3 +128,89 @@ test("operator denial clears private data and a late directory response cannot r
     cleanup();
   }
 });
+test("platform sections and subscription filter keep operational tasks focused", async () => {
+  globalThis.fetch = (async (input: any) => {
+    if (String(input).endsWith("/auth"))
+      return Response.json({ enrolled: true, verified: true });
+    if (String(input).endsWith("/support-cases"))
+      return Response.json({ cases: [] });
+    return Response.json({
+      organizations: [
+        {
+          id: "one",
+          name: "Active business",
+          slug: "active",
+          subscription: { status: "active" },
+        },
+        {
+          id: "two",
+          name: "Paused business",
+          slug: "paused",
+          subscription: { status: "suspended" },
+        },
+      ],
+      audits: [],
+      policy: {},
+    });
+  }) as any;
+  try {
+    render(<Platform />);
+    await screen.findByRole("heading", { name: "Organization directory" });
+    assert.equal(
+      screen.queryByRole("heading", { name: "Organization support" }),
+      null,
+    );
+    fireEvent.change(screen.getByLabelText("Subscription status"), {
+      target: { value: "active" },
+    });
+    assert.ok(screen.getByRole("cell", { name: "Active business" }));
+    assert.equal(screen.queryByRole("cell", { name: "Paused business" }), null);
+    fireEvent.click(screen.getByRole("button", { name: "Support inbox" }));
+    assert.ok(screen.getByRole("heading", { name: "Organization support" }));
+    assert.equal(
+      screen.queryByRole("heading", { name: "Organization directory" }),
+      null,
+    );
+    assert.ok(screen.getByText("No support cases recorded."));
+    fireEvent.click(screen.getByRole("button", { name: "Backups" }));
+    assert.ok(screen.getByRole("heading", { name: "Backup readiness" }));
+  } finally {
+    cleanup();
+  }
+});
+test("organization review opens a named dialog and returns keyboard focus when closed", async () => {
+  globalThis.fetch = (async (input: any) => {
+    if (String(input).endsWith("/auth"))
+      return Response.json({ enrolled: true, verified: true });
+    if (String(input).endsWith("/support-cases"))
+      return Response.json({ cases: [] });
+    return Response.json({
+      organizations: [
+        {
+          id: "org",
+          name: "Review business",
+          slug: "review",
+          subscription: { status: "active" },
+        },
+      ],
+      audits: [],
+      policy: {},
+    });
+  }) as any;
+  try {
+    render(<Platform />);
+    const trigger = await screen.findByRole("button", {
+      name: "Review organization",
+    });
+    fireEvent.click(trigger);
+    const dialog = await screen.findByRole("dialog", {
+      name: "Review business",
+    });
+    assert.equal(dialog.contains(document.activeElement), true);
+    fireEvent.click(screen.getByRole("button", { name: "Close organization" }));
+    assert.equal(screen.queryByRole("dialog"), null);
+    assert.equal(document.activeElement, trigger);
+  } finally {
+    cleanup();
+  }
+});

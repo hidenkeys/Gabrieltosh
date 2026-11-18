@@ -25,6 +25,8 @@ export default function RefundRequests({
 }: Props) {
   const [requests, setRequests] = useState<any[]>([]),
     [error, setError] = useState(""),
+    [loadError, setLoadError] = useState(""),
+    [loading, setLoading] = useState(true),
     [orderId, setOrder] = useState(""),
     [amount, setAmount] = useState(""),
     [reason, setReason] = useState(""),
@@ -33,14 +35,21 @@ export default function RefundRequests({
   useEffect(() => {
     const controller = new AbortController();
     setRequests([]);
+    setLoadError("");
+    setLoading(true);
     workspaceApi(base + "/refund-requests", "GET", undefined, controller.signal)
       .then((result) => {
+        if (controller.signal.aborted) return;
         if (!Array.isArray(result.requests))
           throw new Error("Refund request response is unavailable.");
         setRequests(result.requests);
       })
       .catch((e) => {
-        if (e.name !== "AbortError") setError(e.message);
+        if (!controller.signal.aborted && e.name !== "AbortError")
+          setLoadError("Refund requests could not be loaded. Try again.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
   }, [base, revision]);
@@ -63,6 +72,19 @@ export default function RefundRequests({
         them. Record a return only after money has actually been returned.
       </p>
       {error && <p role="alert">{error}</p>}
+      {loading && <p role="status">Loading refund requests…</p>}
+      {loadError && (
+        <div role="alert">
+          <p>{loadError}</p>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => setRevision((v) => v + 1)}
+          >
+            Retry loading requests
+          </button>
+        </div>
+      )}
       {pending ? (
         <div className="mw-note">
           <p>
@@ -155,7 +177,9 @@ export default function RefundRequests({
           send={send}
         />
       ))}
-      {!requests.length && <p>No visible refund requests.</p>}
+      {!loading && !loadError && !requests.length && (
+        <p>No visible refund requests.</p>
+      )}
     </section>
   );
 }
