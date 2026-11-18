@@ -9,7 +9,11 @@ import {
 } from "lucide-react";
 import { uuid } from "../../api";
 import BranchSettings from "./BranchSettings";
-import StaffOrderItems from "./StaffOrderItems";
+import RefundRequests from "./RefundRequests";
+import StaffPos from "./StaffPos";
+import WorkspaceNavigation from "./WorkspaceNavigation";
+import WorkspaceAccount from "./WorkspaceAccount";
+import OperationalOverview from "./OperationalOverview";
 import PolicyEditor from "./PolicyEditor";
 import Bills from "./Bills";
 import ReservationSettlement from "./ReservationSettlement";
@@ -22,6 +26,7 @@ import { Complaints, Waitlist } from "./Operations";
 import ExportJobs from "./ExportJobs";
 import Invoices from "./Invoices";
 import ReportDetails from "./ReportDetails";
+import ReportExplorer from "./ReportExplorer";
 import Tickets from "./Tickets";
 import RoleManager from "./RoleManager";
 import TimeWindows from "./TimeWindows";
@@ -46,7 +51,18 @@ import {
 import ItemFulfillment from "./ItemFulfillment";
 import Categories, { categoryPath } from "./Categories";
 import CatalogOperations from "./CatalogOperations";
+import StockMovements from "./StockMovements";
+import FloorMap from "./FloorMap";
 import HelpRequests from "./HelpRequests";
+import ModifierGroupsEditor from "./ModifierGroupsEditor";
+import WriteOff from "./WriteOff";
+import MinimumSpendPolicy from "./MinimumSpendPolicy";
+import VisitMinimumSpend from "./VisitMinimumSpend";
+import PrivateVisitAccess from "./PrivateVisitAccess";
+import SupportCases from "./SupportCases";
+import DepositOutcomes from "./DepositOutcomes";
+import OrderHistory from "./OrderHistory";
+import OrderInstructions from "./OrderInstructions";
 import { workspaceApi, formatMoney, WorkspaceError } from "./api";
 
 type RecordData = Record<string, any>;
@@ -65,6 +81,7 @@ const sections = [
   ["onboarding", "Getting started", "organization.manage"],
   ["menu", "Menu & stock", "menu.edit"],
   ["orders", "Orders", "orders.view"],
+  ["counter", "Point of sale", "orders.create"],
   ["preparation", "Preparation", "orders.prepare"],
   ["tables", "Tables & visits", "tables.manage"],
   ["reservations", "Reservations", "reservations.manage"],
@@ -79,6 +96,7 @@ const sections = [
   ["waitlist", "Front desk", "reservations.manage"],
   ["exports", "Report exports", "reports.export"],
   ["help", "Customer requests", "help.manage"],
+  ["support", "Mera support", "support.manage"],
 ];
 const sourceLabel = (value: string) => value?.replaceAll("_", " ") || "—";
 const list = (value: any) => (Array.isArray(value) ? value : []);
@@ -107,6 +125,8 @@ export default function OrganizationWorkspace({
   const [branchId, setBranchId] = useState("");
   const [section, setSection] = useState("overview");
   const [data, setData] = useState<RecordData | null>(null);
+  const [privateAccess, setPrivateAccess] = useState<any>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [orderFilters, setOrderFilters] = useState({
@@ -143,6 +163,7 @@ export default function OrganizationWorkspace({
   const allowed = (permission: string) => permissions.includes(permission);
   const branches = list(organization?.branches).filter(
     (branch: any) =>
+      organization?.organizationWide === true ||
       !organization?.branchIds?.length ||
       organization.branchIds.includes(branch.id),
   );
@@ -153,6 +174,7 @@ export default function OrganizationWorkspace({
   const permissionFingerprint = useRef("");
   const accessDenied = useRef(false);
   const authorizationEpoch = useRef(0);
+  const renderedAuthorizationVersion = authorizationEpoch.current;
   const lastDenialCheck = useRef(0);
   const mutationGeneration = useRef(0);
   const branchBase = `/organizations/${encodeURIComponent(organizationId)}/branches/${encodeURIComponent(branchId)}`;
@@ -172,6 +194,7 @@ export default function OrganizationWorkspace({
 
   const clearProtected = useCallback(() => {
     authorizationEpoch.current++;
+    setPrivateAccess(null);
     setData(null);
     setCategories([]);
     setMembers([]);
@@ -215,9 +238,10 @@ export default function OrganizationWorkspace({
       organizationId,
       branchId,
     );
-    const kind = restored && financialKind(restored.path);
+    const kind = restored && financialKind(restored.path, restored.body);
     const permission =
-      kind === "refund"
+      ["refund", "writeoff"].includes(kind || "") ||
+      kind?.startsWith("deposit_")
         ? "refunds.approve"
         : kind === "cash_movement"
           ? "shifts.manage"
@@ -256,6 +280,7 @@ export default function OrganizationWorkspace({
             role: org.role,
             permissions: org.permissions,
             branchIds: org.branchIds,
+            organizationWide: org.organizationWide,
             branches: org.branches.map((branch: any) => branch.id),
           })),
         );
@@ -303,8 +328,7 @@ export default function OrganizationWorkspace({
         setError((e as Error).message);
         setOffline(true);
       } finally {
-        if (generation === contextGeneration.current && !quiet)
-          setLoading(false);
+        if (generation === contextGeneration.current) setLoading(false);
       }
     },
     [clearProtected, user.id],
@@ -342,6 +366,7 @@ export default function OrganizationWorkspace({
     return () => window.removeEventListener("mera:access-denied", denied);
   }, [clearProtected, loadContext]);
   useEffect(() => {
+    setPrivateAccess(null);
     setData(null);
     setCategories([]);
     setMembers([]);
@@ -399,6 +424,7 @@ export default function OrganizationWorkspace({
   );
   useEffect(() => {
     accessDenied.current = false;
+    setPrivateAccess(null);
     setData(null);
     setCategories([]);
     setTabForm({});
@@ -443,6 +469,7 @@ export default function OrganizationWorkspace({
     setTabForm({});
     if (section === "team" && organizationId && allowed("members.manage")) {
       const requestedScope = branchBase;
+      const authorizationVersion = authorizationEpoch.current;
       const controller = new AbortController();
       workspaceApi(
         `/organizations/${organizationId}/members`,
@@ -454,7 +481,8 @@ export default function OrganizationWorkspace({
           if (
             !controller.signal.aborted &&
             activeScope.current === requestedScope &&
-            scopeEpoch.current.generation === scopeVersion
+            scopeEpoch.current.generation === scopeVersion &&
+            authorizationEpoch.current === authorizationVersion
           )
             setMembers(list(rows.members ?? rows));
         })
@@ -462,7 +490,8 @@ export default function OrganizationWorkspace({
           if (
             e.name !== "AbortError" &&
             activeScope.current === requestedScope &&
-            scopeEpoch.current.generation === scopeVersion
+            scopeEpoch.current.generation === scopeVersion &&
+            authorizationEpoch.current === authorizationVersion
           )
             setError(e.message);
         });
@@ -483,8 +512,9 @@ export default function OrganizationWorkspace({
     setError("");
     const financial =
       !!body?.requestKey &&
-      (/\/(payments|refunds|deposits|movements)$/.test(path) ||
-        /\/items\/[^/]+\/cancel$/.test(path));
+      (/\/(payments|refunds|deposits|movements|writeoffs)$/.test(path) ||
+        /\/items\/[^/]+\/cancel$/.test(path) ||
+        /\/deposits\/[^/]+\/outcomes$/.test(path));
     const financialSignature = financial
       ? method + path + JSON.stringify({ ...body, requestKey: undefined })
       : null;
@@ -721,26 +751,31 @@ export default function OrganizationWorkspace({
     );
   const empty = (text: string) => <div className="mw-empty">{text}</div>;
   const visibleSections = sections.filter(([, , permission]) =>
-    permission === "help.manage"
-      ? permissions.some((permission: string) =>
-          [
-            "orders.fulfill",
-            "tables.manage",
-            "payments.record",
-            "refunds.approve",
-            "reservations.manage",
-            "organization.manage",
-          ].includes(permission),
-        )
-      : permission === "qr.manage"
-        ? allowed("menu.publish") || allowed("tables.manage")
-        : allowed(permission),
+    permission === "support.manage"
+      ? allowed("organization.manage") &&
+        organization?.organizationWide === true
+      : permission === "help.manage"
+        ? permissions.some((permission: string) =>
+            [
+              "orders.fulfill",
+              "tables.manage",
+              "payments.record",
+              "refunds.approve",
+              "reservations.manage",
+              "organization.manage",
+            ].includes(permission),
+          )
+        : permission === "qr.manage"
+          ? allowed("menu.publish") || allowed("tables.manage")
+          : allowed(permission),
   );
   const activeSection = visibleSections.some(([id]) => id === section)
     ? section
     : visibleSections[0]?.[0] || "";
   const orders = list(data?.orders);
+  const liveOrders = orders.filter((order: any) => !order.historicalReadOnly);
   const filteredOrders = orders.filter((order: any) => {
+    if (order.historicalReadOnly) return false;
     const query = orderFilters.query.trim().toLowerCase();
     return (
       (!query ||
@@ -761,6 +796,22 @@ export default function OrganizationWorkspace({
       (!orderFilters.unassigned || !order.handlerId)
     );
   });
+  const features = data?.features || organization?.features;
+  const pausedServices = Object.entries(features?.flags || {}).filter(
+    ([name, value]) =>
+      value === false &&
+      [
+        "customer_ordering",
+        "new_reservations",
+        "new_table_visits",
+        "zidi",
+      ].includes(name),
+  );
+  const delayedOrders = allowed("orders.view") ? list(data?.delayedOrders) : [];
+  const parsedServerTime = Date.parse(data?.serverTime);
+  const serverNow = Number.isFinite(parsedServerTime)
+    ? parsedServerTime
+    : Date.now();
   const entitlements = data?.entitlements || organization?.entitlements;
   const signOut = async () => {
     if (!onLogout) return;
@@ -827,7 +878,7 @@ export default function OrganizationWorkspace({
   const fenceFinancial = async () => {
     const current = pendingFinancial;
     if (!current) return;
-    const kind = financialKind(current.path);
+    const kind = financialKind(current.path, current.body);
     if (!kind)
       throw new Error("Original financial request type is not recognized.");
     const result = await mutate(
@@ -859,6 +910,119 @@ export default function OrganizationWorkspace({
         : "The original request is abandoned and fenced against delayed retries. No posted funds were reversed.",
     );
   };
+  const minimumSpendPolicy = data?.branch?.settings?.minimumSpendPolicy;
+  const minimumSpendAck = minimumSpendPolicy?.enabled
+    ? {
+        minimumSpendAcknowledged:
+          tabForm.minimumSpendAckVersion === minimumSpendPolicy.version,
+        minimumSpendPolicyVersion: minimumSpendPolicy.version,
+      }
+    : {};
+  const minimumSpendField = minimumSpendPolicy?.enabled ? (
+    <div className="mw-wide mw-note">
+      <strong>
+        Minimum-spend terms: {formatMoney(minimumSpendPolicy.amount)}
+      </strong>
+      <p>{minimumSpendPolicy.disclosure}</p>
+      <label className="mw-row">
+        <span>
+          The customer reviewed and accepted these disclosed minimum-spend
+          terms.
+        </span>
+        <input
+          type="checkbox"
+          required
+          checked={
+            tabForm.minimumSpendAckVersion === minimumSpendPolicy.version
+          }
+          onChange={(event) =>
+            updateForm(
+              "minimumSpendAckVersion",
+              event.target.checked ? minimumSpendPolicy.version : "",
+            )
+          }
+        />
+      </label>
+    </div>
+  ) : null;
+  const captureVisitAccess = (visit: any) => {
+    if (
+      activeScope.current !== branchBase ||
+      scopeEpoch.current.generation !== scopeVersion ||
+      authorizationEpoch.current !== renderedAuthorizationVersion
+    )
+      return;
+    if (
+      typeof visit?.joiningCode !== "string" ||
+      !visit.joiningCode ||
+      visit.joiningCode.length > 80
+    )
+      return;
+    setPrivateAccess({
+      visit: {
+        id: visit.id,
+        displayName: visit.displayName,
+        tableId: visit.tableId,
+        tableName:
+          visit.tableName ||
+          list(data?.tables).find((table: any) => table.id === visit.tableId)
+            ?.name,
+        version: visit.version || 1,
+        status: visit.status,
+      },
+      code: visit.joiningCode,
+      uncertain: false,
+    });
+  };
+  const rotateVisitAccess = async (reason: string) => {
+    const visit = privateAccess?.visit;
+    if (!visit) return;
+    const current =
+      list(data?.visits).find((row: any) => row.id === visit.id) || visit;
+    setPrivateAccess({ visit: current, code: null, uncertain: true });
+    const result = await mutate(
+      branchBase + "/visits/" + visit.id + "/joining-code",
+      "POST",
+      { version: current.version || 1, reason },
+      "Replacement private code generated. Existing guest sessions were retained.",
+    );
+    if (
+      activeScope.current !== branchBase ||
+      scopeEpoch.current.generation !== scopeVersion ||
+      authorizationEpoch.current !== renderedAuthorizationVersion
+    )
+      return;
+    if (typeof result.joiningCode !== "string" || !result.joiningCode)
+      throw new Error("No current code was confirmed.");
+    setPrivateAccess({
+      visit: { ...current, version: result.version },
+      code: result.joiningCode,
+      uncertain: false,
+    });
+  };
+  useEffect(() => {
+    if (!privateAccess) return;
+    const visit = list(data?.visits).find(
+      (visit: any) => visit.id === privateAccess.visit.id,
+    );
+    if (visit?.status === "closed") setPrivateAccess(null);
+    else if (
+      visit &&
+      privateAccess.code &&
+      (visit.version || 1) !== (privateAccess.visit.version || 1)
+    )
+      setPrivateAccess({
+        visit: {
+          ...visit,
+          tableName:
+            visit.tableName ||
+            list(data?.tables).find((table: any) => table.id === visit.tableId)
+              ?.name,
+        },
+        code: null,
+        uncertain: true,
+      });
+  }, [data?.visits, privateAccess?.visit.id]);
   const quoteIntent = JSON.stringify({
     menuVersion: data?.menuVersion,
     items: orderDraft.items,
@@ -867,7 +1031,7 @@ export default function OrganizationWorkspace({
   const validQuote =
     !!staffQuote &&
     staffQuote.intent === quoteIntent &&
-    new Date(staffQuote.quote.expiresAt).getTime() > Date.now() &&
+    new Date(staffQuote.quote.expiresAt).getTime() > serverNow &&
     staffQuote.quote.policyVersion ===
       (data?.branch?.settings?.pricingPolicy?.enabled
         ? data.branch.settings.pricingPolicy.version
@@ -877,7 +1041,14 @@ export default function OrganizationWorkspace({
     data?.branch || branches.find((row: any) => row.id === branchId);
 
   return (
-    <div className="mera-workspace">
+    <div
+      className={
+        "mera-workspace" +
+        (["overview", "counter"].includes(activeSection)
+          ? " mw-operational"
+          : "")
+      }
+    >
       <header className="mw-header">
         <a href="/mera" className="mw-brand" aria-label="Mera home">
           mera<span>.</span>
@@ -911,33 +1082,58 @@ export default function OrganizationWorkspace({
               ))}
             </select>
           </label>
-          <div className="mw-staff-profile">
-            <span className="mw-staff-avatar" aria-hidden="true">
-              {String(context?.user?.name || user?.name || "Staff")
-                .split(" ")
-                .filter(Boolean)
-                .slice(0, 2)
-                .map((name) => name[0])
-                .join("")
-                .toUpperCase()}
-            </span>
-            <span>{context?.user?.name || user?.name || "Staff member"}</span>
-          </div>
-          {onLogout && (
-            <button
-              className="secondary"
-              disabled={busy || logoutBusy}
-              onClick={() => {
-                if (
-                  financialRequests.current.size ||
-                  uncertainOrders.current.size
-                )
-                  setLogoutConfirm(true);
-                else void signOut();
-              }}
-            >
-              {logoutBusy ? "Signing out…" : "Sign out"}
-            </button>
+          {["overview", "counter"].includes(activeSection) ? (
+            <WorkspaceAccount
+              name={context?.user?.name || user?.name || "Staff member"}
+              role={sourceLabel(organization?.role)}
+              disabled={busy}
+              signingOut={logoutBusy}
+              onSignOut={
+                onLogout
+                  ? () => {
+                      if (
+                        financialRequests.current.size ||
+                        uncertainOrders.current.size
+                      )
+                        setLogoutConfirm(true);
+                      else void signOut();
+                    }
+                  : undefined
+              }
+            />
+          ) : (
+            <>
+              <div className="mw-staff-profile">
+                <span className="mw-staff-avatar" aria-hidden="true">
+                  {String(context?.user?.name || user?.name || "Staff")
+                    .split(" ")
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((name) => name[0])
+                    .join("")
+                    .toUpperCase()}
+                </span>
+                <span>
+                  {context?.user?.name || user?.name || "Staff member"}
+                </span>
+              </div>
+              {onLogout && (
+                <button
+                  className="secondary"
+                  disabled={busy || logoutBusy}
+                  onClick={() => {
+                    if (
+                      financialRequests.current.size ||
+                      uncertainOrders.current.size
+                    )
+                      setLogoutConfirm(true);
+                    else void signOut();
+                  }}
+                >
+                  {logoutBusy ? "Signing out…" : "Sign out"}
+                </button>
+              )}
+            </>
           )}
           <button
             className="secondary"
@@ -1015,10 +1211,24 @@ export default function OrganizationWorkspace({
             {organization?.name || "Organization workspace"} /{" "}
             {branch?.name || "Choose a branch"}
           </div>
-          <h1>A good service starts here.</h1>
+          <h1>
+            {activeSection === "overview"
+              ? "Branch overview."
+              : activeSection === "counter"
+                ? "The counter."
+                : "A good service starts here."}
+          </h1>
           <p>
-            Welcome, {user?.name || "team member"}. Keep every order, handoff
-            and collection in view.
+            {activeSection === "overview" ? (
+              "Today’s sales and service, in one place."
+            ) : activeSection === "counter" ? (
+              "Good things, made to order."
+            ) : (
+              <>
+                Welcome, {user?.name || "team member"}. Keep every order,
+                handoff and collection in view.
+              </>
+            )}
           </p>
         </div>
         <span className="mw-pill">{sourceLabel(organization?.role)}</span>
@@ -1044,7 +1254,16 @@ export default function OrganizationWorkspace({
           Opening your organization workspace…
         </div>
       )}
-      {!loading && !organizations.length && (
+      {!loading && !context && error && (
+        <section className="mw-card">
+          <h2>Workspace access unavailable</h2>
+          <p>Refresh access to recheck your current session and permissions.</p>
+          <button className="secondary" onClick={() => void loadContext()}>
+            Refresh workspace access
+          </button>
+        </section>
+      )}
+      {!loading && context && !organizations.length && (
         <div className="mw-card">
           <Building2 size={30} />
           <h2>No organization access yet</h2>
@@ -1085,10 +1304,80 @@ export default function OrganizationWorkspace({
           </p>
         </div>
       )}
+      {!!pausedServices.length && (
+        <section role="status" className="mw-note">
+          <strong>Some new services are paused</strong>
+          <ul>
+            {pausedServices.map(([name]) => (
+              <li key={name}>
+                {
+                  (
+                    {
+                      customer_ordering: "New customer orders",
+                      new_reservations: "New reservations",
+                      new_table_visits: "New table visits",
+                      zidi: "New Zidi integration access",
+                    } as Record<string, string>
+                  )[name]
+                }
+              </li>
+            ))}
+          </ul>
+          <p>
+            Continue handling existing paid service and current visits. History
+            and permitted exports remain available.
+          </p>
+        </section>
+      )}
+      {!!delayedOrders.length && (
+        <section role="status" className="mw-note">
+          <strong>
+            {delayedOrders.length} active{" "}
+            {delayedOrders.length === 1 ? "order needs" : "orders need"}{" "}
+            attention
+          </strong>
+          <p>
+            These orders have been waiting longer than the server’s{" "}
+            {data?.delayedOrderThresholdMinutes || 15}-minute threshold. Review
+            the current handoffs with your branch team.
+          </p>
+          <ul>
+            {delayedOrders.slice(0, 10).map((order: any) => (
+              <li key={order.id}>
+                {order.reference || String(order.id).slice(0, 8)} ·{" "}
+                {order.ageMinutes} minutes
+              </li>
+            ))}
+          </ul>
+          {delayedOrders.length > 10 && (
+            <p>{delayedOrders.length - 10} more delayed orders.</p>
+          )}
+          <button
+            className="secondary"
+            onClick={() => {
+              setOrderFilters({
+                query: "",
+                status: "",
+                source: "",
+                payment: "",
+                unassigned: false,
+              });
+              setSection("orders");
+            }}
+          >
+            Review branch orders
+          </button>
+        </section>
+      )}
       {entitlements?.warning && (
         <div role="status" className="mw-note">
           <strong>Subscription attention</strong>
-          <p>{entitlements.warning}</p>
+          <p>
+            {["overview", "counter"].includes(activeSection) &&
+            entitlements.warning === "Development trial duration is unresolved."
+              ? "Trial end date needs review."
+              : entitlements.warning}
+          </p>
           {entitlements.restrictionAt && (
             <p>
               Configured restriction time:{" "}
@@ -1114,7 +1403,10 @@ export default function OrganizationWorkspace({
             <dl>
               <dt>Entry type</dt>
               <dd>
-                {financialKind(pendingFinancial.path)?.replaceAll("_", " ")}
+                {financialKind(
+                  pendingFinancial.path,
+                  pendingFinancial.body,
+                )?.replaceAll("_", " ")}
               </dd>
               {pendingFinancial.body.amount !== undefined && (
                 <>
@@ -1250,95 +1542,105 @@ export default function OrganizationWorkspace({
       )}
       {!!organizations.length && (
         <>
-          <nav className="mw-navigation" aria-label="Organization workspace">
-            <div className="mw-nav-tools">
-              <label>
-                All workspace pages
-                <select
-                  aria-label="Workspace page"
-                  value={activeSection}
-                  onChange={(event) => setSection(event.target.value)}
-                >
-                  {visibleSections.map(([id, name]) => (
-                    <option key={id} value={id}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="mw-actions">
-                <button
-                  type="button"
-                  aria-label="Scroll workspace pages left"
-                  onClick={() =>
-                    tabsRef.current?.scrollBy?.({
-                      left: -300,
-                      behavior: "smooth",
-                    })
-                  }
-                >
-                  ←
-                </button>
-                <button
-                  type="button"
-                  aria-label="Scroll workspace pages right"
-                  onClick={() =>
-                    tabsRef.current?.scrollBy?.({
-                      left: 300,
-                      behavior: "smooth",
-                    })
-                  }
-                >
-                  →
-                </button>
+          {["overview", "counter"].includes(activeSection) ? (
+            <WorkspaceNavigation
+              sections={visibleSections}
+              active={activeSection}
+              onSelect={setSection}
+              organization={organization?.name || "Organization"}
+              branch={branch?.name || "Choose a branch"}
+            />
+          ) : (
+            <nav className="mw-navigation" aria-label="Organization workspace">
+              <div className="mw-nav-tools">
+                <label>
+                  All workspace pages
+                  <select
+                    aria-label="Workspace page"
+                    value={activeSection}
+                    onChange={(event) => setSection(event.target.value)}
+                  >
+                    {visibleSections.map(([id, name]) => (
+                      <option key={id} value={id}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="mw-actions">
+                  <button
+                    type="button"
+                    aria-label="Scroll workspace pages left"
+                    onClick={() =>
+                      tabsRef.current?.scrollBy?.({
+                        left: -300,
+                        behavior: "smooth",
+                      })
+                    }
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Scroll workspace pages right"
+                    onClick={() =>
+                      tabsRef.current?.scrollBy?.({
+                        left: 300,
+                        behavior: "smooth",
+                      })
+                    }
+                  >
+                    →
+                  </button>
+                </div>
               </div>
-            </div>
-            <div
-              role="tablist"
-              aria-label="Workspace pages"
-              className="mw-tabs"
-              ref={tabsRef}
-            >
-              {visibleSections.map(([id, name], index) => (
-                <button
-                  key={id}
-                  id={"mw-tab-" + id}
-                  type="button"
-                  role="tab"
-                  aria-controls="mw-workspace-panel"
-                  tabIndex={activeSection === id ? 0 : -1}
-                  aria-selected={activeSection === id}
-                  onClick={() => setSection(id)}
-                  onKeyDown={(event) => {
-                    let target: number;
-                    if (event.key === "ArrowRight")
-                      target = (index + 1) % visibleSections.length;
-                    else if (event.key === "ArrowLeft")
-                      target =
-                        (index - 1 + visibleSections.length) %
-                        visibleSections.length;
-                    else if (event.key === "Home") target = 0;
-                    else if (event.key === "End")
-                      target = visibleSections.length - 1;
-                    else return;
-                    event.preventDefault();
-                    setSection(visibleSections[target][0]);
-                    const element =
-                      tabsRef.current?.querySelectorAll<HTMLButtonElement>(
-                        '[role="tab"]',
-                      )[target];
-                    element?.focus();
-                    element?.scrollIntoView?.({
-                      block: "nearest",
-                      inline: "nearest",
-                    });
-                  }}
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
-          </nav>
+              <div
+                role="tablist"
+                aria-label="Workspace pages"
+                className="mw-tabs"
+                ref={tabsRef}
+              >
+                {visibleSections.map(([id, name], index) => (
+                  <button
+                    key={id}
+                    id={"mw-tab-" + id}
+                    type="button"
+                    role="tab"
+                    aria-controls="mw-workspace-panel"
+                    tabIndex={activeSection === id ? 0 : -1}
+                    aria-selected={activeSection === id}
+                    onClick={() => setSection(id)}
+                    onKeyDown={(event) => {
+                      let target: number;
+                      if (event.key === "ArrowRight")
+                        target = (index + 1) % visibleSections.length;
+                      else if (event.key === "ArrowLeft")
+                        target =
+                          (index - 1 + visibleSections.length) %
+                          visibleSections.length;
+                      else if (event.key === "Home") target = 0;
+                      else if (event.key === "End")
+                        target = visibleSections.length - 1;
+                      else return;
+                      event.preventDefault();
+                      setSection(visibleSections[target][0]);
+                      const element =
+                        tabsRef.current?.querySelectorAll<HTMLButtonElement>(
+                          '[role="tab"]',
+                        )[target];
+                      element?.focus();
+                      element?.scrollIntoView?.({
+                        block: "nearest",
+                        inline: "nearest",
+                      });
+                    }}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            </nav>
+          )}
           {!data ? (
             <div className="mw-card" role="status">
               {branchId
@@ -1365,6 +1667,7 @@ export default function OrganizationWorkspace({
                   key={branchBase}
                   base={branchBase}
                   demo={!!context?.demo}
+                  newAccessAllowed={features?.flags?.zidi !== false}
                 />
               )}
               {activeSection === "onboarding" && (
@@ -1403,6 +1706,40 @@ export default function OrganizationWorkspace({
                   save={mutate}
                 />
               )}
+              {activeSection === "onboarding" && (
+                <MinimumSpendPolicy
+                  key={branchBase + "minimum-spend-policy"}
+                  base={branchBase}
+                  policy={minimumSpendPolicy}
+                  disabled={busy || offline}
+                  save={mutate}
+                />
+              )}
+              {privateAccess &&
+                ["tables", "reservations"].includes(activeSection) && (
+                  <PrivateVisitAccess
+                    key={branchBase + privateAccess.visit.id}
+                    visit={privateAccess.visit}
+                    code={privateAccess.code}
+                    uncertain={privateAccess.uncertain}
+                    disabled={busy || offline}
+                    canRotate={allowed("tables.manage")}
+                    onClear={() => setPrivateAccess(null)}
+                    onRotate={rotateVisitAccess}
+                    onRefresh={refresh}
+                  />
+                )}
+              {activeSection === "support" &&
+                allowed("organization.manage") &&
+                organization?.organizationWide === true && (
+                  <SupportCases
+                    key={organizationId}
+                    organizationId={organizationId}
+                    branches={branches}
+                    disabled={busy || offline}
+                    save={mutate}
+                  />
+                )}
               {activeSection === "care" && (
                 <Complaints
                   key={branchBase}
@@ -1432,7 +1769,7 @@ export default function OrganizationWorkspace({
                 <Reconciliation
                   key={branchBase + "reconciliation"}
                   base={branchBase}
-                  orders={orders}
+                  orders={liveOrders}
                   demo={!!context?.demo}
                   disabled={busy || offline}
                   save={mutate}
@@ -1457,74 +1794,15 @@ export default function OrganizationWorkspace({
                 />
               )}
               {activeSection === "overview" && (
-                <>
-                  <div className="mw-grid">
-                    {[
-                      [
-                        "Order value",
-                        formatMoney(
-                          data.report?.grossOrderValue ??
-                            data.report?.grossSales,
-                        ),
-                      ],
-                      ["Collections", formatMoney(data.report?.collections)],
-                      [
-                        "Recognized sales",
-                        formatMoney(data.report?.grossSales),
-                      ],
-                      ["Outstanding", formatMoney(data.report?.outstanding)],
-                      ["Orders", data.report?.orders ?? orders.length],
-                    ].map(([name, value]) => (
-                      <section key={String(name)} className="mw-card mw-stat">
-                        <div className="mw-eyebrow">{name}</div>
-                        <strong>{value}</strong>
-                        <small>
-                          {name === "Collections"
-                            ? "Recorded money received, separate from sales"
-                            : "Canonical branch records"}
-                        </small>
-                      </section>
-                    ))}
-                  </div>
-                  <ReportDetails report={data.report} />
-                  <section className="mw-card">
-                    <h2>Service at a glance</h2>
-                    <div className="mw-grid">
-                      <div>
-                        <h3>Order flow</h3>
-                        {["submitted", "accepted", "preparing", "ready"].map(
-                          (status) => (
-                            <div className="mw-row" key={status}>
-                              <span>{sourceLabel(status)}</span>
-                              <b>
-                                {
-                                  orders.filter(
-                                    (order) => order.status === status,
-                                  ).length
-                                }
-                              </b>
-                            </div>
-                          ),
-                        )}
-                      </div>
-                      <div>
-                        <h3>Connections</h3>
-                        {Object.entries(
-                          data.providers || context?.providers || {},
-                        ).map(([name, state]: any) => (
-                          <div className="mw-row" key={name}>
-                            <span>{name}</span>
-                            <span className="mw-pill blocked">
-                              {typeof state === "string"
-                                ? state
-                                : state.state || state.status || "not verified"}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </section>
-                </>
+                <OperationalOverview
+                  data={data}
+                  orders={liveOrders}
+                  base={branchBase}
+                  disabled={busy || offline}
+                  canCreate={allowed("orders.create")}
+                  canViewOrders={allowed("orders.view")}
+                  onNavigate={setSection}
+                />
               )}
               {activeSection === "onboarding" && (
                 <section className="mw-card">
@@ -1605,7 +1883,9 @@ export default function OrganizationWorkspace({
                     onCategories={(rows) => {
                       if (
                         activeScope.current === branchBase &&
-                        scopeEpoch.current.generation === scopeVersion
+                        scopeEpoch.current.generation === scopeVersion &&
+                        authorizationEpoch.current ===
+                          renderedAuthorizationVersion
                       )
                         setCategories(rows);
                     }}
@@ -1618,6 +1898,15 @@ export default function OrganizationWorkspace({
                     disabled={busy || offline}
                     save={mutate}
                   />
+                  {allowed("stock.adjust") && (
+                    <StockMovements
+                      key={branchBase}
+                      base={branchBase}
+                      products={products}
+                      disabled={busy || offline}
+                      save={mutate}
+                    />
+                  )}
                 </>
               )}
               {activeSection === "menu" && (
@@ -1626,6 +1915,7 @@ export default function OrganizationWorkspace({
                   organizationId={organizationId}
                   base={branchBase}
                   products={products}
+                  categories={categories}
                   disabled={busy || offline}
                   canPublish={allowed("menu.publish")}
                   save={mutate}
@@ -2048,9 +2338,9 @@ export default function OrganizationWorkspace({
                             Sizes, modifier groups & dietary information
                           </summary>
                           <p className="mw-muted">
-                            Advanced structured editor. Prices are integer kobo.
-                            The server validates group limits and option
-                            selections.
+                            Configure sizes, add-ons and dietary details. Prices
+                            are entered in naira; the server validates selection
+                            limits and final totals.
                           </p>
                           <VariantsEditor
                             value={productEdit.variants || []}
@@ -2072,30 +2362,17 @@ export default function OrganizationWorkspace({
                               })
                             }
                           />
-                          <label>
-                            Modifier groups JSON
-                            <textarea
-                              rows={7}
-                              value={
-                                productEdit.modifierGroupsJson ??
-                                JSON.stringify(
-                                  productEdit.modifierGroups || [],
-                                  null,
-                                  2,
-                                )
-                              }
-                              onChange={(e) =>
-                                setProductEdit({
-                                  ...productEdit,
-                                  modifierGroupsJson: e.target.value,
-                                })
-                              }
-                            />
-                          </label>
-                          <p className="mw-muted">
-                            Each group: id, name, min, max, options. Each
-                            option: id, name, price.
-                          </p>
+                          <ModifierGroupsEditor
+                            value={productEdit.modifierGroups || []}
+                            disabled={busy || offline}
+                            onChange={(modifierGroups) =>
+                              setProductEdit({
+                                ...productEdit,
+                                modifierGroups,
+                                modifierGroupsJson: undefined,
+                              })
+                            }
+                          />
                           <label>
                             Allergens (comma separated)
                             <input
@@ -2157,7 +2434,7 @@ export default function OrganizationWorkspace({
                       ? organization.role
                       : undefined
                   }
-                  orders={orders}
+                  orders={liveOrders}
                   disabled={busy || offline}
                   save={mutate}
                 />
@@ -2171,6 +2448,59 @@ export default function OrganizationWorkspace({
                         ? "Kitchen & bar handoffs"
                         : "Every order, with responsibility"}
                     </h2>
+                    {activeSection === "orders" && (
+                      <>
+                        <p className="mw-note">
+                          {data.history?.bounded
+                            ? `The live view contains active orders and up to ${data.history.recentOrderLimit} recent orders, plus records needed for current service.`
+                            : "This live view is an operational snapshot."}{" "}
+                          Browse bounded history pages for older and imported
+                          records.
+                        </p>
+                        <details
+                          open={historyOpen}
+                          onToggle={(event) =>
+                            setHistoryOpen(event.currentTarget.open)
+                          }
+                        >
+                          <summary>Browse full order history</summary>
+                          {historyOpen && (
+                            <OrderHistory
+                              key={branchBase}
+                              base={branchBase}
+                              disabled={busy}
+                              staffChoices={Array.from(
+                                new Map(
+                                  [
+                                    user,
+                                    ...liveOrders.flatMap((order: any) => [
+                                      {
+                                        id: order.handlerId,
+                                        name: order.handlerName,
+                                      },
+                                      {
+                                        id: order.staffCreatorId,
+                                        name:
+                                          order.staffCreatorName ||
+                                          order.actorName,
+                                      },
+                                    ]),
+                                  ]
+                                    .filter((person) => person.id)
+                                    .map((person) => [
+                                      person.id,
+                                      {
+                                        userId: person.id,
+                                        name: person.name || person.id,
+                                      },
+                                    ]),
+                                ).values(),
+                              )}
+                            />
+                          )}
+                        </details>
+                      </>
+                    )}
                     <div className="mw-form">
                       <label>
                         Find orders
@@ -2310,14 +2640,73 @@ export default function OrganizationWorkspace({
                                     "Unassigned"}{" "}
                                   · {dateLabel(order.createdAt)}
                                 </small>
+                                <OrderInstructions order={order} />
                                 {list(order.items).map(
                                   (line: any, index: number) => (
-                                    <small key={index}>
-                                      {line.quantity} ×{" "}
-                                      {line.name || line.productName}
-                                    </small>
+                                    <div key={line.orderLineId || index}>
+                                      <small>
+                                        {line.quantity} ×{" "}
+                                        {line.name || line.productName}
+                                        {line.size ? " · " + line.size : ""}
+                                      </small>
+                                      <OrderInstructions item={line} />
+                                    </div>
                                   ),
                                 )}
+                                {order.historicalReadOnly && (
+                                  <div className="mw-note">
+                                    <strong>
+                                      Imported source history · read only
+                                    </strong>
+                                    <p>
+                                      Original source status:{" "}
+                                      {sourceLabel(
+                                        order.legacyStatus || order.status,
+                                      )}
+                                      .{" "}
+                                      {(order.historicalRecognitionBasis ||
+                                        order.recognitionBasis) &&
+                                        "Recognition basis: " +
+                                          sourceLabel(
+                                            order.historicalRecognitionBasis ||
+                                              order.recognitionBasis,
+                                          ) +
+                                          "."}{" "}
+                                      {order.historicalTaxStatus &&
+                                        "Historical tax: " +
+                                          sourceLabel(
+                                            order.historicalTaxStatus,
+                                          ) +
+                                          "."}{" "}
+                                      This record does not create a live bill,
+                                      stock hold or preparation ticket.
+                                    </p>
+                                  </div>
+                                )}
+                                {Number.isSafeInteger(order.writtenOff) &&
+                                  order.writtenOff > 0 && (
+                                    <small>
+                                      Non-cash written-off debt:{" "}
+                                      {formatMoney(order.writtenOff)} ·
+                                      Outstanding:{" "}
+                                      {formatMoney(order.outstandingBalance)}
+                                    </small>
+                                  )}
+                                {!order.historicalReadOnly &&
+                                  allowed("refunds.approve") && (
+                                    <WriteOff
+                                      key={
+                                        branchBase +
+                                        order.id +
+                                        financialRevision +
+                                        "writeoff"
+                                      }
+                                      base={branchBase}
+                                      order={order}
+                                      disabled={busy || offline}
+                                      save={mutate}
+                                    />
+                                  )}
                                 <details style={{ marginTop: 8 }}>
                                   <summary>
                                     Responsibility & payment history
@@ -2337,36 +2726,41 @@ export default function OrganizationWorkspace({
                                     ),
                                   )}
                                 </details>
-                                {allowed("orders.fulfill") && (
-                                  <ItemFulfillment
-                                    key={branchBase + order.id}
-                                    base={branchBase}
-                                    order={order}
-                                    tickets={list(data.tickets)}
-                                    disabled={busy || offline}
-                                    save={mutate}
-                                  />
-                                )}
-                                {allowed("orders.fulfill") && (
-                                  <ItemCancellation
-                                    key={
-                                      branchBase + order.id + financialRevision
-                                    }
-                                    base={branchBase}
-                                    order={order}
-                                    refunds={list(data.refunds)}
-                                    canRefund={allowed("refunds.approve")}
-                                    tickets={list(data.tickets)}
-                                    disabled={busy || offline}
-                                    save={mutate}
-                                  />
-                                )}
+                                {!order.historicalReadOnly &&
+                                  allowed("orders.fulfill") && (
+                                    <ItemFulfillment
+                                      key={branchBase + order.id}
+                                      base={branchBase}
+                                      order={order}
+                                      tickets={list(data.tickets)}
+                                      disabled={busy || offline}
+                                      save={mutate}
+                                    />
+                                  )}
+                                {!order.historicalReadOnly &&
+                                  allowed("orders.fulfill") && (
+                                    <ItemCancellation
+                                      key={
+                                        branchBase +
+                                        order.id +
+                                        financialRevision
+                                      }
+                                      base={branchBase}
+                                      order={order}
+                                      refunds={list(data.refunds)}
+                                      canRefund={allowed("refunds.approve")}
+                                      tickets={list(data.tickets)}
+                                      disabled={busy || offline}
+                                      save={mutate}
+                                    />
+                                  )}
                               </div>
                               <div className="mw-actions">
                                 <span className="mw-pill">
                                   {sourceLabel(order.status)}
                                 </span>
-                                {nextState[order.status] &&
+                                {!order.historicalReadOnly &&
+                                  nextState[order.status] &&
                                   button(
                                     "Mark " +
                                       sourceLabel(nextState[order.status]),
@@ -2388,248 +2782,273 @@ export default function OrganizationWorkspace({
                                       ? "orders.prepare"
                                       : "orders.fulfill",
                                   )}
-                                {button(
-                                  "Assign to me",
-                                  () =>
-                                    act(
-                                      branchBase + `/orders/${order.id}/assign`,
-                                      {
-                                        userId: user.id,
-                                        version: order.version,
-                                      },
-                                      "Order assigned.",
-                                    ),
-                                  "orders.assign",
-                                )}
+                                {!order.historicalReadOnly &&
+                                  button(
+                                    "Assign to me",
+                                    () =>
+                                      act(
+                                        branchBase +
+                                          `/orders/${order.id}/assign`,
+                                        {
+                                          userId: user.id,
+                                          version: order.version,
+                                        },
+                                        "Order assigned.",
+                                      ),
+                                    "orders.assign",
+                                  )}
                               </div>
                             </div>
                           ))
                       : empty("No orders match the current filters.")}
                   </section>
-                  {activeSection === "orders" && allowed("orders.create") && (
-                    <section className="mw-card">
-                      <h2>Create a staff-assisted order</h2>
-                      <form onSubmit={submit(sendStaffOrder)}>
-                        <fieldset
-                          disabled={busy || offline || !!uncertainOrder}
-                          style={{
-                            border: 0,
-                            padding: 0,
-                            margin: 0,
-                            minWidth: 0,
-                          }}
-                        >
-                          <div className="mw-form">
-                            <label>
-                              Customer display name
-                              <input
-                                required
-                                value={orderDraft.displayName}
-                                onChange={(event) => (
-                                  (requestKey.current = null),
-                                  setOrderDraft({
-                                    ...orderDraft,
-                                    displayName: event.target.value,
-                                  })
-                                )}
-                              />
-                            </label>
-                            <label>
-                              Fulfillment
-                              <select
-                                value={orderDraft.fulfillment}
-                                onChange={(event) => (
-                                  (requestKey.current = null),
-                                  setOrderDraft({
-                                    ...orderDraft,
-                                    fulfillment: event.target.value,
-                                    visitId: undefined,
-                                  })
-                                )}
-                              >
-                                <option value="counter_pickup">
-                                  Counter pickup
-                                </option>
-                                <option value="takeaway">Takeaway</option>
-                                {allowed("tables.manage") && (
-                                  <option value="table_service">
-                                    Table service
+                  {activeSection === "orders" &&
+                    (allowed("refunds.request") ||
+                      allowed("refunds.approve")) && (
+                      <RefundRequests
+                        key={branchBase + financialRevision}
+                        base={branchBase}
+                        userId={user.id}
+                        orders={list(data.orders)}
+                        canRequest={allowed("refunds.request")}
+                        canApprove={allowed("refunds.approve")}
+                        disabled={busy || offline}
+                        save={mutate}
+                      />
+                    )}
+                </>
+              )}
+              {activeSection === "counter" && allowed("orders.create") && (
+                <section className="mw-pos-container">
+                  <form onSubmit={submit(sendStaffOrder)}>
+                    <fieldset
+                      disabled={busy || offline || !!uncertainOrder}
+                      style={{
+                        border: 0,
+                        padding: 0,
+                        margin: 0,
+                        minWidth: 0,
+                      }}
+                    >
+                      <StaffPos
+                        key={branchBase}
+                        products={products}
+                        lines={orderDraft.items}
+                        disabled={busy || offline || !!uncertainOrder}
+                        staffName={user?.name || "Staff"}
+                        useBingChunAssets={organization?.slug === "bing-chun"}
+                        onChange={(items) => {
+                          requestKey.current = null;
+                          setOrderDraft({ ...orderDraft, items });
+                        }}
+                        details={
+                          <>
+                            <div className="mw-form">
+                              <label>
+                                Customer display name
+                                <input
+                                  required
+                                  value={orderDraft.displayName}
+                                  onChange={(event) => (
+                                    (requestKey.current = null),
+                                    setOrderDraft({
+                                      ...orderDraft,
+                                      displayName: event.target.value,
+                                    })
+                                  )}
+                                />
+                              </label>
+                              <label>
+                                Fulfillment
+                                <select
+                                  value={orderDraft.fulfillment}
+                                  onChange={(event) => (
+                                    (requestKey.current = null),
+                                    setOrderDraft({
+                                      ...orderDraft,
+                                      fulfillment: event.target.value,
+                                      visitId: undefined,
+                                    })
+                                  )}
+                                >
+                                  <option value="counter_pickup">
+                                    Counter pickup
                                   </option>
-                                )}
-                              </select>
-                            </label>
-                          </div>
-                          {orderDraft.fulfillment === "table_service" && (
+                                  <option value="takeaway">Takeaway</option>
+                                  {allowed("tables.manage") && (
+                                    <option value="table_service">
+                                      Table service
+                                    </option>
+                                  )}
+                                </select>
+                              </label>
+                            </div>
+                            {orderDraft.fulfillment === "table_service" && (
+                              <label>
+                                Open table visit
+                                <select
+                                  required
+                                  value={orderDraft.visitId || ""}
+                                  onChange={(event) => {
+                                    requestKey.current = null;
+                                    setOrderDraft({
+                                      ...orderDraft,
+                                      visitId: event.target.value,
+                                    });
+                                  }}
+                                >
+                                  <option value="">Select an open visit</option>
+                                  {list(data.visits)
+                                    .filter(
+                                      (visit: any) => visit.status === "open",
+                                    )
+                                    .map((visit: any) => (
+                                      <option key={visit.id} value={visit.id}>
+                                        {list(data.tables).find(
+                                          (table: any) =>
+                                            table.id === visit.tableId,
+                                        )?.name || "Table"}{" "}
+                                        ·{" "}
+                                        {visit.displayName ||
+                                          visit.id.slice(0, 8)}
+                                      </option>
+                                    ))}
+                                </select>
+                              </label>
+                            )}
                             <label>
-                              Open table visit
-                              <select
-                                required
-                                value={orderDraft.visitId || ""}
+                              Order note
+                              <input
+                                value={orderDraft.note}
                                 onChange={(event) => {
                                   requestKey.current = null;
                                   setOrderDraft({
                                     ...orderDraft,
-                                    visitId: event.target.value,
+                                    note: event.target.value,
                                   });
                                 }}
-                              >
-                                <option value="">Select an open visit</option>
-                                {list(data.visits)
-                                  .filter(
-                                    (visit: any) => visit.status === "open",
-                                  )
-                                  .map((visit: any) => (
-                                    <option key={visit.id} value={visit.id}>
-                                      {list(data.tables).find(
-                                        (table: any) =>
-                                          table.id === visit.tableId,
-                                      )?.name || "Table"}{" "}
-                                      ·{" "}
-                                      {visit.displayName ||
-                                        visit.id.slice(0, 8)}
-                                    </option>
-                                  ))}
-                              </select>
+                              />
                             </label>
-                          )}
-                          <label>
-                            Order note
-                            <input
-                              value={orderDraft.note}
-                              onChange={(event) => {
-                                requestKey.current = null;
-                                setOrderDraft({
-                                  ...orderDraft,
-                                  note: event.target.value,
-                                });
-                              }}
-                            />
-                          </label>
-                          <StaffOrderItems
-                            products={products}
-                            lines={orderDraft.items}
-                            disabled={busy || offline}
-                            onChange={(items) => {
-                              requestKey.current = null;
-                              setOrderDraft({ ...orderDraft, items });
-                            }}
-                          />
-                          <button
-                            type="button"
-                            className="secondary"
-                            disabled={
-                              busy ||
-                              offline ||
-                              !orderDraft.items.length ||
-                              !data.menuVersion
-                            }
-                            onClick={() => {
-                              const intent = quoteIntent;
-                              void mutate(
-                                branchBase + "/quote",
-                                "POST",
-                                {
-                                  menuVersion: data.menuVersion,
-                                  items: orderDraft.items,
-                                },
-                                "Order quote prepared. No order was placed.",
-                              )
-                                .then((quote) =>
-                                  setStaffQuote({ intent, quote }),
-                                )
-                                .catch(() => {});
-                            }}
-                          >
-                            Review current order total
-                          </button>
-                          {staffQuote && (
-                            <div className="mw-note">
-                              <strong>
-                                {validQuote
-                                  ? "Reviewed order total"
-                                  : "Quote changed or expired · review again"}
-                              </strong>
-                              <div className="mw-row">
-                                <span>Items</span>
-                                <b>{formatMoney(staffQuote.quote.subtotal)}</b>
-                              </div>
-                              {list(staffQuote.quote.lines).map(
-                                (line: any, index: number) => (
-                                  <div className="mw-row" key={index}>
-                                    <span>{line.label}</span>
-                                    <b>{formatMoney(line.amount)}</b>
-                                  </div>
-                                ),
-                              )}
-                              <div className="mw-row">
-                                <strong>Total</strong>
-                                <strong>
-                                  {formatMoney(staffQuote.quote.total)}
-                                </strong>
-                              </div>
-                            </div>
-                          )}
+                          </>
+                        }
+                      >
+                        <button
+                          type="button"
+                          className="secondary"
+                          disabled={
+                            busy ||
+                            offline ||
+                            !orderDraft.items.length ||
+                            !data.menuVersion
+                          }
+                          onClick={() => {
+                            const intent = quoteIntent;
+                            void mutate(
+                              branchBase + "/quote",
+                              "POST",
+                              {
+                                menuVersion: data.menuVersion,
+                                items: orderDraft.items,
+                              },
+                              "Order quote prepared. No order was placed.",
+                            )
+                              .then((quote) => setStaffQuote({ intent, quote }))
+                              .catch(() => {});
+                          }}
+                        >
+                          Review current order total
+                        </button>
+                        {staffQuote && (
                           <div className="mw-note">
-                            The server validates current publication, modifier
-                            requirements, prices and stock. No payment is
-                            confirmed by creating an order.
-                          </div>
-                          <button
-                            className="primary"
-                            disabled={
-                              busy ||
-                              offline ||
-                              !orderDraft.items.length ||
-                              !data.menuVersion ||
-                              entitlements?.newOrdersAllowed === false ||
-                              (requiresQuote && !validQuote)
-                            }
-                          >
-                            Submit order
-                          </button>
-                        </fieldset>
-                        {uncertainOrder && (
-                          <div className="mw-note" role="status">
-                            <strong>Submission not confirmed</strong>
-                            <p>
-                              This draft is locked while its original request is
-                              unresolved. Check the queue or retry the exact
-                              same submission with its original request key.
-                            </p>
-                            <button
-                              type="button"
-                              disabled={busy}
-                              onClick={() =>
-                                void checkStaffOrder().catch((e) => {
-                                  if (
-                                    activeScope.current === branchBase &&
-                                    scopeEpoch.current.generation ===
-                                      scopeVersion
-                                  )
-                                    setError(e.message);
-                                })
-                              }
-                            >
-                              Check original order
-                            </button>
-                            <button
-                              type="button"
-                              disabled={busy || offline}
-                              onClick={() =>
-                                void sendStaffOrder().catch(() => {})
-                              }
-                            >
-                              Retry original submission
-                            </button>
+                            <strong>
+                              {validQuote
+                                ? "Reviewed order total"
+                                : "Quote changed or expired · review again"}
+                            </strong>
+                            <div className="mw-row">
+                              <span>Items</span>
+                              <b>{formatMoney(staffQuote.quote.subtotal)}</b>
+                            </div>
+                            {list(staffQuote.quote.lines).map(
+                              (line: any, index: number) => (
+                                <div className="mw-row" key={index}>
+                                  <span>{line.label}</span>
+                                  <b>{formatMoney(line.amount)}</b>
+                                </div>
+                              ),
+                            )}
+                            <div className="mw-row">
+                              <strong>Total</strong>
+                              <strong>
+                                {formatMoney(staffQuote.quote.total)}
+                              </strong>
+                            </div>
                           </div>
                         )}
-                      </form>
-                    </section>
-                  )}
-                </>
+                        <div className="mw-note">
+                          Payment is recorded separately after the order is
+                          submitted.
+                        </div>
+                        <button
+                          className="primary"
+                          disabled={
+                            busy ||
+                            offline ||
+                            !orderDraft.items.length ||
+                            !data.menuVersion ||
+                            entitlements?.newOrdersAllowed === false ||
+                            (requiresQuote && !validQuote)
+                          }
+                        >
+                          Submit order
+                        </button>
+                      </StaffPos>
+                    </fieldset>
+                    {uncertainOrder && (
+                      <div className="mw-note" role="status">
+                        <strong>Submission not confirmed</strong>
+                        <p>
+                          This draft is locked while its original request is
+                          unresolved. Check the queue or retry the exact same
+                          submission with its original request key.
+                        </p>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() =>
+                            void checkStaffOrder().catch((e) => {
+                              if (
+                                activeScope.current === branchBase &&
+                                scopeEpoch.current.generation === scopeVersion
+                              )
+                                setError(e.message);
+                            })
+                          }
+                        >
+                          Check original order
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy || offline}
+                          onClick={() => void sendStaffOrder().catch(() => {})}
+                        >
+                          Retry original submission
+                        </button>
+                      </div>
+                    )}
+                  </form>
+                </section>
               )}
+
               {activeSection === "tables" && (
                 <>
+                  <FloorMap
+                    key={branchBase}
+                    tables={list(data.tables)}
+                    base={branchBase}
+                    disabled={busy || offline}
+                    save={mutate}
+                  />
                   <section className="mw-card">
                     <h2>The floor</h2>
                     <div className="mw-grid">
@@ -2701,6 +3120,49 @@ export default function OrganizationWorkspace({
                             )?.name || visit.tableId}{" "}
                             · {visit.status}
                           </small>
+                          {visit.minimumSpendPolicy?.enabled && (
+                            <VisitMinimumSpend
+                              key={branchBase + visit.id + "minimum"}
+                              base={branchBase}
+                              visitId={visit.id}
+                              updatedKey={
+                                String(visit.version || 1) +
+                                liveOrders
+                                  .map(
+                                    (order: any) =>
+                                      order.id + ":" + order.version,
+                                  )
+                                  .join("|")
+                              }
+                              disabled={busy || offline}
+                              canWaive={allowed("refunds.approve")}
+                              save={mutate}
+                            />
+                          )}
+                          {visit.status === "open" && (
+                            <button
+                              type="button"
+                              className="secondary"
+                              disabled={busy}
+                              onClick={() =>
+                                setPrivateAccess({
+                                  visit: {
+                                    ...visit,
+                                    tableName:
+                                      visit.tableName ||
+                                      list(data.tables).find(
+                                        (table: any) =>
+                                          table.id === visit.tableId,
+                                      )?.name,
+                                  },
+                                  code: null,
+                                  uncertain: false,
+                                })
+                              }
+                            >
+                              Private access for this party
+                            </button>
+                          )}
                           {visit.status === "open" && (
                             <VisitTables
                               base={branchBase}
@@ -2724,17 +3186,20 @@ export default function OrganizationWorkspace({
                     ))}
                     <form
                       className="mw-form"
-                      onSubmit={submit(() =>
-                        mutate(
+                      onSubmit={submit(async () => {
+                        setPrivateAccess(null);
+                        const visit = await mutate(
                           branchBase + "/visits",
                           "POST",
                           {
                             tableId: tabForm.tableId,
                             displayName: tabForm.visitName,
+                            ...minimumSpendAck,
                           },
                           "Visit opened.",
-                        ),
-                      )}
+                        );
+                        captureVisitAccess(visit);
+                      })}
                     >
                       <label>
                         Table
@@ -2754,8 +3219,16 @@ export default function OrganizationWorkspace({
                         </select>
                       </label>
                       {field("Guest display name", "visitName")}
+                      {minimumSpendField}
                       <div className="mw-wide">
-                        <button className="primary" disabled={busy || offline}>
+                        <button
+                          className="primary"
+                          disabled={
+                            busy ||
+                            offline ||
+                            features?.flags?.new_table_visits === false
+                          }
+                        >
                           Open visit
                         </button>
                       </div>
@@ -2796,9 +3269,44 @@ export default function OrganizationWorkspace({
                           {sourceLabel(reservation.status)}
                         </span>
                       </div>
+                      {allowed("refunds.approve") && (
+                        <DepositOutcomes
+                          key={
+                            branchBase +
+                            reservation.id +
+                            financialRevision +
+                            "deposit-outcome"
+                          }
+                          base={branchBase}
+                          reservation={reservation}
+                          deposits={list(data.deposits).filter(
+                            (deposit: any) =>
+                              deposit.reservationId === reservation.id,
+                          )}
+                          disabled={busy || offline}
+                          canManage={allowed("refunds.approve")}
+                          save={mutate}
+                        />
+                      )}
                       <ReservationSettlement
                         key={branchBase + reservation.id + financialRevision}
                         reservation={reservation}
+                        onVisitOpening={() => {
+                          if (
+                            activeScope.current === branchBase &&
+                            scopeEpoch.current.generation === scopeVersion
+                          )
+                            setPrivateAccess(null);
+                        }}
+                        onVisitOpened={(visit) => {
+                          if (
+                            activeScope.current === branchBase &&
+                            scopeEpoch.current.generation === scopeVersion &&
+                            authorizationEpoch.current ===
+                              renderedAuthorizationVersion
+                          )
+                            captureVisitAccess(visit);
+                        }}
                         tables={list(data.tables)}
                         base={branchBase}
                         disabled={busy || offline}
@@ -2849,6 +3357,7 @@ export default function OrganizationWorkspace({
                         {
                           requestKey: uuid(),
                           displayName: tabForm.name,
+                          ...minimumSpendAck,
                           contact: tabForm.contact,
                           partySize: Number(tabForm.partySize),
                           startsAt,
@@ -2891,8 +3400,16 @@ export default function OrganizationWorkspace({
                         ))}
                       </select>
                     </label>
+                    {minimumSpendField}
                     <div className="mw-wide">
-                      <button className="primary" disabled={busy || offline}>
+                      <button
+                        className="primary"
+                        disabled={
+                          busy ||
+                          offline ||
+                          features?.flags?.new_reservations === false
+                        }
+                      >
                         Request reservation
                       </button>
                     </div>
@@ -2937,7 +3454,7 @@ export default function OrganizationWorkspace({
                         }
                       >
                         <option value="">Choose an order</option>
-                        {orders.map((order) => (
+                        {liveOrders.map((order) => (
                           <option key={order.id} value={order.id}>
                             {order.reference || order.id.slice(0, 8)} ·{" "}
                             {order.displayName} · {formatMoney(order.total)}
@@ -3019,7 +3536,7 @@ export default function OrganizationWorkspace({
                           }
                         >
                           <option value="">Choose order</option>
-                          {orders.map((order) => (
+                          {liveOrders.map((order) => (
                             <option key={order.id} value={order.id}>
                               {order.reference || order.id.slice(0, 8)}
                             </option>
@@ -3181,6 +3698,8 @@ export default function OrganizationWorkspace({
                         className="secondary"
                         disabled={busy || offline || member.userId === user.id}
                         onClick={() => {
+                          const authorizationVersion =
+                            authorizationEpoch.current;
                           void mutate(
                             `/organizations/${organizationId}/members/${member.id}`,
                             "PATCH",
@@ -3197,7 +3716,10 @@ export default function OrganizationWorkspace({
                             .then((rows) => {
                               if (
                                 activeScope.current === branchBase &&
-                                scopeEpoch.current.generation === scopeVersion
+                                scopeEpoch.current.generation ===
+                                  scopeVersion &&
+                                authorizationEpoch.current ===
+                                  authorizationVersion
                               )
                                 setMembers(list(rows.members ?? rows));
                             })
@@ -3277,8 +3799,9 @@ export default function OrganizationWorkspace({
         />
       )}
       <footer className="mw-footer">
-        Mera development workspace · Canonical server state refreshes every 2.5
-        seconds. Offline actions are not queued or assumed successful.
+        {["overview", "counter"].includes(activeSection)
+          ? "Mera workspace · Changes require a connection."
+          : "Mera development workspace · Canonical server state refreshes every 2.5 seconds. Offline actions are not queued or assumed successful."}
       </footer>
     </div>
   );

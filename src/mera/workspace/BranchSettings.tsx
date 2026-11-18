@@ -32,6 +32,7 @@ export default function BranchSettings({
     serviceHours: branch.settings?.serviceHours || [],
     timezone: branch.timezone || "Africa/Lagos",
     cutoff: branch.cutoff ?? 0,
+    serviceModes: (branch.settings?.serviceModes || []) as string[],
   });
   const [branding, setBranding] = useState({
     primary: organization.branding?.primary || "#1558c9",
@@ -42,9 +43,70 @@ export default function BranchSettings({
     coverImage: organization.branding?.coverImage || "",
   });
   const tokens = brandingTokens(branding);
+  const [section, setSection] = useState("operations");
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState("");
+  const saveSettings = async (path: string, body: any, message: string) => {
+    setError("");
+    setSaved("");
+    try {
+      await save(path, "PATCH", body, message);
+      setSaved(message);
+    } catch (failure) {
+      setError((failure as Error).message);
+    }
+  };
   return (
-    <>
-      <section className="mw-card">
+    <div className="mw-management">
+      <header className="mw-management-heading">
+        <div>
+          <span className="mw-management-eyebrow">Branch setup</span>
+          <h2>Settings & appearance</h2>
+          <p>
+            Set service preferences and keep your customer-facing brand
+            consistent.
+          </p>
+        </div>
+      </header>
+      <div className="mw-management-switch" aria-label="Settings section">
+        <button
+          type="button"
+          aria-pressed={section === "operations"}
+          onClick={() => {
+            setSection("operations");
+            setError("");
+            setSaved("");
+          }}
+        >
+          Operating settings
+        </button>
+        <button
+          type="button"
+          aria-pressed={section === "branding"}
+          onClick={() => {
+            setSection("branding");
+            setError("");
+            setSaved("");
+          }}
+        >
+          Brand appearance
+        </button>
+      </div>
+      {error && (
+        <p className="mw-management-feedback mw-error" role="alert">
+          {error}
+        </p>
+      )}
+      {saved && (
+        <p className="mw-management-feedback" role="status">
+          {saved}
+        </p>
+      )}
+      <section
+        className="mw-card mw-management-panel"
+        hidden={section !== "operations"}
+        aria-label="Operating settings"
+      >
         <h2>Branch operating policies</h2>
         <p>
           Ordering pauses, pay-later permission and reservation capacity are
@@ -55,14 +117,44 @@ export default function BranchSettings({
           className="mw-form"
           onSubmit={(event) => {
             event.preventDefault();
-            void save(
+            void saveSettings(
               base + "/settings",
-              "PATCH",
               settings,
               "Branch settings saved.",
-            ).catch(() => {});
+            );
           }}
         >
+          <fieldset className="mw-wide" disabled={disabled}>
+            <legend>Available service modes</legend>
+            <p>
+              These are the branch’s published service choices. Reservation and
+              pay-later policies remain separate.
+            </p>
+            {Object.entries({
+              counter_takeaway: "Counter & takeaway",
+              table_service: "Table service",
+              reservations: "Reservations",
+              lounge_club: "Lounge & club",
+            }).map(([mode, label]) => (
+              <label key={mode}>
+                <input
+                  type="checkbox"
+                  checked={settings.serviceModes.includes(mode)}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      serviceModes: event.target.checked
+                        ? [...current.serviceModes, mode]
+                        : current.serviceModes.filter(
+                            (value) => value !== mode,
+                          ),
+                    }))
+                  }
+                />
+                {label}
+              </label>
+            ))}
+          </fieldset>
           {(
             [
               "orderingPaused",
@@ -180,18 +272,21 @@ export default function BranchSettings({
           </div>
         </form>
       </section>
-      <section className="mw-card">
+      <section
+        className="mw-card mw-management-panel"
+        hidden={section !== "branding"}
+        aria-label="Brand appearance"
+      >
         <h2>Brand studio</h2>
         <form
           className="mw-form"
           onSubmit={(event) => {
             event.preventDefault();
-            void save(
+            void saveSettings(
               `/organizations/${organization.id}/branding`,
-              "PATCH",
               branding,
               "Brand settings saved.",
-            ).catch(() => {});
+            );
           }}
         >
           <div className="mw-wide">
@@ -321,6 +416,6 @@ export default function BranchSettings({
           not permit custom scripts or unrestricted HTML.
         </p>
       </section>
-    </>
+    </div>
   );
 }

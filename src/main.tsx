@@ -8,6 +8,7 @@ const Signup = React.lazy(() => import("./mera/Signup"));
 import "./mera/marketing/marketing.css";
 import "./mera/customer/customer.css";
 import "./mera/workspace/workspace.css";
+import "./mera/workspace/management.css";
 const Marketing = React.lazy(() => import("./mera/marketing/Marketing"));
 const LegalInformation = React.lazy(() =>
   import("./mera/marketing/Marketing").then((module) => ({
@@ -18,7 +19,19 @@ const CustomerExperience = React.lazy(
   () => import("./mera/customer/CustomerExperience"),
 );
 const Platform = React.lazy(() => import("./mera/Platform"));
-if (window.location.pathname.startsWith("/mera"))
+if (window.location.pathname.startsWith("/mera")) {
+  if (/^\/mera\/(menu|store)\//.test(window.location.pathname))
+    document.querySelector('link[rel="manifest"]')?.remove();
+  else
+    document
+      .querySelector('link[rel="manifest"]')
+      ?.setAttribute("href", "/mera.webmanifest");
+  document
+    .querySelector('link[rel="icon"]')
+    ?.setAttribute("href", "/mera-icon.svg");
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", "#fffdf8");
   document.title = window.location.pathname.startsWith("/mera/workspace")
     ? "Workspace · Mera"
     : window.location.pathname.startsWith("/mera/platform")
@@ -28,6 +41,7 @@ if (window.location.pathname.startsWith("/mera"))
         : window.location.pathname.startsWith("/mera/legal")
           ? "Policy preparation · Mera"
           : "Mera · Hospitality, connected";
+}
 
 class WorkspaceBoundary extends React.Component<
   { children: React.ReactNode },

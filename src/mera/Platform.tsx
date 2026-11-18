@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { workspaceApi, formatMoney, WorkspaceError } from "./workspace/api";
 
 export default function Platform() {
+  const accessEpoch = useRef(0);
+  const principal = useRef<string | null>(null);
   const [data, setData] = useState<any>(null),
     [auth, setAuth] = useState<any>(null),
     [error, setError] = useState(""),
@@ -16,20 +18,63 @@ export default function Platform() {
     [reference, setReference] = useState(""),
     [lookup, setLookup] = useState<any>(null),
     [backupReason, setBackupReason] = useState(""),
+    [newSlug, setNewSlug] = useState(""),
     [dates, setDates] = useState<Record<string, string>>({
       trialEndsAt: "",
       paidThrough: "",
       dueAt: "",
-    });
+    }),
+    [featureDraft, setFeatureDraft] = useState<Record<string, boolean>>({}),
+    [supportCases, setSupportCases] = useState<any[]>([]),
+    [caseDrafts, setCaseDrafts] = useState<Record<string, any>>({}),
+    [caseError, setCaseError] = useState("");
+  async function loadCases(epoch = accessEpoch.current) {
+    try {
+      const result = await workspaceApi("/platform/support-cases");
+      if (epoch !== accessEpoch.current) return;
+      setSupportCases(result.cases || []);
+      setCaseError("");
+    } catch (e) {
+      if (epoch !== accessEpoch.current) return;
+      setCaseError((e as Error).message);
+    }
+  }
   async function load() {
+    let epoch = accessEpoch.current;
     setError("");
     setBusy(true);
     try {
       const current = await workspaceApi("/platform/auth");
+      if (epoch !== accessEpoch.current) return;
+      if (
+        current.userId &&
+        principal.current &&
+        principal.current !== current.userId
+      ) {
+        epoch = ++accessEpoch.current;
+        setData(null);
+        setSelected(null);
+        setPendingChange(null);
+        setLookup(null);
+        setSupport(null);
+        setSupportCases([]);
+        setCaseDrafts({});
+        setReason("");
+      }
+      if (current.userId) principal.current = current.userId;
       setAuth(current);
-      if (current.verified) setData(await workspaceApi("/platform"));
-      else setData(null);
+      if (current.verified) {
+        const next = await workspaceApi("/platform");
+        if (epoch !== accessEpoch.current) return;
+        setData(next);
+        await loadCases(epoch);
+      } else {
+        setData(null);
+        setSupportCases([]);
+        setCaseDrafts({});
+      }
     } catch (e) {
+      if (epoch !== accessEpoch.current) return;
       setError((e as Error).message);
       setData(null);
     } finally {
@@ -42,6 +87,22 @@ export default function Platform() {
       void load();
     }, 30000);
     return () => clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    const denied = () => {
+      accessEpoch.current++;
+      setBusy(false);
+      setError("Your access changed. Verify your session again.");
+      setData(null);
+      setAuth(null);
+      setSupportCases([]);
+      setCaseDrafts({});
+      setSelected(null);
+      setSupport(null);
+      setLookup(null);
+    };
+    window.addEventListener("mera:access-denied", denied);
+    return () => window.removeEventListener("mera:access-denied", denied);
   }, []);
   async function verify(event: React.FormEvent) {
     event.preventDefault();
@@ -103,36 +164,36 @@ export default function Platform() {
     }
   }
   async function supportView() {
+    const epoch = accessEpoch.current;
     setBusy(true);
     setError("");
     try {
-      setSupport(
-        await workspaceApi(
-          "/platform/organizations/" + selected.id + "/support-access",
-          "POST",
-          { reason },
-        ),
+      const result = await workspaceApi(
+        "/platform/organizations/" + selected.id + "/support-access",
+        "POST",
+        { reason },
       );
+      if (epoch === accessEpoch.current) setSupport(result);
     } catch (e) {
-      setError((e as Error).message);
+      if (epoch === accessEpoch.current) setError((e as Error).message);
     } finally {
       setBusy(false);
     }
   }
   async function lookupReference() {
+    const epoch = accessEpoch.current;
     setBusy(true);
     setError("");
     setLookup(null);
     try {
-      setLookup(
-        await workspaceApi(
-          "/platform/organizations/" + selected.id + "/lookup",
-          "POST",
-          { reference, reason },
-        ),
+      const result = await workspaceApi(
+        "/platform/organizations/" + selected.id + "/lookup",
+        "POST",
+        { reference, reason },
       );
+      if (epoch === accessEpoch.current) setLookup(result);
     } catch (e) {
-      setError((e as Error).message);
+      if (epoch === accessEpoch.current) setError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -164,6 +225,86 @@ export default function Platform() {
       await load();
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function saveFeatures() {
+    setBusy(true);
+    setError("");
+    try {
+      await workspaceApi(
+        "/platform/organizations/" + selected.id + "/feature-flags",
+        "PATCH",
+        {
+          version: selected.features?.version || 1,
+          flags: featureDraft,
+          reason,
+        },
+      );
+      setSelected(null);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function renameOrganization(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await workspaceApi(
+        "/platform/organizations/" + selected.id + "/rename",
+        "POST",
+        {
+          expectedSlug: selected.slug,
+          newSlug,
+          reason,
+        },
+      );
+      setSelected(null);
+      setNewSlug("");
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  function editCase(row: any, key: string, value: string) {
+    setCaseDrafts((current) => ({
+      ...current,
+      [row.id]: {
+        version: row.version,
+        status: row.status === "open" ? "acknowledged" : row.status,
+        customerReply: row.customerReply || "",
+        internalNote: "",
+        ...current[row.id],
+        [key]: value,
+      },
+    }));
+  }
+  async function saveCase(row: any) {
+    const draft = caseDrafts[row.id] || {
+      version: row.version,
+      status: row.status === "open" ? "acknowledged" : row.status,
+      customerReply: row.customerReply || "",
+      internalNote: "",
+    };
+    setBusy(true);
+    setCaseError("");
+    try {
+      await workspaceApi("/platform/support-cases/" + row.id, "PATCH", draft);
+      setCaseDrafts((current) => {
+        const next = { ...current };
+        delete next[row.id];
+        return next;
+      });
+      await loadCases();
+    } catch (e) {
+      setCaseError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -298,6 +439,96 @@ export default function Platform() {
               </p>
             </section>
           )}
+          <section
+            className="mera-panel"
+            style={{ padding: 24, marginBottom: 20 }}
+          >
+            <h2>Organization support</h2>
+            <p>
+              Replies appear in the organization's support inbox. Operator notes
+              stay private; external message delivery is not configured.
+            </p>
+            {caseError && <p role="alert">{caseError}</p>}
+            {!supportCases.length && <p>No support cases recorded.</p>}
+            {supportCases.map((row) => {
+              const draft = caseDrafts[row.id] || row;
+              return (
+                <details
+                  key={row.id}
+                  style={{
+                    padding: "16px 0",
+                    borderBottom: "1px solid #e4dfd4",
+                  }}
+                >
+                  <summary>
+                    {row.reference} ·{" "}
+                    {data.organizations.find(
+                      (o: any) => o.id === row.organizationId,
+                    )?.name || "Organization"}{" "}
+                    · {row.subject} · {row.status.replaceAll("_", " ")}
+                  </summary>
+                  <p style={{ whiteSpace: "pre-wrap" }}>{row.message}</p>
+                  <label>
+                    Status
+                    <select
+                      value={
+                        draft.status === "open" ? "acknowledged" : draft.status
+                      }
+                      disabled={busy}
+                      onChange={(e) => editCase(row, "status", e.target.value)}
+                    >
+                      <option value="acknowledged">Acknowledged</option>
+                      <option value="in_progress">In progress</option>
+                      <option value="resolved">Resolved</option>
+                    </select>
+                  </label>
+                  <label>
+                    Reply visible to the organization
+                    <textarea
+                      value={draft.customerReply || ""}
+                      maxLength={4000}
+                      disabled={busy}
+                      onChange={(e) =>
+                        editCase(row, "customerReply", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    Private operator note
+                    <textarea
+                      value={caseDrafts[row.id]?.internalNote || ""}
+                      maxLength={4000}
+                      disabled={busy}
+                      onChange={(e) =>
+                        editCase(row, "internalNote", e.target.value)
+                      }
+                    />
+                  </label>
+                  {!!row.internalNotes?.length && (
+                    <div>
+                      <strong>Private notes</strong>
+                      {row.internalNotes.map((n: any, i: number) => (
+                        <p key={i}>
+                          {new Date(n.at).toLocaleString()} · {n.text}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    className="secondary"
+                    disabled={
+                      busy ||
+                      (draft.status === "resolved" &&
+                        !draft.customerReply?.trim())
+                    }
+                    onClick={() => saveCase(row)}
+                  >
+                    Save support response
+                  </button>
+                </details>
+              );
+            })}
+          </section>
           <section className="mera-panel" style={{ padding: 24 }}>
             <h2>Organization directory</h2>
             <label>
@@ -337,6 +568,19 @@ export default function Platform() {
                           disabled={busy || !!pendingChange}
                           onClick={() => {
                             setSelected(org);
+                            setFeatureDraft(
+                              Object.fromEntries(
+                                [
+                                  "customer_ordering",
+                                  "new_reservations",
+                                  "new_table_visits",
+                                  "zidi",
+                                ].map((key) => [
+                                  key,
+                                  org.features?.flags?.[key] !== false,
+                                ]),
+                              ),
+                            );
                             setStatus(org.subscription?.status || "trialing");
                             setReason("");
                             setSupport(null);
@@ -373,6 +617,37 @@ export default function Platform() {
               aria-label="Organization operations"
             >
               <h2>{selected.name}</h2>
+              <form onSubmit={renameOrganization} style={{ marginBottom: 24 }}>
+                <h3>Organization address</h3>
+                <p>
+                  Current address: {selected.slug}. Previous addresses stay
+                  reserved for this organization, and existing QR codes keep
+                  working. DNS and certificates require separate setup.
+                </p>
+                <label>
+                  New organization address
+                  <input
+                    value={newSlug}
+                    onChange={(e) => setNewSlug(e.target.value.toLowerCase())}
+                    pattern="[a-z][a-z0-9]*(-[a-z0-9]+)*"
+                    minLength={3}
+                    maxLength={50}
+                    required
+                    disabled={busy || !!pendingChange}
+                  />
+                </label>
+                <p>Use the action reason below before saving.</p>
+                <button
+                  disabled={
+                    busy ||
+                    !!pendingChange ||
+                    reason.trim().length < 10 ||
+                    newSlug === selected.slug
+                  }
+                >
+                  Save organization address
+                </button>
+              </form>
               <form onSubmit={changeSubscription}>
                 <label>
                   Service status
@@ -464,6 +739,49 @@ export default function Platform() {
                   Customer records and impersonation are excluded.
                 </p>
               )}
+              <section style={{ marginTop: 24 }}>
+                <h3>Service controls</h3>
+                <p>
+                  These controls apply to new requests. Accepted requests,
+                  existing service and permitted exports can continue. Provider
+                  approval and billing remain separate.
+                </p>
+                {[
+                  ["customer_ordering", "New customer orders"],
+                  ["new_reservations", "New reservations"],
+                  ["new_table_visits", "New walk-in visits"],
+                  ["zidi", "New Zidi requests"],
+                ].map(([key, label]) => (
+                  <label
+                    key={key}
+                    style={{ display: "flex", alignItems: "center", gap: 12 }}
+                  >
+                    <input
+                      style={{ width: "auto" }}
+                      type="checkbox"
+                      checked={featureDraft[key] !== false}
+                      disabled={busy || !!pendingChange}
+                      onChange={(e) =>
+                        setFeatureDraft({
+                          ...featureDraft,
+                          [key]: e.target.checked,
+                        })
+                      }
+                    />
+                    {label}
+                  </label>
+                ))}
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={
+                    busy || !!pendingChange || reason.trim().length < 10
+                  }
+                  onClick={saveFeatures}
+                >
+                  Save reviewed service controls
+                </button>
+              </section>
               <h3 style={{ marginTop: 24 }}>Reference lookup</h3>
               <p>
                 Enter an exact order, payment or invoice reference. Results

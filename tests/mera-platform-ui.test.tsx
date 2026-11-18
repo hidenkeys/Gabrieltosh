@@ -14,7 +14,7 @@ Object.defineProperty(globalThis, "navigator", {
   configurable: true,
 });
 const React = await import("react");
-const { render, screen, fireEvent, waitFor, cleanup } =
+const { render, screen, fireEvent, waitFor, cleanup, act } =
   await import("@testing-library/react");
 const { default: Platform } = await import("../src/mera/Platform");
 test("platform exposes no directory before operator step-up", async () => {
@@ -84,6 +84,46 @@ test("uncertain operator status change retains exact request intent and key", as
     );
     await waitFor(() => assert.equal(writes.length, 2));
     assert.deepEqual(writes[0], writes[1]);
+  } finally {
+    cleanup();
+  }
+});
+test("operator denial clears private data and a late directory response cannot restore it", async () => {
+  let resolveDirectory: ((value: Response) => void) | undefined;
+  globalThis.fetch = (async (input: any) => {
+    if (String(input).endsWith("/auth"))
+      return Response.json({
+        enrolled: true,
+        verified: true,
+        userId: "operator",
+      });
+    if (String(input).endsWith("/platform"))
+      return new Promise<Response>((resolve) => {
+        resolveDirectory = resolve;
+      });
+    return Response.json({ cases: [] });
+  }) as any;
+  try {
+    render(<Platform />);
+    await waitFor(() => assert.ok(resolveDirectory));
+    act(() =>
+      window.dispatchEvent(new window.CustomEvent("mera:access-denied")),
+    );
+    await act(async () => {
+      resolveDirectory!(
+        Response.json({
+          organizations: [
+            { id: "private", name: "Sensitive tenant", slug: "private" },
+          ],
+          audits: [],
+          policy: {},
+        }),
+      );
+    });
+    assert.equal(screen.queryByText("Sensitive tenant"), null);
+    assert.ok(
+      screen.getByRole("alert").textContent?.includes("access changed"),
+    );
   } finally {
     cleanup();
   }

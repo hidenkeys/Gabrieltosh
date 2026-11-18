@@ -25,18 +25,39 @@ export default function LaunchReadiness({
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [checking, setChecking] = useState(true);
+  const [revision, setRevision] = useState(0);
   useEffect(() => {
     const controller = new AbortController();
+    setChecking(true);
+    setError("");
     workspaceApi(base + "/readiness", "GET", undefined, controller.signal)
-      .then(setReadiness)
+      .then((result) => {
+        if (!result || !Array.isArray(result.checks))
+          throw new Error(
+            "Publication checks are unavailable. Please try again.",
+          );
+        if (!controller.signal.aborted) setReadiness(result);
+      })
       .catch((e) => {
         if (e.name !== "AbortError") setError(e.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setChecking(false);
       });
     return () => controller.abort();
-  }, [base]);
+  }, [base, revision]);
   return (
-    <section className="mw-card">
-      <h2>Branch publication checklist</h2>
+    <section className="mw-card mw-management mw-management-panel">
+      <header className="mw-management-heading">
+        <div>
+          <span className="mw-management-eyebrow">Publish your menu</span>
+          <h2>Ready for customers?</h2>
+          <p>
+            Review the essentials before making this branch’s menu available.
+          </p>
+        </div>
+      </header>
       <div className="mw-note">
         This publishes the branch’s configured menu state within Mera. Public
         hosting, verified payment providers and physical printer output require
@@ -44,11 +65,24 @@ export default function LaunchReadiness({
         happens here.
       </div>
       {error && <p role="alert">{error}</p>}
-      {!readiness ? (
+      {!readiness && checking ? (
         <p role="status">Checking branch readiness…</p>
+      ) : !readiness ? (
+        <div className="mw-management-empty">
+          <p>
+            We could not check this branch. Your saved setup has not changed.
+          </p>
+          <button
+            type="button"
+            disabled={disabled || checking}
+            onClick={() => setRevision((value) => value + 1)}
+          >
+            Retry publication checks
+          </button>
+        </div>
       ) : (
         <>
-          <p>
+          <p className="mw-management-summary">
             Branch state: {readiness.launchState} · Payment provider:{" "}
             {readiness.paymentProviderState} · Public hosting:{" "}
             {readiness.publicHostingVerified ? "verified" : "not verified"}
@@ -59,7 +93,7 @@ export default function LaunchReadiness({
               this preview.
             </p>
           )}
-          <ul className="mw-steps">
+          <ul className="mw-steps mw-management-checklist">
             {readiness.checks.map((check: any) => (
               <li
                 key={check.id}
@@ -74,6 +108,12 @@ export default function LaunchReadiness({
               </li>
             ))}
           </ul>
+          {!readiness.checks.length && (
+            <p className="mw-management-empty">
+              No checklist details were returned. Recheck readiness before
+              deciding to publish.
+            </p>
+          )}
           <form
             onSubmit={async (event) => {
               event.preventDefault();
@@ -105,22 +145,32 @@ export default function LaunchReadiness({
               style={{ border: 0, padding: 0 }}
             >
               <legend>Reviewed manual payment methods</legend>
-              {["cash", "external_pos", "external_transfer"].map((method) => (
-                <label className="mw-row" key={method}>
-                  <span>{method.replaceAll("_", " ")}</span>
-                  <input
-                    type="checkbox"
-                    checked={methods.includes(method)}
-                    onChange={(event) =>
-                      setMethods((current) =>
-                        event.target.checked
-                          ? [...current, method]
-                          : current.filter((value) => value !== method),
-                      )
-                    }
-                  />
-                </label>
-              ))}
+              {(["cash", "external_pos", "external_transfer"] as const).map(
+                (method) => (
+                  <label className="mw-row" key={method}>
+                    <span>
+                      {
+                        {
+                          cash: "Cash",
+                          external_pos: "External card / POS",
+                          external_transfer: "Manually verified transfer",
+                        }[method]
+                      }
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={methods.includes(method)}
+                      onChange={(event) =>
+                        setMethods((current) =>
+                          event.target.checked
+                            ? [...current, method]
+                            : current.filter((value) => value !== method),
+                        )
+                      }
+                    />
+                  </label>
+                ),
+              )}
               <label>
                 Public customer contact
                 <input

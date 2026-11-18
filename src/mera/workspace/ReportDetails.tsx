@@ -23,10 +23,36 @@ export default function ReportDetails({ report }: { report: any }) {
       <p>
         Sales are recognized when an order is collected or completed, using the
         recorded fulfillment time. Collections are money received that day and
-        may include payments for other days. Deposits are shown separately.
-        Recognized totals include configured charges and tax; their breakdown is
-        shown below.
+        include received deposits and may include payments for other days.
+        Deposits and deposit returns are itemized separately below. Recognized
+        totals include configured charges and tax; their breakdown is shown
+        below.
       </p>
+      {report?.taxBreakdownStatus === "unresolved" &&
+        !report?.historicalTaxStatus && (
+          <div className="mw-note">
+            <strong>Tax breakdown needs review</strong>
+            <p>
+              Some source tax amounts remain unresolved. Tax-dependent revenue
+              and liability totals remain unresolved until reviewed.
+            </p>
+          </div>
+        )}
+      {!!report?.historicalRecognitionBases?.length && (
+        <div className="mw-note">
+          <strong>Includes imported source history</strong>
+          <p>
+            Recognition evidence:{" "}
+            {report.historicalRecognitionBases
+              .map((basis: string) => basis.replaceAll("_", " "))
+              .join(", ")}
+            .{" "}
+            {report.historicalTaxStatus
+              ? "Source tax breakdown is unresolved; tax-dependent totals remain unresolved."
+              : ""}
+          </p>
+        </div>
+      )}
       <div className="mw-grid">
         <article>
           <h3>Sales & returns</h3>
@@ -34,18 +60,34 @@ export default function ReportDetails({ report }: { report: any }) {
             ["Recognized sales", report?.grossSales],
             ["Recognized sales returns", report?.salesReturns],
             ["Net sales", report?.netSales],
-            ["Refunds paid today", report?.refunds],
+            ["Net revenue excluding tax", report?.netRevenueExTax],
+            ["Sales revenue excluding tax", report?.salesRevenueExTax],
+            ["Net tax liability", report?.netTaxLiability],
+            ["Money returned today (including deposits)", report?.refunds],
             ["Discounts on recognized orders", report?.discounts],
             ["Service charges on recognized orders", report?.serviceCharges],
             ["Tax on recognized orders", report?.recognizedTax],
-            ["Deposits received today", report?.deposits],
+            [
+              "Deposits received today (included in collections)",
+              report?.deposits,
+            ],
+            ["Deposit money returned today", report?.depositReturns],
+            [
+              "Deposit forfeitures (non-product income)",
+              report?.depositForfeitures,
+            ],
+            ["Reservation deposit liability", report?.reservationLiability],
+            ["Non-product income excluding tax", report?.nonProductIncomeExTax],
+            ["Non-cash debt write-offs (separate expense)", report?.writeOffs],
           ].map(([label, amount]) => (
             <div className="mw-row" key={String(label)}>
               <span>{label}</span>
               <b>
                 {Number.isSafeInteger(amount)
                   ? formatMoney(Number(amount))
-                  : "Not reported"}
+                  : amount === null
+                    ? "Unresolved"
+                    : "Not reported"}
               </b>
             </div>
           ))}

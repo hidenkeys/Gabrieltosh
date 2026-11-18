@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import OrderInstructions from "./OrderInstructions";
 export default function Tickets({
   base,
   tickets,
@@ -74,6 +75,7 @@ export default function Tickets({
                 <p>
                   {order?.displayName} · {ticket.status}
                 </p>
+                <OrderInstructions order={order} />
                 {inactive && (
                   <p className="mw-note">
                     {order?.status === "submitted"
@@ -121,6 +123,7 @@ export default function Tickets({
                           unavailable for this item.
                         </p>
                       )}
+                      <OrderInstructions item={item} />
                       <div className="mw-form">
                         <label>
                           {item.name}

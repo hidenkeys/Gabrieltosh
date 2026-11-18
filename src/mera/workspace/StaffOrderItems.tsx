@@ -25,7 +25,11 @@ export default function StaffOrderItems({
   return (
     <fieldset disabled={disabled} style={{ border: 0, padding: 0, margin: 0 }}>
       {products
-        .filter((product) => product.available)
+        .filter(
+          (product) =>
+            product.available ||
+            lines.some((line) => line.productId === product.id),
+        )
         .map((product) => {
           const line = lines.find((line) => line.productId === product.id);
           return (

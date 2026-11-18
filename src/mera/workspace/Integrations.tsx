@@ -9,7 +9,9 @@ const scopes = [
 export default function Integrations({
   base,
   demo,
+  newAccessAllowed = true,
 }: {
+  newAccessAllowed?: boolean;
   base: string;
   demo: boolean;
 }) {
@@ -116,7 +118,7 @@ export default function Integrations({
         }}
       >
         <fieldset
-          disabled={busy || loading || !demo}
+          disabled={busy || loading || !demo || !newAccessAllowed}
           style={{ border: 0, padding: 0, margin: 0 }}
         >
           <label>

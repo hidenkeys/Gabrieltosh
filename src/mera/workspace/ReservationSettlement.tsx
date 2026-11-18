@@ -8,7 +8,11 @@ export default function ReservationSettlement({
   disabled,
   canPay,
   save,
+  onVisitOpened,
+  onVisitOpening,
 }: {
+  onVisitOpened?: (visit: any) => void;
+  onVisitOpening?: () => void;
   reservation: any;
   tables: any[];
   base: string;
@@ -25,13 +29,18 @@ export default function ReservationSettlement({
   const [error, setError] = useState("");
   const perform = (suffix: string, body: any, message: string) => {
     setError("");
+    if (suffix === "seat") onVisitOpening?.();
     void save(
       base + `/reservations/${reservation.id}/` + suffix,
       "POST",
       body,
       message,
     )
-      .then(() => setForm({}))
+      .then((result) => {
+        if (suffix === "seat" && result?.visit?.joiningCode)
+          onVisitOpened?.(result.visit);
+        setForm({});
+      })
       .catch((e) => setError(e.message));
   };
   return (

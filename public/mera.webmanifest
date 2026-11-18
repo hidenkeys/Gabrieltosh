@@ -1,0 +1,17 @@
+{
+  "name": "Mera · Hospitality workspace",
+  "short_name": "Mera",
+  "start_url": "/mera/workspace",
+  "scope": "/mera",
+  "display": "standalone",
+  "background_color": "#fffdf8",
+  "theme_color": "#fffdf8",
+  "icons": [
+    {
+      "src": "/mera-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

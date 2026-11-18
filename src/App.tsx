@@ -256,7 +256,19 @@ export default function App() {
   if (loading)
     return (
       <div className="loading">
-        <img className="brand-logo" src={store.logo} alt="Bing Chun mascot" />
+        <img
+          className="brand-logo"
+          src={
+            window.location.pathname.startsWith("/mera/")
+              ? "/mera-icon.svg"
+              : store.logo
+          }
+          alt={
+            window.location.pathname.startsWith("/mera/")
+              ? "Mera"
+              : "Bing Chun mascot"
+          }
+        />
         <p>Opening your workspace…</p>
       </div>
     );
@@ -520,7 +532,11 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
     <div className="login-page">
       <section className="login-art">
         <div className="brand light">
-          <img className="brand-logo" src={store.logo} alt="Bing Chun mascot" />
+          <img
+            className="brand-logo"
+            src={mera ? "/mera-icon.svg" : store.logo}
+            alt={mera ? "Mera" : "Bing Chun mascot"}
+          />
           <span>
             {mera ? "Mera" : "Bing Chun"}
             <small>{mera ? "HOSPITALITY WORKSPACE" : "STORE WORKSPACE"}</small>
@@ -540,13 +556,17 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
           <div className="login-brand-scene">
             <div className="brand-orbit" />
             <img
-              src={store.logo}
-              alt="Bing Chun's blue mascot holding a drink"
+              src={mera ? "/mera-icon.svg" : store.logo}
+              alt={
+                mera
+                  ? "Mera hospitality workspace"
+                  : "Bing Chun's blue mascot holding a drink"
+              }
             />
             <span className="branch-stamp">
-              SURULERE
+              {mera ? "YOUR BUSINESS" : "SURULERE"}
               <br />
-              <small>BODE THOMAS, LAGOS</small>
+              <small>{mera ? "CONNECTED BY MERA" : "BODE THOMAS, LAGOS"}</small>
             </span>
           </div>
         </div>

@@ -1,8 +1,19 @@
+export function customerOrganizationSlug(pathname: string): string | undefined {
+  const match = /^\/mera\/(?:menu|store)\/([^/]+)(?:\/|$)/.exec(pathname);
+  if (!match) return undefined;
+  try {
+    const slug = decodeURIComponent(match[1]);
+    return /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(slug) ? slug : undefined;
+  } catch {
+    return undefined;
+  }
+}
 export async function customerRequest<T = any>(
   path: string,
   method = "GET",
   body?: unknown,
 ): Promise<T> {
+  const organizationSlug = customerOrganizationSlug(window.location.pathname);
   let response: Response;
   let data: any;
   const controller = new AbortController();
@@ -11,7 +22,13 @@ export async function customerRequest<T = any>(
     response = await fetch("/api/mera/v1" + path, {
       method,
       credentials: "same-origin",
-      headers: { "Content-Type": "application/json", "X-POS-Request": "1" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-POS-Request": "1",
+        ...(organizationSlug
+          ? { "X-Mera-Organization-Slug": organizationSlug }
+          : {}),
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,
     });

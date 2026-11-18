@@ -1,9 +1,9 @@
-# Original Mera marketing reference
+# Mera marketing and platform direction
 
-Status 18 November 2026: **user confirmed the original running application at http://localhost:3003/ as the visual reference**.
+Updated 18 November 2026: the owner explicitly confirms **there is no separate original Mera screenshot** and requests a newly designed, sophisticated, modern enterprise identity with a Fortune 500 feel. This supersedes the earlier interpretation that the original Bing Chun POS was a marketing-page reference.
 
-The user clarified: “this is what i made before . this is what i want it to follow” and identified Chrome at localhost:3003 `/`. This supersedes the earlier missing-reference status. The exact legacy Counter and Reports were accessed in the isolated demo and saved as `docs/mera/ui-audit/screenshots/01-bing-chun-counter.jpg` and `02-bing-chun-overview.jpg`. Use the verified components/styles in bing-chun.md as the visual authority across Mera, including marketing's design language.
+Bing Chun remains the verified visual authority for organization workspace and operational screens. See bing-chun.md and the actual source captures. Marketing and Mera platform administration need their own appropriate enterprise presentation; do not claim an inaccessible original was inspected.
 
-Current `src/mera/marketing/Marketing.tsx` is not the accepted visual. Do not preserve its treatment over the selected source. The selected source is a working hospitality application, not a captured marketing-page composition: reuse its real typography, surfaces, spacing and brand treatment without claiming a separate original marketing layout was inspected. Keep public marketing content appropriate to its job. This pass remains overview/POS first.
+Three independent homepage concepts were generated using Product Design Ideate on 18 November 2026. Selection is pending. Their displayed order in the chat is authoritative. Do not implement an unselected concept or claim visual acceptance. Once selected, use Image to Code and compare the running implementation with that exact visual.
 
-Pricing/provider disclosures remain truthful/configurable under MERA_PRD.md. A visual reference does not authorize live billing, publication or deployment.
+Use real product captures and existing assets. No fabricated customer logos, metrics or testimonials. Keep pricing and payment policies configurable; truthful readiness disclosures belong near relevant decisions, without development prose throughout normal product screens. Visual selection does not authorize live billing, publication or deployment.

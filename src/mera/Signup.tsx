@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./workspace/api";
 export default function Signup() {
+  const card = useRef<HTMLElement>(null);
+  const [readinessAttempt, setReadinessAttempt] = useState(0);
+  const [checking, setChecking] = useState(true);
   const [capabilities, setCapabilities] = useState<any>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -11,17 +14,35 @@ export default function Signup() {
     [verified, setVerified] = useState(false);
   useEffect(() => {
     let active = true;
+    setChecking(true);
+    setError("");
     workspaceApi("/identity/capabilities")
       .then((value) => {
-        if (active) setCapabilities(value);
+        if (!active) return;
+        if (!["blocked", "simulator"].includes(value.registration)) {
+          setError(
+            "Registration readiness could not be confirmed. Please try again.",
+          );
+          return;
+        }
+        setCapabilities(value);
       })
       .catch((e) => {
         if (active) setError(e.message);
+      })
+      .finally(() => {
+        if (active) setChecking(false);
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [readinessAttempt]);
+  useEffect(() => {
+    if (!checking)
+      card.current
+        ?.querySelector<HTMLElement>(error ? '[role="alert"]' : "h2")
+        ?.focus();
+  }, [checking, error, registration, verified]);
   async function register(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -84,18 +105,29 @@ export default function Signup() {
             preview.
           </p>
         </section>
-        <section className="mera-signup-card" aria-label="Owner onboarding">
+        <section
+          className="mera-signup-card"
+          aria-label="Owner onboarding"
+          ref={card}
+          aria-busy={checking || busy}
+        >
           {error && (
-            <p role="alert" className="info-box">
+            <p role="alert" tabIndex={-1} className="info-box">
               {error}
             </p>
           )}
-          {!capabilities && !error && (
-            <p role="status">Checking registration readiness…</p>
+          {!capabilities && error && !checking && (
+            <button
+              className="secondary"
+              onClick={() => setReadinessAttempt((n) => n + 1)}
+            >
+              Retry registration check
+            </button>
           )}
+          {checking && <p role="status">Checking registration readiness…</p>}
           {capabilities?.registration === "blocked" && (
             <>
-              <h2>Registration is awaiting verification setup</h2>
+              <h2 tabIndex={-1}>Registration is awaiting verification setup</h2>
               <p>
                 Owner email delivery and sender authorization must be configured
                 before public registration opens. No account has been created.
@@ -110,62 +142,64 @@ export default function Signup() {
             !verified && (
               <>
                 <p className="mera-signup-badge">Development environment</p>
-                <h2>Explore owner onboarding</h2>
+                <h2 tabIndex={-1}>Explore owner onboarding</h2>
                 <p>
                   Use demonstration details. Verification is simulated here; no
                   email is sent and no real email ownership is established.
                 </p>
                 <form onSubmit={register}>
-                  <label>
-                    Your name
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      autoComplete="name"
-                      required
-                      maxLength={100}
-                    />
-                  </label>
-                  <label>
-                    Demonstration email
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
-                      required
-                      maxLength={254}
-                    />
-                  </label>
-                  <label>
-                    Password
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      autoComplete="new-password"
-                      minLength={12}
-                      maxLength={128}
-                      required
-                      aria-describedby="password-help"
-                    />
-                  </label>
-                  <p id="password-help">
-                    Use at least 12 characters and a password unique to this
-                    demonstration.
-                  </p>
-                  <button className="primary" disabled={busy}>
-                    {busy
-                      ? "Creating demonstration account…"
-                      : "Create demonstration account"}
-                  </button>
+                  <fieldset disabled={busy} className="mera-signup-fields">
+                    <label>
+                      Your name
+                      <input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        autoComplete="name"
+                        required
+                        maxLength={100}
+                      />
+                    </label>
+                    <label>
+                      Demonstration email
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        autoComplete="email"
+                        required
+                        maxLength={254}
+                      />
+                    </label>
+                    <label>
+                      Password
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        autoComplete="new-password"
+                        minLength={12}
+                        maxLength={128}
+                        required
+                        aria-describedby="password-help"
+                      />
+                    </label>
+                    <p id="password-help">
+                      Use at least 12 characters and a password unique to this
+                      demonstration.
+                    </p>
+                    <button className="primary" disabled={busy}>
+                      {busy
+                        ? "Creating demonstration account…"
+                        : "Create demonstration account"}
+                    </button>
+                  </fieldset>
                 </form>
               </>
             )}
           {registration && (
             <>
               <p className="mera-signup-badge">Simulated verification</p>
-              <h2>Try the verification step</h2>
+              <h2 tabIndex={-1}>Try the verification step</h2>
               <p>
                 No email has been sent. This development action consumes a
                 single-use verification token and enables this demonstration
@@ -180,7 +214,7 @@ export default function Signup() {
           )}
           {verified && (
             <>
-              <h2>Your demonstration account is ready</h2>
+              <h2 tabIndex={-1}>Your demonstration account is ready</h2>
               <p>
                 Sign in using your demonstration email and password to create an
                 organization. This does not verify a real email address or

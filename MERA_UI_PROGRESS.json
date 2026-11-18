@@ -1,0 +1,1677 @@
+{
+  "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
+  "scopeVersion": "1.0",
+  "frozenAt": "2026-11-18T15:56:52+01:00",
+  "lastUpdated": "2026-11-18T16:10:03+01:00",
+  "revision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd",
+  "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
+  "clarifications": [
+    {
+      "at": "2026-11-18T15:56:52+01:00",
+      "text": "Owner confirms no original Mera screenshot exists; create a sophisticated modern enterprise identity for marketing/platform. Bing Chun running source remains authority for organization screens. F2 now visual direction/selection, not missing file."
+    }
+  ],
+  "workstreams": [
+    {
+      "id": "F",
+      "title": "References, design system and application shell",
+      "weight": 15,
+      "owner": "lead"
+    },
+    {
+      "id": "O",
+      "title": "Organization management",
+      "weight": 25,
+      "owner": "workspace / lead overview"
+    },
+    {
+      "id": "P",
+      "title": "POS and operational roles",
+      "weight": 20,
+      "owner": "lead / rotating operational agent"
+    },
+    {
+      "id": "C",
+      "title": "Customer experience",
+      "weight": 20,
+      "owner": "customer"
+    },
+    {
+      "id": "M",
+      "title": "Marketing and platform administration",
+      "weight": 10,
+      "owner": "backend (presentation workstream A)"
+    },
+    {
+      "id": "Q",
+      "title": "Integration, accessibility and delivery",
+      "weight": 10,
+      "owner": "lead"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "F1",
+      "workstream": "F",
+      "title": "Original Counter/Reports source and visual evidence",
+      "weight": 3,
+      "checkpoint": 100,
+      "status": "VERIFIED",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Actual source and captures opened; provenance and original components recorded.",
+      "evidence": [
+        "docs/mera/ui-audit/screenshots/01-bing-chun-counter.jpg",
+        "docs/mera/ui-audit/screenshots/02-bing-chun-overview.jpg",
+        "src/App.tsx"
+      ],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 100,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "F2",
+      "workstream": "F",
+      "title": "New Mera visual direction and explicit selection",
+      "weight": 2,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [
+        "F1"
+      ],
+      "acceptance": "Research and show three visual directions for selection; original Mera screenshot does not exist per owner clarification.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "F3",
+      "workstream": "F",
+      "title": "Project UI skill and verified source map",
+      "weight": 2,
+      "checkpoint": 100,
+      "status": "VERIFIED",
+      "owner": "lead",
+      "dependencies": [
+        "F1"
+      ],
+      "acceptance": "Project skill valid, paths verified, independent forward review complete. Marketing authority clarification must stay current.",
+      "evidence": [
+        ".agents/skills/mera-ui/SKILL.md",
+        ".agents/skills/mera-ui/references/bing-chun.md"
+      ],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 100,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "F4",
+      "workstream": "F",
+      "title": "Shared primitives and preservation specification",
+      "weight": 2,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [
+        "F1"
+      ],
+      "acceptance": "Extract source-grounded controls/tables/disclosures/dialogs and document effective typography/spacing/status/branding rules without invented token scale.",
+      "evidence": [
+        "docs/mera/ui-audit/PRIMITIVES.md"
+      ],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T16:10:03+01:00",
+          "checkpoint": 0,
+          "note": "Source preservation/primitives specification prepared; extraction and acceptance still pending."
+        }
+      ]
+    },
+    {
+      "id": "F5",
+      "workstream": "F",
+      "title": "Compact shared shell, account menu and role landing",
+      "weight": 4,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [
+        "F3",
+        "F4"
+      ],
+      "acceptance": "Grouped permission-aware navigation on all workspace screens; compact context/account menu; role-specific entry; diagnostics restricted; loading/error/denial/recovery states.",
+      "evidence": [
+        "src/mera/workspace/WorkspaceAccount.tsx",
+        "tests/mera-ui-pilot.test.tsx"
+      ],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T16:10:03+01:00",
+          "checkpoint": 0,
+          "note": "Account menu mounted only overview/POS; full permission-aware shell and role landing pending Q1."
+        }
+      ]
+    },
+    {
+      "id": "F6",
+      "workstream": "F",
+      "title": "Durable progress and complete screen inventory",
+      "weight": 2,
+      "checkpoint": 100,
+      "status": "VERIFIED",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Frozen weights sum100; explicit checkpoints/calculation; every implemented surface mapped; evidence/history retained.",
+      "evidence": [
+        "MERA_UI_PROGRESS.json",
+        "scripts/mera-ui-progress.js"
+      ],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 100,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "O1",
+      "workstream": "O",
+      "title": "Overview layout pilot",
+      "weight": 2,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [
+        "F1"
+      ],
+      "acceptance": "Prior compact layout integrated/exercised; updated full-shell requirements reopen visual acceptance. No credit for missing operational widgets.",
+      "evidence": [
+        "docs/mera/ui-audit/screenshots/05-mera-overview-after.jpg",
+        "docs/mera/ui-audit/screenshots/10-mera-overview-narrow.jpg",
+        "design-qa.md"
+      ],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 60,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "O2",
+      "workstream": "O",
+      "title": "Overview actionable content and date context",
+      "weight": 3,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "lead",
+      "dependencies": [
+        "O1",
+        "F5"
+      ],
+      "acceptance": "Orders needing attention, outstanding payments, arrivals, stock, shifts/recent activity with permission-safe real data, dates and drilldowns; unavailable differs from zero.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "O3",
+      "workstream": "O",
+      "title": "Onboarding, branding and branch setup",
+      "weight": 4,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "workspace",
+      "dependencies": [
+        "F4",
+        "F5"
+      ],
+      "acceptance": "Coherent steps, branding previews, resumable drafts and policy approvals; readable readiness/errors and branch management where real APIs allow.",
+      "evidence": [
+        "tests/mera-management-ui.test.tsx",
+        "src/mera/workspace/management.css"
+      ],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T16:10:03+01:00",
+          "checkpoint": 0,
+          "note": "Bounded branch settings/readiness hierarchy and state pilot; remaining branch CRUD and onboarding grouping not complete."
+        }
+      ]
+    },
+    {
+      "id": "O4",
+      "workstream": "O",
+      "title": "Menu, categories, modifiers and stock management",
+      "weight": 5,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "workspace",
+      "dependencies": [
+        "F4",
+        "F5"
+      ],
+      "acceptance": "Product-first browsing/detail; publish review, stock history/adjustment and structured options, stable IDs, honest retries and distinct permission states.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "O5",
+      "workstream": "O",
+      "title": "Staff, invitations, scopes and custom roles",
+      "weight": 3,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "workspace",
+      "dependencies": [
+        "F4",
+        "F5"
+      ],
+      "acceptance": "Members-first tables, scopes/role details, invite/revoke and loading/errors; preserve owner/authority safeguards; missing reassignment APIs explicit.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "O6",
+      "workstream": "O",
+      "title": "Transactions, shifts, reports and exports",
+      "weight": 4,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "workspace",
+      "dependencies": [
+        "F4",
+        "F5"
+      ],
+      "acceptance": "List/detail hierarchy, payment origins, reviewed refunds and noncash outcomes, business-date reports/download states; no financial or recovery regression.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "O7",
+      "workstream": "O",
+      "title": "Subscriptions, printing, QR and customer/support care",
+      "weight": 4,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "workspace",
+      "dependencies": [
+        "F4",
+        "F5"
+      ],
+      "acceptance": "Purpose-built compact screens/details for invoices/templates/jobs/QR/complaints/support/integrations with advanced configuration disclosed; genuine blocked states actionable.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "P1",
+      "workstream": "P",
+      "title": "Original-style POS catalog and current order",
+      "weight": 5,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [
+        "F1"
+      ],
+      "acceptance": "Prior integrated photo catalog/basket retained. Updated shared header, role/repeated-transaction workflows and full state acceptance still required.",
+      "evidence": [
+        "docs/mera/ui-audit/screenshots/06-mera-pos-after-empty.jpg",
+        "docs/mera/ui-audit/screenshots/07-mera-pos-tablet.jpg",
+        "docs/mera/ui-audit/screenshots/09-mera-pos-narrow-basket.jpg",
+        "tests/mera-ui-pilot.test.tsx"
+      ],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 60,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "P2",
+      "workstream": "P",
+      "title": "Order lists, details, responsibility and help",
+      "weight": 4,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "lead",
+      "dependencies": [
+        "F4",
+        "F5"
+      ],
+      "acceptance": "Scan reference/time/customer/table/source/status/payment/amount/handler and next action; timeline/details; assignment/privacy preserved.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "P3",
+      "workstream": "P",
+      "title": "Waiter tables, rounds, bills and handoffs",
+      "weight": 4,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "lead",
+      "dependencies": [
+        "F4",
+        "F5"
+      ],
+      "acceptance": "Assigned work first, floor/current party, rounds, prepared handoff, split/partial payment and minimum/deposit outcomes without private-session regressions.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "P4",
+      "workstream": "P",
+      "title": "Kitchen and bar preparation",
+      "weight": 3,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "lead",
+      "dependencies": [
+        "F4",
+        "F5"
+      ],
+      "acceptance": "Dedicated station tickets with modifiers/notes/elapsed time/current actors and prominent versioned actions; no owner dashboard for these roles.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "P5",
+      "workstream": "P",
+      "title": "Front desk reservations, arrivals and waitlist",
+      "weight": 4,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "lead",
+      "dependencies": [
+        "F4",
+        "F5"
+      ],
+      "acceptance": "Readable timeline/list, capacity/table availability, arrivals/walk-ins/waitlist and seating conversion; preserve joining/deposit policies and error states.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "C1",
+      "workstream": "C",
+      "title": "Mobile menu and persistent cart pilot",
+      "weight": 6,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "customer",
+      "dependencies": [
+        "F1"
+      ],
+      "acceptance": "Immediate branded menu, compact hierarchy/search/categories/availability/photos, persistent cart access and zero-results/empty/error states; mobile visual gate.",
+      "evidence": [
+        "src/mera/customer/CustomerExperience.tsx",
+        "tests/mera-customer-ui-correction.test.tsx",
+        "docs/mera/ui-audit/PILOT-CHECKPOINT-2026-11-18.md",
+        "docs/mera/ui-audit/screenshots/13-customer-narrow-menu.jpg",
+        "docs/mera/ui-audit/screenshots/14-customer-narrow-basket.jpg",
+        "docs/mera/ui-audit/screenshots/15-customer-tablet.jpg"
+      ],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T16:10:03+01:00",
+          "checkpoint": 60,
+          "note": "Menu/cart integrated and exercised in local browser; overlap corrected. Full comparison/state acceptance pending."
+        }
+      ]
+    },
+    {
+      "id": "C2",
+      "workstream": "C",
+      "title": "Checkout, pending recovery, tracking and receipts",
+      "weight": 5,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "customer",
+      "dependencies": [
+        "C1"
+      ],
+      "acceptance": "Transparent server totals, immutable uncertain intent, readable statuses and receipts/history; never imply client confirmation proves payment.",
+      "evidence": [
+        "tests/mera-customer-ui-correction.test.tsx"
+      ],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T16:10:03+01:00",
+          "checkpoint": 0,
+          "note": "Exact checkout intent protection in review; no full workflow acceptance."
+        }
+      ]
+    },
+    {
+      "id": "C3",
+      "workstream": "C",
+      "title": "Visit joining, bills, rounds and help",
+      "weight": 4,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "customer",
+      "dependencies": [
+        "C1"
+      ],
+      "acceptance": "Clear branch/table context and secure code flow, private bills/service/help with loading/expiry/recovery; no staff/admin jargon.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "C4",
+      "workstream": "C",
+      "title": "Reservations, activity and consent",
+      "weight": 3,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "customer",
+      "dependencies": [
+        "C1"
+      ],
+      "acceptance": "Readable enabled reservation workflow, acknowledgements, own activity and separate optional consent; honest deposit/review outcomes.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "C5",
+      "workstream": "C",
+      "title": "Customization dialogs and organization themes",
+      "weight": 2,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "customer",
+      "dependencies": [
+        "C1"
+      ],
+      "acceptance": "Required variants/modifiers/limits, keyboard focus/long-content/narrow dialogs, actual organization branding and photo fallback.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "M1",
+      "workstream": "M",
+      "title": "Marketing homepage pilot",
+      "weight": 4,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "backend",
+      "dependencies": [
+        "F2"
+      ],
+      "acceptance": "Selected new enterprise Mera direction, credible product preview and responsive composition; four-surface visual gate.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "M2",
+      "workstream": "M",
+      "title": "Marketing features, pricing, legal and signup",
+      "weight": 2,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "backend",
+      "dependencies": [
+        "F2",
+        "M1"
+      ],
+      "acceptance": "Complete service/pricing/signup/support pages with honest configurable terms; real states, no invented delivery or legal completion.",
+      "evidence": [
+        "tests/mera-signup-ui.test.tsx"
+      ],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T16:10:03+01:00",
+          "checkpoint": 0,
+          "note": "Signup readiness/focus hardening passes targeted batch; remaining marketing/legal/pricing correction pending selected direction."
+        }
+      ]
+    },
+    {
+      "id": "M3",
+      "workstream": "M",
+      "title": "Mera platform administration",
+      "weight": 4,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "backend",
+      "dependencies": [
+        "F2",
+        "F4"
+      ],
+      "acceptance": "Selected Mera identity adapted to efficient authorized tables/drilldowns, MFA, directory/subscriptions/provider/fees/exceptions/support/audit; preserve security.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "Q1",
+      "workstream": "Q",
+      "title": "Four-surface reference comparison gate",
+      "weight": 3,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "lead",
+      "dependencies": [
+        "O1",
+        "P1",
+        "C1",
+        "M1"
+      ],
+      "acceptance": "Overview, POS, mobile menu/cart and marketing captured against actual selected references before broad rollout; correct P0/P1/P2.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "Q2",
+      "workstream": "Q",
+      "title": "Cross-screen states, accessibility and responsiveness",
+      "weight": 3,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "lead",
+      "dependencies": [
+        "F5",
+        "Q1"
+      ],
+      "acceptance": "All inventory states and desktop/tablet/narrow, no overflow, focus/contrast/labels/touch/long dialogs/loading/recovery; no certification without evidence.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "Q3",
+      "workstream": "Q",
+      "title": "Functional integration and regression gate",
+      "weight": 3,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "lead",
+      "dependencies": [
+        "Q1"
+      ],
+      "acceptance": "Role/scope denial, order/stock/payment/table privacy and uncertainty regressions across corrected screens; provider/hardware separately gated.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    },
+    {
+      "id": "Q4",
+      "workstream": "Q",
+      "title": "Final evidence, review and handoff",
+      "weight": 1,
+      "checkpoint": 0,
+      "status": "NOT_STARTED",
+      "owner": "lead",
+      "dependencies": [
+        "Q2",
+        "Q3"
+      ],
+      "acceptance": "Lead reviews every task, screenshots/tests linked, inventory complete, no unfinished UI counted complete, exact external production blockers recorded.",
+      "evidence": [],
+      "blockers": [],
+      "history": [
+        {
+          "at": "2026-11-18T15:56:52+01:00",
+          "checkpoint": 0,
+          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        }
+      ]
+    }
+  ],
+  "screens": [
+    {
+      "id": "WS-overview",
+      "route": "/mera/workspace#overview",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Owner/manager",
+      "taskIds": [
+        "O1",
+        "O2"
+      ],
+      "task": "OperationalOverview",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "reports.view",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "Prior pilot reopened",
+      "blockers": []
+    },
+    {
+      "id": "WS-onboarding",
+      "route": "/mera/workspace#onboarding",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Owner/admin",
+      "taskIds": [
+        "O3"
+      ],
+      "task": "BranchSettings/LaunchReadiness/policies/MediaUpload",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "organization.manage",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-menu",
+      "route": "/mera/workspace#menu",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Manager/stock",
+      "taskIds": [
+        "O4"
+      ],
+      "task": "Categories/SharedMenus/CatalogOperations/variants/modifiers/StockMovements",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "menu.edit/stock.adjust",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-orders",
+      "route": "/mera/workspace#orders",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Cashier/waiter/manager",
+      "taskIds": [
+        "P2"
+      ],
+      "task": "OrderHistory/OrderInstructions/RefundRequests",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "orders.view",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-counter",
+      "route": "/mera/workspace#counter",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Cashier",
+      "taskIds": [
+        "P1"
+      ],
+      "task": "StaffPos/StaffOrderItems",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "orders.create",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "Prior pilot reopened",
+      "blockers": []
+    },
+    {
+      "id": "WS-preparation",
+      "route": "/mera/workspace#preparation",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Kitchen/bar",
+      "taskIds": [
+        "P4"
+      ],
+      "task": "Tickets/OrderInstructions/ItemFulfillment",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "orders.prepare",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-tables",
+      "route": "/mera/workspace#tables",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Waiter/front desk",
+      "taskIds": [
+        "P3"
+      ],
+      "task": "FloorMap/TableEditor/VisitTables/Bills/PrivateVisitAccess",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "tables.manage",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-reservations",
+      "route": "/mera/workspace#reservations",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Front desk",
+      "taskIds": [
+        "P5"
+      ],
+      "task": "ReservationSettlement/DepositOutcomes/minimum spend",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "reservations.manage",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-payments",
+      "route": "/mera/workspace#payments",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Cashier/manager",
+      "taskIds": [
+        "O6"
+      ],
+      "task": "Transactions/refunds/writeoff/recovery",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "payments.record/refunds.approve",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-shifts",
+      "route": "/mera/workspace#shifts",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Cashier/manager",
+      "taskIds": [
+        "O6"
+      ],
+      "task": "CashMovement/ShiftActions",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "shifts.manage",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-team",
+      "route": "/mera/workspace#team",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Owner/admin",
+      "taskIds": [
+        "O5"
+      ],
+      "task": "RoleManager/member list",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "members.manage",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-billing",
+      "route": "/mera/workspace#billing",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Owner",
+      "taskIds": [
+        "O7"
+      ],
+      "task": "Invoices/PolicyEditor/Reconciliation",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "billing.manage",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-printing",
+      "route": "/mera/workspace#printing",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Manager",
+      "taskIds": [
+        "O7"
+      ],
+      "task": "PrintStudio/PrintDocument",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "menu.edit/orders.fulfill",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-qr",
+      "route": "/mera/workspace#qr",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Manager",
+      "taskIds": [
+        "O7"
+      ],
+      "task": "QrCodes",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "qr.manage",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-integrations",
+      "route": "/mera/workspace#integrations",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Owner/admin",
+      "taskIds": [
+        "O7"
+      ],
+      "task": "Integrations",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "organization.manage",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-care",
+      "route": "/mera/workspace#care",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Owner/admin",
+      "taskIds": [
+        "O7"
+      ],
+      "task": "Complaints",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "organization.manage",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-waitlist",
+      "route": "/mera/workspace#waitlist",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Front desk",
+      "taskIds": [
+        "P5"
+      ],
+      "task": "Waitlist",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "reservations.manage",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-exports",
+      "route": "/mera/workspace#exports",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Reports/manager",
+      "taskIds": [
+        "O6"
+      ],
+      "task": "ExportJobs",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "reports.export",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-help",
+      "route": "/mera/workspace#help",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Staff",
+      "taskIds": [
+        "P2"
+      ],
+      "task": "HelpRequests",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "help.manage",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "WS-support",
+      "route": "/mera/workspace#support",
+      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
+      "role": "Org-wide admin",
+      "taskIds": [
+        "O7"
+      ],
+      "task": "SupportCases",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
+      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
+      "permissions": "support.manage",
+      "states": {
+        "loading": "UNVERIFIED for full correction",
+        "empty": "UNVERIFIED for full correction",
+        "error": "UNVERIFIED for full correction",
+        "permission": "UNVERIFIED for full correction",
+        "recovery": "UNVERIFIED for full correction"
+      },
+      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "CU-menu",
+      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: menu",
+      "role": "Guest/customer",
+      "taskIds": [
+        "C1"
+      ],
+      "task": "menu",
+      "source": "src/mera/customer/CustomerExperience.tsx",
+      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
+      "functionalCoverage": "Existing shared backend flows; UI correction unverified",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "CU-cart",
+      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: cart",
+      "role": "Guest/customer",
+      "taskIds": [
+        "C1"
+      ],
+      "task": "cart",
+      "source": "src/mera/customer/CustomerExperience.tsx",
+      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
+      "functionalCoverage": "Existing shared backend flows; UI correction unverified",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "CU-checkout",
+      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: checkout",
+      "role": "Guest/customer",
+      "taskIds": [
+        "C2"
+      ],
+      "task": "checkout",
+      "source": "src/mera/customer/CustomerExperience.tsx",
+      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
+      "functionalCoverage": "Existing shared backend flows; UI correction unverified",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "CU-tracking-receipt-history",
+      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: tracking-receipt-history",
+      "role": "Guest/customer",
+      "taskIds": [
+        "C2"
+      ],
+      "task": "tracking-receipt-history",
+      "source": "src/mera/customer/CustomerExperience.tsx",
+      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
+      "functionalCoverage": "Existing shared backend flows; UI correction unverified",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "CU-table-visit-bills",
+      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: table-visit-bills",
+      "role": "Guest/customer",
+      "taskIds": [
+        "C3"
+      ],
+      "task": "table-visit-bills",
+      "source": "src/mera/customer/CustomerExperience.tsx",
+      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
+      "functionalCoverage": "Existing shared backend flows; UI correction unverified",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "CU-help",
+      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: help",
+      "role": "Guest/customer",
+      "taskIds": [
+        "C3"
+      ],
+      "task": "help",
+      "source": "src/mera/customer/CustomerExperience.tsx",
+      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
+      "functionalCoverage": "Existing shared backend flows; UI correction unverified",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "CU-reservations",
+      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: reservations",
+      "role": "Guest/customer",
+      "taskIds": [
+        "C4"
+      ],
+      "task": "reservations",
+      "source": "src/mera/customer/CustomerExperience.tsx",
+      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
+      "functionalCoverage": "Existing shared backend flows; UI correction unverified",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "CU-activity-consent",
+      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: activity-consent",
+      "role": "Guest/customer",
+      "taskIds": [
+        "C4"
+      ],
+      "task": "activity-consent",
+      "source": "src/mera/customer/CustomerExperience.tsx",
+      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
+      "functionalCoverage": "Existing shared backend flows; UI correction unverified",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "CU-customization-theme",
+      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: customization-theme",
+      "role": "Guest/customer",
+      "taskIds": [
+        "C5"
+      ],
+      "task": "customization-theme",
+      "source": "src/mera/customer/CustomerExperience.tsx",
+      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
+      "functionalCoverage": "Existing shared backend flows; UI correction unverified",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "PUB-homepage",
+      "route": "/mera",
+      "role": "Prospective business",
+      "taskIds": [
+        "M1"
+      ],
+      "task": "homepage",
+      "source": "src/mera/marketing/Marketing.tsx",
+      "api": "Public presentation",
+      "functionalCoverage": "Existing consumers; correction/complete workflow coverage pending",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": [
+        "Selected Mera direction pending"
+      ]
+    },
+    {
+      "id": "PUB-features-pricing-modes-support",
+      "route": "/mera#experience,#pricing,#modes,#support",
+      "role": "Prospective business",
+      "taskIds": [
+        "M2"
+      ],
+      "task": "features-pricing-modes-support",
+      "source": "src/mera/marketing/Marketing.tsx",
+      "api": "Configured disclosures",
+      "functionalCoverage": "Existing consumers; correction/complete workflow coverage pending",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": [
+        "Selected Mera direction pending"
+      ]
+    },
+    {
+      "id": "PUB-legal",
+      "route": "/mera/legal",
+      "role": "Public",
+      "taskIds": [
+        "M2"
+      ],
+      "task": "legal",
+      "source": "src/mera/marketing/Marketing.tsx",
+      "api": "Policy preparation",
+      "functionalCoverage": "Existing consumers; correction/complete workflow coverage pending",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": [
+        "Selected Mera direction pending"
+      ]
+    },
+    {
+      "id": "PUB-signup",
+      "route": "/mera/signup",
+      "role": "Owner",
+      "taskIds": [
+        "M2"
+      ],
+      "task": "signup",
+      "source": "src/mera/Signup.tsx",
+      "api": "/api/mera/v1/identity",
+      "functionalCoverage": "Existing consumers; correction/complete workflow coverage pending",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": [
+        "Selected Mera direction pending"
+      ]
+    },
+    {
+      "id": "PUB-staff-login",
+      "route": "/mera/workspace (signed out)",
+      "role": "Staff",
+      "taskIds": [
+        "F5"
+      ],
+      "task": "staff-login",
+      "source": "src/App.tsx",
+      "api": "/api/auth",
+      "functionalCoverage": "Existing consumers; correction/complete workflow coverage pending",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": []
+    },
+    {
+      "id": "PUB-platform-auth",
+      "route": "/mera/platform (unverified)",
+      "role": "Platform operator",
+      "taskIds": [
+        "M3"
+      ],
+      "task": "platform-auth",
+      "source": "src/mera/Platform.tsx",
+      "api": "/api/mera/v1/platform/auth",
+      "functionalCoverage": "Existing consumers; correction/complete workflow coverage pending",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": [
+        "Selected Mera direction pending"
+      ]
+    },
+    {
+      "id": "PUB-platform-directory-support-finance-health",
+      "route": "/mera/platform (verified)",
+      "role": "MFA-verified operator",
+      "taskIds": [
+        "M3"
+      ],
+      "task": "platform-directory-support-finance-health",
+      "source": "src/mera/Platform.tsx",
+      "api": "/api/mera/v1/platform",
+      "functionalCoverage": "Existing consumers; correction/complete workflow coverage pending",
+      "states": {
+        "loading": "UNVERIFIED",
+        "empty": "UNVERIFIED",
+        "error": "UNVERIFIED",
+        "permission": "UNVERIFIED",
+        "recovery": "UNVERIFIED"
+      },
+      "responsive": "NOT_VERIFIED",
+      "visualReview": "NOT_STARTED",
+      "blockers": [
+        "Selected Mera direction pending"
+      ]
+    }
+  ],
+  "overallPrdCoverage": {
+    "status": "MAPPING_IN_PROGRESS",
+    "counts": null,
+    "percentage": null,
+    "note": "Historical ACCEPTANCE/BOARD gates are not a complete atomic PRD denominator. No invented PRD percentage."
+  },
+  "productionReadiness": {
+    "status": "NOT_READY",
+    "gates": [
+      "Rubies agreements/verified API and credentials",
+      "Zidi versioned contract/access",
+      "Authorized email identity/delivery",
+      "Target domains/TLS/hosting and deployment approval",
+      "Physical receipt/sticker output and calibration",
+      "Approved pricing/fee/tax/retention policies",
+      "Production operator/key custody/monitoring/load/device verification"
+    ]
+  },
+  "history": [
+    {
+      "at": "2026-11-18T15:56:52+01:00",
+      "event": "Baseline1.0 frozen before new implementation",
+      "scopeWeight": 100,
+      "weightedPoints": 11.2,
+      "roundedCompletion": 11
+    },
+    {
+      "at": "2026-11-18T16:10:03+01:00",
+      "event": "Customer menu/cart integrated and exercised; account/settings/signup pilots remain partial; no scope change",
+      "scopeWeight": 100,
+      "weightedPoints": 14.8,
+      "roundedCompletion": 14
+    }
+  ]
+}

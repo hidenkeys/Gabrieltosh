@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
+import PrintDocument from "./PrintDocument";
 const escape = (value: string) =>
   String(value).replace(
     /[&<>"']/g,
@@ -241,6 +242,9 @@ export default function PrintStudio({
                     ? "Device-confirmed output"
                     : "Physical output unconfirmed"}
                 </small>
+                {job.documentSnapshot && (
+                  <PrintDocument job={job} disabled={disabled} />
+                )}
               </div>
               <button
                 type="button"

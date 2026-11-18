@@ -8,6 +8,7 @@ export default function HelpRequests({
   onName,
   orderId,
   visitId,
+  nameLocked = false,
 }: {
   prefix: string;
   ensureGuest: () => Promise<any>;
@@ -16,6 +17,7 @@ export default function HelpRequests({
   onName: (value: string) => void;
   orderId?: string;
   visitId?: string;
+  nameLocked?: boolean;
 }) {
   const [requests, setRequests] = useState<any[]>([]),
     [error, setError] = useState(""),
@@ -99,6 +101,7 @@ export default function HelpRequests({
               required
               maxLength={100}
               value={displayName}
+              disabled={nameLocked}
               onChange={(event) => onName(event.target.value)}
             />
           </label>

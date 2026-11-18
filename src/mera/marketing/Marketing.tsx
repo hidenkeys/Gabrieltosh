@@ -154,10 +154,13 @@ export default function Marketing() {
             </a>
           </div>
           <p>
-            Support contact and production notification delivery are awaiting
-            configuration. This preview does not send email or claim a support
-            request was delivered.
+            Existing merchants can create and follow in-app support cases from
+            their organization workspace. Email, SMS and push delivery remain
+            unavailable.
           </p>
+          <a className="text-button" href="/mera/workspace">
+            Open merchant support in your workspace →
+          </a>
         </section>
       </main>
       <footer>

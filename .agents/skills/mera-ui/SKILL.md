@@ -23,7 +23,7 @@ Preserve Bing Chun's existing design system and working behavior. Start with [ve
 - **Kitchen/bar:** station-specific ticket grid/queue with quantities, modifiers, notes, elapsed time, actor and explicit progress actions. Prioritize scan density/touch targets, with no finance/setup distraction or dependency on print success.
 - **Customer ordering:** venue/branch context, published category hierarchy, photos, readable prices, accessible customization/cart and complete charges before confirmation. Preserve secure joining, guest privacy, pending/uncertain states and reconciliation. Avoid internal accounting/provider jargon in ordinary ordering.
 - **Mera platform administration:** related styling with compact tables, filtering, audited action dialogs, explicit organization scope and MFA boundaries. Separate merchant funds from platform revenue. POS density is inappropriate for sensitive operator review.
-- **Marketing:** the user's original Mera marketing visual is authoritative. Read [reference status](references/marketing.md). If missing, ask for its path/URL and leave marketing restyling pending; do not substitute the POS or a generated design.
+- **Marketing:** the owner confirms there is no original Mera screenshot and requests a new sophisticated enterprise identity. Read [reference status](references/marketing.md). Use the explicitly selected new visual for marketing and related platform styling. Keep Bing Chun as the organization workspace authority; do not claim an original marketing reference exists.
 
 ## Interface constraints
 

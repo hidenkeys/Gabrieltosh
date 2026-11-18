@@ -47,6 +47,7 @@ export async function workspaceApi<T = any>(
           method,
           signal: controller.signal,
           credentials: "same-origin",
+          cache: "no-store",
           headers: { "Content-Type": "application/json", "X-POS-Request": "1" },
           body: body === undefined ? undefined : JSON.stringify(body),
         });

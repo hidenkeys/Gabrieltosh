@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { brandingStyle } from "../branding";
+import { categoryNavigation, matchesCategory } from "./categories";
+import SessionOrders from "./SessionOrders";
 import HelpRequests from "./HelpRequests";
 import GuestActivity from "./GuestActivity";
 import { ProductImage } from "../../ProductImage";
@@ -13,6 +15,7 @@ type Product = {
   imageCode?: string;
   image?: string;
   category: string;
+  categoryId?: string | null;
   parentCategory?: string;
   description: string;
   price: number;
@@ -82,8 +85,42 @@ export default function CustomerExperience({
   const logo = assetUrl(menu?.organization?.branding?.logo);
   const cover = assetUrl(menu?.organization?.branding?.coverImage);
   const [quote, setQuote] = useState<any>(null);
+  const [joinTerms, setJoinTerms] = useState<any>(null);
+  const [joinAcknowledged, setJoinAcknowledged] = useState(false);
+  const [reservationAcknowledged, setReservationAcknowledged] = useState(false);
+  const [reservationIntent, setReservationIntent] = useState<any>(null);
+  const minimumPolicy =
+    menu?.minimumSpendPolicy || menu?.reservationPolicy?.minimumSpendPolicy;
+  const minimumBlocked =
+    (minimumPolicy?.enabled && !minimumPolicy.approved) ||
+    (!!menu?.reservationPolicy?.minimumSpend && !minimumPolicy?.approved);
+  useEffect(() => setReservationAcknowledged(false), [minimumPolicy?.version]);
   const checkoutKey = useRef(requestId());
+  const [checkoutIntent, setCheckoutIntent] = useState<any>(null);
+  const checkoutIntentRef = useRef<any>(null);
+  const checkoutInFlight = useRef(false);
+  const checkoutGeneration = useRef(0);
+  const checkoutLocked = busy || !!checkoutIntent;
   const modalRef = useRef<HTMLDivElement>(null);
+  const basketRef = useRef<HTMLElement>(null);
+  const [basketViewed, setBasketViewed] = useState(false);
+  useEffect(() => {
+    const basket = basketRef.current;
+    if (
+      tab !== "menu" ||
+      !basket ||
+      typeof IntersectionObserver === "undefined"
+    )
+      return;
+    const observer = new IntersectionObserver(
+      (entries) => setBasketViewed(entries[0]?.isIntersecting || false),
+      { threshold: 0 },
+    );
+    observer.observe(basket);
+    return () => observer.disconnect();
+  }, [tab, menu]);
+  const basketHeadingRef = useRef<HTMLHeadingElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const reservationKey = useRef(requestId());
   async function load() {
     setError("");
@@ -111,6 +148,11 @@ export default function CustomerExperience({
         if (active) setBranches(result.branches || []);
       })
       .catch(() => {});
+    checkoutGeneration.current++;
+    checkoutInFlight.current = false;
+    setBusy(false);
+    checkoutIntentRef.current = null;
+    setCheckoutIntent(null);
     setCart([]);
     setOrder(null);
     setVisit(null);
@@ -119,7 +161,8 @@ export default function CustomerExperience({
     customerRequest(prefix + "/guest")
       .then(async (session) => {
         if (!active) return;
-        setDisplayName(session.displayName || "");
+        if (!checkoutIntentRef.current)
+          setDisplayName(session.displayName || "");
         setHasGuest(true);
         const upcoming = [...(session.reservations || [])]
           .filter(
@@ -140,7 +183,7 @@ export default function CustomerExperience({
               ).includes(requestedTable))
           ) {
             setVisit(currentVisit);
-            setFulfillment("table_service");
+            if (!checkoutIntentRef.current) setFulfillment("table_service");
           }
         }
         const latest = [...(session.orders || [])].sort(
@@ -203,6 +246,12 @@ export default function CustomerExperience({
         }
       } catch (e) {
         if (!stopped) {
+          if ((e as any).status === 401) {
+            clearGuestView(
+              "Your guest session expired. Existing orders were not cancelled. Enter your name to start a new session.",
+            );
+            return;
+          }
           setTrackingError((e as Error).message);
           if (
             [401, 403, 404].includes((e as Error & { status: number }).status)
@@ -233,11 +282,17 @@ export default function CustomerExperience({
         if (active) setVisit(current);
       } catch (e) {
         if (active) {
+          if ((e as any).status === 401) {
+            clearGuestView(
+              "Your guest session expired. Existing orders and visits remain unchanged.",
+            );
+            return;
+          }
           if (
             [401, 403, 404].includes((e as Error & { status: number }).status)
           ) {
             setVisit(null);
-            setFulfillment("counter_pickup");
+            if (!checkoutIntentRef.current) setFulfillment("counter_pickup");
             setError(
               "This visit is no longer available. Ask staff for the current joining code.",
             );
@@ -259,20 +314,72 @@ export default function CustomerExperience({
     };
   }, [visit?.visit?.id]);
   const products: Product[] = menu?.products || [];
-  const categories = ["All", ...new Set(products.map((p) => p.category))];
+  const publishedCategories = menu?.categories || [];
+  const categories = [
+    { key: "All", label: "All", depth: 0 },
+    ...categoryNavigation(publishedCategories, products),
+  ];
+  const visibleProducts = products.filter(
+    (product) =>
+      matchesCategory(product, category, publishedCategories) &&
+      `${product.name} ${product.description} ${product.category}`
+        .toLowerCase()
+        .includes(search.toLowerCase()),
+  );
+  const basketQuantity = cart.reduce((count, line) => count + line.quantity, 0);
+  function openBasket() {
+    setBasketViewed(true);
+    basketRef.current?.scrollIntoView?.({ block: "start", behavior: "auto" });
+    basketHeadingRef.current?.focus({ preventScroll: true });
+  }
+  function returnToMenu() {
+    setBasketViewed(false);
+    searchRef.current?.scrollIntoView?.({ block: "start", behavior: "auto" });
+    searchRef.current?.focus({ preventScroll: true });
+  }
   const total = cart.reduce(
     (sum, line) => sum + line.quantity * line.unitPrice,
     0,
   );
-  async function guest() {
-    if (!displayName.trim())
+  function clearGuestView(message: string) {
+    setBusy(false);
+    checkoutGeneration.current++;
+    checkoutInFlight.current = false;
+    checkoutIntentRef.current = null;
+    setCheckoutIntent(null);
+    setOrder(null);
+    setVisit(null);
+    setReservation(null);
+    setHasGuest(false);
+    setDisplayName("");
+    setNote("");
+    setCart([]);
+    setQuote(null);
+    setJoinTerms(null);
+    setJoinAcknowledged(false);
+    setReservationIntent(null);
+    setReservationAcknowledged(false);
+    if (!checkoutIntentRef.current) setFulfillment("counter_pickup");
+    setTrackingError("");
+    setError("");
+    setSuccess(message);
+    setTab("menu");
+    checkoutKey.current = requestId();
+    reservationKey.current = requestId();
+  }
+  async function guest(
+    name = displayName.trim(),
+    generation = checkoutGeneration.current,
+  ) {
+    if (!name.trim())
       throw new Error("Enter the name we should call for your order.");
     await customerRequest(prefix + "/guests", "POST", {
-      displayName: displayName.trim(),
+      displayName: name.trim(),
     });
-    setHasGuest(true);
+    if (generation === checkoutGeneration.current) setHasGuest(true);
   }
   function addProduct() {
+    if (checkoutIntentRef.current || checkoutInFlight.current) return;
     if (!selected) return;
     for (const group of selected.modifierGroups || []) {
       const count = group.options.filter((option) =>
@@ -323,51 +430,70 @@ export default function CustomerExperience({
       modifiers,
     })),
   );
-  const currentQuote =
-    quote?.cartSignature === cartSignature &&
-    quote?.menuVersion === menu?.version
+  const currentQuote = checkoutIntent
+    ? quote
+    : quote?.cartSignature === cartSignature &&
+        quote?.menuVersion === menu?.version
       ? quote
       : null;
   async function submitOrder() {
+    if (checkoutInFlight.current) return;
+    checkoutInFlight.current = true;
+    const generation = checkoutGeneration.current;
     setBusy(true);
     setError("");
+    let attempt = checkoutIntentRef.current;
     try {
-      await guest();
-      if (menu.pricingPolicy?.enabled && !currentQuote) {
+      if (!attempt && menu.pricingPolicy?.enabled && !currentQuote) {
+        await guest();
         const nextQuote = await customerRequest(prefix + "/quote", "POST", {
           menuVersion: menu.version,
           items: JSON.parse(cartSignature),
         });
-        setQuote({ ...nextQuote, cartSignature });
+        if (generation === checkoutGeneration.current)
+          setQuote({ ...nextQuote, cartSignature });
         return;
       }
-      const next = await customerRequest(prefix + "/orders", "POST", {
-        requestKey: checkoutKey.current,
-        ...(menu.pricingPolicy?.enabled ? { quoteId: currentQuote.id } : {}),
-        menuVersion: menu.version,
-        displayName: displayName.trim(),
-        fulfillment,
-        visitId: visit?.visit?.id,
-        items: cart.map(({ productId, quantity, variantId, modifiers }) => ({
-          productId,
-          quantity,
-          variantId,
-          modifiers,
-        })),
-        note,
-      });
+      if (!attempt) {
+        attempt = {
+          requestKey: checkoutKey.current,
+          ...(menu.pricingPolicy?.enabled ? { quoteId: currentQuote.id } : {}),
+          menuVersion: menu.version,
+          displayName: displayName.trim(),
+          fulfillment,
+          visitId: visit?.visit?.id,
+          items: JSON.parse(cartSignature),
+          note,
+        };
+        checkoutIntentRef.current = attempt;
+        setCheckoutIntent(attempt);
+      }
+      await guest(attempt.displayName, generation);
+      if (generation !== checkoutGeneration.current) return;
+      const next = await customerRequest(prefix + "/orders", "POST", attempt);
+      if (generation !== checkoutGeneration.current) return;
+      checkoutIntentRef.current = null;
+      setCheckoutIntent(null);
       setOrder(next);
       setQuote(null);
       setCart([]);
       setTab("track");
       checkoutKey.current = requestId();
     } catch (e) {
+      if (generation !== checkoutGeneration.current) return;
       const message = (e as Error).message;
-      if ((e as any).status === 409) setQuote(null);
+      if ((e as any).status && (e as any).status < 500) {
+        checkoutIntentRef.current = null;
+        setCheckoutIntent(null);
+        if ((e as any).status === 409) setQuote(null);
+      }
       await load().catch(() => {});
       setError(message);
     } finally {
-      setBusy(false);
+      if (generation === checkoutGeneration.current) {
+        checkoutInFlight.current = false;
+        setBusy(false);
+      }
     }
   }
   async function reserve(event: React.FormEvent<HTMLFormElement>) {
@@ -378,7 +504,7 @@ export default function CustomerExperience({
     try {
       await guest();
       const start = new Date(String(data.get("startsAt")));
-      const next = await customerRequest(prefix + "/reservations", "POST", {
+      const intent = reservationIntent || {
         requestKey: reservationKey.current,
         displayName: displayName.trim(),
         contact: String(data.get("contact")),
@@ -388,10 +514,28 @@ export default function CustomerExperience({
           start.getTime() + Number(data.get("duration")) * 60000,
         ).toISOString(),
         notes: String(data.get("notes") || ""),
-      });
+        ...(data.get("tableId")
+          ? { tableId: String(data.get("tableId")) }
+          : {}),
+        ...(minimumPolicy?.enabled
+          ? {
+              minimumSpendAcknowledged: reservationAcknowledged,
+              minimumSpendPolicyVersion: minimumPolicy.version,
+            }
+          : {}),
+      };
+      setReservationIntent(intent);
+      const next = await customerRequest(
+        prefix + "/reservations",
+        "POST",
+        intent,
+      );
+      setReservationIntent(null);
       setReservation(next);
       reservationKey.current = requestId();
     } catch (e) {
+      if ((e as any).status && (e as any).status < 500)
+        setReservationIntent(null);
       setError((e as Error).message);
     } finally {
       setBusy(false);
@@ -404,15 +548,43 @@ export default function CustomerExperience({
     setError("");
     try {
       await guest();
+      let terms = joinTerms;
+      if (!terms) {
+        const intent = {
+          ...(joinTable
+            ? { tableId: joinTable }
+            : { visitId: String(data.get("visitId")) }),
+          code: String(data.get("code")),
+        };
+        const checked = await customerRequest(
+          prefix + "/visits/terms",
+          "POST",
+          intent,
+        );
+        terms = { ...checked, intent };
+        setJoinTerms(terms);
+        setJoinAcknowledged(false);
+        if (terms.minimumSpendPolicy?.enabled) return;
+      }
+      if (terms.minimumSpendPolicy?.enabled && !joinAcknowledged)
+        throw new Error(
+          "Acknowledge the exact minimum-spend terms before joining.",
+        );
       const result = await customerRequest(prefix + "/visits/join", "POST", {
-        ...(joinTable
-          ? { tableId: joinTable }
-          : { visitId: String(data.get("visitId")) }),
-        code: String(data.get("code")),
+        visitId: terms.visitId,
+        code: terms.intent.code,
+        ...(terms.minimumSpendPolicy?.enabled
+          ? {
+              minimumSpendAcknowledged: true,
+              minimumSpendPolicyVersion: terms.minimumSpendPolicy.version,
+            }
+          : {}),
       });
-      const id = result.visit?.id || result.id || String(data.get("visitId"));
+      const id = result.visit?.id || result.id || terms.visitId;
       setVisit(await customerRequest(`/public/visits/${id}`));
-      setFulfillment("table_service");
+      if (!checkoutIntentRef.current) setFulfillment("table_service");
+      setJoinTerms(null);
+      setJoinAcknowledged(false);
       setTab("menu");
       setSuccess(
         "You have joined this visit. Additional rounds will be linked to this table.",
@@ -425,8 +597,17 @@ export default function CustomerExperience({
   }
   return (
     <div
-      className="mera-customer"
-      style={brandingStyle(menu?.organization?.branding)}
+      className={"mera-customer" + (tab === "menu" ? " mc-menu-view" : "")}
+      style={{
+        ...brandingStyle(menu?.organization?.branding),
+        ...(!menu?.organization?.branding?.font ||
+        menu.organization.branding.font === "system"
+          ? {
+              fontFamily:
+                'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            }
+          : {}),
+      }}
     >
       <header className="mc-top">
         <div className="mc-wrap">
@@ -460,7 +641,7 @@ export default function CustomerExperience({
               <select
                 aria-label="Choose branch"
                 value={branch}
-                disabled={busy}
+                disabled={checkoutLocked}
                 onChange={(event) => {
                   if (
                     cart.length &&
@@ -485,25 +666,20 @@ export default function CustomerExperience({
         </div>
       </header>
       <main className="mc-wrap">
-        <section className="mc-hero">
+        <section className="mc-hero" aria-labelledby="mc-menu-title">
           <div>
-            <div className="mc-eyebrow">
-              {menu?.branch?.name || "Welcome"} / YOUR NEXT LITTLE JOY
-            </div>
-            <h1>
-              Something lovely,
-              <br />
-              made for you.
-            </h1>
+            <h1 id="mc-menu-title">Menu</h1>
             <p>
               {menu?.organization?.branding?.description ||
-                "Browse the menu, make it yours, and follow your order from the first tap to the final handoff."}
+                "Choose your favourites and make them your own."}
             </p>
             {menu?.branch?.settings?.address && (
-              <p className="mc-note">{menu.branch.settings.address}</p>
+              <p className="mc-note mc-address">
+                {menu.branch.settings.address}
+              </p>
             )}
           </div>
-          {cover ? (
+          {cover && (
             <img
               className="mc-uploaded-cover"
               src={cover}
@@ -512,10 +688,6 @@ export default function CustomerExperience({
                 event.currentTarget.style.visibility = "hidden";
               }}
             />
-          ) : (
-            bingChun && (
-              <img src="/brand/brand-logo.png" alt="Bing Chun mascot" />
-            )
           )}
         </section>
         {requestedTable && menu && (
@@ -586,88 +758,164 @@ export default function CustomerExperience({
         {menu && tab === "menu" && (
           <div className="mc-columns">
             <section aria-label="Products">
-              <input
-                className="mc-search"
-                aria-label="Search menu"
-                placeholder="Find your favourite…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              <div className="mc-tabs" aria-label="Menu categories">
+              <div className="mc-menu-toolbar">
+                <div className="mc-search-wrap">
+                  <input
+                    ref={searchRef}
+                    className="mc-search"
+                    aria-label="Search menu"
+                    placeholder="Search the menu"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                  {search && (
+                    <button
+                      className="mc-clear-search"
+                      aria-label="Clear menu search"
+                      onClick={() => {
+                        setSearch("");
+                        searchRef.current?.focus();
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <label className="mc-category-select">
+                  Category
+                  <select
+                    value={category}
+                    onChange={(event) => setCategory(event.target.value)}
+                  >
+                    {categories.map((item) => (
+                      <option key={item.key} value={item.key}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {!menu.orderingAvailable && (
+                <p className="mc-ordering-status" role="status">
+                  Ordering is paused. You can still browse the menu.
+                </p>
+              )}
+              <div
+                className="mc-tabs mc-categories"
+                aria-label="Menu categories"
+              >
                 {categories.map((c) => (
                   <button
-                    key={c}
-                    aria-pressed={category === c}
-                    onClick={() => setCategory(c)}
+                    key={c.key}
+                    aria-pressed={category === c.key}
+                    onClick={() => setCategory(c.key)}
                   >
-                    {c}
+                    {c.label}
                   </button>
                 ))}
               </div>
               <div className="mc-products">
-                {products
-                  .filter(
-                    (p) =>
-                      (category === "All" || p.category === category) &&
-                      `${p.name} ${p.description} ${p.category}`
-                        .toLowerCase()
-                        .includes(search.toLowerCase()),
-                  )
-                  .map((p) => (
-                    <article className="mc-product" key={p.id}>
-                      {assetUrl(p.image) || bingChun || p.imageCode ? (
-                        <ProductImage
-                          product={{
-                            ...p,
-                            image: assetUrl(p.image),
-                            code: p.imageCode || p.code,
-                          }}
-                          decorative
-                        />
-                      ) : (
-                        <div className="mc-photo-placeholder">
-                          Photo coming soon
-                        </div>
-                      )}
-                      <div>
-                        <h3>{p.name}</h3>
-                        <p>{p.description || p.size}</p>
-                        {p.allergens?.length > 0 && (
-                          <p>Allergens: {p.allergens.join(", ")}</p>
-                        )}
-                        <span className="mc-price">{money(p.price)}</span>
-                        <button
-                          disabled={
-                            !p.available ||
-                            (p.stockMode === "counted" && p.stock <= 0) ||
-                            !menu.orderingAvailable
-                          }
-                          onClick={() => {
-                            setSelected(p);
-                            setVariant(p.variants?.[0]?.id || "");
-                            setModifiers([]);
-                            setError("");
-                          }}
-                        >
-                          {!p.available ||
-                          (p.stockMode === "counted" && p.stock <= 0)
-                            ? "Sold out"
-                            : "Choose"}
-                        </button>
+                {visibleProducts.map((p) => (
+                  <article className="mc-product" key={p.id}>
+                    {assetUrl(p.image) || bingChun || p.imageCode ? (
+                      <ProductImage
+                        product={{
+                          ...p,
+                          image: assetUrl(p.image),
+                          code: p.imageCode || p.code,
+                        }}
+                        decorative
+                      />
+                    ) : (
+                      <div className="mc-photo-placeholder">
+                        Photo coming soon
                       </div>
-                    </article>
-                  ))}
+                    )}
+                    <div>
+                      <h3>{p.name}</h3>
+                      <p>{p.description || p.size}</p>
+                      {p.dietary?.length > 0 && (
+                        <p>Dietary: {p.dietary.join(", ")}</p>
+                      )}
+                      {p.allergens?.length > 0 && (
+                        <p>Allergens: {p.allergens.join(", ")}</p>
+                      )}
+                      <span className="mc-price">{money(p.price)}</span>
+                      <button
+                        disabled={
+                          checkoutLocked ||
+                          !p.available ||
+                          (p.stockMode === "counted" && p.stock <= 0) ||
+                          !menu.orderingAvailable
+                        }
+                        onClick={() => {
+                          setSelected(p);
+                          setVariant(p.variants?.[0]?.id || "");
+                          setModifiers([]);
+                          setError("");
+                        }}
+                      >
+                        {!p.available ||
+                        (p.stockMode === "counted" && p.stock <= 0)
+                          ? "Sold out"
+                          : "Choose"}
+                      </button>
+                    </div>
+                  </article>
+                ))}
               </div>
-              {!products.length && (
-                <div className="mc-empty">
-                  The venue has not published its menu yet.
+              {!visibleProducts.length && (
+                <div className="mc-empty mc-menu-empty" role="status">
+                  <h2>
+                    {products.length
+                      ? "No items found"
+                      : "The menu is on its way"}
+                  </h2>
+                  <p>
+                    {products.length
+                      ? "Try another search or browse all categories."
+                      : "This venue has not published its menu yet. Please check with the team."}
+                  </p>
+                  {products.length > 0 && (
+                    <button
+                      className="mc-secondary"
+                      onClick={() => {
+                        setSearch("");
+                        setCategory("All");
+                        searchRef.current?.focus();
+                      }}
+                    >
+                      Clear search and filters
+                    </button>
+                  )}
                 </div>
               )}
             </section>
-            <aside className="mc-panel mc-cart">
-              <h2>Your little collection</h2>
+            <aside
+              className="mc-panel mc-cart"
+              id="mc-basket"
+              ref={basketRef}
+              aria-labelledby="mc-basket-title"
+            >
+              <div className="mc-basket-heading">
+                <h2 id="mc-basket-title" ref={basketHeadingRef} tabIndex={-1}>
+                  Your basket
+                </h2>
+                <span>
+                  {basketQuantity} {basketQuantity === 1 ? "item" : "items"}
+                </span>
+              </div>
+              <button
+                className="mc-mobile-only mc-secondary"
+                onClick={returnToMenu}
+              >
+                Back to menu
+              </button>
               {cart.length === 0 ? (
-                <p>Choose something delicious to begin.</p>
+                <p className="mc-basket-empty">
+                  Your basket is empty. Choose something from the menu to get
+                  started.
+                </p>
               ) : (
                 cart.map((line) => (
                   <div className="mc-line" key={line.key}>
@@ -676,7 +924,13 @@ export default function CustomerExperience({
                     <div className="mc-line-controls">
                       <button
                         aria-label={`Remove one ${line.name}`}
+                        disabled={checkoutLocked}
                         onClick={() => {
+                          if (
+                            checkoutIntentRef.current ||
+                            checkoutInFlight.current
+                          )
+                            return;
                           setCart((old) =>
                             old
                               .map((l) =>
@@ -694,8 +948,13 @@ export default function CustomerExperience({
                       <span>{line.quantity}</span>
                       <button
                         aria-label={`Add one ${line.name}`}
-                        disabled={line.quantity >= 100}
+                        disabled={checkoutLocked || line.quantity >= 100}
                         onClick={() => {
+                          if (
+                            checkoutIntentRef.current ||
+                            checkoutInFlight.current
+                          )
+                            return;
                           setCart((old) =>
                             old.map((l) =>
                               l.key === line.key
@@ -719,7 +978,10 @@ export default function CustomerExperience({
                   maxLength={100}
                   autoComplete="given-name"
                   value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  disabled={checkoutLocked}
+                  onChange={(e) => {
+                    if (!checkoutLocked) setDisplayName(e.target.value);
+                  }}
                   placeholder="What should we call you?"
                 />
               </label>
@@ -727,11 +989,17 @@ export default function CustomerExperience({
                 Enjoy it
                 <select
                   value={fulfillment}
-                  onChange={(e) => setFulfillment(e.target.value)}
+                  disabled={checkoutLocked}
+                  onChange={(e) => {
+                    if (!checkoutLocked) setFulfillment(e.target.value);
+                  }}
                 >
                   <option value="counter_pickup">Counter pickup</option>
                   <option value="takeaway">Takeaway</option>
-                  {visit && <option value="table_service">At my table</option>}
+                  {(visit ||
+                    checkoutIntent?.fulfillment === "table_service") && (
+                    <option value="table_service">At my table</option>
+                  )}
                 </select>
               </label>
               <label>
@@ -739,7 +1007,10 @@ export default function CustomerExperience({
                 <textarea
                   maxLength={500}
                   value={note}
-                  onChange={(e) => setNote(e.target.value)}
+                  disabled={checkoutLocked}
+                  onChange={(e) => {
+                    if (!checkoutLocked) setNote(e.target.value);
+                  }}
                   placeholder="Optional order note"
                 />
               </label>
@@ -781,21 +1052,31 @@ export default function CustomerExperience({
                   Ordering is currently paused. You can still browse the menu.
                 </div>
               )}
+              {checkoutIntent && !busy && (
+                <p className="mc-note" role="status">
+                  Order confirmation is uncertain. Your original basket and
+                  details are preserved. Retry this request or check your
+                  session orders before starting another order.
+                </p>
+              )}
               <button
                 className="mc-primary"
                 disabled={
                   busy ||
-                  !cart.length ||
-                  !displayName.trim() ||
-                  !menu.orderingAvailable
+                  (!checkoutIntent &&
+                    (!cart.length ||
+                      !displayName.trim() ||
+                      !menu.orderingAvailable))
                 }
                 onClick={submitOrder}
               >
                 {busy
                   ? "Checking…"
-                  : menu.pricingPolicy?.enabled && !currentQuote
-                    ? "Review total"
-                    : "Submit order"}
+                  : checkoutIntent
+                    ? "Retry original order"
+                    : menu.pricingPolicy?.enabled && !currentQuote
+                      ? "Review total"
+                      : "Submit order"}
               </button>
             </aside>
           </div>
@@ -806,7 +1087,10 @@ export default function CustomerExperience({
             ensureGuest={guest}
             hasGuest={hasGuest}
             displayName={displayName}
-            onName={setDisplayName}
+            onName={(value) => {
+              if (!checkoutLocked) setDisplayName(value);
+            }}
+            nameLocked={checkoutLocked}
             orderId={order?.id}
             visitId={visit?.visit?.id}
           />
@@ -838,6 +1122,19 @@ export default function CustomerExperience({
                 <p>
                   Total {money(order.total)} · Recorded payments{" "}
                   {money(order.paid || 0)}
+                  {order.refunded > 0 && (
+                    <> · Recorded refunds {money(order.refunded)}</>
+                  )}
+                  {order.writtenOff > 0 && (
+                    <> · Authorized write-off {money(order.writtenOff)}</>
+                  )}
+                  {order.settlementOutcome && (
+                    <>
+                      {" "}
+                      · Settlement outcome:{" "}
+                      {String(order.settlementOutcome).replaceAll("_", " ")}
+                    </>
+                  )}
                 </p>
                 <div className="mc-receipt" aria-label="Order details">
                   <h3>
@@ -877,7 +1174,12 @@ export default function CustomerExperience({
                     {money(
                       Math.max(
                         0,
-                        order.total - (order.effectivePaid ?? order.paid ?? 0),
+                        order.outstandingBalance ??
+                          order.total -
+                            (order.effectiveSettlement ??
+                              order.effectivePaid ??
+                              order.paid ??
+                              0),
                       ),
                     )}
                   </p>
@@ -951,6 +1253,19 @@ export default function CustomerExperience({
                     records count toward your bill.
                   </p>
                 )}
+                {reservation.minimumSpendPolicy?.enabled && (
+                  <div className="mc-alert">
+                    <p>
+                      Booked minimum spend:{" "}
+                      {money(reservation.minimumSpendPolicy.amount)}.
+                    </p>
+                    <p>{reservation.minimumSpendPolicy.disclosure}</p>
+                    <p>
+                      Your original booked terms apply. No automatic shortfall
+                      charge is added.
+                    </p>
+                  </div>
+                )}
                 {reservation.visitId && (
                   <p>
                     This reservation is linked to a visit. Ask staff for its
@@ -969,92 +1284,143 @@ export default function CustomerExperience({
               </div>
             ) : (
               <form onSubmit={reserve}>
-                <div className="mc-form-grid">
-                  <label>
-                    Your name
-                    <input
-                      required
-                      maxLength={100}
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                    />
-                  </label>
-                  <label>
-                    Contact email or phone
-                    <input
-                      name="contact"
-                      required
-                      maxLength={160}
-                      autoComplete="email"
-                    />
-                  </label>
-                  <label>
-                    Party size
-                    <input
-                      name="partySize"
-                      type="number"
-                      min={1}
-                      max={100}
-                      defaultValue={2}
-                      required
-                    />
-                  </label>
-                  <label>
-                    Date & time <small>Shown in this device’s timezone</small>
-                    <input name="startsAt" type="datetime-local" required />
-                  </label>
-                  <label>
-                    Duration
-                    <select name="duration">
-                      <option value="60">1 hour</option>
-                      <option value="90">1½ hours</option>
-                      <option value="120">2 hours</option>
-                    </select>
-                  </label>
-                </div>
-                <label>
-                  Notes
-                  <textarea name="notes" maxLength={500} />
-                </label>
-                <p>
-                  Availability is checked by the venue. A reference confirms
-                  receipt of your request; the venue must confirm the booking
-                  separately.
-                </p>
-                {menu?.reservationPolicy?.enabled === false && (
-                  <div className="mc-alert">
-                    This branch is not accepting online reservations.
+                <fieldset
+                  disabled={busy || !!reservationIntent}
+                  style={{ border: 0, padding: 0 }}
+                >
+                  <div className="mc-form-grid">
+                    <label>
+                      Your name
+                      <input
+                        required
+                        maxLength={100}
+                        value={displayName}
+                        disabled={checkoutLocked}
+                        onChange={(e) => {
+                          if (!checkoutLocked) setDisplayName(e.target.value);
+                        }}
+                      />
+                    </label>
+                    <label>
+                      Contact email or phone
+                      <input
+                        name="contact"
+                        required
+                        maxLength={160}
+                        autoComplete="email"
+                      />
+                    </label>
+                    <label>
+                      Party size
+                      <input
+                        name="partySize"
+                        type="number"
+                        min={1}
+                        max={100}
+                        defaultValue={2}
+                        required
+                      />
+                    </label>
+                    {!!menu?.tables?.length && (
+                      <label>
+                        Preferred table (optional)
+                        <select name="tableId">
+                          <option value="">Any suitable table</option>
+                          {menu.tables.map((table: any) => (
+                            <option key={table.id} value={table.id}>
+                              {table.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                    <label>
+                      Date & time <small>Shown in this device’s timezone</small>
+                      <input name="startsAt" type="datetime-local" required />
+                    </label>
+                    <label>
+                      Duration
+                      <select name="duration">
+                        <option value="60">1 hour</option>
+                        <option value="90">1½ hours</option>
+                        <option value="120">2 hours</option>
+                      </select>
+                    </label>
                   </div>
-                )}
-                {menu?.reservationPolicy?.depositRequired &&
-                menu.reservationPolicy.depositPolicy?.approved ? (
-                  <div className="mc-alert">
-                    Required deposit:{" "}
-                    {money(menu.reservationPolicy.depositPolicy.amount)}. Ask
-                    staff to verify and record it before confirmation.
-                    Cancellation cutoff:{" "}
-                    {
-                      menu.reservationPolicy.depositPolicy
-                        .cancellationCutoffHours
-                    }{" "}
-                    hours. Refund rule:{" "}
-                    {menu.reservationPolicy.depositPolicy.refundRule ===
-                    "refundable_before_cutoff"
-                      ? "Refundable before the cutoff"
-                      : "Non-refundable"}
-                    . No online payment is collected here.
-                  </div>
-                ) : menu?.reservationPolicy?.depositRequired ? (
-                  <div className="mc-alert">
-                    Deposit policy approval is pending. Contact the venue before
-                    booking.
-                  </div>
-                ) : null}
-                {!!menu?.reservationPolicy?.minimumSpend && (
-                  <div className="mc-alert">
-                    Minimum-spend agreement requires venue approval before
-                    online reservations are available.
-                  </div>
+                  <label>
+                    Notes
+                    <textarea name="notes" maxLength={500} />
+                  </label>
+                  <p>
+                    Availability is checked by the venue. A reference confirms
+                    receipt of your request; the venue must confirm the booking
+                    separately.
+                  </p>
+                  {menu?.reservationPolicy?.enabled === false && (
+                    <div className="mc-alert">
+                      This branch is not accepting online reservations.
+                    </div>
+                  )}
+                  {menu?.reservationPolicy?.depositRequired &&
+                  menu.reservationPolicy.depositPolicy?.approved ? (
+                    <div className="mc-alert">
+                      Required deposit:{" "}
+                      {money(menu.reservationPolicy.depositPolicy.amount)}. Ask
+                      staff to verify and record it before confirmation.
+                      Cancellation cutoff:{" "}
+                      {
+                        menu.reservationPolicy.depositPolicy
+                          .cancellationCutoffHours
+                      }{" "}
+                      hours. Refund rule:{" "}
+                      {menu.reservationPolicy.depositPolicy.refundRule ===
+                      "refundable_before_cutoff"
+                        ? "Refundable before the cutoff"
+                        : "Non-refundable"}
+                      . No online payment is collected here.
+                    </div>
+                  ) : menu?.reservationPolicy?.depositRequired ? (
+                    <div className="mc-alert">
+                      Deposit policy approval is pending. Contact the venue
+                      before booking.
+                    </div>
+                  ) : null}
+                  {minimumPolicy?.enabled && minimumPolicy.approved && (
+                    <div className="mc-alert">
+                      <p>
+                        Minimum spend: {money(minimumPolicy.amount)} · based on
+                        net paid bill.
+                      </p>
+                      <p>{minimumPolicy.disclosure}</p>
+                      <p>
+                        No shortfall charge is added automatically. Additional
+                        orders or an authorized manager waiver resolve a
+                        shortfall.
+                      </p>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={reservationAcknowledged}
+                          onChange={(event) =>
+                            setReservationAcknowledged(event.target.checked)
+                          }
+                        />
+                        I acknowledge this minimum-spend policy
+                      </label>
+                    </div>
+                  )}
+                  {minimumBlocked && (
+                    <div className="mc-alert">
+                      Minimum-spend terms require approval before online booking
+                      is available.
+                    </div>
+                  )}
+                </fieldset>
+                {reservationIntent && (
+                  <p role="status">
+                    The reservation outcome is uncertain. Its original details
+                    and policy acknowledgement are preserved for this retry.
+                  </p>
                 )}
                 <button
                   className="mc-primary"
@@ -1064,10 +1430,17 @@ export default function CustomerExperience({
                     menu.reservationPolicy?.enabled === false ||
                     (!!menu.reservationPolicy?.depositRequired &&
                       !menu.reservationPolicy?.depositPolicy?.approved) ||
-                    !!menu.reservationPolicy?.minimumSpend
+                    minimumBlocked ||
+                    (minimumPolicy?.enabled &&
+                      !reservationAcknowledged &&
+                      !reservationIntent)
                   }
                 >
-                  {busy ? "Checking availability…" : "Request reservation"}
+                  {busy
+                    ? "Checking availability…"
+                    : reservationIntent
+                      ? "Retry original reservation"
+                      : "Request reservation"}
                 </button>
               </form>
             )}
@@ -1075,6 +1448,11 @@ export default function CustomerExperience({
         )}
         {tab === "track" && hasGuest && (
           <>
+            <SessionOrders
+              prefix={prefix}
+              onSelect={setOrder}
+              onClear={clearGuestView}
+            />
             <GuestActivity prefix={prefix} />
             <MarketingPreference prefix={prefix} />
           </>
@@ -1162,6 +1540,33 @@ export default function CustomerExperience({
                     </div>
                   ))
                 )}
+                {visit.minimumSpend?.policy?.enabled && (
+                  <div className="mc-alert">
+                    <p>
+                      Visit minimum spend:{" "}
+                      {money(visit.minimumSpend.policy.amount)} · net paid bill.
+                    </p>
+                    <p>{visit.minimumSpend.policy.disclosure}</p>
+                    {visit.minimumSpend.summary ? (
+                      <p>
+                        Qualifying paid:{" "}
+                        {money(visit.minimumSpend.summary.netPaid)} · manager
+                        waiver: {money(visit.minimumSpend.summary.waived)} ·
+                        remaining shortfall:{" "}
+                        {money(visit.minimumSpend.summary.shortfall)}.
+                      </p>
+                    ) : (
+                      <p>
+                        The qualifying-spend summary is unavailable. Ask staff
+                        to confirm it.
+                      </p>
+                    )}
+                    <p>
+                      No shortfall charge is added automatically. Additional
+                      orders or an authorized manager waiver resolve it.
+                    </p>
+                  </div>
+                )}
                 <p>
                   Ask staff to split this bill or verify a payment. Online
                   collection is unavailable until the payment provider and
@@ -1185,7 +1590,8 @@ export default function CustomerExperience({
                         )
                       ) {
                         setVisit(null);
-                        setFulfillment("counter_pickup");
+                        if (!checkoutIntentRef.current)
+                          setFulfillment("counter_pickup");
                       }
                     }
                   }}
@@ -1195,52 +1601,124 @@ export default function CustomerExperience({
               </>
             ) : (
               <form onSubmit={join}>
-                <p>
-                  Choose your table and ask staff for its current joining code,
-                  or enter a visit reference. Scanning a table QR alone does not
-                  unlock a private bill.
-                </p>
-                <label>
-                  Your name
-                  <input
-                    required
-                    maxLength={100}
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                  />
-                </label>
-                <label>
-                  Table
-                  <select
-                    value={joinTable}
-                    onChange={(event) => setJoinTable(event.target.value)}
-                  >
-                    <option value="">Use a visit reference instead</option>
-                    {(menu?.tables || []).map((table: any) => (
-                      <option key={table.id} value={table.id}>
-                        {table.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {!joinTable && (
+                <fieldset
+                  disabled={busy || !!joinTerms}
+                  style={{ border: 0, padding: 0 }}
+                >
+                  <p>
+                    Choose your table and ask staff for its current joining
+                    code, or enter a visit reference. Scanning a table QR alone
+                    does not unlock a private bill.
+                  </p>
                   <label>
-                    Visit reference
-                    <input name="visitId" required autoComplete="off" />
+                    Your name
+                    <input
+                      required
+                      maxLength={100}
+                      value={displayName}
+                      disabled={checkoutLocked}
+                      onChange={(e) => {
+                        if (!checkoutLocked) setDisplayName(e.target.value);
+                      }}
+                    />
                   </label>
+                  <label>
+                    Table
+                    <select
+                      value={joinTable}
+                      onChange={(event) => setJoinTable(event.target.value)}
+                    >
+                      <option value="">Use a visit reference instead</option>
+                      {(menu?.tables || []).map((table: any) => (
+                        <option key={table.id} value={table.id}>
+                          {table.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {!joinTable && (
+                    <label>
+                      Visit reference
+                      <input name="visitId" required autoComplete="off" />
+                    </label>
+                  )}
+                  <label>
+                    Joining code
+                    <input name="code" required autoComplete="off" />
+                  </label>
+                </fieldset>
+                {joinTerms?.minimumSpendPolicy?.enabled && (
+                  <div className="mc-alert">
+                    <p>
+                      Minimum spend:{" "}
+                      {money(joinTerms.minimumSpendPolicy.amount)} · based on
+                      net paid bill.
+                    </p>
+                    <p>{joinTerms.minimumSpendPolicy.disclosure}</p>
+                    <p>
+                      These are this visit’s saved terms. No automatic shortfall
+                      charge is added; additional orders or an authorized
+                      manager waiver resolve a shortfall.
+                    </p>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={joinAcknowledged}
+                        onChange={(event) =>
+                          setJoinAcknowledged(event.target.checked)
+                        }
+                      />
+                      I acknowledge this visit’s minimum-spend policy
+                    </label>
+                  </div>
                 )}
-                <label>
-                  Joining code
-                  <input name="code" required autoComplete="off" />
-                </label>
-                <button className="mc-primary" disabled={busy || !menu}>
-                  {busy ? "Joining…" : "Join current visit"}
+                {joinTerms && (
+                  <button
+                    type="button"
+                    className="mc-secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      setJoinTerms(null);
+                      setJoinAcknowledged(false);
+                    }}
+                  >
+                    Use another visit
+                  </button>
+                )}
+                <button
+                  className="mc-primary"
+                  disabled={
+                    busy ||
+                    !menu ||
+                    (joinTerms?.minimumSpendPolicy?.enabled &&
+                      !joinAcknowledged)
+                  }
+                >
+                  {busy ? "Checking visit…" : "Join current visit"}
                 </button>
               </form>
             )}
           </section>
         )}
       </main>
+      {menu && tab === "menu" && !basketViewed && (
+        <div className="mc-mobile-basket">
+          <button
+            type="button"
+            aria-controls="mc-basket"
+            aria-label={`View basket, ${basketQuantity} ${basketQuantity === 1 ? "item" : "items"}, ${money(currentQuote?.total ?? total)}`}
+            onClick={openBasket}
+          >
+            <span>
+              View basket{" "}
+              <small>
+                {basketQuantity} {basketQuantity === 1 ? "item" : "items"}
+              </small>
+            </span>
+            <strong>{money(currentQuote?.total ?? total)}</strong>
+          </button>
+        </div>
+      )}
       <footer className="mc-footer">
         <div className="mc-wrap">
           {menu?.organization?.name || "Mera"} ·{" "}
@@ -1308,6 +1786,9 @@ export default function CustomerExperience({
                 ))}
               </fieldset>
             ))}
+            {selected.dietary?.length > 0 && (
+              <p>Dietary: {selected.dietary.join(", ")}</p>
+            )}
             {selected.allergens?.length > 0 && (
               <p>
                 Allergens: {selected.allergens.join(", ")}. Please ask staff
@@ -1331,7 +1812,11 @@ export default function CustomerExperience({
               )}
               . Any order-level charges are reviewed at checkout.
             </p>
-            <button className="mc-primary" onClick={addProduct}>
+            <button
+              className="mc-primary"
+              disabled={checkoutLocked}
+              onClick={addProduct}
+            >
               Add to collection
             </button>
           </div>

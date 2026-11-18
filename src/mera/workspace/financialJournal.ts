@@ -1,5 +1,13 @@
 export type FinancialKind =
-  "payment" | "refund" | "deposit" | "cash_movement" | "item_cancellation";
+  | "payment"
+  | "refund"
+  | "deposit"
+  | "cash_movement"
+  | "item_cancellation"
+  | "writeoff"
+  | "deposit_hold"
+  | "deposit_refund"
+  | "deposit_forfeiture";
 export type FinancialIntent = {
   path: string;
   method: "POST";
@@ -10,9 +18,18 @@ export type FinancialIntent = {
 const prefix = "mera:financial:v1:";
 const uuid = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 const id = "[a-f\\d-]{36}";
-export function financialKind(path: string): FinancialKind | null {
+export function financialKind(path: string, body?: any): FinancialKind | null {
+  if (/\/deposits\/[^/]+\/outcomes$/.test(path))
+    return body?.outcome === "held"
+      ? "deposit_hold"
+      : body?.outcome === "manual_return"
+        ? "deposit_refund"
+        : body?.outcome === "forfeit"
+          ? "deposit_forfeiture"
+          : null;
   if (new RegExp(`/orders/${id}/items/${id}/cancel$`, "i").test(path))
     return "item_cancellation";
+  if (/\/writeoffs$/.test(path)) return "writeoff";
   if (/\/payments$/.test(path)) return "payment";
   if (/\/refunds$/.test(path)) return "refund";
   if (/\/deposits$/.test(path)) return "deposit";
@@ -32,34 +49,97 @@ function validBody(body: any, kind: FinancialKind) {
     !uuid.test(body.requestKey)
   )
     return false;
-  const allowed =
-    kind === "item_cancellation"
-      ? [
-          "requestKey",
-          "quantity",
-          "version",
-          "reason",
-          "refundAllocations",
-          "cancellationQuoteId",
-        ]
-      : kind === "cash_movement"
-        ? ["requestKey", "direction", "amount", "reason"]
-        : kind === "refund"
-          ? [
-              "requestKey",
-              "amount",
-              "method",
-              "reason",
-              "reference",
-              "cancellationQuoteId",
-            ]
-          : ["requestKey", "amount", "method", "reference"];
+  const depositOutcome = [
+    "deposit_hold",
+    "deposit_refund",
+    "deposit_forfeiture",
+  ].includes(kind);
+  const allowed = depositOutcome
+    ? [
+        "requestKey",
+        "outcome",
+        "expectedRemaining",
+        "amount",
+        "method",
+        "reference",
+        "reason",
+        "policyReviewed",
+        "taxAmount",
+      ]
+    : kind === "writeoff"
+      ? ["requestKey", "version", "amount", "reason"]
+      : kind === "item_cancellation"
+        ? [
+            "requestKey",
+            "quantity",
+            "version",
+            "reason",
+            "refundAllocations",
+            "cancellationQuoteId",
+          ]
+        : kind === "cash_movement"
+          ? ["requestKey", "direction", "amount", "reason"]
+          : kind === "refund"
+            ? [
+                "requestKey",
+                "amount",
+                "method",
+                "reason",
+                "reference",
+                "cancellationQuoteId",
+                "refundRequestId",
+              ]
+            : ["requestKey", "amount", "method", "reference"];
   if (Object.keys(body).some((key) => !allowed.includes(key))) return false;
+  if (body.refundRequestId !== undefined && !uuid.test(body.refundRequestId))
+    return false;
   if (
     body.cancellationQuoteId !== undefined &&
     !uuid.test(body.cancellationQuoteId)
   )
     return false;
+  if (depositOutcome) {
+    const expected =
+      kind === "deposit_hold"
+        ? "held"
+        : kind === "deposit_refund"
+          ? "manual_return"
+          : "forfeit";
+    if (
+      body.outcome !== expected ||
+      body.policyReviewed !== true ||
+      !Number.isSafeInteger(body.expectedRemaining) ||
+      body.expectedRemaining < 0 ||
+      !text(body.reason, 500, 10) ||
+      (body.reference !== undefined && !text(body.reference, 200))
+    )
+      return false;
+    if (body.method !== undefined && !methods.includes(body.method))
+      return false;
+    if (
+      body.taxAmount !== undefined &&
+      body.taxAmount !== null &&
+      (!Number.isSafeInteger(body.taxAmount) ||
+        body.taxAmount < 0 ||
+        body.taxAmount > body.amount)
+    )
+      return false;
+    if (kind === "deposit_hold") return body.amount === 0;
+    if (!money(body.amount) || body.amount > body.expectedRemaining)
+      return false;
+    if (kind === "deposit_refund")
+      return (
+        methods.includes(body.method) &&
+        (body.method !== "external_transfer" || text(body.reference, 200, 1))
+      );
+    return (
+      Object.hasOwn(body, "taxAmount") &&
+      (body.taxAmount === null ||
+        (Number.isSafeInteger(body.taxAmount) &&
+          body.taxAmount >= 0 &&
+          body.taxAmount <= body.amount))
+    );
+  }
   if (kind === "item_cancellation")
     return (
       Number.isSafeInteger(body.quantity) &&
@@ -82,6 +162,12 @@ function validBody(body: any, kind: FinancialKind) {
           )))
     );
   if (!money(body.amount)) return false;
+  if (kind === "writeoff")
+    return (
+      Number.isSafeInteger(body.version) &&
+      body.version > 0 &&
+      text(body.reason, 500, 10)
+    );
   if (kind === "cash_movement")
     return ["in", "out"].includes(body.direction) && text(body.reason, 300, 3);
   return (
@@ -114,12 +200,12 @@ function validate(
       : "";
   if (
     !new RegExp(
-      `^/(?:orders/${id}/payments|bills/${id}/payments|orders/${id}/refunds|reservations/${id}/deposits|shifts/${id}/movements|orders/${id}/items/${id}/cancel)$`,
+      `^/(?:orders/${id}/payments|bills/${id}/payments|orders/${id}/refunds|orders/${id}/writeoffs|reservations/${id}/deposits|shifts/${id}/movements|reservations/${id}/deposits/${id}/outcomes|orders/${id}/items/${id}/cancel)$`,
       "i",
     ).test(suffix)
   )
     return null;
-  const kind = financialKind(value.path);
+  const kind = financialKind(value.path, value.body);
   if (!kind || !validBody(value.body, kind)) return null;
   const body = JSON.parse(JSON.stringify(value.body));
   return {

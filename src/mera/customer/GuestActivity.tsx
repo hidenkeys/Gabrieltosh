@@ -57,6 +57,19 @@ export default function GuestActivity({ prefix }: { prefix: string }) {
                   recorded {money(reservation.depositAmount || 0)}
                 </p>
               )}
+              {reservation.minimumSpendPolicy?.enabled && (
+                <div className="mc-note">
+                  <p>
+                    Booked minimum spend:{" "}
+                    {money(reservation.minimumSpendPolicy.amount)}.
+                  </p>
+                  <p>{reservation.minimumSpendPolicy.disclosure}</p>
+                  <p>
+                    Original booked terms apply. No automatic shortfall charge
+                    is added.
+                  </p>
+                </div>
+              )}
               {reservation.cancellationRequestedAt ? (
                 <p role="status">
                   Cancellation requested. Staff must review any deposit; no

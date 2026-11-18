@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { workspaceApi } from "./api";
+import { categoryPath } from "./Categories";
 export default function SharedMenus({
   organizationId,
+  categories = [],
   base,
   products,
   disabled,
   canPublish,
   save,
 }: {
+  categories?: any[];
   organizationId: string;
   base: string;
   products: any[];
@@ -222,19 +225,51 @@ export default function SharedMenus({
                       </select>
                     </label>
                     <label>
-                      Override category for {item.name}
-                      <input
-                        placeholder={item.category}
-                        value={overrides[item.code]?.category || ""}
+                      Destination category for {item.name}
+                      <select
+                        value={overrides[item.code]?.categoryId || "inherit"}
                         onChange={(event) => {
                           const current = { ...(overrides[item.code] || {}) };
-                          if (event.target.value.trim())
-                            current.category = event.target.value;
-                          else delete current.category;
+                          if (event.target.value === "inherit")
+                            delete current.categoryId;
+                          else {
+                            current.categoryId = event.target.value;
+                            delete current.category;
+                          }
                           setOverrides({ ...overrides, [item.code]: current });
                         }}
-                      />
+                      >
+                        <option value="inherit">
+                          Use template text category
+                        </option>
+                        {categories
+                          .filter((category) => category.active)
+                          .map((category) => (
+                            <option key={category.id} value={category.id}>
+                              {categoryPath(category, categories)}
+                            </option>
+                          ))}
+                      </select>
                     </label>
+                    {!overrides[item.code]?.categoryId && (
+                      <label>
+                        Override category for {item.name}
+                        <input
+                          placeholder={item.category}
+                          value={overrides[item.code]?.category || ""}
+                          onChange={(event) => {
+                            const current = { ...(overrides[item.code] || {}) };
+                            if (event.target.value.trim())
+                              current.category = event.target.value;
+                            else delete current.category;
+                            setOverrides({
+                              ...overrides,
+                              [item.code]: current,
+                            });
+                          }}
+                        />
+                      </label>
+                    )}
                   </div>
                 ))}
                 <button
