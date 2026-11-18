@@ -455,22 +455,24 @@ export function createMeraRouter(db) {
     "/organizations/:organizationId/onboarding",
     guard("organization.manage"),
     async (req, res) => {
+      if (!req.meraMembership.organization_wide) throw fail("Organization-wide management access is required.",403,"FORBIDDEN");
       const input = z
         .object({
           step: z.number().int().min(1).max(14),
           data: z.record(z.unknown()),
         })
+        .strict()
         .parse(req.body);
-      await q("UPDATE mera_organizations SET onboarding=$1 WHERE id=$2", [
-        JSON.stringify({
-          step: input.step,
-          data: input.data,
-          updatedAt: now(),
-          verification: "owner_email_verification_pending",
-        }),
-        req.params.organizationId,
-      ]);
-      res.json({ saved: true, step: input.step });
+      const onboarding = await db.transaction(async c => {
+        const organization = (await c.query("SELECT onboarding FROM mera_organizations WHERE id=$1 FOR UPDATE",[req.params.organizationId])).rows[0];
+        if (!organization) throw fail("Organization not found.",404);
+        const previous = organization.onboarding || {};
+        const merged = {...previous,step:input.step,data:{...(previous.data||{}),...input.data},updatedAt:now()};
+        if (!Object.hasOwn(previous,"verification")) merged.verification="owner_email_verification_pending";
+        await c.query("UPDATE mera_organizations SET onboarding=$1 WHERE id=$2",[JSON.stringify(merged),req.params.organizationId]);
+        return merged;
+      });
+      res.json({ saved: true, step: input.step, onboarding });
     },
   );
   const B = "/organizations/:organizationId/branches/:branchId";
@@ -610,19 +612,52 @@ export function createMeraRouter(db) {
       await event(c,scope(req),"bulk_product_availability",req.user,input);return {updated:products.length,available:input.available};
     }));
   });
+  const publicationInput = z.object({requestKey:uuid,previewHash:z.string().regex(/^[a-f0-9]{64}$/),expectedVersion:z.number().int().nonnegative()}).strict();
+  const publicationIdentity = req => ({actorId:req.user.id,organizationId:req.params.organizationId,branchId:req.params.branchId});
+  async function publicationPreview(c,b,s) {
+    const products = await Promise.all((await readRecords(c,b.organization_id,b.id,"product")).map(r=>r.data).filter(p=>p.available).map(p=>bindProductCategory(c,s,p)));
+    const categories=(await readRecords(c,b.organization_id,b.id,"category")).map(r=>r.data).filter(category=>category.active);
+    const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==="object"?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
+    return {publishedVersion:b.menu_version,products,categories,previewHash:hash(JSON.stringify(canonical({organizationId:s.organizationId,branchId:s.branchId,publishedVersion:b.menu_version,products,categories})))};
+  }
+  router.get(B+"/menu/publication-preview",guard("menu.publish"),async(req,res)=>{
+    res.set("Cache-Control","no-store").json({...await locked(scope(req),(c,b)=>publicationPreview(c,b,scope(req))),...publicationIdentity(req)});
+  });
+  const publicationAttemptPath=B+"/menu/publication-attempts/:requestKey";
+  async function resolvePublicationAttempt(req,res,abandon) {
+    res.set("Cache-Control","no-store");
+    const requestKey=uuid.parse(req.params.requestKey), input=abandon?z.object({reason:z.string().trim().min(3).max(500)}).strict().parse(req.body):null;
+    const result=await locked(scope(req),async c=>{
+      const recorded=(await c.query("SELECT data FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='menu_publication' AND data->>'requestKey'=$3 AND data->>'actorId'=$4 LIMIT 1",[req.params.organizationId,req.params.branchId,requestKey,req.user.id])).rows[0]?.data;
+      if(recorded)return {status:"recorded",version:recorded.version};
+      let abandoned=(await c.query("SELECT id FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='menu_publication_resolution' AND data->>'requestKey'=$3 AND data->>'actorId'=$4 LIMIT 1",[req.params.organizationId,req.params.branchId,requestKey,req.user.id])).rows[0];
+      if(!abandoned&&input){abandoned=await record(c,scope(req),"menu_publication_resolution",{requestKey,actorId:req.user.id,status:"abandoned",reason:input.reason,createdAt:now()});await event(c,scope(req),"menu_publication_abandoned",req.user,{requestKey,resolutionId:abandoned.id,reason:input.reason});}
+      return abandoned?{status:"abandoned",resolutionId:abandoned.id}:{status:"not_found"};
+    });
+    res.json({...result,...publicationIdentity(req)});
+  }
+  router.get(publicationAttemptPath,guard("menu.publish"),(req,res)=>resolvePublicationAttempt(req,res,false));
+  router.post(publicationAttemptPath+"/abandon",guard("menu.publish"),(req,res)=>resolvePublicationAttempt(req,res,true));
   router.post(B + "/menu/publish", guard("menu.publish"), async (req, res) => {
-    res.json(
+    const reviewed=Object.keys(req.body||{}).length?publicationInput.parse(req.body):null;
+    res.set("Cache-Control","no-store").json(
       await locked(scope(req), async (c, b) => {
-        const products = await Promise.all((await readRecords(c,b.organization_id,b.id,"product")).map(r=>r.data).filter(p=>p.available).map(p=>bindProductCategory(c,scope(req),p)));
-        const categories=(await readRecords(c,b.organization_id,b.id,"category")).map(r=>r.data).filter(c=>c.active);
+        if(reviewed){
+          const previous=await requestRecord(c,scope(req),"menu_publication",reviewed.requestKey);
+          if(previous){if(previous.data.actorId!==req.user.id||previous.data.previewHash!==reviewed.previewHash||previous.data.expectedVersion!==reviewed.expectedVersion)throw fail("This key belongs to another publication intent.",409,"IDEMPOTENCY_CONFLICT");return {version:previous.data.version};}
+          const abandoned=(await c.query("SELECT id FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='menu_publication_resolution' AND data->>'requestKey'=$3 AND data->>'actorId'=$4 LIMIT 1",[req.params.organizationId,req.params.branchId,reviewed.requestKey,req.user.id])).rows[0];
+          if(abandoned)throw fail("This publication request was safely abandoned. Review a fresh preview before publishing.",409,"MENU_PUBLICATION_ABANDONED");
+        }
+        const preview=await publicationPreview(c,b,scope(req));
+        if(reviewed&&(reviewed.expectedVersion!==preview.publishedVersion||reviewed.previewHash!==preview.previewHash))throw fail("The menu changed after review. Load a fresh publication preview.",409,"MENU_PUBLICATION_CHANGED");
         await c.query(
           "UPDATE mera_branches SET published_menu=$1,menu_version=menu_version+1,settings=jsonb_set(settings,'{publishedCategories}',$2::jsonb) WHERE id=$3 AND organization_id=$4",
-          [JSON.stringify(products),JSON.stringify(categories), b.id, b.organization_id],
+          [JSON.stringify(preview.products),JSON.stringify(preview.categories), b.id, b.organization_id],
         );
-        await event(c, scope(req), "menu_published", req.user, {
-          version: b.menu_version + 1,
-        });
-        return { version: b.menu_version + 1 };
+        const version=b.menu_version+1;
+        if(reviewed)await record(c,scope(req),"menu_publication",{...reviewed,actorId:req.user.id,version,createdAt:now()});
+        await event(c, scope(req), "menu_published", req.user, {version,reviewed:!!reviewed,...(reviewed?{requestKey:reviewed.requestKey,previewHash:reviewed.previewHash}: {})});
+        return { version };
       }),
     );
   });

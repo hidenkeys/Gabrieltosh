@@ -84,6 +84,7 @@ export function mountMeraWorkspaceAdmin(router, { db, guard, scope, event }) {
         throw fail("Organization-wide management access is required.", 403);
       const input = z
         .object({
+          requestKey: z.string().uuid(),
           name: z.string().trim().min(1).max(100),
           timezone: z
             .string()
@@ -113,7 +114,8 @@ export function mountMeraWorkspaceAdmin(router, { db, guard, scope, event }) {
         })
         .strict()
         .parse(req.body);
-      res.status(201).json(
+      input.serviceModes = [...new Set(input.serviceModes)].sort();
+      res.status(201).set("Cache-Control", "no-store").json(
         await db.transaction(async (c) => {
           const org = (
             await c.query(
@@ -122,6 +124,18 @@ export function mountMeraWorkspaceAdmin(router, { db, guard, scope, event }) {
             )
           ).rows[0];
           if (!org) throw fail("Organization not found.", 404);
+          const previous = (await c.query(
+            "SELECT data FROM mera_records WHERE organization_id=$1 AND kind='branch_creation' AND data->>'requestKey'=$2 LIMIT 1",
+            [org.id,input.requestKey],
+          )).rows[0]?.data;
+          if (previous) {
+            const same = previous.actorId === req.user.id &&
+              ["name", "timezone", "currency", "cutoff"].every(key => previous.intent[key] === input[key]) &&
+              previous.intent.serviceModes.length === input.serviceModes.length &&
+              previous.intent.serviceModes.every((mode,index) => mode === input.serviceModes[index]);
+            if (!same) throw Object.assign(fail("This request key belongs to a different branch creation intent."), { code: "IDEMPOTENCY_CONFLICT" });
+            return previous.result;
+          }
           const branchId = randomUUID(),
             settings = {
               serviceModes: [...new Set(input.serviceModes)],
@@ -152,7 +166,7 @@ export function mountMeraWorkspaceAdmin(router, { db, guard, scope, event }) {
             req.user,
             { name: input.name, menuVersion: 0, chargesApplied: false },
           );
-          return {
+          const result = {
             id: branchId,
             organizationId: org.id,
             ...input,
@@ -162,6 +176,9 @@ export function mountMeraWorkspaceAdmin(router, { db, guard, scope, event }) {
             chargesApplied: false,
             entitlementsRequireReadinessReview: true,
           };
+          const operation = { id: randomUUID(), requestKey: input.requestKey, actorId: req.user.id, intent: input, result, createdAt: new Date().toISOString() };
+          await c.query("INSERT INTO mera_records(id,organization_id,branch_id,kind,data) VALUES($1,$2,$3,'branch_creation',$4)", [operation.id,org.id,branchId,JSON.stringify(operation)]);
+          return result;
         }),
       );
     },

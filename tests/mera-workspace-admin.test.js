@@ -11,7 +11,7 @@ function fixture() {
   const handlers = new Map(),
     calls = [],
     events = [],
-    branchInserts = [];
+    branchInserts = [], branchCreations = [];
   const first = randomUUID(),
     second = randomUUID();
   const customers = [
@@ -46,6 +46,8 @@ function fixture() {
     calls.push({ sql, p });
     if (sql.startsWith("SELECT id FROM mera_organizations"))
       return { rows: p[0] === "org" ? [{ id: "org" }] : [] };
+    if (sql.startsWith("SELECT data FROM mera_records") && sql.includes("kind='branch_creation'")) return { rows: branchCreations.filter(r => r.org === p[0] && r.data.requestKey === p[1]).map(r => ({data:r.data})) };
+    if (sql.startsWith("INSERT INTO mera_records") && sql.includes("'branch_creation'")) {branchCreations.push({org:p[1],data:JSON.parse(p[3])});return {rows:[]};}
     if (sql.startsWith("INSERT INTO mera_branches")) {
       branchInserts.push(p);
       return { rows: [] };
@@ -145,6 +147,7 @@ function fixture() {
         query = {},
         permissions = ["organization.manage", "orders.assign"],
         orgWide = true,
+        actorId = "owner",
       } = {},
     ) {
       let status = 200,
@@ -155,7 +158,7 @@ function fixture() {
         params: { organizationId: org, branchId: branch, guestId },
         permissions,
         meraMembership: { organization_wide: orgWide },
-        user: { id: "owner" },
+        user: { id: actorId },
       };
       const res = {
         status(n) {
@@ -191,6 +194,7 @@ test("branch creation is organization-wide draft-only and never charges or publi
     "post",
     "/organizations/:organizationId/branches",
     {
+      requestKey: randomUUID(),
       name: "Draft branch",
       timezone: "Africa/Lagos",
       currency: "NGN",
@@ -296,4 +300,17 @@ test("projection does not turn implicit consent or unrelated fields into contact
   assert.equal(result.consent.recordedAt, null);
   assert.equal(JSON.stringify(result).includes("secret"), false);
   assert.equal(customerActivityView("visit", { joiningCode: "secret" }), null);
+});
+
+test("branch creation replays only exact normalized actor intent without another branch", async () => {
+  const f = fixture(), path = "/organizations/:organizationId/branches";
+  const input = { requestKey:randomUUID(), name:"Draft branch", serviceModes:["table_service", "counter_takeaway"] };
+  const original = await f.call("post",path,input);
+  const replay = await f.call("post",path,{...input,serviceModes:["counter_takeaway", "table_service", "table_service"]});
+  assert.deepEqual(replay.value,original.value);
+  assert.equal(f.branchInserts.length,1);
+  assert.equal(f.events.length,1);
+  await assert.rejects(f.call("post",path,{...input,name:"Different branch"}), e=>e.code==="IDEMPOTENCY_CONFLICT");
+  await assert.rejects(f.call("post",path,input,{actorId:"another-owner"}), e=>e.code==="IDEMPOTENCY_CONFLICT");
+  assert.equal(f.branchInserts.length,1);
 });
