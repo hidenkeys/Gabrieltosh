@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Preparation integration verified at cfce7e7 with partial-to-ready browser checks. Next verify durable reservation recovery in the browser, restricted preparation roles and remaining management, operational, customer and platform workflows.",
+  "Reservation creation/reload/cancellation and partial People hierarchy verified at aad2c89. Next complete staff scopes/recovery, remaining management and operational screens, customer visit/checkout states and isolated platform MFA verification; provider/hardware acceptance remains separate.",
   "",
   "## Measurement",
   "",

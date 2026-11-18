@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-18T23:28:34+01:00",
-  "revision": "cfce7e7",
+  "lastUpdated": "2026-11-18T23:41:52+01:00",
+  "revision": "aad2c89",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -395,21 +395,31 @@
       "workstream": "O",
       "title": "Staff, invitations, scopes and custom roles",
       "weight": 3,
-      "checkpoint": 0,
-      "status": "NOT_STARTED",
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
       "owner": "workspace",
       "dependencies": [
         "F4",
         "F5"
       ],
       "acceptance": "Members-first tables, scopes/role details, invite/revoke and loading/errors; preserve owner/authority safeguards; missing reassignment APIs explicit.",
-      "evidence": [],
+      "evidence": [
+        "docs/mera/ui-audit/STAFF-MANAGEMENT-MOUNT.md",
+        "docs/mera/ui-audit/staff-management-comparison.html",
+        "docs/mera/ui-audit/screenshots/64-people-narrow.jpg",
+        "tests/mera-role-management-ui.test.tsx"
+      ],
       "blockers": [],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 0,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T23:41:52+01:00",
+          "checkpoint": 40,
+          "note": "Partial source hierarchy/read-state correction integrated; actual owner read, keyboard disclosure and desktop/narrow checked. Full membership/scopes and safe durable mutation workflow remain incomplete."
         }
       ]
     },
@@ -715,7 +725,7 @@
       "workstream": "C",
       "title": "Reservations, activity and consent",
       "weight": 3,
-      "checkpoint": 40,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "customer",
       "dependencies": [
@@ -724,7 +734,12 @@
       "acceptance": "Readable enabled reservation workflow, acknowledgements, own activity and separate optional consent; honest deposit/review outcomes.",
       "evidence": [
         "docs/mera/ui-audit/screenshots/53-reservation-form-narrow.jpg",
-        "docs/mera/ui-audit/MENU-BRANCH-CHECKPOINT.md"
+        "docs/mera/ui-audit/MENU-BRANCH-CHECKPOINT.md",
+        "docs/mera/ui-audit/RESERVATION-STAFF-CHECKPOINT.md",
+        "docs/mera/ui-audit/screenshots/66-reservation-cancelled-narrow.jpg",
+        "docs/mera/ui-audit/reservation-activity-comparison.html",
+        "tests/mera-customer-reservation-recovery.test.tsx",
+        "tests/mera-customer-activity.test.tsx"
       ],
       "blockers": [],
       "history": [
@@ -742,6 +757,11 @@
           "at": "2026-11-18T22:52:35+01:00",
           "checkpoint": 40,
           "note": "Verified27680f2 in isolated checkout:282 regression passes/2 skips, build and actual Mera PostgreSQL pass. Browser comparison and concrete scoped flows recorded. Full acceptance remains; staged next-phase source gets no extra credit."
+        },
+        {
+          "at": "2026-11-18T23:41:52+01:00",
+          "checkpoint": 60,
+          "note": "Actual isolated browser request/reload/activity and canonical no-deposit cancellation verified; deposit/uncertain-path source+PG evidence retained, broader state/privacy/accessibility acceptance pending."
         }
       ]
     },
@@ -1247,13 +1267,13 @@
       "permissions": "members.manage",
       "states": {
         "loading": "UNVERIFIED for full correction",
-        "empty": "UNVERIFIED for full correction",
+        "empty": "Actual no invitations/custom roles; independent read-failure retries covered in tests",
         "error": "UNVERIFIED for full correction",
         "permission": "UNVERIFIED for full correction",
-        "recovery": "UNVERIFIED for full correction"
+        "recovery": "Unknown invitation local freeze/limited role update tests; durable creation recovery incomplete"
       },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "NOT_STARTED",
+      "responsive": "1440\u00d71000 and390\u00d7844 no overflow; tablet/long-data review pending",
+      "visualReview": "Partial owner People desktop/narrow reviewed; captures61/62/64 and matched comparison. No role/grant/invitation browser mutation.",
       "blockers": []
     },
     {
@@ -1620,10 +1640,10 @@
         "empty": "UNVERIFIED",
         "error": "UNVERIFIED",
         "permission": "UNVERIFIED",
-        "recovery": "UNVERIFIED"
+        "recovery": "Reservation journal same-session exact retry/abandon component+actualPG tests; normal browser reload proof, no live dropped-response claim"
       },
-      "responsive": "NOT_VERIFIED",
-      "visualReview": "NOT_STARTED",
+      "responsive": "1440\u00d71000 and390\u00d7844 activity reviewed; no narrow overflow; complete form/state/tablet acceptance pending",
+      "visualReview": "Actual form/request/reload/activity and canonical cancellation; captures59/60/63/65/66, source theme preserved",
       "blockers": []
     },
     {
@@ -1642,10 +1662,10 @@
         "empty": "UNVERIFIED",
         "error": "UNVERIFIED",
         "permission": "UNVERIFIED",
-        "recovery": "UNVERIFIED"
+        "recovery": "Reservation journal same-session exact retry/abandon component+actualPG tests; normal browser reload proof, no live dropped-response claim"
       },
-      "responsive": "NOT_VERIFIED",
-      "visualReview": "NOT_STARTED",
+      "responsive": "1440\u00d71000 and390\u00d7844 activity reviewed; no narrow overflow; complete form/state/tablet acceptance pending",
+      "visualReview": "Actual form/request/reload/activity and canonical cancellation; captures59/60/63/65/66, source theme preserved",
       "blockers": []
     },
     {
@@ -1899,6 +1919,13 @@
       "scopeWeight": 100,
       "weightedPoints": 41.2,
       "roundedCompletion": 41
+    },
+    {
+      "at": "2026-11-18T23:41:52+01:00",
+      "event": "Reservation browser milestone and partial People hierarchy/read-state review accepted; safe recent-history/platform read-state integrations tested; no scope change",
+      "scopeWeight": 100,
+      "weightedPoints": 43.0,
+      "roundedCompletion": 43
     }
   ],
   "baselineRevision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd"
