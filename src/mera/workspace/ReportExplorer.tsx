@@ -4,11 +4,15 @@ import ReportDetails from "./ReportDetails";
 export default function ReportExplorer({
   base,
   disabled,
+  initialDate = "",
 }: {
   base: string;
   disabled: boolean;
+  initialDate?: string;
 }) {
-  const [date, setDate] = useState(""),
+  const [date, setDate] = useState(
+      /^\d{4}-\d{2}-\d{2}$/.test(initialDate) ? initialDate : "",
+    ),
     [selected, setSelected] = useState(""),
     [report, setReport] = useState<any>(null),
     [window, setWindow] = useState<any>(null),
@@ -34,8 +38,15 @@ export default function ReportExplorer({
         if (version !== generation.current) return;
         if (!data.report || typeof data.report !== "object")
           throw new Error("The selected date report is unavailable.");
+        if (data.report.date !== selected)
+          throw new Error(
+            "The service returned a different trading day. Reload the selected date before using these totals.",
+          );
         setReport(data.report);
-        setWindow(data.reportWindow);
+        setWindow({
+          ...data.reportWindow,
+          timezone: data.reportWindow?.timezone || data.branch?.timezone,
+        });
       })
       .catch((e) => {
         if (version === generation.current && e.name !== "AbortError")
@@ -57,6 +68,7 @@ export default function ReportExplorer({
         does not replace the current operational queue.
       </p>
       <form
+        className="mw-date-report-form"
         onSubmit={(event) => {
           event.preventDefault();
           setSelected(date);
@@ -72,7 +84,9 @@ export default function ReportExplorer({
             onChange={(event) => setDate(event.target.value)}
           />
         </label>
-        <button disabled={disabled || loading}>Load date report</button>
+        <button className="primary" disabled={disabled || loading}>
+          Load date report
+        </button>
       </form>
       {loading && <p role="status">Loading date report…</p>}
       {error && <p role="alert">{error}</p>}

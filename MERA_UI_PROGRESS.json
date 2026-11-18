@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-18T17:08:29+01:00",
-  "revision": "024c0f6e1f93d04ff39c55b138a875398207da57",
+  "lastUpdated": "2026-11-18T17:17:08+01:00",
+  "revision": "748880b",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -222,7 +222,7 @@
       "workstream": "O",
       "title": "Overview layout pilot",
       "weight": 2,
-      "checkpoint": 60,
+      "checkpoint": 80,
       "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
@@ -232,7 +232,8 @@
       "evidence": [
         "docs/mera/ui-audit/screenshots/05-mera-overview-after.jpg",
         "docs/mera/ui-audit/screenshots/10-mera-overview-narrow.jpg",
-        "design-qa.md"
+        "design-qa.md",
+        "docs/mera/ui-audit/overview-comparison-current.jpg"
       ],
       "blockers": [],
       "history": [
@@ -240,6 +241,11 @@
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 60,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T17:17:08+01:00",
+          "checkpoint": 80,
+          "note": "Lead inspected combined source/implementation comparisons. Four-screen visual gate passed; full operational workflow/state acceptance remains separately tracked. Build passed; regression236 pass/2 skip plus copy/recovery24 pass."
         }
       ]
     },
@@ -412,7 +418,7 @@
       "workstream": "P",
       "title": "Original-style POS catalog and current order",
       "weight": 5,
-      "checkpoint": 60,
+      "checkpoint": 80,
       "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
@@ -423,7 +429,8 @@
         "docs/mera/ui-audit/screenshots/06-mera-pos-after-empty.jpg",
         "docs/mera/ui-audit/screenshots/07-mera-pos-tablet.jpg",
         "docs/mera/ui-audit/screenshots/09-mera-pos-narrow-basket.jpg",
-        "tests/mera-ui-pilot.test.tsx"
+        "tests/mera-ui-pilot.test.tsx",
+        "docs/mera/ui-audit/counter-comparison-current.jpg"
       ],
       "blockers": [],
       "history": [
@@ -431,6 +438,11 @@
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 60,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T17:17:08+01:00",
+          "checkpoint": 80,
+          "note": "Lead inspected combined source/implementation comparisons. Four-screen visual gate passed; full operational workflow/state acceptance remains separately tracked. Build passed; regression236 pass/2 skip plus copy/recovery24 pass."
         }
       ]
     },
@@ -531,7 +543,7 @@
       "workstream": "C",
       "title": "Mobile menu and persistent cart pilot",
       "weight": 6,
-      "checkpoint": 60,
+      "checkpoint": 80,
       "status": "IN_PROGRESS",
       "owner": "customer",
       "dependencies": [
@@ -544,7 +556,8 @@
         "docs/mera/ui-audit/PILOT-CHECKPOINT-2026-11-18.md",
         "docs/mera/ui-audit/screenshots/13-customer-narrow-menu.jpg",
         "docs/mera/ui-audit/screenshots/14-customer-narrow-basket.jpg",
-        "docs/mera/ui-audit/screenshots/15-customer-tablet.jpg"
+        "docs/mera/ui-audit/screenshots/15-customer-tablet.jpg",
+        "docs/mera/ui-audit/customer-comparison-current.jpg"
       ],
       "blockers": [],
       "history": [
@@ -557,6 +570,11 @@
           "at": "2026-11-18T16:10:03+01:00",
           "checkpoint": 60,
           "note": "Menu/cart integrated and exercised in local browser; overlap corrected. Full comparison/state acceptance pending."
+        },
+        {
+          "at": "2026-11-18T17:17:08+01:00",
+          "checkpoint": 80,
+          "note": "Lead inspected combined source/implementation comparisons. Four-screen visual gate passed; full operational workflow/state acceptance remains separately tracked. Build passed; regression236 pass/2 skip plus copy/recovery24 pass."
         }
       ]
     },
@@ -668,8 +686,8 @@
       "workstream": "M",
       "title": "Marketing homepage pilot",
       "weight": 4,
-      "checkpoint": 80,
-      "status": "IN_PROGRESS",
+      "checkpoint": 100,
+      "status": "VERIFIED",
       "owner": "backend",
       "dependencies": [
         "F2"
@@ -700,6 +718,11 @@
           "at": "2026-11-18T17:08:29+01:00",
           "checkpoint": 80,
           "note": "Selected visual compared through four iterations; typography/rhythm/crop corrected. Desktop/tablet/narrow and primary navigation/CTA/console checked. Final integration acceptance pending Q1."
+        },
+        {
+          "at": "2026-11-18T17:17:08+01:00",
+          "checkpoint": 100,
+          "note": "Lead inspected combined source/implementation comparisons. Four-screen visual gate passed; full operational workflow/state acceptance remains separately tracked. Build passed; regression236 pass/2 skip plus copy/recovery24 pass."
         }
       ]
     },
@@ -761,8 +784,8 @@
       "workstream": "Q",
       "title": "Four-surface reference comparison gate",
       "weight": 3,
-      "checkpoint": 0,
-      "status": "IN_PROGRESS",
+      "checkpoint": 100,
+      "status": "VERIFIED",
       "owner": "lead",
       "dependencies": [
         "O1",
@@ -773,16 +796,23 @@
       "acceptance": "Overview, POS, mobile menu/cart and marketing captured against actual selected references before broad rollout; correct P0/P1/P2.",
       "evidence": [
         "design-qa.md",
-        "docs/mera/ui-audit/MARKETING-QA.md"
+        "docs/mera/ui-audit/MARKETING-QA.md",
+        "docs/mera/ui-audit/overview-comparison-current.jpg",
+        "docs/mera/ui-audit/counter-comparison-current.jpg",
+        "docs/mera/ui-audit/customer-comparison-current.jpg",
+        "docs/mera/ui-audit/marketing-comparison-final.jpg"
       ],
-      "blockers": [
-        "Customer dialog tests must wait for recovery-enabled controls; unchanged focus/privacy assertions and full rerun pending."
-      ],
+      "blockers": [],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 0,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T17:17:08+01:00",
+          "checkpoint": 100,
+          "note": "Lead inspected combined source/implementation comparisons. Four-screen visual gate passed; full operational workflow/state acceptance remains separately tracked. Build passed; regression236 pass/2 skip plus copy/recovery24 pass."
         }
       ]
     },
@@ -1736,6 +1766,13 @@
       "scopeWeight": 100,
       "weightedPoints": 21.2,
       "roundedCompletion": 21
+    },
+    {
+      "at": "2026-11-18T17:17:08+01:00",
+      "event": "Four-surface comparison gate passed; customer wording corrected; broader shell and workflow rollout next, scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 27.6,
+      "roundedCompletion": 27
     }
   ],
   "baselineRevision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd"

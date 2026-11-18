@@ -118,6 +118,7 @@ test(
         });
         return {
           status: response.status,
+          cacheControl: response.headers.get("cache-control"),
           data: await response.json(),
           cookie: response.headers.get("set-cookie")?.split(";")[0],
           cookies:response.headers.getSetCookie().map(c=>c.split(";")[0]),
@@ -149,6 +150,28 @@ test(
       const g2 = (
         await call(P + "/guests", "POST", { displayName: "Guest Two" }, null)
       ).cookie;
+      const firstIdentity = await call(P + "/guest", "GET", undefined, null, g1);
+      assert.equal(firstIdentity.status, 200);
+      assert.equal(firstIdentity.cacheControl, "no-store");
+      assert.match(firstIdentity.data.sessionRef, /^[0-9a-f-]{36}$/);
+      const reusedIdentity = await call(P + "/guests", "POST", { displayName: "Guest One" }, null, g1);
+      assert.equal(reusedIdentity.status, 200);
+      assert.equal(reusedIdentity.cacheControl, "no-store");
+      assert.equal(reusedIdentity.data.sessionRef, firstIdentity.data.sessionRef);
+      const otherIdentity = await call(P + "/guest", "GET", undefined, null, g2);
+      assert.notEqual(otherIdentity.data.sessionRef, firstIdentity.data.sessionRef);
+      const expiringIdentity = await call(P + "/guests", "POST", { displayName: "Expired identity fixture" }, null);
+      assert.equal(expiringIdentity.status, 201);
+      assert.equal(expiringIdentity.cacheControl, "no-store");
+      assert.match(expiringIdentity.data.sessionRef, /^[0-9a-f-]{36}$/);
+      const newIdentityGet = await call(P + "/guest", "GET", undefined, null, expiringIdentity.cookie);
+      assert.equal(newIdentityGet.data.sessionRef, expiringIdentity.data.sessionRef);
+      await db.query("UPDATE mera_guests SET expires_at=CURRENT_TIMESTAMP-INTERVAL '1 second' WHERE id=$1", [expiringIdentity.data.sessionRef]);
+      const expiredIdentityGet = await call(P + "/guest", "GET", undefined, null, expiringIdentity.cookie);
+      assert.equal(expiredIdentityGet.status, 401);
+      assert.equal(expiredIdentityGet.cacheControl, "no-store");
+      assert.equal(expiredIdentityGet.data.sessionRef, undefined);
+      assert.equal((await call(P + "/guest", "GET", undefined, null, "")).status, 401);
       const first = {
         requestKey: randomUUID(),
         menuVersion: menu.version,
@@ -1828,6 +1851,13 @@ test(
       assert.equal((await call("/public/orders/"+winner.order.id+"/feedback","POST",{rating:5,text:"Wrong context denied"},null,multiVenueCookies,{"X-Mera-Organization-Slug":"foreign-asset-fixture"})).status,404);
       const wrongCookie="mera_guest_"+org+"="+cookieJar.get("mera_guest_"+foreignOrg.data.organizationId);
       assert.equal((await call("/public/orders/"+winner.order.id,"GET",undefined,null,wrongCookie,{"X-Mera-Organization-Slug":"bing-chun"})).status,401);
+      const wrongIdentityGet = await call(P+"/guest","GET",undefined,null,wrongCookie,{"X-Mera-Organization-Slug":"bing-chun"});
+      assert.equal(wrongIdentityGet.status,401);
+      assert.equal(wrongIdentityGet.cacheControl,"no-store");
+      assert.equal(wrongIdentityGet.data.sessionRef,undefined);
+      const wrongContextIdentityGet = await call(P+"/guest","GET",undefined,null,multiVenueCookies,{"X-Mera-Organization-Slug":"foreign-asset-fixture"});
+      assert.equal(wrongContextIdentityGet.status,404);
+      assert.equal(wrongContextIdentityGet.data.sessionRef,undefined);
       assert.ok((await call(P+"/guest","GET",undefined,null,multiVenueCookies,{"X-Mera-Organization-Slug":"bing-chun"})).data.orders.some(o=>o.id===winner.order.id));
       assert.ok((await call(foreignPublic+"/guest","GET",undefined,null,multiVenueCookies,{"X-Mera-Organization-Slug":"foreign-asset-fixture"})).data.orders.some(o=>o.id===secondVenueOrder.data.id));
       const unresolvedPolicyBody={monthlyPrice:null,includedBranches:1,additionalBranchPrice:null,integratedFeeBps:10,feePayer:null,feeBasis:null,refundTreatment:null,trialDays:null,graceDays:null};
@@ -1873,6 +1903,59 @@ test(
       const restoreFlags=await call(flagPath,"PATCH",{version:2,flags:{customer_ordering:true,new_reservations:true,new_table_visits:true,zidi:true},reason:"Restore fixture new action feature availability"},owner,"pos_session="+sessionA);
       assert.equal(restoreFlags.status,200,JSON.stringify(restoreFlags.data));
       assert.equal((await call("/context")).data.organizations.find(o=>o.id===org).organizationWide,true);
+      // An authoritative order-attempt resolution never treats absence as rejection.
+      const attemptBase=P+"/order-attempts/", staffAttemptBase=B+"/order-attempts/";
+      const storedAttempt=await call(attemptBase+winner.input.requestKey,"GET",undefined,null,winner.cookie);
+      assert.equal(storedAttempt.status,200);
+      assert.equal(storedAttempt.cacheControl,"no-store");
+      assert.equal(storedAttempt.data.status,"recorded");
+      assert.equal(storedAttempt.data.order.id,winner.order.id);
+      assert.equal(storedAttempt.data.order.guestId,undefined);
+      const recordedAbandon=await call(attemptBase+winner.input.requestKey+"/abandon","POST",{reason:"Resolve already recorded attempt"},null,winner.cookie);
+      assert.equal(recordedAbandon.data.status,"recorded");
+      assert.equal(recordedAbandon.data.order.id,winner.order.id);
+      assert.equal((await call(attemptBase+winner.input.requestKey,"GET",undefined,null,winner.other)).data.status,"not_found");
+      assert.equal((await call(staffAttemptBase+winner.input.requestKey)).data.status,"not_found");
+      assert.equal((await call(foreignPublic+"/order-attempts/"+winner.input.requestKey,"GET",undefined,null,multiVenueCookies,{"X-Mera-Organization-Slug":"foreign-asset-fixture"})).data.status,"not_found");
+      assert.equal((await call(attemptBase+winner.input.requestKey,"GET",undefined,null,"")).status,401);
+      const fencedIntent={...flagOrderIntent,requestKey:randomUUID()};
+      const absentAttempt=await call(attemptBase+fencedIntent.requestKey,"GET",undefined,null,multiVenueCookies);
+      assert.equal(absentAttempt.data.status,"not_found");
+      const abandonedAttempt=await call(attemptBase+fencedIntent.requestKey+"/abandon","POST",{reason:"Customer chooses to review a fresh cart"},null,multiVenueCookies);
+      assert.equal(abandonedAttempt.data.status,"abandoned");
+      assert.deepEqual((await call(attemptBase+fencedIntent.requestKey+"/abandon","POST",{reason:"Repeat explicit recovery request"},null,multiVenueCookies)).data,abandonedAttempt.data);
+      assert.equal((await call(attemptBase+fencedIntent.requestKey,"GET",undefined,null,multiVenueCookies)).data.status,"abandoned");
+      const delayedAttempt=await call(P+"/orders","POST",fencedIntent,null,multiVenueCookies);
+      assert.equal(delayedAttempt.status,409);
+      assert.equal(delayedAttempt.data.code,"ORDER_REQUEST_ABANDONED");
+      // Another guest's tombstone cannot block this authenticated guest's intent.
+      const isolatedIntent={...flagOrderIntent,requestKey:randomUUID()};
+      assert.equal((await call(attemptBase+isolatedIntent.requestKey+"/abandon","POST",{reason:"Other guest independent attempt"},null,winner.other)).data.status,"abandoned");
+      const isolatedCreated=await call(P+"/orders","POST",isolatedIntent,null,multiVenueCookies);
+      assert.equal(isolatedCreated.status,201,JSON.stringify(isolatedCreated.data));
+      assert.equal((await call(attemptBase+isolatedIntent.requestKey,"GET",undefined,null,winner.other)).data.status,"abandoned");
+      const racingIntent={...flagOrderIntent,requestKey:randomUUID()};
+      const [raceCreate,raceAbandon]=await Promise.all([
+        call(P+"/orders","POST",racingIntent,null,multiVenueCookies),
+        call(attemptBase+racingIntent.requestKey+"/abandon","POST",{reason:"Explicit concurrent recovery"},null,multiVenueCookies),
+      ]);
+      const raceCanonical=await call(attemptBase+racingIntent.requestKey,"GET",undefined,null,multiVenueCookies);
+      const raceOrders=(await db.query("SELECT id FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='order' AND data->>'requestKey'=$3",[org,branch,racingIntent.requestKey])).rows;
+      if(raceCreate.status===201){assert.equal(raceAbandon.data.status,"recorded");assert.equal(raceCanonical.data.order.id,raceCreate.data.id);assert.equal(raceOrders.length,1);}
+      else {assert.equal(raceCreate.data.code,"ORDER_REQUEST_ABANDONED");assert.equal(raceAbandon.data.status,"abandoned");assert.equal(raceCanonical.data.status,"abandoned");assert.equal(raceOrders.length,0);}
+      const staffIntent={...flagOrderIntent,requestKey:randomUUID()};
+      assert.equal((await call(staffAttemptBase+staffIntent.requestKey+"/abandon","POST",{reason:"Independent cashier attempt"},other)).data.status,"abandoned");
+      const staffCreated=await call(B+"/orders","POST",staffIntent);
+      assert.equal(staffCreated.status,201,JSON.stringify(staffCreated.data));
+      assert.equal((await call(staffAttemptBase+staffIntent.requestKey)).data.order.id,staffCreated.data.id);
+      assert.equal((await call(staffAttemptBase+staffIntent.requestKey,"GET",undefined,other)).data.status,"abandoned");
+      const staffFenced={...flagOrderIntent,requestKey:randomUUID()};
+      const staffAbandon=await call(staffAttemptBase+staffFenced.requestKey+"/abandon","POST",{reason:"Staff chooses fresh reviewed request"});
+      assert.equal(staffAbandon.data.status,"abandoned");
+      assert.deepEqual((await call(staffAttemptBase+staffFenced.requestKey+"/abandon","POST",{reason:"Explicit repeat recovery"})).data,staffAbandon.data);
+      assert.equal((await call(B+"/orders","POST",staffFenced)).data.code,"ORDER_REQUEST_ABANDONED");
+      assert.equal((await call(foreignBase+"/order-attempts/"+staffIntent.requestKey)).data.status,"not_found");
+
       const merchantSupportPath="/organizations/"+org+"/support-cases";
       const supportCaseIntent={requestKey:randomUUID(),subject:"Fixture support request",topic:"billing",message:"Please clarify the test invoice policy",branchId:branch};
       const supportCase=await call(merchantSupportPath,"POST",supportCaseIntent);

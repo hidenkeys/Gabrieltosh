@@ -4,7 +4,7 @@ F4 source assessment, 18 November 2026. Applies to UI correction scope 1.0. This
 
 ## Authority and verified paths
 
-The original running Bing Chun Counter and Reports are the operational design authority. Captures: `docs/mera/ui-audit/screenshots/01-bing-chun-counter.jpg` and `02-bing-chun-overview.jpg`. Current before captures are `03-mera-overview-before.jpg` and `04-mera-orders-before.jpg`. Source: `src/App.tsx` (`Counter`, `Reports`, internal `Modal`, shell) and `src/styles.css`. Consult the actual cascade rather than reproducing a screenshot from memory. The original Mera marketing visual is still unresolved; neither the POS nor current marketing source substitutes for it.
+The original running Bing Chun Counter and Reports are the operational design authority. Captures: `docs/mera/ui-audit/screenshots/01-bing-chun-counter.jpg` and `02-bing-chun-overview.jpg`. Current before captures are `03-mera-overview-before.jpg` and `04-mera-orders-before.jpg`. Source: `src/App.tsx` (`Counter`, `Reports`, internal `Modal`, shell) and `src/styles.css`. Consult the actual cascade rather than reproducing a screenshot from memory. For marketing and Mera platform administration, the owner has requested a new enterprise identity. The owner selected option1, ivory and green; see MERA-VISUAL-SELECTION.md and the exact saved reference. Neither the POS nor the old marketing source substitutes for that selected composition.
 
 Reuse `src/ProductImage.tsx`, `src/brand.ts`, `public/products/`, `public/brand/brand-logo.png` for the appropriate Bing Chun venue. Never apply that venue's logo to another organization. Uploaded venue assets are supported by `src/mera/MediaUpload.tsx`; safe palette/text contrast comes from `src/mera/branding.ts`.
 
@@ -28,6 +28,8 @@ Current shared shell and pilot: `src/mera/workspace/OrganizationWorkspace.tsx`, 
 
 Original responsive rules include1200/980/740/600px;980px reduces sidebar to76px and600px hides it until opened. These are source behaviors, not automatic requirements for expanded Mera navigation. Current grouped sidebar plus labeled mobile menu must remain discoverable. Avoid competing module pickers/carousels.
 
+Any CSS background alias must be explicitly declared to a verified value before use. The original root does not define `--panel`; use the verified `#fffefa` surface explicitly or declare a documented scoped alias. Undefined custom properties are not design evidence.
+
 ## Reusable patterns by task
 
 - **Operational lists and POS:** compact task heading; search/category controls immediately above real product photos; clear variants/modifiers; persistent quantities/total/next action; staff/table context near the order. Reuse `StaffPos.tsx` and existing handlers instead of a second cart state. Kitchen uses `Tickets.tsx` and `OrderInstructions.tsx`: station-specific tickets, quantity/progress, escaped chosen modifiers/order notes, and only recorded dietary/allergen snapshots. No finance/setup filler.
@@ -35,7 +37,7 @@ Original responsive rules include1200/980/740/600px;980px reduces sidebar to76px
 - **Tables:** reuse `.table-wrap`, semantic table headers and product/status cells where useful. Place primary row action with its row; keep long identifiers/timeline details in labeled drilldowns. A local scroll container is acceptable; page-wide overflow is not. Avoid replacing data with promotional cards.
 - **Dialogs:** original internal `Modal` in `App.tsx` sets role/dialog name, initial focus, Escape, focus return and a Tab loop. It is not exported as a shared primitive. Extract centrally only with lead ownership. The current focus query includes disabled/hidden controls and omits links, so do not copy its loop uncritically: use visible enabled tabbables, guard zero-tabbable dialogs, restore the actual opener and test nested/long content. Unknown financial operations must remain recoverable when the dialog closes.
 - **Customer:** use organization branding and real photos, immediate browsing, useful branch/table context, accessible customization and persistent cart. Preserve complete charges before confirmation. Keep staff accounting/provider diagnostics out of normal customer screens.
-- **Platform administration:** distinct compact lookup/filter/detail composition and MFA boundary; separate merchant funds from Mera revenue. Its intended marketing identity awaits the original visual; do not transplant a POS layout or invent provenance.
+- **Platform administration:** distinct compact lookup/filter/detail composition and MFA boundary; separate merchant funds from Mera revenue. Its related enterprise styling follows the owner-selected ivory/green marketing direction; retain compact operator workflows rather than transplanting a POS or marketing layout.
 
 ## Behavioral invariants the correction cannot change
 

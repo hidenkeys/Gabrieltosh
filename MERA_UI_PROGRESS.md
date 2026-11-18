@@ -2,15 +2,15 @@
 
 Goal: Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.
 
-Scope **1.0** · revision `024c0f6e1f93d04ff39c55b138a875398207da57` · updated 2026-11-18T17:08:29+01:00
+Scope **1.0** · revision `748880b` · updated 2026-11-18T17:17:08+01:00
 
-**UI correction: 21% complete | 79% remaining.** Weighted evidence: 21.2/100. This is checklist completion, not a time estimate.
+**UI correction: 27% complete | 73% remaining.** Weighted evidence: 27.6/100. This is checklist completion, not a time estimate.
 
 Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.
 
 ## Current milestone
 
-Complete the four-surface visual gate: organization overview, original-style POS, mobile customer menu/cart and new Mera marketing homepage. Before wider rollout, correct the shared shell and finish source-grounded state/interaction review.
+Four-surface visual gate passed. Extend the compact shared shell and role-specific landing across organization operations, then complete remaining management, operational, customer and platform workflows with per-screen verification.
 
 ## Measurement
 
@@ -21,11 +21,11 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | Workstream | Weight | Verified completion | Owner |
 | --- | ---: | ---: | --- |
 | References, design system and application shell | 15% | 60% | lead |
-| Organization management | 25% | 9% | workspace / lead overview |
-| POS and operational roles | 20% | 15% | lead / rotating operational agent |
-| Customer experience | 20% | 18% | customer |
-| Marketing and platform administration | 10% | 32% | backend (presentation workstream A) |
-| Integration, accessibility and delivery | 10% | 0% | lead |
+| Organization management | 25% | 11% | workspace / lead overview |
+| POS and operational roles | 20% | 20% | lead / rotating operational agent |
+| Customer experience | 20% | 24% | customer |
+| Marketing and platform administration | 10% | 40% | backend (presentation workstream A) |
+| Integration, accessibility and delivery | 10% | 30% | lead |
 
 ## Task board
 
@@ -37,27 +37,27 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | F4 | Shared primitives and preservation specification | 2% | 0% | IN_PROGRESS · lead | [PRIMITIVES.md](docs/mera/ui-audit/PRIMITIVES.md) |
 | F5 | Compact shared shell, account menu and role landing | 4% | 0% | IN_PROGRESS · lead | [WorkspaceAccount.tsx](src/mera/workspace/WorkspaceAccount.tsx), [mera-ui-pilot.test.tsx](tests/mera-ui-pilot.test.tsx) |
 | F6 | Durable progress and complete screen inventory | 2% | 100% | VERIFIED · lead | [MERA_UI_PROGRESS.json](MERA_UI_PROGRESS.json), [mera-ui-progress.js](scripts/mera-ui-progress.js) |
-| O1 | Overview layout pilot | 2% | 60% | IN_PROGRESS · lead | [05-mera-overview-after.jpg](docs/mera/ui-audit/screenshots/05-mera-overview-after.jpg), [10-mera-overview-narrow.jpg](docs/mera/ui-audit/screenshots/10-mera-overview-narrow.jpg), [design-qa.md](design-qa.md) |
+| O1 | Overview layout pilot | 2% | 80% | IN_PROGRESS · lead | [05-mera-overview-after.jpg](docs/mera/ui-audit/screenshots/05-mera-overview-after.jpg), [10-mera-overview-narrow.jpg](docs/mera/ui-audit/screenshots/10-mera-overview-narrow.jpg), [design-qa.md](design-qa.md), [overview-comparison-current.jpg](docs/mera/ui-audit/overview-comparison-current.jpg) |
 | O2 | Overview actionable content and date context | 3% | 40% | IN_PROGRESS · lead | [OverviewAttention.tsx](src/mera/workspace/OverviewAttention.tsx), [mera-ui-pilot.test.tsx](tests/mera-ui-pilot.test.tsx), [PILOT-CHECKPOINT-2026-11-18.md](docs/mera/ui-audit/PILOT-CHECKPOINT-2026-11-18.md), [OverviewActivity.tsx](src/mera/workspace/OverviewActivity.tsx), [mera-overview-activity.test.tsx](tests/mera-overview-activity.test.tsx), [21-overview-selected-date.jpg](docs/mera/ui-audit/screenshots/21-overview-selected-date.jpg), [23-overview-activity-narrow.jpg](docs/mera/ui-audit/screenshots/23-overview-activity-narrow.jpg) |
 | O3 | Onboarding, branding and branch setup | 4% | 0% | IN_PROGRESS · workspace | [mera-management-ui.test.tsx](tests/mera-management-ui.test.tsx), [management.css](src/mera/workspace/management.css) |
 | O4 | Menu, categories, modifiers and stock management | 5% | 0% | NOT_STARTED · workspace | Pending |
 | O5 | Staff, invitations, scopes and custom roles | 3% | 0% | NOT_STARTED · workspace | Pending |
 | O6 | Transactions, shifts, reports and exports | 4% | 0% | NOT_STARTED · workspace | Pending |
 | O7 | Subscriptions, printing, QR and customer/support care | 4% | 0% | NOT_STARTED · workspace | Pending |
-| P1 | Original-style POS catalog and current order | 5% | 60% | IN_PROGRESS · lead | [06-mera-pos-after-empty.jpg](docs/mera/ui-audit/screenshots/06-mera-pos-after-empty.jpg), [07-mera-pos-tablet.jpg](docs/mera/ui-audit/screenshots/07-mera-pos-tablet.jpg), [09-mera-pos-narrow-basket.jpg](docs/mera/ui-audit/screenshots/09-mera-pos-narrow-basket.jpg), [mera-ui-pilot.test.tsx](tests/mera-ui-pilot.test.tsx) |
+| P1 | Original-style POS catalog and current order | 5% | 80% | IN_PROGRESS · lead | [06-mera-pos-after-empty.jpg](docs/mera/ui-audit/screenshots/06-mera-pos-after-empty.jpg), [07-mera-pos-tablet.jpg](docs/mera/ui-audit/screenshots/07-mera-pos-tablet.jpg), [09-mera-pos-narrow-basket.jpg](docs/mera/ui-audit/screenshots/09-mera-pos-narrow-basket.jpg), [mera-ui-pilot.test.tsx](tests/mera-ui-pilot.test.tsx), [counter-comparison-current.jpg](docs/mera/ui-audit/counter-comparison-current.jpg) |
 | P2 | Order lists, details, responsibility and help | 4% | 0% | NOT_STARTED · lead | Pending |
 | P3 | Waiter tables, rounds, bills and handoffs | 4% | 0% | NOT_STARTED · lead | Pending |
 | P4 | Kitchen and bar preparation | 3% | 0% | NOT_STARTED · lead | Pending |
 | P5 | Front desk reservations, arrivals and waitlist | 4% | 0% | NOT_STARTED · lead | Pending |
-| C1 | Mobile menu and persistent cart pilot | 6% | 60% | IN_PROGRESS · customer | [CustomerExperience.tsx](src/mera/customer/CustomerExperience.tsx), [mera-customer-ui-correction.test.tsx](tests/mera-customer-ui-correction.test.tsx), [PILOT-CHECKPOINT-2026-11-18.md](docs/mera/ui-audit/PILOT-CHECKPOINT-2026-11-18.md), [13-customer-narrow-menu.jpg](docs/mera/ui-audit/screenshots/13-customer-narrow-menu.jpg), [14-customer-narrow-basket.jpg](docs/mera/ui-audit/screenshots/14-customer-narrow-basket.jpg), [15-customer-tablet.jpg](docs/mera/ui-audit/screenshots/15-customer-tablet.jpg) |
+| C1 | Mobile menu and persistent cart pilot | 6% | 80% | IN_PROGRESS · customer | [CustomerExperience.tsx](src/mera/customer/CustomerExperience.tsx), [mera-customer-ui-correction.test.tsx](tests/mera-customer-ui-correction.test.tsx), [PILOT-CHECKPOINT-2026-11-18.md](docs/mera/ui-audit/PILOT-CHECKPOINT-2026-11-18.md), [13-customer-narrow-menu.jpg](docs/mera/ui-audit/screenshots/13-customer-narrow-menu.jpg), [14-customer-narrow-basket.jpg](docs/mera/ui-audit/screenshots/14-customer-narrow-basket.jpg), [15-customer-tablet.jpg](docs/mera/ui-audit/screenshots/15-customer-tablet.jpg), [customer-comparison-current.jpg](docs/mera/ui-audit/customer-comparison-current.jpg) |
 | C2 | Checkout, pending recovery, tracking and receipts | 5% | 0% | IN_PROGRESS · customer | [mera-customer-ui-correction.test.tsx](tests/mera-customer-ui-correction.test.tsx) |
 | C3 | Visit joining, bills, rounds and help | 4% | 0% | NOT_STARTED · customer | Pending |
 | C4 | Reservations, activity and consent | 3% | 0% | NOT_STARTED · customer | Pending |
 | C5 | Customization dialogs and organization themes | 2% | 0% | IN_PROGRESS · customer | [mera-customer-ui-correction.test.tsx](tests/mera-customer-ui-correction.test.tsx), [22-customer-dialog-narrow.jpg](docs/mera/ui-audit/screenshots/22-customer-dialog-narrow.jpg) |
-| M1 | Marketing homepage pilot | 4% | 80% | IN_PROGRESS · backend | [MARKETING-QA.md](docs/mera/ui-audit/MARKETING-QA.md), [marketing-comparison-final.jpg](docs/mera/ui-audit/marketing-comparison-final.jpg), [24-mera-home-selected-width-final.jpg](docs/mera/ui-audit/screenshots/24-mera-home-selected-width-final.jpg), [29-mera-home-wide.jpg](docs/mera/ui-audit/screenshots/29-mera-home-wide.jpg), [30-mera-home-narrow.jpg](docs/mera/ui-audit/screenshots/30-mera-home-narrow.jpg), [32-mera-home-tablet.jpg](docs/mera/ui-audit/screenshots/32-mera-home-tablet.jpg), [mera-marketing-ui.test.tsx](tests/mera-marketing-ui.test.tsx) |
+| M1 | Marketing homepage pilot | 4% | 100% | VERIFIED · backend | [MARKETING-QA.md](docs/mera/ui-audit/MARKETING-QA.md), [marketing-comparison-final.jpg](docs/mera/ui-audit/marketing-comparison-final.jpg), [24-mera-home-selected-width-final.jpg](docs/mera/ui-audit/screenshots/24-mera-home-selected-width-final.jpg), [29-mera-home-wide.jpg](docs/mera/ui-audit/screenshots/29-mera-home-wide.jpg), [30-mera-home-narrow.jpg](docs/mera/ui-audit/screenshots/30-mera-home-narrow.jpg), [32-mera-home-tablet.jpg](docs/mera/ui-audit/screenshots/32-mera-home-tablet.jpg), [mera-marketing-ui.test.tsx](tests/mera-marketing-ui.test.tsx) |
 | M2 | Marketing features, pricing, legal and signup | 2% | 0% | IN_PROGRESS · backend | [mera-signup-ui.test.tsx](tests/mera-signup-ui.test.tsx) |
 | M3 | Mera platform administration | 4% | 0% | NOT_STARTED · backend | Pending |
-| Q1 | Four-surface reference comparison gate | 3% | 0% | IN_PROGRESS · lead | [design-qa.md](design-qa.md), [MARKETING-QA.md](docs/mera/ui-audit/MARKETING-QA.md) |
+| Q1 | Four-surface reference comparison gate | 3% | 100% | VERIFIED · lead | [design-qa.md](design-qa.md), [MARKETING-QA.md](docs/mera/ui-audit/MARKETING-QA.md), [overview-comparison-current.jpg](docs/mera/ui-audit/overview-comparison-current.jpg), [counter-comparison-current.jpg](docs/mera/ui-audit/counter-comparison-current.jpg), [customer-comparison-current.jpg](docs/mera/ui-audit/customer-comparison-current.jpg), [marketing-comparison-final.jpg](docs/mera/ui-audit/marketing-comparison-final.jpg) |
 | Q2 | Cross-screen states, accessibility and responsiveness | 3% | 0% | NOT_STARTED · lead | Pending |
 | Q3 | Functional integration and regression gate | 3% | 0% | NOT_STARTED · lead | Pending |
 | Q4 | Final evidence, review and handoff | 1% | 0% | NOT_STARTED · lead | Pending |
@@ -123,9 +123,9 @@ Status: INVENTORY_DRAFT_REVIEW_PENDING. 208 requirement IDs inventoried in docs/
 
 ## Current dependencies and next actions
 
-- F2: owner selected option1, ivory and green. Exact reference saved; marketing implementation is in comparison, then platform adapts the identity with task-appropriate layouts.
+- F2: owner selected option1, ivory and green. Exact reference saved and homepage comparison accepted; platform adapts the identity with task-appropriate layouts.
 - F4/F5: lead owns shared shell/primitives; workers request mounts rather than competing edits to OrganizationWorkspace/main/global styles.
-- C1: menu/cart and dialog pilot integrated and exercised. Complete required-state/source comparisons before broader customer rollout.
+- C1: menu/cart and dialog pilot integrated and exercised. Source comparison passed; complete broader checkout, visit, reservation and theme state acceptance.
 - Some newly written backend leaves remain unmounted: stock-history, refund-requests, workspace-admin; print/alias/end-session PostgreSQL assertions remain pending. Show real unavailability, never mock success or label an error as empty data.
 - The first two old pilot screens are reopened under expanded requirements (header/account menu, role landing, operational widgets). Existing screenshots prove only their captured states.
 - Preserve current uncommitted work. No production deployment, real funds, external sending or production data changes authorized.
@@ -136,5 +136,6 @@ Status: INVENTORY_DRAFT_REVIEW_PENDING. 208 requirement IDs inventoried in docs/
 - 2026-11-18T16:10:03+01:00: Customer menu/cart integrated and exercised; account/settings/signup pilots remain partial; no scope change; weight 100; 14.8 points / 14% rounded.
 - 2026-11-18T16:32:27+01:00: Exact Mera visual selected; overview required sections implemented; no scope change or backend visual credit; weight 100; 18 points / 18% rounded.
 - 2026-11-18T17:08:29+01:00: Selected Mera homepage visual/state review corrected; global pilot gate still pending; scope unchanged; weight 100; 21.2 points / 21% rounded.
+- 2026-11-18T17:17:08+01:00: Four-surface comparison gate passed; customer wording corrected; broader shell and workflow rollout next, scope unchanged; weight 100; 27.6 points / 27% rounded.
 
 Regenerate this report with `node scripts/mera-ui-progress.js`. The calculation validates weights, task IDs, mapped screens and local evidence paths; the lead still reviews whether evidence supports each checkpoint.

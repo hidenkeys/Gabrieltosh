@@ -430,7 +430,7 @@
 }
 .mw-operational .mw-heading p {
   margin-top: 5px;
-  color: #6d7b8e;
+  color: #63738a;
 }
 .mw-operational > .mw-note {
   padding: 10px 14px;
@@ -960,7 +960,7 @@
 .mw-attention-grid p,
 .mw-attention-grid li span {
   font-size: 12px;
-  color: #6d7b8e;
+  color: #63738a;
 }
 .mw-attention-grid ul {
   list-style: none;
@@ -1007,4 +1007,173 @@
 .mw-overview .mw-table-wrap {
   max-width: 100%;
   overflow-x: auto;
+}
+
+.mw-overview-activity ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.mw-overview-activity > section {
+  margin-top: 18px;
+}
+.mw-overview-activity .mw-row {
+  gap: 16px;
+  align-items: baseline;
+}
+.mw-overview-activity .mw-row > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mw-overview-activity .mw-row p {
+  margin: 5px 0 0;
+  font-size: 12px;
+}
+.mw-overview .text-button {
+  min-height: 44px;
+}
+.mw-overview-metrics .text-button {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 4px 0;
+}
+@media (max-width: 620px) {
+  .mw-overview-activity .mw-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+
+.mw-date-report-form {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0;
+}
+.mw-date-report-form label {
+  display: grid;
+  gap: 6px;
+  flex: 0 1 280px;
+}
+.mw-date-report-form input,
+.mw-date-report-form button {
+  min-height: 44px;
+}
+
+.mw-date-report-form label {
+  margin: 0;
+}
+@media (max-width: 620px) {
+  .mw-overview-activity .mw-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.mw-organization-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.mw-organization-brand img {
+  width: 40px;
+  height: 54px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.mw-organization-brand > span {
+  display: grid;
+  min-width: 0;
+}
+.mw-organization-brand strong {
+  font-size: 19px;
+  letter-spacing: -0.7px;
+  overflow-wrap: anywhere;
+}
+.mw-organization-brand small {
+  font-size: 8px;
+  letter-spacing: 2px;
+  margin-top: 4px;
+}
+.mw-side-links .nav-item {
+  gap: 12px;
+}
+.mw-side-links .nav-item svg {
+  flex-shrink: 0;
+}
+.mw-side-bottom .mw-connection-offline {
+  background: #a14a3a;
+}
+.mw-side-bottom .mw-connection-connecting,
+.mw-side-bottom .mw-connection-unknown {
+  background: #8a8589;
+}
+
+/* Context controls must not inherit long-form label margins. */
+.mw-operational .mw-context label,
+.mw-pos .search-field {
+  margin: 0;
+}
+.mw-operational .mw-account-alert {
+  color: #936817;
+}
+.mw-operational .mw-account-panel p {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Use the original darker blue token for small white action labels. */
+.mw-operational .primary,
+.mw-pos .filter-tabs button.active,
+.mw-pos-mobile-switch button[aria-pressed="true"] {
+  background: var(--brand-dark);
+  color: #fff;
+}
+
+.mw-pos-context-service {
+  display: grid;
+  gap: 10px;
+}
+.mw-pos-context-service label,
+.mw-pos-context-fields label {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+.mw-pos-context select,
+.mw-pos-context input,
+.mw-pos-context textarea {
+  min-height: 44px;
+  width: 100%;
+}
+.mw-pos-context-extra {
+  margin: 4px 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+.mw-pos-context-extra > summary {
+  min-height: 44px;
+  padding: 10px 0;
+  font-size: 12px;
+  cursor: pointer;
+}
+.mw-pos-context-extra > summary:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+}
+.mw-pos-context-summary {
+  display: block;
+  color: #63738a;
+  font-size: 11px;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+.mw-pos-context-fields {
+  padding: 10px 0;
+}
+.mw-pos-context-empty {
+  color: #63738a;
+  font-size: 12px;
 }

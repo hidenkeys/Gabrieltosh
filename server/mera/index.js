@@ -1,3 +1,4 @@
+import { assertOrderRequestActive, mountMeraOrderAttempts } from "./order-attempts.js";
 import express from "express";
 import { organizationSlugSchema,migrateMeraAliases,claimOrganizationSlug,resolveOrganizationSlug,mountMeraOrganizationAliases } from "./organization-aliases.js";
 import { enqueuePaidDocuments,mountMeraPrinting } from "./printing.js";
@@ -781,7 +782,6 @@ export function createMeraRouter(db) {
       );
   }
   async function createOrder(c, b, s, input, actor, guestId, source) {
-    await releaseExpired(c, s);
     const existing = await requestRecord(c,s,"order",input.requestKey);
     if (existing) {
       if (existing.data.intentHash !== intentHash(input))
@@ -799,6 +799,10 @@ export function createMeraRouter(db) {
         throw fail("This request key belongs to a different actor.", 409);
       return existing.data;
     }
+    if (source === "customer_qr" || source === "staff") {
+      await assertOrderRequestActive(c, s, input.requestKey, source === "customer_qr" ? "guest" : "staff", guestId || actor.id);
+    }
+    await releaseExpired(c, s);
     const organization = (
       await c.query(
         "SELECT subscription,policy,platform_flags FROM mera_organizations WHERE id=$1",
@@ -2087,6 +2091,7 @@ export function createMeraRouter(db) {
     });
   });
   router.post(P + "/guests", async (req, res) => {
+    res.set("Cache-Control", "no-store");
     const { organization } = await publicContext(req);
     const { displayName } = z
       .object({ displayName: z.string().trim().min(1).max(100) })
@@ -2101,19 +2106,20 @@ export function createMeraRouter(db) {
         existing.id,
       ]);
       if(!req.cookies?.[guestCookieName(organization.id)])res.cookie(guestCookieName(organization.id),req.cookies.mera_guest,guestCookieOptions(existing.expires_at));
-      return res.json({ displayName, expiresAt: existing.expires_at });
+      return res.json({ displayName, expiresAt: existing.expires_at, sessionRef: existing.id });
     }
     const previousLatest=req.cookies?.mera_guest?(await q("SELECT * FROM mera_guests WHERE token_hash=$1 AND expires_at>CURRENT_TIMESTAMP",[hash(req.cookies.mera_guest)])).rows[0]:null;
+    const guestId = randomUUID();
     const token = randomBytes(32).toString("hex"),
       expiresAt = new Date(Date.now() + 24 * 3600000).toISOString();
     await q(
       "INSERT INTO mera_guests(id,token_hash,organization_id,display_name,expires_at) VALUES($1,$2,$3,$4,$5)",
-      [randomUUID(), hash(token), organization.id, displayName, expiresAt],
+      [guestId, hash(token), organization.id, displayName, expiresAt],
     );
     res.cookie("mera_guest",token,guestCookieOptions(expiresAt));
     if(previousLatest&&!req.cookies?.[guestCookieName(previousLatest.organization_id)])res.cookie(guestCookieName(previousLatest.organization_id),req.cookies.mera_guest,guestCookieOptions(previousLatest.expires_at));
     res.cookie(guestCookieName(organization.id),token,guestCookieOptions(expiresAt));
-    res.status(201).json({ displayName, expiresAt });
+    res.status(201).json({ displayName, expiresAt, sessionRef: guestId });
   });
   router.post(P + "/orders", async (req, res) => {
     const { organization, s } = await publicContext(req);
@@ -2391,6 +2397,7 @@ export function createMeraRouter(db) {
     },
   );
   router.get(P + "/guest", async (req, res) => {
+    res.set("Cache-Control", "no-store");
     const { organization, s } = await publicContext(req);
     const g = await guest(req, organization.id);
     const orders = (
@@ -2435,7 +2442,7 @@ export function createMeraRouter(db) {
       .map((r) => r.data)
       .filter((v) => v.status === "open" && v.guestIds.includes(g.id))
       .map((v) => ({ id: v.id, tableId: v.tableId,tableIds:v.tableIds||[v.tableId], tableName: v.tableName }));
-    res.json({ displayName: g.display_name, orders, reservations, openVisits });
+    res.json({ displayName: g.display_name, sessionRef: g.id, orders, reservations, openVisits });
   });
   router.post(
     B + "/bills/:id/split",
@@ -3114,6 +3121,7 @@ export function createMeraRouter(db) {
     },
   );
 
+  mountMeraOrderAttempts(router,{guard,scope,locked,record,event,publicContext,guest,publicOrder});
   mountMeraPrinting(router,{db,guard,scope,locked,find,record,update,event});
   mountMeraQueries(router,{db,guard,scope});
   mountMeraDepositOutcomes(router,{db,guard,scope,locked,record,readRecords,find,update,event});

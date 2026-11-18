@@ -377,6 +377,11 @@ test("staff table orders freeze uncertain intent and retry the same request with
     if (String(input).endsWith("/orders") && init.method === "POST") {
       submitted.push(JSON.parse(init.body));
       if (fail) throw new TypeError("Network lost");
+      if (submitted.length === 2)
+        return Response.json(
+          { error: "Please wait before retrying." },
+          { status: 429 },
+        );
       return Response.json({ id: "created" });
     }
     return originalFetch(input, init);
@@ -385,8 +390,10 @@ test("staff table orders freeze uncertain intent and retry the same request with
     render(React.createElement(Workspace, { user, notify: () => {} }));
     await screen.findByText("Surulere customer", { exact: false });
     fireEvent.click(screen.getByRole("tab", { name: "Point of sale" }));
-    fireEvent.click(screen.getByRole("button", { name: "Add Milk tea to order" }));
-    fireEvent.change(screen.getByLabelText("Customer display name"), {
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add Milk tea to order" }),
+    );
+    fireEvent.change(screen.getByLabelText("Customer name (optional)"), {
       target: { value: "Ada" },
     });
     fireEvent.change(screen.getByLabelText("Fulfillment"), {
@@ -405,7 +412,7 @@ test("staff table orders freeze uncertain intent and retry the same request with
     await screen.findByText("Submission not confirmed");
     assert.equal(
       (
-        screen.getByLabelText("Customer display name") as HTMLInputElement
+        screen.getByLabelText("Customer name (optional)") as HTMLInputElement
       ).closest("fieldset")?.disabled,
       true,
     );
@@ -421,9 +428,24 @@ test("staff table orders freeze uncertain intent and retry the same request with
       );
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
-    assert.equal(screen.queryByText("Submission not confirmed"), null);
+    assert.ok(screen.getByText("Submission not confirmed"));
+    assert.equal(
+      (
+        screen.getByLabelText("Customer name (optional)") as HTMLInputElement
+      ).closest("fieldset")?.disabled,
+      true,
+    );
     assert.equal(submitted.length, 2);
     assert.deepEqual(submitted[0], submitted[1]);
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Retry original submission" }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    assert.equal(screen.queryByText("Submission not confirmed"), null);
+    assert.equal(submitted.length, 3);
+    assert.deepEqual(submitted[0], submitted[2]);
   } finally {
     cleanup();
     context.organizations[0].permissions = previous;
@@ -1139,8 +1161,10 @@ test("a held staff write times out as uncertain and retry preserves its original
     render(React.createElement(Workspace, { user, notify: () => {} }));
     await screen.findByText("Surulere customer", { exact: false });
     fireEvent.click(screen.getByRole("tab", { name: "Point of sale" }));
-    fireEvent.click(screen.getByRole("button", { name: "Add Milk tea to order" }));
-    fireEvent.change(screen.getByLabelText("Customer display name"), {
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add Milk tea to order" }),
+    );
+    fireEvent.change(screen.getByLabelText("Customer name (optional)"), {
       target: { value: "Ada" },
     });
     fireEvent.change(screen.getByLabelText("Quantity of Milk tea"), {
@@ -1599,8 +1623,10 @@ test("configured pricing requires canonical quote review and expired quotes perm
     render(React.createElement(Workspace, { user, notify: () => {} }));
     await screen.findByText("Surulere customer", { exact: false });
     fireEvent.click(screen.getByRole("tab", { name: "Point of sale" }));
-    fireEvent.click(screen.getByRole("button", { name: "Add Milk tea to order" }));
-    fireEvent.change(screen.getByLabelText("Customer display name"), {
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add Milk tea to order" }),
+    );
+    fireEvent.change(screen.getByLabelText("Customer name (optional)"), {
       target: { value: "Ada" },
     });
     fireEvent.change(screen.getByLabelText("Quantity of Milk tea"), {
@@ -1644,7 +1670,7 @@ test("configured pricing requires canonical quote review and expired quotes perm
     );
     assert.equal(
       (
-        screen.getByLabelText("Customer display name") as HTMLInputElement
+        screen.getByLabelText("Customer name (optional)") as HTMLInputElement
       ).closest("fieldset")?.disabled,
       false,
     );
@@ -3029,8 +3055,10 @@ test("new-service flags pause new visits and bookings while staff orders and exi
     await screen.findByText("Surulere customer", { exact: false });
     assert(screen.getByText("Some new services are paused"));
     fireEvent.click(screen.getByRole("tab", { name: "Point of sale" }));
-    fireEvent.click(screen.getByRole("button", { name: "Add Milk tea to order" }));
-    fireEvent.change(screen.getByLabelText("Customer display name"), {
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add Milk tea to order" }),
+    );
+    fireEvent.change(screen.getByLabelText("Customer name (optional)"), {
       target: { value: "Ada" },
     });
     fireEvent.change(screen.getByLabelText("Quantity of Milk tea"), {

@@ -1,3 +1,4 @@
+import { mockGuestSessionFetch } from "./mera-customer-session-fixture.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -25,14 +26,20 @@ const { render, screen, fireEvent, cleanup } =
   await import("@testing-library/react");
 const { default: CustomerExperience } =
   await import("../src/mera/customer/CustomerExperience.tsx");
+test.beforeEach(() => window.sessionStorage.clear());
+test.afterEach(() => cleanup());
+
 const menu = {
-  organization: { name: "Bing Chun" },
-  branch: { name: "Surulere" },
+  organization: {
+    id: "10000000-0000-4000-8000-000000000001",
+    name: "Bing Chun",
+  },
+  branch: { id: "20000000-0000-4000-8000-000000000001", name: "Surulere" },
   version: 1,
   orderingAvailable: true,
   products: [
     {
-      id: "p1",
+      id: "30000000-0000-4000-8000-000000000001",
       code: "C2",
       name: "Brown Sugar Boba",
       category: "Milk tea",
@@ -50,7 +57,7 @@ const menu = {
 };
 test("an uncertain checkout remains visible and retries retain the original idempotency key", async (t) => {
   const keys = [];
-  t.mock.method(globalThis, "fetch", async (input, init) => {
+  mockGuestSessionFetch(t, async (input, init) => {
     if (String(input).endsWith("/guest"))
       return Response.json(
         { error: "Guest session required" },
@@ -67,6 +74,7 @@ test("an uncertain checkout remains visible and retries retain the original idem
   });
   render(React.createElement(CustomerExperience));
   await screen.findByText("Brown Sugar Boba");
+  await screen.findByRole("heading", { name: "Your basket" });
   fireEvent.click(
     screen.getByRole("button", { name: "Choose: Brown Sugar Boba" }),
   );
@@ -90,7 +98,7 @@ test("an uncertain checkout remains visible and retries retain the original idem
 
 test("an expired table visit removes the previous private bill", async (t) => {
   let closed = false;
-  t.mock.method(globalThis, "fetch", async (input) => {
+  mockGuestSessionFetch(t, async (input) => {
     const path = String(input);
     if (path.endsWith("/menu")) return Response.json(menu);
     if (path.endsWith("/guest"))
@@ -154,7 +162,7 @@ test("an expired table visit removes the previous private bill", async (t) => {
 
 test("marketing consent starts unchecked and persists only an explicit choice", async (t) => {
   const writes = [];
-  t.mock.method(globalThis, "fetch", async (input, init) => {
+  mockGuestSessionFetch(t, async (input, init) => {
     const path = String(input);
     if (path.endsWith("/menu")) return Response.json(menu);
     if (path.endsWith("/branches")) return Response.json({ branches: [] });
@@ -194,7 +202,7 @@ test("a stalled customer write times out without silently retrying or confirming
   const { customerRequest } = await import("../src/mera/customer/client.ts");
   t.mock.timers.enable({ apis: ["setTimeout"] });
   let attempts = 0;
-  t.mock.method(globalThis, "fetch", (_url, options) => {
+  mockGuestSessionFetch(t, (_url, options) => {
     attempts++;
     return new Promise((_resolve, reject) =>
       options.signal.addEventListener("abort", () =>

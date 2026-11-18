@@ -11,6 +11,7 @@ import { uuid } from "../../api";
 import BranchSettings from "./BranchSettings";
 import RefundRequests from "./RefundRequests";
 import StaffPos from "./StaffPos";
+import PosOrderContext from "./PosOrderContext";
 import WorkspaceNavigation from "./WorkspaceNavigation";
 import WorkspaceAccount from "./WorkspaceAccount";
 import OperationalOverview from "./OperationalOverview";
@@ -621,8 +622,11 @@ export default function OrganizationWorkspace({
   const sendStaffOrder = async () => {
     const scope = branchBase;
     requestKey.current ||= uuid();
+    const resolvingUncertain = !!uncertainOrder;
     const body = uncertainOrder || {
       ...orderDraft,
+      displayName:
+        String(orderDraft.displayName || "").trim() || "Walk-in customer",
       menuVersion: data?.menuVersion,
       requestKey: requestKey.current,
       ...(staffQuote?.quote?.id ? { quoteId: staffQuote.quote.id } : {}),
@@ -648,7 +652,9 @@ export default function OrganizationWorkspace({
     } catch (error) {
       if (
         error instanceof WorkspaceError &&
-        (!error.status ||
+        (resolvingUncertain ||
+          !error.status ||
+          [401, 403, 404, 408, 429].includes(error.status) ||
           error.status >= 500 ||
           (error.status === 409 && error.code === "IDEMPOTENCY_CONFLICT"))
       ) {
@@ -1088,6 +1094,18 @@ export default function OrganizationWorkspace({
               role={sourceLabel(organization?.role)}
               disabled={busy}
               signingOut={logoutBusy}
+              notice={
+                allowed("billing.manage") &&
+                entitlements?.warning ===
+                  "Development trial duration is unresolved." &&
+                entitlements.newOrdersAllowed !== false
+                  ? {
+                      message: "Trial end date needs review.",
+                      label: "Review subscription",
+                      onReview: () => setSection("billing"),
+                    }
+                  : undefined
+              }
               onSignOut={
                 onLogout
                   ? () => {
@@ -1369,28 +1387,38 @@ export default function OrganizationWorkspace({
           </button>
         </section>
       )}
-      {entitlements?.warning && (
-        <div role="status" className="mw-note">
-          <strong>Subscription attention</strong>
-          <p>
-            {["overview", "counter"].includes(activeSection) &&
-            entitlements.warning === "Development trial duration is unresolved."
-              ? "Trial end date needs review."
-              : entitlements.warning}
-          </p>
-          {entitlements.restrictionAt && (
+      {entitlements?.warning &&
+        !(
+          ["overview", "counter"].includes(activeSection) &&
+          entitlements.warning ===
+            "Development trial duration is unresolved." &&
+          entitlements.newOrdersAllowed !== false
+        ) && (
+          <div role="status" className="mw-note">
+            <strong>Subscription attention</strong>
             <p>
-              Configured restriction time:{" "}
-              {dateLabel(entitlements.restrictionAt)}
+              {["overview", "counter"].includes(activeSection) &&
+              entitlements.warning ===
+                "Development trial duration is unresolved."
+                ? "Trial end date needs review."
+                : entitlements.warning}
             </p>
-          )}
-          {allowed("billing.manage") && (
-            <button className="secondary" onClick={() => setSection("billing")}>
-              Review subscription
-            </button>
-          )}
-        </div>
-      )}
+            {entitlements.restrictionAt && (
+              <p>
+                Configured restriction time:{" "}
+                {dateLabel(entitlements.restrictionAt)}
+              </p>
+            )}
+            {allowed("billing.manage") && (
+              <button
+                className="secondary"
+                onClick={() => setSection("billing")}
+              >
+                Review subscription
+              </button>
+            )}
+          </div>
+        )}
       {pendingFinancial && canResolveFinancial && data && (
         <div role="status" className="mw-note">
           <strong>
@@ -1549,6 +1577,10 @@ export default function OrganizationWorkspace({
               onSelect={setSection}
               organization={organization?.name || "Organization"}
               branch={branch?.name || "Choose a branch"}
+              logo={organization?.branding?.logo}
+              connectionState={
+                offline ? "offline" : data ? "connected" : "connecting"
+              }
             />
           ) : (
             <nav className="mw-navigation" aria-label="Organization workspace">
@@ -1801,6 +1833,13 @@ export default function OrganizationWorkspace({
                   disabled={busy || offline}
                   canNavigate={(id) =>
                     visibleSections.some(([sectionId]) => sectionId === id)
+                  }
+                  canViewAudit={allowed("organization.manage")}
+                  canViewShifts={allowed("shifts.manage")}
+                  staff={
+                    context?.user?.id && context?.user?.name
+                      ? [{ id: context.user.id, name: context.user.name }]
+                      : []
                   }
                   canCreate={allowed("orders.create")}
                   canViewOrders={allowed("orders.view")}
@@ -2838,101 +2877,29 @@ export default function OrganizationWorkspace({
                         products={products}
                         lines={orderDraft.items}
                         disabled={busy || offline || !!uncertainOrder}
-                        staffName={user?.name || "Staff"}
+                        staffName={context?.user?.name || user?.name || "Staff"}
                         useBingChunAssets={organization?.slug === "bing-chun"}
                         onChange={(items) => {
                           requestKey.current = null;
                           setOrderDraft({ ...orderDraft, items });
                         }}
                         details={
-                          <>
-                            <div className="mw-form">
-                              <label>
-                                Customer display name
-                                <input
-                                  required
-                                  value={orderDraft.displayName}
-                                  onChange={(event) => (
-                                    (requestKey.current = null),
-                                    setOrderDraft({
-                                      ...orderDraft,
-                                      displayName: event.target.value,
-                                    })
-                                  )}
-                                />
-                              </label>
-                              <label>
-                                Fulfillment
-                                <select
-                                  value={orderDraft.fulfillment}
-                                  onChange={(event) => (
-                                    (requestKey.current = null),
-                                    setOrderDraft({
-                                      ...orderDraft,
-                                      fulfillment: event.target.value,
-                                      visitId: undefined,
-                                    })
-                                  )}
-                                >
-                                  <option value="counter_pickup">
-                                    Counter pickup
-                                  </option>
-                                  <option value="takeaway">Takeaway</option>
-                                  {allowed("tables.manage") && (
-                                    <option value="table_service">
-                                      Table service
-                                    </option>
-                                  )}
-                                </select>
-                              </label>
-                            </div>
-                            {orderDraft.fulfillment === "table_service" && (
-                              <label>
-                                Open table visit
-                                <select
-                                  required
-                                  value={orderDraft.visitId || ""}
-                                  onChange={(event) => {
-                                    requestKey.current = null;
-                                    setOrderDraft({
-                                      ...orderDraft,
-                                      visitId: event.target.value,
-                                    });
-                                  }}
-                                >
-                                  <option value="">Select an open visit</option>
-                                  {list(data.visits)
-                                    .filter(
-                                      (visit: any) => visit.status === "open",
-                                    )
-                                    .map((visit: any) => (
-                                      <option key={visit.id} value={visit.id}>
-                                        {list(data.tables).find(
-                                          (table: any) =>
-                                            table.id === visit.tableId,
-                                        )?.name || "Table"}{" "}
-                                        ·{" "}
-                                        {visit.displayName ||
-                                          visit.id.slice(0, 8)}
-                                      </option>
-                                    ))}
-                                </select>
-                              </label>
-                            )}
-                            <label>
-                              Order note
-                              <input
-                                value={orderDraft.note}
-                                onChange={(event) => {
-                                  requestKey.current = null;
-                                  setOrderDraft({
-                                    ...orderDraft,
-                                    note: event.target.value,
-                                  });
-                                }}
-                              />
-                            </label>
-                          </>
+                          <PosOrderContext
+                            draft={{
+                              displayName: orderDraft.displayName,
+                              fulfillment: orderDraft.fulfillment,
+                              visitId: orderDraft.visitId,
+                              note: orderDraft.note,
+                            }}
+                            visits={list(data.visits)}
+                            tables={list(data.tables)}
+                            canUseTables={allowed("tables.manage")}
+                            disabled={busy || offline || !!uncertainOrder}
+                            onChange={(patch) => {
+                              requestKey.current = null;
+                              setOrderDraft({ ...orderDraft, ...patch });
+                            }}
+                          />
                         }
                       >
                         <button

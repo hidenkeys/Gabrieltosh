@@ -1,3 +1,4 @@
+import { mockGuestSessionFetch } from "./mera-customer-session-fixture.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -21,18 +22,24 @@ Object.defineProperty(globalThis, "navigator", {
   configurable: true,
 });
 const React = await import("react");
-const { render, screen, fireEvent, cleanup } =
+const { render, screen, fireEvent, cleanup, waitFor } =
   await import("@testing-library/react");
 const { default: CustomerExperience } =
   await import("../src/mera/customer/CustomerExperience.tsx");
+test.beforeEach(() => window.sessionStorage.clear());
+test.afterEach(() => cleanup());
+
 const menu = {
-  organization: { name: "Bing Chun" },
-  branch: { name: "Surulere" },
+  organization: {
+    id: "10000000-0000-4000-8000-000000000001",
+    name: "Bing Chun",
+  },
+  branch: { id: "20000000-0000-4000-8000-000000000001", name: "Surulere" },
   version: 1,
   orderingAvailable: true,
   products: [
     {
-      id: "p1",
+      id: "30000000-0000-4000-8000-000000000001",
       code: "C2",
       name: "Brown Sugar Boba",
       category: "Milk tea",
@@ -51,7 +58,7 @@ const menu = {
 test("table QR context never fetches a private bill before code validation", async (t) => {
   window.history.replaceState({}, "", "?tableId=table-one");
   const calls = [];
-  t.mock.method(globalThis, "fetch", async (input, init) => {
+  mockGuestSessionFetch(t, async (input, init) => {
     const path = String(input);
     calls.push({ path, body: init?.body });
     if (path.endsWith("/menu"))
@@ -111,7 +118,7 @@ test("deposit cancellation shows pending review without claiming refund", async 
   let requested = false;
   const { default: GuestActivity } =
     await import("../src/mera/customer/GuestActivity.tsx");
-  t.mock.method(globalThis, "fetch", async (input, init) => {
+  mockGuestSessionFetch(t, async (input, init) => {
     if (String(input).endsWith("/activity"))
       return Response.json({
         reservations: [
@@ -168,7 +175,7 @@ test("deposit cancellation shows pending review without claiming refund", async 
 
 test("another venue renders uploaded branding and photo without Bing Chun mascot", async (t) => {
   const asset = "/api/mera/v1/public/assets/asset-one";
-  t.mock.method(globalThis, "fetch", async (input) => {
+  mockGuestSessionFetch(t, async (input) => {
     if (String(input).endsWith("/menu"))
       return Response.json({
         ...menu,
@@ -203,7 +210,7 @@ test("another venue renders uploaded branding and photo without Bing Chun mascot
 test("configured charges require server review and uncertain retries preserve quote identity", async (t) => {
   const orders = [];
   let quotes = 0;
-  t.mock.method(globalThis, "fetch", async (input, init) => {
+  mockGuestSessionFetch(t, async (input, init) => {
     const path = String(input);
     if (path.endsWith("/menu"))
       return Response.json({ ...menu, pricingPolicy: { enabled: true } });
@@ -214,7 +221,9 @@ test("configured charges require server review and uncertain retries preserve qu
     if (path.endsWith("/quote")) {
       quotes++;
       return Response.json({
-        id: "quote-one",
+        id: "50000000-0000-4000-8000-000000000001",
+        currency: "NGN",
+        policyVersion: "pricing-v1",
         menuVersion: 1,
         expiresAt: "2099-01-01T00:00:00Z",
         subtotal: 380000,
@@ -235,6 +244,7 @@ test("configured charges require server review and uncertain retries preserve qu
   });
   render(React.createElement(CustomerExperience));
   await screen.findByText("Brown Sugar Boba");
+  await screen.findByRole("heading", { name: "Your basket" });
   fireEvent.click(
     screen.getByRole("button", { name: "Choose: Brown Sugar Boba" }),
   );
@@ -251,14 +261,14 @@ test("configured charges require server review and uncertain retries preserve qu
   await screen.findByRole("alert");
   assert.equal(quotes, 1);
   assert.equal(orders.length, 2);
-  assert.equal(orders[0].quoteId, "quote-one");
+  assert.equal(orders[0].quoteId, "50000000-0000-4000-8000-000000000001");
   assert.equal(orders[1].quoteId, orders[0].quoteId);
   assert.equal(orders[1].requestKey, orders[0].requestKey);
   cleanup();
 });
 
 test("customization modal contains keyboard focus and restores its trigger", async (t) => {
-  t.mock.method(globalThis, "fetch", async (input) =>
+  mockGuestSessionFetch(t, async (input) =>
     String(input).endsWith("/menu")
       ? Response.json(menu)
       : Response.json({ error: "guest" }, { status: 401 }),
@@ -268,6 +278,7 @@ test("customization modal contains keyboard focus and restores its trigger", asy
   const trigger = screen.getByRole("button", {
     name: "Choose: Brown Sugar Boba",
   });
+  await waitFor(() => assert.equal(trigger.disabled, false));
   trigger.focus();
   fireEvent.click(trigger);
   const dialog = screen.getByRole("dialog");
@@ -292,7 +303,7 @@ test("help request uncertainty retries original intent without claiming external
   const { default: HelpRequests } =
     await import("../src/mera/customer/HelpRequests.tsx");
   const attempts = [];
-  t.mock.method(globalThis, "fetch", async (input, init) => {
+  mockGuestSessionFetch(t, async (input, init) => {
     assert.equal(String(input), "/api/mera/v1/public/org/branch/help-requests");
     if (init.method === "POST") {
       attempts.push(JSON.parse(init.body));
@@ -344,7 +355,7 @@ test("minimum-spend visit terms require explicit acknowledgement before private 
     disclosure: "Original visit terms saved before the current policy changed.",
     version: "original-version",
   };
-  t.mock.method(globalThis, "fetch", async (input, init) => {
+  mockGuestSessionFetch(t, async (input, init) => {
     const path = String(input);
     if (path.endsWith("/menu"))
       return Response.json({
@@ -437,7 +448,7 @@ test("reservation acknowledgement and original details survive uncertain deliver
     disclosure: "Booking minimum-spend terms",
     version: "booking-v1",
   };
-  t.mock.method(globalThis, "fetch", async (input, init) => {
+  mockGuestSessionFetch(t, async (input, init) => {
     const path = String(input);
     if (path.endsWith("/menu"))
       return Response.json({
@@ -524,7 +535,7 @@ test("customer private requests select organization from explicit menu/store rou
     undefined,
   );
   const calls = [];
-  t.mock.method(globalThis, "fetch", async (input, init) => {
+  mockGuestSessionFetch(t, async (input, init) => {
     calls.push(init);
     return Response.json({ id: "own-order" });
   });
@@ -572,7 +583,7 @@ test("published nested category IDs filter descendants and retain legacy categor
       category: "Desserts",
     },
   ];
-  t.mock.method(globalThis, "fetch", async (input) =>
+  mockGuestSessionFetch(t, async (input) =>
     String(input).endsWith("/menu")
       ? Response.json({ ...menu, categories: graph, products })
       : Response.json({ error: "guest" }, { status: 401 }),
@@ -596,7 +607,7 @@ test("published nested category IDs filter descendants and retain legacy categor
 });
 
 test("canonical outstanding and authorized writeoff are disclosed instead of recalculating cash due", async (t) => {
-  t.mock.method(globalThis, "fetch", async (input) => {
+  mockGuestSessionFetch(t, async (input) => {
     const path = String(input);
     if (path.endsWith("/menu")) return Response.json(menu);
     if (path.endsWith("/guest"))
@@ -643,7 +654,7 @@ test("session history pages and ending require explicit in-app confirmation", as
   const calls = [];
   let cleared = "",
     selected;
-  t.mock.method(globalThis, "fetch", async (input, init) => {
+  mockGuestSessionFetch(t, async (input, init) => {
     const path = String(input);
     calls.push({ path, method: init.method });
     if (path.endsWith("/guest/end"))

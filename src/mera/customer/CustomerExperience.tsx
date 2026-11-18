@@ -1,6 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { brandingStyle } from "../branding";
 import { categoryNavigation, matchesCategory } from "./categories";
+import {
+  assertCheckoutSession,
+  parseAttemptResolution,
+  buildCheckoutJournal,
+  checkoutScopeFromMenu,
+  clearCheckoutJournal,
+  currentSessionRef,
+  readCheckoutJournal,
+  saveCheckoutJournal,
+  CheckoutRecoveryError,
+  type CheckoutJournal,
+} from "./checkoutRecovery";
 import SessionOrders from "./SessionOrders";
 import HelpRequests from "./HelpRequests";
 import GuestActivity from "./GuestActivity";
@@ -99,9 +111,31 @@ export default function CustomerExperience({
   const [checkoutIntent, setCheckoutIntent] = useState<any>(null);
   const checkoutIntentRef = useRef<any>(null);
   const checkoutInFlight = useRef(false);
+  const checkoutUncertain = useRef(false);
   const checkoutGeneration = useRef(0);
-  const checkoutLocked = busy || !!checkoutIntent;
+  const [checkoutRecovery, setCheckoutRecovery] = useState<{
+    phase: "checking" | "ready" | "blocked";
+    message: string;
+  }>({ phase: "checking", message: "Checking this tab’s saved orders…" });
+  const checkoutJournalRef = useRef<CheckoutJournal | null>(null);
+  const checkoutReviewRef = useRef<{ lines: CartLine[]; quote: any } | null>(
+    null,
+  );
+  const recoveryCheck = useRef(0);
+  const resolvingAttempt = useRef(false);
+  const [confirmStopRequest, setConfirmStopRequest] = useState(false);
+  const [stopReason, setStopReason] = useState("");
+  const checkoutLocked =
+    busy || !!checkoutIntent || checkoutRecovery.phase !== "ready";
   const modalRef = useRef<HTMLDivElement>(null);
+  const modifierGroupRefs = useRef(new Map<string, HTMLFieldSetElement>());
+  const [modifierError, setModifierError] = useState<string | null>(null);
+  const [customizationError, setCustomizationError] = useState("");
+  function closeCustomization() {
+    setSelected(null);
+    setModifierError(null);
+    setCustomizationError("");
+  }
   const basketRef = useRef<HTMLElement>(null);
   const [basketViewed, setBasketViewed] = useState(false);
   useEffect(() => {
@@ -149,6 +183,16 @@ export default function CustomerExperience({
       })
       .catch(() => {});
     checkoutGeneration.current++;
+    recoveryCheck.current++;
+    checkoutJournalRef.current = null;
+    checkoutReviewRef.current = null;
+    resolvingAttempt.current = false;
+    setConfirmStopRequest(false);
+    setStopReason("");
+    setCheckoutRecovery({
+      phase: "checking",
+      message: "Checking this tab’s saved orders…",
+    });
     checkoutInFlight.current = false;
     setBusy(false);
     checkoutIntentRef.current = null;
@@ -203,12 +247,100 @@ export default function CustomerExperience({
       active = false;
     };
   }, [prefix]);
+  async function restoreCheckout() {
+    const check = ++recoveryCheck.current;
+    setCheckoutRecovery({
+      phase: "checking",
+      message: "Checking this tab’s saved orders…",
+    });
+    try {
+      const scope = checkoutScopeFromMenu(
+        menu?.organization?.id,
+        branch,
+        menu?.branch?.id,
+      );
+      const stored = readCheckoutJournal(scope);
+      let record = stored || checkoutJournalRef.current;
+      if (!record && !checkoutIntentRef.current) {
+        if (check === recoveryCheck.current)
+          setCheckoutRecovery({ phase: "ready", message: "" });
+        return;
+      }
+      const session = await customerRequest(prefix + "/guest");
+      if (check !== recoveryCheck.current) return;
+      if (!record) {
+        if (!checkoutReviewRef.current)
+          throw new CheckoutRecoveryError(
+            "The original review could not be restored safely. No new order was sent.",
+          );
+        record = buildCheckoutJournal({
+          scope,
+          sessionRef: currentSessionRef(session),
+          intent: checkoutIntentRef.current,
+          lines: checkoutReviewRef.current.lines,
+          quote: checkoutReviewRef.current.quote,
+        });
+      }
+      assertCheckoutSession(record, session);
+      record = saveCheckoutJournal(record);
+      if (check !== recoveryCheck.current) return;
+      checkoutJournalRef.current = record;
+      checkoutReviewRef.current = record.review;
+      checkoutIntentRef.current = record.intent;
+      setCheckoutIntent(record.intent);
+      checkoutKey.current = record.intent.requestKey;
+      checkoutUncertain.current = true;
+      setCart(record.review.lines);
+      setDisplayName(record.intent.displayName);
+      setNote(record.intent.note);
+      setFulfillment(record.intent.fulfillment);
+      setHasGuest(true);
+      setQuote(
+        record.review.quote
+          ? {
+              ...record.review.quote,
+              cartSignature: JSON.stringify(record.intent.items),
+            }
+          : null,
+      );
+      setCheckoutRecovery({
+        phase: "ready",
+        message:
+          "A saved order is still unconfirmed. Review its original details and retry the original request. Nothing was submitted automatically.",
+      });
+    } catch (e) {
+      if (check !== recoveryCheck.current) return;
+      setOrder(null);
+      setVisit(null);
+      setReservation(null);
+      setHasGuest(false);
+      setDisplayName("");
+      setNote("");
+      setCart([]);
+      setQuote(null);
+      setCheckoutRecovery({
+        phase: "blocked",
+        message:
+          e instanceof CheckoutRecoveryError
+            ? e.message
+            : "The saved order’s session could not be checked. It has not been resubmitted. Check your connection or ask staff to review it before ordering again.",
+      });
+    }
+  }
+  useEffect(() => {
+    if (menu) void restoreCheckout();
+    return () => {
+      recoveryCheck.current++;
+    };
+  }, [menu?.organization?.id, menu?.branch?.id, branch, prefix]);
   useEffect(() => {
     if (!selected) return;
     const prior = document.activeElement as HTMLElement;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     modalRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelected(null);
+      if (event.key === "Escape") closeCustomization();
       if (event.key === "Tab" && modalRef.current) {
         const controls = modalRef.current.querySelectorAll<HTMLElement>(
           'button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]',
@@ -225,13 +357,18 @@ export default function CustomerExperience({
         } else if (!event.shiftKey && document.activeElement === last) {
           event.preventDefault();
           first?.focus();
+        } else if (!modalRef.current.contains(document.activeElement)) {
+          event.preventDefault();
+          (event.shiftKey ? last : first)?.focus();
         }
       }
     };
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
-      prior?.focus();
+      document.body.style.overflow = overflow;
+      if (prior?.isConnected) prior.focus();
+      else searchRef.current?.focus();
     };
   }, [selected]);
   useEffect(() => {
@@ -342,11 +479,28 @@ export default function CustomerExperience({
     0,
   );
   function clearGuestView(message: string) {
+    resolvingAttempt.current = false;
+    setConfirmStopRequest(false);
+    setStopReason("");
+    const unresolved =
+      !!checkoutIntentRef.current ||
+      !!checkoutJournalRef.current ||
+      checkoutRecovery.phase === "blocked";
     setBusy(false);
     checkoutGeneration.current++;
+    recoveryCheck.current++;
     checkoutInFlight.current = false;
-    checkoutIntentRef.current = null;
-    setCheckoutIntent(null);
+    if (!unresolved) {
+      checkoutIntentRef.current = null;
+      setCheckoutIntent(null);
+      checkoutReviewRef.current = null;
+      checkoutKey.current = requestId();
+    } else
+      setCheckoutRecovery({
+        phase: "blocked",
+        message:
+          "Guest access ended, but an earlier order still needs review. Its recovery record was not discarded. Ask staff to check it before ordering again.",
+      });
     setOrder(null);
     setVisit(null);
     setReservation(null);
@@ -359,12 +513,11 @@ export default function CustomerExperience({
     setJoinAcknowledged(false);
     setReservationIntent(null);
     setReservationAcknowledged(false);
-    if (!checkoutIntentRef.current) setFulfillment("counter_pickup");
+    setFulfillment("counter_pickup");
     setTrackingError("");
     setError("");
     setSuccess(message);
     setTab("menu");
-    checkoutKey.current = requestId();
     reservationKey.current = requestId();
   }
   async function guest(
@@ -386,7 +539,11 @@ export default function CustomerExperience({
         modifiers.includes(option.id),
       ).length;
       if (count < group.min || count > group.max) {
-        setError(`Choose ${group.min}–${group.max} options for ${group.name}.`);
+        setModifierError(group.id);
+        setCustomizationError(
+          `Choose ${group.min === group.max ? group.min : `${group.min}–${group.max}`} ${group.max === 1 ? "option" : "options"} for ${group.name}.`,
+        );
+        modifierGroupRefs.current.get(group.id)?.focus();
         return;
       }
     }
@@ -437,12 +594,13 @@ export default function CustomerExperience({
       ? quote
       : null;
   async function submitOrder() {
-    if (checkoutInFlight.current) return;
+    if (checkoutInFlight.current || checkoutRecovery.phase !== "ready") return;
     checkoutInFlight.current = true;
     const generation = checkoutGeneration.current;
     setBusy(true);
     setError("");
     let attempt = checkoutIntentRef.current;
+    let sessionVerified = false;
     try {
       if (!attempt && menu.pricingPolicy?.enabled && !currentQuote) {
         await guest();
@@ -455,6 +613,7 @@ export default function CustomerExperience({
         return;
       }
       if (!attempt) {
+        checkoutUncertain.current = false;
         attempt = {
           requestKey: checkoutKey.current,
           ...(menu.pricingPolicy?.enabled ? { quoteId: currentQuote.id } : {}),
@@ -466,15 +625,47 @@ export default function CustomerExperience({
           note,
         };
         checkoutIntentRef.current = attempt;
+        checkoutReviewRef.current = {
+          lines: JSON.parse(JSON.stringify(cart)),
+          quote: currentQuote,
+        };
         setCheckoutIntent(attempt);
       }
-      await guest(attempt.displayName, generation);
+      const scope = checkoutScopeFromMenu(
+        menu?.organization?.id,
+        branch,
+        menu?.branch?.id,
+      );
+      let record = checkoutJournalRef.current;
+      if (!record) await guest(attempt.displayName, generation);
       if (generation !== checkoutGeneration.current) return;
+      const session = await customerRequest(prefix + "/guest");
+      if (generation !== checkoutGeneration.current) return;
+      if (record) assertCheckoutSession(record, session);
+      else
+        record = buildCheckoutJournal({
+          scope,
+          sessionRef: currentSessionRef(session),
+          intent: attempt,
+          lines: checkoutReviewRef.current!.lines,
+          quote: checkoutReviewRef.current!.quote,
+        });
+      sessionVerified = true;
+      checkoutJournalRef.current = record;
+      record = saveCheckoutJournal(record);
+      attempt = record.intent;
+      checkoutIntentRef.current = attempt;
+      setCheckoutIntent(attempt);
       const next = await customerRequest(prefix + "/orders", "POST", attempt);
       if (generation !== checkoutGeneration.current) return;
+      setOrder(next);
+      setTab("track");
+      clearCheckoutJournal(scope, attempt.requestKey);
+      checkoutJournalRef.current = null;
+      checkoutReviewRef.current = null;
       checkoutIntentRef.current = null;
       setCheckoutIntent(null);
-      setOrder(next);
+      setCheckoutRecovery({ phase: "ready", message: "" });
       setQuote(null);
       setCart([]);
       setTab("track");
@@ -482,16 +673,161 @@ export default function CustomerExperience({
     } catch (e) {
       if (generation !== checkoutGeneration.current) return;
       const message = (e as Error).message;
-      if ((e as any).status && (e as any).status < 500) {
-        checkoutIntentRef.current = null;
-        setCheckoutIntent(null);
-        if ((e as any).status === 409) setQuote(null);
+      const canCorrectFirstDomainRejection =
+        !checkoutUncertain.current &&
+        (e as any).status === 409 &&
+        ["MENU_CHANGED", "QUOTE_CHANGED", "QUOTE_REQUIRED"].includes(
+          (e as any).code,
+        );
+      if (canCorrectFirstDomainRejection && !attempt) {
+        setQuote(null);
+      } else if (canCorrectFirstDomainRejection) {
+        try {
+          const scope = checkoutScopeFromMenu(
+            menu?.organization?.id,
+            branch,
+            menu?.branch?.id,
+          );
+          clearCheckoutJournal(scope, attempt.requestKey);
+          checkoutJournalRef.current = null;
+          checkoutReviewRef.current = null;
+          checkoutIntentRef.current = null;
+          setCheckoutIntent(null);
+          setQuote(null);
+        } catch (clearError) {
+          checkoutUncertain.current = true;
+          setCheckoutRecovery({
+            phase: "blocked",
+            message: (clearError as Error).message,
+          });
+        }
+      } else if (attempt) {
+        checkoutUncertain.current = true;
+        if (
+          e instanceof CheckoutRecoveryError ||
+          (!sessionVerified && [401, 403, 404].includes((e as any).status))
+        )
+          setCheckoutRecovery({
+            phase: "blocked",
+            message:
+              e instanceof CheckoutRecoveryError
+                ? e.message
+                : "This guest session could not be verified. The original order remains saved and has not been retried. Ask staff to review it before ordering again.",
+          });
+        else if ([401, 403, 404, 408, 429].includes((e as any).status))
+          setCheckoutRecovery({
+            phase: "ready",
+            message:
+              "The original order is still unresolved. This response did not confirm its outcome; its original retry details remain locked.",
+          });
       }
       await load().catch(() => {});
       setError(message);
     } finally {
       if (generation === checkoutGeneration.current) {
         checkoutInFlight.current = false;
+        setBusy(false);
+      }
+    }
+  }
+  async function resolveOriginalOrder(stop = false) {
+    if (
+      checkoutInFlight.current ||
+      resolvingAttempt.current ||
+      checkoutRecovery.phase !== "ready"
+    )
+      return;
+    resolvingAttempt.current = true;
+    const generation = checkoutGeneration.current;
+    setBusy(true);
+    setError("");
+    try {
+      const scope = checkoutScopeFromMenu(
+        menu?.organization?.id,
+        branch,
+        menu?.branch?.id,
+      );
+      const record = checkoutJournalRef.current || readCheckoutJournal(scope);
+      if (!record)
+        throw new CheckoutRecoveryError(
+          "The original order could not be checked safely. Keep this tab open and ask staff to review it.",
+        );
+      const session = await customerRequest(prefix + "/guest");
+      assertCheckoutSession(record, session);
+      if (generation !== checkoutGeneration.current) return;
+      const result = parseAttemptResolution(
+        await customerRequest(
+          prefix +
+            "/order-attempts/" +
+            record.intent.requestKey +
+            (stop ? "/abandon" : ""),
+          stop ? "POST" : "GET",
+          stop ? { reason: stopReason.trim() } : undefined,
+        ),
+      );
+      if (generation !== checkoutGeneration.current) return;
+      if (result.status === "not_found") {
+        setCheckoutRecovery({
+          phase: "ready",
+          message:
+            "The venue has not recorded this request yet. That does not confirm failure. Keep the original retry details, or explicitly stop this unconfirmed request before starting another.",
+        });
+        return;
+      }
+      if (result.status === "recorded") {
+        setOrder(result.order);
+        setTab("track");
+      }
+      clearCheckoutJournal(scope, record.intent.requestKey);
+      checkoutGeneration.current++;
+      recoveryCheck.current++;
+      checkoutInFlight.current = false;
+      resolvingAttempt.current = false;
+      checkoutJournalRef.current = null;
+      checkoutReviewRef.current = null;
+      checkoutIntentRef.current = null;
+      checkoutUncertain.current = false;
+      setCheckoutIntent(null);
+      setQuote(null);
+      setCart([]);
+      setNote("");
+      setConfirmStopRequest(false);
+      setStopReason("");
+      setBusy(false);
+      checkoutKey.current = requestId();
+      setCheckoutRecovery({ phase: "ready", message: "" });
+      if (result.status === "recorded") {
+        setOrder(result.order);
+        setTab("track");
+        setSuccess(
+          "Your order was already received. It has not been cancelled, and no refund was made.",
+        );
+      } else {
+        setTab("menu");
+        setFulfillment(visit?.visit?.id ? "table_service" : "counter_pickup");
+        setSuccess(
+          "That unconfirmed request is stopped. No payment or refund was made. You can choose items for a new order.",
+        );
+        void load();
+      }
+    } catch (e) {
+      if (generation !== checkoutGeneration.current) return;
+      checkoutUncertain.current = true;
+      setError((e as Error).message);
+      if (
+        e instanceof CheckoutRecoveryError ||
+        [401, 403, 404].includes((e as any).status)
+      )
+        setCheckoutRecovery({
+          phase: "blocked",
+          message:
+            e instanceof CheckoutRecoveryError
+              ? e.message
+              : "This guest session could not be verified. The original request remains saved; no replacement order was sent.",
+        });
+    } finally {
+      if (generation === checkoutGeneration.current) {
+        resolvingAttempt.current = false;
         setBusy(false);
       }
     }
@@ -609,7 +945,11 @@ export default function CustomerExperience({
           : {}),
       }}
     >
-      <header className="mc-top">
+      <header
+        className="mc-top"
+        inert={!!selected}
+        aria-hidden={selected ? true : undefined}
+      >
         <div className="mc-wrap">
           <div className="mc-brand">
             {logo || bingChun ? (
@@ -665,7 +1005,11 @@ export default function CustomerExperience({
           )}
         </div>
       </header>
-      <main className="mc-wrap">
+      <main
+        className="mc-wrap"
+        inert={!!selected}
+        aria-hidden={selected ? true : undefined}
+      >
         <section className="mc-hero" aria-labelledby="mc-menu-title">
           <div>
             <h1 id="mc-menu-title">Menu</h1>
@@ -748,6 +1092,20 @@ export default function CustomerExperience({
         {success && (
           <div className="mc-alert mc-success" role="status">
             {success}
+          </div>
+        )}
+        {menu && checkoutRecovery.message && (
+          <div className="mc-alert" role="status">
+            <p>{checkoutRecovery.message}</p>
+            {checkoutRecovery.phase === "blocked" && (
+              <button
+                className="mc-secondary"
+                disabled={busy}
+                onClick={() => void restoreCheckout()}
+              >
+                Check saved order and session
+              </button>
+            )}
           </div>
         )}
         {!menu && !error && (
@@ -842,6 +1200,7 @@ export default function CustomerExperience({
                       )}
                       <span className="mc-price">{money(p.price)}</span>
                       <button
+                        aria-label={`${!p.available || (p.stockMode === "counted" && p.stock <= 0) ? "Sold out" : "Choose"}: ${p.name}`}
                         disabled={
                           checkoutLocked ||
                           !p.available ||
@@ -850,6 +1209,8 @@ export default function CustomerExperience({
                         }
                         onClick={() => {
                           setSelected(p);
+                          setModifierError(null);
+                          setCustomizationError("");
                           setVariant(p.variants?.[0]?.id || "");
                           setModifiers([]);
                           setError("");
@@ -897,187 +1258,271 @@ export default function CustomerExperience({
               ref={basketRef}
               aria-labelledby="mc-basket-title"
             >
-              <div className="mc-basket-heading">
-                <h2 id="mc-basket-title" ref={basketHeadingRef} tabIndex={-1}>
-                  Your basket
-                </h2>
-                <span>
-                  {basketQuantity} {basketQuantity === 1 ? "item" : "items"}
-                </span>
-              </div>
-              <button
-                className="mc-mobile-only mc-secondary"
-                onClick={returnToMenu}
-              >
-                Back to menu
-              </button>
-              {cart.length === 0 ? (
-                <p className="mc-basket-empty">
-                  Your basket is empty. Choose something from the menu to get
-                  started.
-                </p>
-              ) : (
-                cart.map((line) => (
-                  <div className="mc-line" key={line.key}>
-                    <strong>{line.name}</strong>
-                    <small>{line.summary}</small>
-                    <div className="mc-line-controls">
-                      <button
-                        aria-label={`Remove one ${line.name}`}
-                        disabled={checkoutLocked}
-                        onClick={() => {
-                          if (
-                            checkoutIntentRef.current ||
-                            checkoutInFlight.current
-                          )
-                            return;
-                          setCart((old) =>
-                            old
-                              .map((l) =>
-                                l.key === line.key
-                                  ? { ...l, quantity: l.quantity - 1 }
-                                  : l,
-                              )
-                              .filter((l) => l.quantity > 0),
-                          );
-                          checkoutKey.current = requestId();
-                        }}
-                      >
-                        −
-                      </button>
-                      <span>{line.quantity}</span>
-                      <button
-                        aria-label={`Add one ${line.name}`}
-                        disabled={checkoutLocked || line.quantity >= 100}
-                        onClick={() => {
-                          if (
-                            checkoutIntentRef.current ||
-                            checkoutInFlight.current
-                          )
-                            return;
-                          setCart((old) =>
-                            old.map((l) =>
-                              l.key === line.key
-                                ? { ...l, quantity: l.quantity + 1 }
-                                : l,
-                            ),
-                          );
-                          checkoutKey.current = requestId();
-                        }}
-                      >
-                        +
-                      </button>
-                      <b>{money(line.unitPrice * line.quantity)}</b>
-                    </div>
-                  </div>
-                ))
-              )}
-              <label>
-                Your name
-                <input
-                  maxLength={100}
-                  autoComplete="given-name"
-                  value={displayName}
-                  disabled={checkoutLocked}
-                  onChange={(e) => {
-                    if (!checkoutLocked) setDisplayName(e.target.value);
-                  }}
-                  placeholder="What should we call you?"
-                />
-              </label>
-              <label>
-                Enjoy it
-                <select
-                  value={fulfillment}
-                  disabled={checkoutLocked}
-                  onChange={(e) => {
-                    if (!checkoutLocked) setFulfillment(e.target.value);
-                  }}
-                >
-                  <option value="counter_pickup">Counter pickup</option>
-                  <option value="takeaway">Takeaway</option>
-                  {(visit ||
-                    checkoutIntent?.fulfillment === "table_service") && (
-                    <option value="table_service">At my table</option>
+              {checkoutRecovery.phase !== "ready" ? (
+                <div className="mc-recovery">
+                  <h2 id="mc-basket-title" ref={basketHeadingRef} tabIndex={-1}>
+                    Order recovery
+                  </h2>
+                  <p>{checkoutRecovery.message}</p>
+                  {checkoutRecovery.phase === "blocked" && (
+                    <button
+                      className="mc-secondary"
+                      disabled={busy}
+                      onClick={() => void restoreCheckout()}
+                    >
+                      Check saved order
+                    </button>
                   )}
-                </select>
-              </label>
-              <label>
-                Anything we should know?
-                <textarea
-                  maxLength={500}
-                  value={note}
-                  disabled={checkoutLocked}
-                  onChange={(e) => {
-                    if (!checkoutLocked) setNote(e.target.value);
-                  }}
-                  placeholder="Optional order note"
-                />
-              </label>
-              {currentQuote && (
-                <div aria-label="Server price review" role="status">
-                  <p>Subtotal {money(currentQuote.subtotal)}</p>
-                  {currentQuote.lines?.map((line: any, index: number) => (
-                    <p key={index}>
-                      {line.label}: {money(line.amount)}
+                </div>
+              ) : (
+                <>
+                  <div className="mc-basket-heading">
+                    <h2
+                      id="mc-basket-title"
+                      ref={basketHeadingRef}
+                      tabIndex={-1}
+                    >
+                      Your basket
+                    </h2>
+                    <span>
+                      {basketQuantity} {basketQuantity === 1 ? "item" : "items"}
+                    </span>
+                  </div>
+                  <button
+                    className="mc-mobile-only mc-secondary"
+                    onClick={returnToMenu}
+                  >
+                    Back to menu
+                  </button>
+                  {cart.length === 0 ? (
+                    <p className="mc-basket-empty">
+                      Your basket is empty. Choose something from the menu to
+                      get started.
                     </p>
-                  ))}
-                  <p>
-                    Review these charges before submitting. Quote expires{" "}
-                    {new Date(currentQuote.expiresAt).toLocaleTimeString()}.
+                  ) : (
+                    cart.map((line) => (
+                      <div className="mc-line" key={line.key}>
+                        <strong>{line.name}</strong>
+                        <small>{line.summary}</small>
+                        <div className="mc-line-controls">
+                          <button
+                            aria-label={`Remove one ${line.name}${line.summary ? ` (${line.summary})` : ""}`}
+                            disabled={checkoutLocked}
+                            onClick={() => {
+                              if (
+                                checkoutIntentRef.current ||
+                                checkoutInFlight.current
+                              )
+                                return;
+                              setCart((old) =>
+                                old
+                                  .map((l) =>
+                                    l.key === line.key
+                                      ? { ...l, quantity: l.quantity - 1 }
+                                      : l,
+                                  )
+                                  .filter((l) => l.quantity > 0),
+                              );
+                              checkoutKey.current = requestId();
+                            }}
+                          >
+                            −
+                          </button>
+                          <span>{line.quantity}</span>
+                          <button
+                            aria-label={`Add one ${line.name}${line.summary ? ` (${line.summary})` : ""}`}
+                            disabled={checkoutLocked || line.quantity >= 100}
+                            onClick={() => {
+                              if (
+                                checkoutIntentRef.current ||
+                                checkoutInFlight.current
+                              )
+                                return;
+                              setCart((old) =>
+                                old.map((l) =>
+                                  l.key === line.key
+                                    ? { ...l, quantity: l.quantity + 1 }
+                                    : l,
+                                ),
+                              );
+                              checkoutKey.current = requestId();
+                            }}
+                          >
+                            +
+                          </button>
+                          <b>{money(line.unitPrice * line.quantity)}</b>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  <label>
+                    Your name
+                    <input
+                      maxLength={100}
+                      autoComplete="given-name"
+                      value={displayName}
+                      disabled={checkoutLocked}
+                      onChange={(e) => {
+                        if (!checkoutLocked) setDisplayName(e.target.value);
+                      }}
+                      placeholder="What should we call you?"
+                    />
+                  </label>
+                  <label>
+                    Enjoy it
+                    <select
+                      value={fulfillment}
+                      disabled={checkoutLocked}
+                      onChange={(e) => {
+                        if (!checkoutLocked) setFulfillment(e.target.value);
+                      }}
+                    >
+                      <option value="counter_pickup">Counter pickup</option>
+                      <option value="takeaway">Takeaway</option>
+                      {(visit ||
+                        checkoutIntent?.fulfillment === "table_service") && (
+                        <option value="table_service">At my table</option>
+                      )}
+                    </select>
+                  </label>
+                  <label>
+                    Anything we should know?
+                    <textarea
+                      maxLength={500}
+                      value={note}
+                      disabled={checkoutLocked}
+                      onChange={(e) => {
+                        if (!checkoutLocked) setNote(e.target.value);
+                      }}
+                      placeholder="Optional order note"
+                    />
+                  </label>
+                  {currentQuote && (
+                    <div aria-label="Server price review" role="status">
+                      <p>Subtotal {money(currentQuote.subtotal)}</p>
+                      {currentQuote.lines?.map((line: any, index: number) => (
+                        <p key={index}>
+                          {line.label}: {money(line.amount)}
+                        </p>
+                      ))}
+                      <p>
+                        Review these charges before submitting. Quote expires{" "}
+                        {new Date(currentQuote.expiresAt).toLocaleTimeString()}.
+                      </p>
+                    </div>
+                  )}
+                  <div className="mc-total">
+                    <span>
+                      {menu.pricingPolicy?.enabled && !currentQuote
+                        ? "Items estimate"
+                        : "Total"}
+                    </span>
+                    <span>{money(currentQuote?.total ?? total)}</span>
+                  </div>
+                  {menu.pricingPolicy?.enabled && !currentQuote && (
+                    <p>
+                      Review the server’s discount, service charge and tax
+                      before submitting your order.
+                    </p>
+                  )}
+                  <p className="mc-note">
+                    The venue checks final prices and availability when you
+                    submit. Online payment is not available. Please pay at the
+                    counter; staff will confirm your payment.
                   </p>
-                </div>
+                  {!menu.orderingAvailable && (
+                    <div className="mc-alert">
+                      Ordering is currently paused. You can still browse the
+                      menu.
+                    </div>
+                  )}
+                  {checkoutIntent && !busy && (
+                    <p className="mc-note" role="status">
+                      Order confirmation is uncertain. Your original basket and
+                      details are preserved. Retry this request or check your
+                      session orders before starting another order.
+                    </p>
+                  )}
+                  {checkoutIntent && (
+                    <div className="mc-actions">
+                      <button
+                        type="button"
+                        className="mc-secondary"
+                        disabled={busy}
+                        onClick={() => void resolveOriginalOrder()}
+                      >
+                        Check original order
+                      </button>
+                      <button
+                        type="button"
+                        className="mc-secondary"
+                        disabled={busy}
+                        onClick={() => setConfirmStopRequest(true)}
+                      >
+                        Stop unconfirmed request…
+                      </button>
+                    </div>
+                  )}
+                  {checkoutIntent && confirmStopRequest && (
+                    <div className="mc-alert">
+                      <h3>Stop this unconfirmed request?</h3>
+                      <p>
+                        If the venue already received your order, it will be
+                        kept and shown to you. Otherwise this request will be
+                        stopped so you can start another. This does not cancel
+                        an accepted order, make a payment or confirm a refund.
+                      </p>
+                      <label>
+                        Why stop this request?
+                        <textarea
+                          minLength={3}
+                          maxLength={500}
+                          value={stopReason}
+                          disabled={busy}
+                          onChange={(event) =>
+                            setStopReason(event.target.value)
+                          }
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="mc-secondary"
+                        disabled={busy}
+                        onClick={() => setConfirmStopRequest(false)}
+                      >
+                        Keep original request
+                      </button>
+                      <button
+                        type="button"
+                        className="mc-primary"
+                        disabled={busy || stopReason.trim().length < 3}
+                        onClick={() => void resolveOriginalOrder(true)}
+                      >
+                        Stop this request
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    className="mc-primary"
+                    disabled={
+                      busy ||
+                      (!checkoutIntent &&
+                        (!cart.length ||
+                          !displayName.trim() ||
+                          !menu.orderingAvailable))
+                    }
+                    onClick={submitOrder}
+                  >
+                    {busy
+                      ? "Checking…"
+                      : checkoutIntent
+                        ? "Retry original order"
+                        : menu.pricingPolicy?.enabled && !currentQuote
+                          ? "Review total"
+                          : "Submit order"}
+                  </button>
+                </>
               )}
-              <div className="mc-total">
-                <span>
-                  {menu.pricingPolicy?.enabled && !currentQuote
-                    ? "Items estimate"
-                    : "Total"}
-                </span>
-                <span>{money(currentQuote?.total ?? total)}</span>
-              </div>
-              {menu.pricingPolicy?.enabled && !currentQuote && (
-                <p>
-                  Review the server’s discount, service charge and tax before
-                  submitting your order.
-                </p>
-              )}
-              <p className="mc-note">
-                The venue checks final prices and availability when you submit.
-                Online payment is unavailable until the provider and charging
-                policy are approved. Staff must verify any payment.
-              </p>
-              {!menu.orderingAvailable && (
-                <div className="mc-alert">
-                  Ordering is currently paused. You can still browse the menu.
-                </div>
-              )}
-              {checkoutIntent && !busy && (
-                <p className="mc-note" role="status">
-                  Order confirmation is uncertain. Your original basket and
-                  details are preserved. Retry this request or check your
-                  session orders before starting another order.
-                </p>
-              )}
-              <button
-                className="mc-primary"
-                disabled={
-                  busy ||
-                  (!checkoutIntent &&
-                    (!cart.length ||
-                      !displayName.trim() ||
-                      !menu.orderingAvailable))
-                }
-                onClick={submitOrder}
-              >
-                {busy
-                  ? "Checking…"
-                  : checkoutIntent
-                    ? "Retry original order"
-                    : menu.pricingPolicy?.enabled && !currentQuote
-                      ? "Review total"
-                      : "Submit order"}
-              </button>
             </aside>
           </div>
         )}
@@ -1214,6 +1659,7 @@ export default function CustomerExperience({
                 </ul>
                 {["completed", "collected"].includes(order.status) && (
                   <Feedback
+                    key={order.id}
                     orderId={order.id}
                     onSuccess={() =>
                       setSuccess(
@@ -1452,6 +1898,7 @@ export default function CustomerExperience({
               prefix={prefix}
               onSelect={setOrder}
               onClear={clearGuestView}
+              hasUnconfirmedOrder={!!checkoutIntent}
             />
             <GuestActivity prefix={prefix} />
             <MarketingPreference prefix={prefix} />
@@ -1701,29 +2148,40 @@ export default function CustomerExperience({
           </section>
         )}
       </main>
-      {menu && tab === "menu" && !basketViewed && (
-        <div className="mc-mobile-basket">
-          <button
-            type="button"
-            aria-controls="mc-basket"
-            aria-label={`View basket, ${basketQuantity} ${basketQuantity === 1 ? "item" : "items"}, ${money(currentQuote?.total ?? total)}`}
-            onClick={openBasket}
+      {menu &&
+        tab === "menu" &&
+        !basketViewed &&
+        checkoutRecovery.phase === "ready" && (
+          <div
+            className="mc-mobile-basket"
+            inert={!!selected}
+            aria-hidden={selected ? true : undefined}
           >
-            <span>
-              View basket{" "}
-              <small>
-                {basketQuantity} {basketQuantity === 1 ? "item" : "items"}
-              </small>
-            </span>
-            <strong>{money(currentQuote?.total ?? total)}</strong>
-          </button>
-        </div>
-      )}
-      <footer className="mc-footer">
+            <button
+              type="button"
+              aria-controls="mc-basket"
+              aria-label={`View basket, ${basketQuantity} ${basketQuantity === 1 ? "item" : "items"}, ${money(currentQuote?.total ?? total)}`}
+              onClick={openBasket}
+            >
+              <span>
+                View basket{" "}
+                <small>
+                  {basketQuantity} {basketQuantity === 1 ? "item" : "items"}
+                </small>
+              </span>
+              <strong>{money(currentQuote?.total ?? total)}</strong>
+            </button>
+          </div>
+        )}
+      <footer
+        className="mc-footer"
+        inert={!!selected}
+        aria-hidden={selected ? true : undefined}
+      >
         <div className="mc-wrap">
           {menu?.organization?.name || "Mera"} ·{" "}
-          {menu?.branch?.name || "Customer experience"} · Your order is
-          submitted only after the venue confirms it.
+          {menu?.branch?.name || "Customer experience"} · Track your order here
+          after submitting.
         </div>
       </footer>
       {selected && (
@@ -1741,84 +2199,130 @@ export default function CustomerExperience({
               <button
                 className="mc-close"
                 aria-label="Close customization"
-                onClick={() => setSelected(null)}
+                onClick={closeCustomization}
               >
                 ×
               </button>
             </div>
-            <p>{selected.description}</p>
-            {selected.variants?.length > 0 && (
-              <label>
-                Choose a size
-                <select
-                  value={variant}
-                  onChange={(e) => setVariant(e.target.value)}
-                >
-                  {selected.variants.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} · {money(v.price)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            {selected.modifierGroups?.map((group) => (
-              <fieldset key={group.id}>
-                <legend>
-                  {group.name} · choose {group.min}–{group.max}
-                </legend>
-                {group.options.map((option) => (
-                  <label className="mc-modifier" key={option.id}>
-                    <input
-                      type="checkbox"
-                      checked={modifiers.includes(option.id)}
-                      onChange={(e) =>
-                        setModifiers((old) =>
-                          e.target.checked
-                            ? [...old, option.id]
-                            : old.filter((v) => v !== option.id),
-                        )
-                      }
-                    />
-                    {option.name}{" "}
-                    {option.price > 0 && `+${money(option.price)}`}
-                  </label>
-                ))}
-              </fieldset>
-            ))}
-            {selected.dietary?.length > 0 && (
-              <p>Dietary: {selected.dietary.join(", ")}</p>
-            )}
-            {selected.allergens?.length > 0 && (
-              <p>
-                Allergens: {selected.allergens.join(", ")}. Please ask staff
-                about dietary requirements.
-              </p>
-            )}
-            {error && (
-              <div className="mc-alert" role="alert">
-                {error}
-              </div>
-            )}
-            <p>
-              Item estimate{" "}
-              {money(
-                (selected.variants?.find((v) => v.id === variant)?.price ??
-                  selected.price) +
-                  (selected.modifierGroups || [])
-                    .flatMap((group) => group.options)
-                    .filter((option) => modifiers.includes(option.id))
-                    .reduce((sum, option) => sum + option.price, 0),
+            <div className="mc-modal-content">
+              <p>{selected.description}</p>
+              {selected.variants?.length > 0 && (
+                <label>
+                  Choose a size
+                  <select
+                    value={variant}
+                    onChange={(e) => setVariant(e.target.value)}
+                  >
+                    {selected.variants.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name} · {money(v.price)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               )}
-              . Any order-level charges are reviewed at checkout.
-            </p>
-            <button
-              className="mc-primary"
-              disabled={checkoutLocked}
-              onClick={addProduct}
-            >
-              Add to collection
-            </button>
+              {selected.modifierGroups?.map((group) => (
+                <fieldset
+                  key={group.id}
+                  className="mc-option-group"
+                  tabIndex={-1}
+                  aria-invalid={modifierError === group.id || undefined}
+                  aria-describedby={`mc-option-hint-${group.id}${modifierError === group.id ? " mc-modifier-error" : ""}`}
+                  ref={(node) => {
+                    if (node) modifierGroupRefs.current.set(group.id, node);
+                    else modifierGroupRefs.current.delete(group.id);
+                  }}
+                >
+                  <legend>
+                    {group.name} ·{" "}
+                    {group.min === group.max
+                      ? `choose ${group.min}`
+                      : group.min === 0
+                        ? `choose up to ${group.max}`
+                        : `choose ${group.min}–${group.max}`}
+                  </legend>
+                  <p
+                    className="mc-option-hint"
+                    id={`mc-option-hint-${group.id}`}
+                  >
+                    {group.min > 0 ? "Required" : "Optional"} ·{" "}
+                    {
+                      group.options.filter((option) =>
+                        modifiers.includes(option.id),
+                      ).length
+                    }{" "}
+                    selected
+                  </p>
+                  {modifierError === group.id && customizationError && (
+                    <p
+                      className="mc-option-error"
+                      role="alert"
+                      id="mc-modifier-error"
+                    >
+                      {customizationError}
+                    </p>
+                  )}
+                  {group.options.map((option) => (
+                    <label className="mc-modifier" key={option.id}>
+                      <input
+                        type="checkbox"
+                        checked={modifiers.includes(option.id)}
+                        onChange={(e) => {
+                          setModifiers((old) =>
+                            e.target.checked
+                              ? [...old, option.id]
+                              : old.filter((value) => value !== option.id),
+                          );
+                          if (modifierError === group.id) {
+                            setModifierError(null);
+                            setCustomizationError("");
+                          }
+                        }}
+                      />
+                      <span>
+                        {option.name}{" "}
+                        {option.price > 0 && `+${money(option.price)}`}
+                      </span>
+                    </label>
+                  ))}
+                </fieldset>
+              ))}
+              {selected.dietary?.length > 0 && (
+                <p>Dietary: {selected.dietary.join(", ")}</p>
+              )}
+              {selected.allergens?.length > 0 && (
+                <p>
+                  Allergens: {selected.allergens.join(", ")}. Please ask staff
+                  about dietary requirements.
+                </p>
+              )}
+              {customizationError && !modifierError && (
+                <div className="mc-alert" role="alert" id="mc-modifier-error">
+                  {customizationError}
+                </div>
+              )}
+            </div>
+            <div className="mc-modal-actions">
+              <p>
+                Item estimate{" "}
+                {money(
+                  (selected.variants?.find((v) => v.id === variant)?.price ??
+                    selected.price) +
+                    (selected.modifierGroups || [])
+                      .flatMap((group) => group.options)
+                      .filter((option) => modifiers.includes(option.id))
+                      .reduce((sum, option) => sum + option.price, 0),
+                )}
+                . Any order-level charges are reviewed at checkout.
+              </p>
+              <button
+                className="mc-primary"
+                disabled={checkoutLocked}
+                onClick={addProduct}
+              >
+                Add to basket
+              </button>
+            </div>
           </div>
         </div>
       )}

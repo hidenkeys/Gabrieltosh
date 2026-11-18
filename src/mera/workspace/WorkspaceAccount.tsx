@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, LogOut, CircleAlert } from "lucide-react";
 
 /** Pilot account controls. Sign-out reconciliation stays with the workspace. */
 export default function WorkspaceAccount({
@@ -8,12 +8,14 @@ export default function WorkspaceAccount({
   disabled,
   signingOut,
   onSignOut,
+  notice,
 }: {
   name: string;
   role: string;
   disabled: boolean;
   signingOut: boolean;
   onSignOut?: () => void;
+  notice?: { message: string; label: string; onReview: () => void };
 }) {
   const container = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
@@ -39,7 +41,10 @@ export default function WorkspaceAccount({
         }
       }}
     >
-      <summary aria-label={`Account for ${name}`}>
+      <summary
+        aria-label={`Account for ${name}`}
+        aria-describedby={notice ? "mw-account-notice" : undefined}
+      >
         <span className="mw-staff-avatar" aria-hidden="true">
           {name
             .split(" ")
@@ -50,11 +55,34 @@ export default function WorkspaceAccount({
             .toUpperCase()}
         </span>
         <span className="mw-account-name">{name}</span>
+        {notice && (
+          <CircleAlert
+            className="mw-account-alert"
+            size={15}
+            aria-hidden="true"
+          />
+        )}
         <ChevronDown size={15} aria-hidden="true" />
       </summary>
       <div className="mw-account-panel">
         <strong>{name}</strong>
         <span>{role}</span>
+        {notice && (
+          <>
+            <p id="mw-account-notice">{notice.message}</p>
+            <button
+              type="button"
+              className="secondary"
+              disabled={disabled}
+              onClick={() => {
+                if (container.current) container.current.open = false;
+                notice.onReview();
+              }}
+            >
+              {notice.label}
+            </button>
+          </>
+        )}
         {onSignOut && (
           <button
             type="button"

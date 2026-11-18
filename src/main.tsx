@@ -62,13 +62,13 @@ class WorkspaceBoundary extends React.Component<
         ) : (
           <img src="/brand/brand-logo.png" alt="Bing Chun" />
         )}
-        <h1>Let’s reopen your workspace.</h1>
+        <h1>Let’s reopen this page.</h1>
         <p>
           A page could not be displayed. Saved records remain on the server.
           Check your connection before reopening this page.
         </p>
         <button className="primary" onClick={() => window.location.reload()}>
-          Reopen workspace
+          Reload page
         </button>
       </div>
     ) : (
@@ -82,7 +82,20 @@ createRoot(document.getElementById("root")!).render(
       <React.Suspense
         fallback={
           <main style={{ padding: 40 }} role="status">
-            <h1>Opening your workspace…</h1>
+            <h1>
+              {/^\/mera\/(menu|store)\//.test(window.location.pathname)
+                ? "Opening the menu…"
+                : window.location.pathname === "/mera" ||
+                    window.location.pathname === "/mera/"
+                  ? "Loading Mera…"
+                  : window.location.pathname === "/mera/legal"
+                    ? "Opening policy information…"
+                    : window.location.pathname === "/mera/signup"
+                      ? "Opening registration…"
+                      : window.location.pathname === "/mera/platform"
+                        ? "Opening platform administration…"
+                        : "Opening your workspace…"}
+            </h1>
             <p>Connecting to the current service.</p>
           </main>
         }

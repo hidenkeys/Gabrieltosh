@@ -267,3 +267,144 @@ test("overview attention distinguishes unavailable alerts, scopes actions and us
     cleanup();
   }
 });
+
+test("date reports reject a different business date and recover without relabeling its totals", async () => {
+  const { default: ReportExplorer } =
+    await import("../src/mera/workspace/ReportExplorer");
+  const original = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () =>
+    Response.json({
+      report: {
+        date: ++calls === 1 ? "2026-11-18" : "2026-11-17",
+        products: [],
+      },
+    });
+  try {
+    render(
+      <ReportExplorer
+        base="/organizations/org/branches/branch"
+        disabled={false}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Business date"), {
+      target: { value: "2026-11-17" },
+    });
+    fireEvent.submit(
+      screen.getByRole("button", { name: "Load date report" }).closest("form")!,
+    );
+    const error = await screen.findByRole("alert");
+    assert.match(error.textContent || "", /different trading day/);
+    assert.equal(
+      screen.queryByRole("heading", {
+        name: "Trading day detail · 2026-11-18",
+      }),
+      null,
+    );
+    fireEvent.submit(
+      screen.getByRole("button", { name: "Load date report" }).closest("form")!,
+    );
+    await screen.findByRole("heading", {
+      name: "Trading day detail · 2026-11-17",
+    });
+    assert.equal(screen.queryByRole("alert"), null);
+  } finally {
+    cleanup();
+    globalThis.fetch = original;
+  }
+});
+
+test("workspace navigation uses the current organization branding and a truthful connection state", () => {
+  try {
+    const { container, rerender } = render(
+      <WorkspaceNavigation
+        sections={[["counter", "Counter"]]}
+        active="counter"
+        onSelect={() => {}}
+        organization="Bing Chun"
+        branch="Surulere"
+        logo="/brand/brand-logo.png"
+        connectionState="offline"
+      />,
+    );
+    assert.equal(
+      container.querySelector("img")?.getAttribute("src"),
+      "/brand/brand-logo.png",
+    );
+    assert.ok(screen.getByText("Connection interrupted"));
+    assert.equal(screen.queryByText("Service connected"), null);
+    fireEvent.error(container.querySelector("img")!);
+    assert.equal(container.querySelector("img"), null);
+    rerender(
+      <WorkspaceNavigation
+        sections={[["counter", "Counter"]]}
+        active="counter"
+        onSelect={() => {}}
+        organization="Another venue"
+        branch="Main"
+        logo="/uploads/another-venue.png"
+        connectionState="connected"
+      />,
+    );
+    assert.equal(
+      container.querySelector("img")?.getAttribute("src"),
+      "/uploads/another-venue.png",
+    );
+    assert.ok(screen.getByText("Service connected"));
+    assert.equal(screen.queryByText("Bing Chun"), null);
+  } finally {
+    cleanup();
+  }
+});
+
+test("account setup notice stays actionable and respects a busy workspace", async () => {
+  const { default: WorkspaceAccount } =
+    await import("../src/mera/workspace/WorkspaceAccount");
+  let reviews = 0;
+  const notice = {
+    message: "Trial end date needs review.",
+    label: "Review subscription",
+    onReview: () => reviews++,
+  };
+  try {
+    const { rerender } = render(
+      <WorkspaceAccount
+        name="Owner"
+        role="owner"
+        disabled={true}
+        signingOut={false}
+        notice={notice}
+      />,
+    );
+    const details = document.querySelector("details")!;
+    details.open = true;
+    assert.equal(
+      (
+        screen.getByRole("button", {
+          name: "Review subscription",
+        }) as HTMLButtonElement
+      ).disabled,
+      true,
+    );
+    assert.equal(
+      document.querySelector("summary")?.getAttribute("aria-describedby"),
+      "mw-account-notice",
+    );
+    rerender(
+      <WorkspaceAccount
+        name="Owner"
+        role="owner"
+        disabled={false}
+        signingOut={false}
+        notice={notice}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Review subscription" }),
+    );
+    assert.equal(reviews, 1);
+    assert.equal(details.open, false);
+  } finally {
+    cleanup();
+  }
+});

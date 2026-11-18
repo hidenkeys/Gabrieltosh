@@ -4,10 +4,12 @@ export default function SessionOrders({
   prefix,
   onSelect,
   onClear,
+  hasUnconfirmedOrder = false,
 }: {
   prefix: string;
   onSelect: (order: any) => void;
   onClear: (message: string) => void;
+  hasUnconfirmedOrder?: boolean;
 }) {
   const [orders, setOrders] = useState<any[]>([]),
     [cursor, setCursor] = useState<string | null>(null),
@@ -120,6 +122,13 @@ export default function SessionOrders({
             and visit history. This does not cancel orders, close a table visit
             or confirm any refund. Other venues’ guest sessions stay active.
           </p>
+          {hasUnconfirmedOrder && (
+            <p>
+              An order still needs checking. Ending this session will not stop
+              or cancel it, and you may need staff to review it before placing
+              another order.
+            </p>
+          )}
           <button
             type="button"
             className="mc-secondary"

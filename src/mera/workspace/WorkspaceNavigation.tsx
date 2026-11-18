@@ -1,5 +1,48 @@
 import { useState, useEffect, useRef } from "react";
-import { Menu, X } from "lucide-react";
+import {
+  Menu,
+  X,
+  LayoutGrid,
+  ClipboardList,
+  ChefHat,
+  ChartNoAxesCombined,
+  Users,
+  Settings2,
+  Printer,
+  ReceiptText,
+  Package,
+  QrCode,
+  CalendarDays,
+  Table2,
+  CreditCard,
+  Clock3,
+  MessageSquare,
+  Download,
+  LifeBuoy,
+  Plug,
+} from "lucide-react";
+const pageIcons: Record<string, typeof LayoutGrid> = {
+  counter: LayoutGrid,
+  orders: ClipboardList,
+  preparation: ChefHat,
+  overview: ChartNoAxesCombined,
+  team: Users,
+  onboarding: Settings2,
+  printing: Printer,
+  menu: Package,
+  qr: QrCode,
+  reservations: CalendarDays,
+  tables: Table2,
+  payments: CreditCard,
+  shifts: Clock3,
+  help: MessageSquare,
+  care: MessageSquare,
+  exports: Download,
+  support: LifeBuoy,
+  integrations: Plug,
+  billing: ReceiptText,
+  waitlist: CalendarDays,
+};
 
 const groups = [
   [
@@ -29,14 +72,20 @@ export default function WorkspaceNavigation({
   onSelect,
   organization,
   branch,
+  logo,
+  connectionState = "unknown",
 }: {
   sections: string[][];
   active: string;
   onSelect: (id: string) => void;
   organization: string;
   branch: string;
+  logo?: string;
+  connectionState?: "unknown" | "connecting" | "connected" | "offline";
 }) {
   const [open, setOpen] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
+  useEffect(() => setLogoFailed(false), [logo]);
   const navigation = useRef<HTMLElement>(null);
   useEffect(() => {
     if (open)
@@ -94,9 +143,15 @@ export default function WorkspaceNavigation({
         }}
       >
         <div className="mw-side-brand">
-          <a className="mw-brand" href="/mera">
-            mera<span>.</span>
-          </a>
+          <div className="mw-organization-brand">
+            {logo && !logoFailed && (
+              <img src={logo} alt="" onError={() => setLogoFailed(true)} />
+            )}
+            <span>
+              <strong>{organization}</strong>
+              <small>WORKSPACE</small>
+            </span>
+          </div>
           <button
             type="button"
             className="secondary mw-close-nav"
@@ -173,6 +228,10 @@ export default function WorkspaceNavigation({
                         setOpen(false);
                       }}
                     >
+                      {(() => {
+                        const Icon = pageIcons[id] || LayoutGrid;
+                        return <Icon size={18} aria-hidden="true" />;
+                      })()}
                       {id === "counter"
                         ? "Point of sale"
                         : id === "overview"
@@ -186,7 +245,17 @@ export default function WorkspaceNavigation({
           })}
         </div>
         <div className="mw-side-bottom">
-          <span className="online-dot" /> Mera workspace
+          <span
+            className={"online-dot mw-connection-" + connectionState}
+            aria-hidden="true"
+          />
+          {connectionState === "connected"
+            ? "Service connected"
+            : connectionState === "offline"
+              ? "Connection interrupted"
+              : connectionState === "connecting"
+                ? "Connecting…"
+                : "Mera workspace"}
         </div>
       </nav>
     </>

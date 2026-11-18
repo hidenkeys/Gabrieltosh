@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import OverviewAttention from "./OverviewAttention";
+import OverviewActivity from "./OverviewActivity";
 import { formatMoney } from "./api";
 import ReportDetails from "./ReportDetails";
 import ReportExplorer from "./ReportExplorer";
@@ -18,6 +19,9 @@ export default function OperationalOverview({
   canViewOrders,
   onNavigate,
   canNavigate = () => false,
+  canViewAudit = false,
+  canViewShifts = false,
+  staff = [],
 }: {
   data: any;
   orders: any[];
@@ -27,6 +31,9 @@ export default function OperationalOverview({
   canViewOrders: boolean;
   onNavigate: (id: string) => void;
   canNavigate?: (id: string) => boolean;
+  canViewAudit?: boolean;
+  canViewShifts?: boolean;
+  staff?: { id: string; name: string }[];
 }) {
   const dateReports = useRef<HTMLDetailsElement>(null);
   const report = data.report || {},
@@ -96,6 +103,20 @@ export default function OperationalOverview({
             <div>{label}</div>
             <strong>{value}</strong>
             <small>{note}</small>
+            {label === "Outstanding" &&
+              (canNavigate("payments") || canViewOrders) && (
+                <button
+                  className="text-button"
+                  type="button"
+                  onClick={() =>
+                    onNavigate(canNavigate("payments") ? "payments" : "orders")
+                  }
+                >
+                  {canNavigate("payments")
+                    ? "View transactions"
+                    : "Review orders"}
+                </button>
+              )}
           </section>
         ))}
       </div>
@@ -204,13 +225,36 @@ export default function OperationalOverview({
           </p>
         </section>
       </div>
+      <OverviewActivity
+        audit={data.audit}
+        shifts={data.shifts}
+        staff={staff}
+        canViewAudit={canViewAudit}
+        canViewShifts={canViewShifts}
+        allowedDestinations={[
+          "onboarding",
+          "menu",
+          "orders",
+          "payments",
+          "reservations",
+          "tables",
+          "shifts",
+          "printing",
+        ].filter(canNavigate)}
+        onNavigate={onNavigate}
+        timezone={data.branch?.timezone}
+      />
       <details className="mw-card">
         <summary>Sales, tax and product breakdown</summary>
         <ReportDetails report={report} />
       </details>
       <details className="mw-card" ref={dateReports}>
         <summary>Reports for another trading day</summary>
-        <ReportExplorer base={base} disabled={disabled} />
+        <ReportExplorer
+          base={base}
+          disabled={disabled}
+          initialDate={report.date}
+        />
       </details>
       <details className="mw-card">
         <summary>Order value and connection details</summary>

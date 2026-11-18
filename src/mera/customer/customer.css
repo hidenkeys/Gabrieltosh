@@ -827,3 +827,168 @@
     display: none !important;
   }
 }
+
+/* C1/C5 pilot accessibility: bounded dialog, persistent actions and source-sized controls. */
+.mera-customer .mc-modal {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  max-height: calc(100dvh - 40px);
+  border-radius: 11px;
+  background: #fffefa;
+}
+.mera-customer .mc-modal-header {
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #e9e6e2;
+  flex-shrink: 0;
+}
+.mera-customer .mc-modal-header h2 {
+  min-width: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.mera-customer .mc-close {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  font-size: 24px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.mera-customer .mc-modal-content {
+  padding: 0 16px 16px;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.mera-customer .mc-modal-content label,
+.mera-customer .mc-modal-content select {
+  min-width: 0;
+  max-width: 100%;
+}
+.mera-customer .mc-option-group {
+  min-width: 0;
+  padding: 12px;
+  margin: 14px 0;
+  border: 1px solid #e9e6e2;
+  border-radius: 8px;
+}
+.mera-customer .mc-option-group legend {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.mera-customer .mc-option-group[aria-invalid="true"] {
+  border-color: #784516;
+}
+.mera-customer .mc-option-group:focus-visible {
+  outline: 3px solid var(--mc-link, #1558c9);
+  outline-offset: 3px;
+}
+.mera-customer .mc-option-hint {
+  font-size: 12px;
+}
+.mera-customer .mc-modal .mc-modifier {
+  min-height: 48px;
+  padding: 10px 8px;
+  border: 1px solid #e9e6e2;
+  border-radius: 8px;
+  margin: 8px 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.mera-customer .mc-modifier span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mera-customer .mc-modal .mc-modifier input {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  flex: 0 0 20px;
+  padding: 0;
+  margin: 0;
+  accent-color: var(--mc-primary, #1558c9);
+}
+.mera-customer .mc-modal-actions {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-top: 1px solid #e9e6e2;
+  background: #fffefa;
+}
+.mera-customer .mc-modal-actions p {
+  font-size: 12px;
+  margin: 0 0 10px;
+}
+.mera-customer .mc-modal-actions button {
+  min-height: 48px;
+  width: 100%;
+}
+.mera-customer .mc-clear-search {
+  top: 0;
+  right: 0;
+  min-height: 44px;
+}
+.mera-customer .mc-brand > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mera-customer .mc-line strong,
+.mera-customer .mc-line small {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 700px) {
+  .mera-customer .mc-modal-backdrop {
+    padding: 12px;
+  }
+  .mera-customer .mc-modal {
+    max-height: calc(100dvh - 24px);
+  }
+  .mera-customer .mc-modal-content select {
+    font-size: 16px;
+  }
+  .mera-customer .mc-modal-actions {
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  }
+}
+.mera-customer .mc-line-controls {
+  flex-wrap: wrap;
+}
+.mera-customer .mc-line-controls b {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.mera-customer .mc-mobile-basket button > span {
+  min-width: 0;
+}
+.mera-customer .mc-mobile-basket strong {
+  max-width: 60%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  text-align: right;
+}
+.mera-customer .mc-option-error {
+  padding: 10px;
+  color: #784516;
+  background: #fff3e7;
+  border: 1px solid #f3d9ba;
+  border-radius: 8px;
+}
+.mera-customer #mc-basket-title:focus-visible,
+.mera-customer .mc-modal:focus-visible {
+  outline: 3px solid var(--mc-link, #1558c9);
+  outline-offset: 3px;
+}
