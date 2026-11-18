@@ -1,0 +1,2 @@
+CREATE TABLE IF NOT EXISTS mera_assets(id TEXT PRIMARY KEY,organization_id TEXT NOT NULL REFERENCES mera_organizations(id),branch_id TEXT,filename TEXT NOT NULL,mime TEXT NOT NULL,width INTEGER NOT NULL,height INTEGER NOT NULL,bytes BYTEA NOT NULL,sha256 TEXT NOT NULL,created_by TEXT NOT NULL REFERENCES users(id),created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(organization_id,branch_id) REFERENCES mera_branches(organization_id,id));
+CREATE INDEX IF NOT EXISTS mera_assets_scope ON mera_assets(organization_id,branch_id);

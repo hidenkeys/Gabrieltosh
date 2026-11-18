@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { fail } from "./domain.js";
+import { fail,paidForBill } from "./domain.js";
 const stamp = () => new Date().toISOString();
 export function mountMeraTickets(router, {guard,scope,locked,find,readRecords,event}) {
   const B = "/organizations/:organizationId/branches/:branchId";
@@ -13,7 +13,7 @@ export function mountMeraTickets(router, {guard,scope,locked,find,readRecords,ev
       if (ticket.version!==input.version) throw fail("This ticket changed. Refresh before continuing.",409,"STALE_VERSION");
       const order=await find(c,s,"order",ticket.orderId);
       if (!["accepted","preparing"].includes(order.status)) throw fail("Only accepted active orders can be prepared.",409);
-      if (order.holdExpired || (!b.settings.payLater && order.paymentStatus!=="paid")) throw fail("Confirm payment before preparing this order.",409);
+      if (order.holdExpired || (!b.settings.payLater && paidForBill(order)<order.total)) throw fail("Confirm payment before preparing this order.",409);
       if (["ready","cancelled"].includes(ticket.status)) throw fail("This ticket is already ready.",409);
       if (itemId) {
         const line=ticket.items.find(i=>i.orderLineId===itemId);

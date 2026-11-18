@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { subscriptionEntitlement } from "./subscriptions.js";
 const B = "/organizations/:organizationId/branches/:branchId";
 const error = (message, status = 409) =>
   Object.assign(new Error(message), { status });
@@ -34,7 +35,19 @@ export function mountMeraReadiness(
     } catch {
       validTimezone = false;
     }
+    const entitlements = subscriptionEntitlement(
+      org.subscription,
+      org.subscription?.approvedPolicySnapshot || org.policy,
+      Date.now(),
+      demo(),
+    );
     const checks = [
+      {
+        id: "subscription_access",
+        label: "Subscription access reviewed",
+        ready: entitlements.newOrdersAllowed,
+        detail: entitlements.warning,
+      },
       {
         id: "owner_identity",
         label: "Verified owner identity",

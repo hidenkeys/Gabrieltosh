@@ -165,3 +165,121 @@ test("deposit cancellation shows pending review without claiming refund", async 
   );
   cleanup();
 });
+
+test("another venue renders uploaded branding and photo without Bing Chun mascot", async (t) => {
+  const asset = "/api/mera/v1/public/assets/asset-one";
+  t.mock.method(globalThis, "fetch", async (input) => {
+    if (String(input).endsWith("/menu"))
+      return Response.json({
+        ...menu,
+        organization: {
+          name: "Other Venue",
+          branding: { logo: asset, coverImage: asset },
+        },
+        products: [{ ...menu.products[0], image: asset }],
+      });
+    if (String(input).endsWith("/branches"))
+      return Response.json({ branches: [] });
+    return Response.json({ error: "Guest session required" }, { status: 401 });
+  });
+  render(
+    React.createElement(CustomerExperience, {
+      organizationSlug: "other-venue",
+    }),
+  );
+  await screen.findByText("Brown Sugar Boba");
+  assert.equal(screen.queryByAltText("Bing Chun mascot"), null);
+  assert.equal(
+    screen.getByAltText("Other Venue welcome").getAttribute("src"),
+    asset,
+  );
+  assert.equal(
+    document.querySelector(".mc-product img")?.getAttribute("src"),
+    asset,
+  );
+  cleanup();
+});
+
+test("configured charges require server review and uncertain retries preserve quote identity", async (t) => {
+  const orders = [];
+  let quotes = 0;
+  t.mock.method(globalThis, "fetch", async (input, init) => {
+    const path = String(input);
+    if (path.endsWith("/menu"))
+      return Response.json({ ...menu, pricingPolicy: { enabled: true } });
+    if (path.endsWith("/branches")) return Response.json({ branches: [] });
+    if (path.endsWith("/guest"))
+      return Response.json({ error: "guest" }, { status: 401 });
+    if (path.endsWith("/guests")) return Response.json({ displayName: "Ada" });
+    if (path.endsWith("/quote")) {
+      quotes++;
+      return Response.json({
+        id: "quote-one",
+        menuVersion: 1,
+        expiresAt: "2099-01-01T00:00:00Z",
+        subtotal: 380000,
+        discount: 0,
+        serviceCharge: 38000,
+        tax: 0,
+        total: 418000,
+        lines: [
+          { type: "service_charge", label: "Service charge", amount: 38000 },
+        ],
+      });
+    }
+    if (path.endsWith("/orders")) {
+      orders.push(JSON.parse(init.body));
+      throw new TypeError("Failed to fetch");
+    }
+    throw Error("unexpected request");
+  });
+  render(React.createElement(CustomerExperience));
+  await screen.findByText("Brown Sugar Boba");
+  fireEvent.click(screen.getByRole("button", { name: "Choose" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add to collection" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
+    target: { value: "Ada" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Review total" }));
+  await screen.findByText("Service charge: ₦380");
+  assert.equal(orders.length, 0);
+  fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
+  await screen.findByRole("alert");
+  fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
+  await screen.findByRole("alert");
+  assert.equal(quotes, 1);
+  assert.equal(orders.length, 2);
+  assert.equal(orders[0].quoteId, "quote-one");
+  assert.equal(orders[1].quoteId, orders[0].quoteId);
+  assert.equal(orders[1].requestKey, orders[0].requestKey);
+  cleanup();
+});
+
+test("customization modal contains keyboard focus and restores its trigger", async (t) => {
+  t.mock.method(globalThis, "fetch", async (input) =>
+    String(input).endsWith("/menu")
+      ? Response.json(menu)
+      : Response.json({ error: "guest" }, { status: 401 }),
+  );
+  render(React.createElement(CustomerExperience));
+  await screen.findByText("Brown Sugar Boba");
+  const trigger = screen.getByRole("button", { name: "Choose" });
+  trigger.focus();
+  fireEvent.click(trigger);
+  const dialog = screen.getByRole("dialog");
+  assert.equal(document.activeElement, dialog);
+  fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+  assert.equal(
+    document.activeElement,
+    screen.getByRole("button", { name: "Add to collection" }),
+  );
+  fireEvent.keyDown(document, { key: "Tab" });
+  assert.equal(
+    document.activeElement,
+    screen.getByRole("button", { name: "Close customization" }),
+  );
+  fireEvent.keyDown(document, { key: "Escape" });
+  assert.equal(screen.queryByRole("dialog"), null);
+  assert.equal(document.activeElement, trigger);
+  cleanup();
+});

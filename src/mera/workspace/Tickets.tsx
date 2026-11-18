@@ -55,6 +55,7 @@ export default function Tickets({
           .filter((ticket) => !station || ticket.station === station)
           .map((ticket) => {
             const order = orders.find((row) => row.id === ticket.orderId);
+            const closed = ["ready", "cancelled"].includes(ticket.status);
             const inactive =
               !order ||
               [
@@ -124,7 +125,10 @@ export default function Tickets({
                         <label>
                           {item.name}
                           {item.size ? " · " + item.size : ""} · {item.quantity}{" "}
-                          ordered
+                          ordered{" "}
+                          {item.cancelledQuantity
+                            ? ` · ${item.cancelledQuantity} cancelled`
+                            : ""}
                           <input
                             aria-label={`Prepared quantity for ${item.name} on ${ticket.station}`}
                             type="number"
@@ -139,7 +143,7 @@ export default function Tickets({
                               disabled ||
                               inactive ||
                               !item.orderLineId ||
-                              ticket.status === "ready"
+                              closed
                             }
                             onChange={(event) =>
                               setQuantities({
@@ -151,10 +155,7 @@ export default function Tickets({
                         </label>
                         <button
                           disabled={
-                            disabled ||
-                            inactive ||
-                            !item.orderLineId ||
-                            ticket.status === "ready"
+                            disabled || inactive || !item.orderLineId || closed
                           }
                           className="secondary"
                         >
@@ -165,7 +166,7 @@ export default function Tickets({
                   );
                 })}
                 <div className="mw-actions">
-                  {ticket.status !== "ready" && (
+                  {!closed && (
                     <button
                       disabled={disabled || inactive}
                       onClick={async () => {

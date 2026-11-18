@@ -186,6 +186,31 @@ try {
   } = await import("../server/mera/index.js");
   await migrateMera(db);
   await seedMeraDemo({ ...db, userId: owner.id });
+  const { migrateMeraAssets, inspectImage } =
+    await import("../server/mera/assets.js");
+  await migrateMeraAssets(db);
+  const imageBytes = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=",
+    "base64",
+  );
+  const imageHash = createHash("sha256").update(imageBytes).digest("hex"),
+    assetId = randomUUID();
+  const dimensions = inspectImage(imageBytes, "image/png");
+  await db.query(
+    "INSERT INTO mera_assets(id,organization_id,branch_id,filename,mime,width,height,bytes,sha256,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+    [
+      assetId,
+      DEMO_ORGANIZATION,
+      DEMO_BRANCH,
+      "fixture.png",
+      "image/png",
+      dimensions.width,
+      dimensions.height,
+      imageBytes,
+      imageHash,
+      owner.id,
+    ],
+  );
   const { migrateMeraPlatform, encryptFactor, decryptFactor, base32 } =
     await import("../server/mera/platform.js");
   await migrateMeraPlatform(db);
@@ -324,6 +349,16 @@ try {
     factorSecret,
     "MFA ciphertext must restore without changing the secret",
   );
+  const restoredAsset = (
+    await restored.query("SELECT bytes,sha256 FROM mera_assets WHERE id=$1", [
+      assetId,
+    ])
+  ).rows[0];
+  assert.equal(
+    createHash("sha256").update(restoredAsset.bytes).digest("hex"),
+    imageHash,
+  );
+  assert.equal(restoredAsset.sha256, imageHash);
   // Prove the comparison detects data corruption even when all row counts remain equal.
   await restored.query(
     "UPDATE mera_records SET data=jsonb_set(data,'{amount}',to_jsonb((data->>'amount')::integer+1)) WHERE id=(SELECT id FROM mera_records WHERE kind='payment' LIMIT 1)",
@@ -345,6 +380,7 @@ try {
       balancedLedgerMinorUnits: before.ledger.debits,
       exactRowHashesMatch: true,
       mfaCipherRestored: true,
+      assetBytesHashRestored: true,
       tamperDetected: true,
       productionDataRead: false,
     }),

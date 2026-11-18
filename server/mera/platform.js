@@ -228,7 +228,12 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
   router.get("/platform", guard, async (_req, res) => {
     const organizations = (
       await db.query(
-        "SELECT id,name,slug,subscription,onboarding FROM mera_organizations ORDER BY name",
+        "SELECT id,name,slug,policy,subscription,onboarding FROM mera_organizations ORDER BY name",
+      )
+    ).rows;
+    const branches = (
+      await db.query(
+        "SELECT id,organization_id,name,timezone,currency,settings->>'publicContact' AS contact,settings->>'launchState' AS launch_state FROM mera_branches ORDER BY name,id",
       )
     ).rows;
     const audits = (
@@ -253,7 +258,10 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
       )
     ).rows;
     res.json({
-      organizations,
+      organizations: organizations.map((o) => ({
+        ...o,
+        branches: branches.filter((b) => b.organization_id === o.id),
+      })),
       audits,
       providers,
       policy: proposedPolicy,
@@ -276,6 +284,55 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
       ],
     });
   });
+  router.post(
+    "/platform/organizations/:organizationId/lookup",
+    guard,
+    async (req, res) => {
+      const orgId = z.string().uuid().parse(req.params.organizationId);
+      const { reference, reason } = z
+        .object({
+          reference: z.string().trim().min(3).max(120),
+          reason: z.string().trim().min(10).max(500),
+        })
+        .strict()
+        .parse(req.body);
+      const exists = (
+        await db.query("SELECT id FROM mera_organizations WHERE id=$1", [orgId])
+      ).rows[0];
+      if (!exists) throw fail("Organization not found.", 404);
+      const rows = (
+        await db.query(
+          "SELECT id,branch_id,kind,data FROM mera_records WHERE organization_id=$1 AND kind IN ('order','payment','refund','invoice') AND (data->>'reference'=$2 OR id=$2) ORDER BY created_at DESC LIMIT 20",
+          [orgId, reference],
+        )
+      ).rows;
+      const records = rows.map((r) => ({
+        id: r.id,
+        branchId: r.branch_id,
+        kind: r.kind,
+        reference: r.data.reference || r.id,
+        status: r.data.status || r.data.paymentStatus || "recorded",
+        amount: r.data.total ?? r.data.amount ?? 0,
+        method: r.data.method || null,
+        source: r.data.source || null,
+        createdAt: r.data.createdAt,
+        providerVerified: false,
+        settlementStatus: "unverified",
+      }));
+      await audit(db, req, "support_reference_lookup", orgId, {
+        reference,
+        reason,
+        results: records.length,
+        customerIdentityIncluded: false,
+      });
+      res.json({
+        records,
+        currency: "NGN",
+        customerIdentityIncluded: false,
+        liveMoneyEnabled: false,
+      });
+    },
+  );
   router.patch(
     "/platform/organizations/:organizationId/subscription",
     guard,
@@ -291,6 +348,9 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
           ]),
           reason: z.string().trim().min(5).max(500),
           requestKey: z.string().uuid(),
+          trialEndsAt: z.string().datetime().nullable().optional(),
+          paidThrough: z.string().datetime().nullable().optional(),
+          dueAt: z.string().datetime().nullable().optional(),
         })
         .strict()
         .parse(req.body);
@@ -312,7 +372,10 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
         if (prior) {
           if (
             prior.details.status !== value.status ||
-            prior.details.reason !== value.reason
+            prior.details.reason !== value.reason ||
+            ["trialEndsAt", "paidThrough", "dueAt"].some(
+              (field) => prior.details[field] !== value[field],
+            )
           )
             throw fail("This request key records a different change.", 409);
           return { subscription: prior.details.subscription };
@@ -320,6 +383,11 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
         const subscription = {
           ...org.subscription,
           status: value.status,
+          ...Object.fromEntries(
+            ["trialEndsAt", "paidThrough", "dueAt"]
+              .filter((field) => value[field] !== undefined)
+              .map((field) => [field, value[field]]),
+          ),
           statusChangedAt: new Date().toISOString(),
         };
         await c.query(
@@ -334,6 +402,87 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
         return { subscription };
       });
       res.json(result);
+    },
+  );
+  router.post(
+    "/platform/organizations/:organizationId/policy-approval",
+    guard,
+    async (req, res) => {
+      const orgId = z.string().uuid().parse(req.params.organizationId);
+      const { version, reason } = z
+        .object({
+          version: z.string().min(1).max(120),
+          reason: z.string().trim().min(10).max(500),
+        })
+        .strict()
+        .parse(req.body);
+      res.json(
+        await db.transaction(async (c) => {
+          const org = (
+            await c.query(
+              "SELECT policy,subscription FROM mera_organizations WHERE id=$1 FOR UPDATE",
+              [orgId],
+            )
+          ).rows[0];
+          if (!org) throw fail("Organization not found.", 404);
+          if (org.policy.version !== version)
+            throw fail(
+              "The proposed policy changed. Review its current version.",
+              409,
+            );
+          const p = org.policy;
+          const valid =
+            Number.isSafeInteger(p.monthlyPrice) &&
+            p.monthlyPrice >= 0 &&
+            p.feePayer &&
+            p.feeBasis &&
+            p.refundTreatment &&
+            Number.isInteger(p.trialDays) &&
+            p.trialDays >= 0 &&
+            p.trialDays <= 3650 &&
+            Number.isInteger(p.graceDays) &&
+            p.graceDays >= 0 &&
+            p.graceDays <= 365;
+          if (!valid)
+            throw fail(
+              "Resolve pricing, fee payer/basis/refund treatment and trial/grace durations before approving a commercial policy.",
+              409,
+            );
+          const count = Number(
+            (
+              await c.query(
+                "SELECT COUNT(*) AS count FROM mera_branches WHERE organization_id=$1",
+                [orgId],
+              )
+            ).rows[0].count,
+          );
+          if (count > p.includedBranches && p.additionalBranchPrice === null)
+            throw fail("Additional branch pricing remains unresolved.", 409);
+          const policy = {
+            ...p,
+            status: "approved",
+            version: randomUUID(),
+            approvedAt: new Date().toISOString(),
+            approvedBy: req.user.id,
+            liveBillingEnabled: false,
+          };
+          const subscription = {
+            ...org.subscription,
+            approvedPolicySnapshot: policy,
+          };
+          await c.query(
+            "UPDATE mera_organizations SET policy=$1,subscription=$2 WHERE id=$3",
+            [JSON.stringify(policy), JSON.stringify(subscription), orgId],
+          );
+          await audit(c, req, "commercial_policy_approved", orgId, {
+            reason,
+            sourceVersion: version,
+            policy,
+            liveBillingEnabled: false,
+          });
+          return { policy, subscription, liveBillingEnabled: false };
+        }),
+      );
     },
   );
   router.post(

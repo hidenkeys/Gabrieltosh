@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { createHash } from "node:crypto";
-import { fail,paymentStatus } from "./domain.js";
+import { fail,paymentStatus,paidForBill } from "./domain.js";
 const stamp=()=>new Date().toISOString();
 export function mountMeraCancellation(router,{guard,scope,locked,find,readRecords,record,event}) {
  const B="/organizations/:organizationId/branches/:branchId";
  const save=(c,s,kind,id,data)=>c.query("UPDATE mera_records SET data=$1 WHERE id=$2 AND organization_id=$3 AND branch_id=$4 AND kind=$5",[JSON.stringify(data),id,s.organizationId,s.branchId,kind]);
  router.post(B+"/orders/:id/items/:orderLineId/cancel",guard("orders.fulfill"),async(req,res)=>{
-  const input=z.object({requestKey:z.string().uuid(),quantity:z.number().int().positive(),version:z.number().int().positive(),reason:z.string().trim().min(3).max(300)}).strict().parse(req.body);
+  const input=z.object({requestKey:z.string().uuid(),quantity:z.number().int().positive(),version:z.number().int().positive(),reason:z.string().trim().min(3).max(300),refundAllocations:z.array(z.object({refundId:z.string().uuid(),amount:z.number().int().positive()})).max(100).optional()}).strict().parse(req.body);
   const intentHash=createHash("sha256").update(JSON.stringify({...input,orderId:req.params.id,orderLineId:req.params.orderLineId,actor:req.user.id})).digest("hex");
   res.json(await locked(scope(req),async c=>{
    const s=scope(req),previous=(await readRecords(c,s.organizationId,s.branchId,"item_cancellation")).map(r=>r.data).find(r=>r.requestKey===input.requestKey);
@@ -14,7 +14,8 @@ export function mountMeraCancellation(router,{guard,scope,locked,find,readRecord
    if(previous){if(previous.intentHash!==intentHash)throw fail("Cancellation request key conflict.",409,"IDEMPOTENCY_CONFLICT");return {order,cancellation:previous};}
    if(order.version!==input.version)throw fail("Order changed. Refresh before cancelling.",409,"STALE_VERSION");
    if(!["submitted","accepted","preparing"].includes(order.status))throw fail("Items can only be cancelled before readiness or collection.",409);
-   if(order.paid>0)throw fail("Paid item cancellation requires an approved refund allocation workflow. No values were changed.",409,"PAID_ITEM_REVIEW_REQUIRED");
+   if(order.paid>0 && (!input.refundAllocations?.length || !req.meraMembership.permissions.includes("refunds.approve")))throw fail("Paid cancellation requires approved refund allocations and refund approval permission.",409,"PAID_ITEM_REVIEW_REQUIRED");
+   if(order.pricing?.policySnapshot?.enabled)throw fail("Configured charge and tax orders require a reviewed replacement quote for item changes.",409,"PRICING_REVIEW_REQUIRED");
    const lineIndex=order.items.findIndex(l=>l.orderLineId===req.params.orderLineId),line=order.items[lineIndex];
    if(!line||input.quantity>line.quantity)throw fail("Invalid item quantity.",409);
    const tickets=(await readRecords(c,s.organizationId,s.branchId,"ticket")).map(r=>r.data).filter(t=>t.orderId===order.id);
@@ -23,6 +24,23 @@ export function mountMeraCancellation(router,{guard,scope,locked,find,readRecord
    const amount=line.unitPrice*input.quantity;
    let remaining=amount;
    const bills=(await readRecords(c,s.organizationId,s.branchId,"bill")).map(r=>r.data).filter(b=>b.status==="open");
+   if(order.paid>0){
+    if(new Set(input.refundAllocations.map(a=>a.refundId)).size!==input.refundAllocations.length || input.refundAllocations.reduce((n,a)=>n+a.amount,0)!==amount) throw fail("Refund allocations must uniquely equal the cancelled item value.",409);
+    for(const allocation of input.refundAllocations){
+     const refund=await find(c,s,"refund",allocation.refundId);
+     const used=(await readRecords(c,s.organizationId,s.branchId,"item_cancellation")).map(r=>r.data).flatMap(r=>r.refundAllocations||[]).filter(a=>a.refundId===refund.id).reduce((n,a)=>n+a.amount,0);
+     if(refund.orderId!==order.id || allocation.amount>refund.amount-used) throw fail("Refund credit is unavailable or already applied.",409);
+     let creditLeft=allocation.amount;
+     for(const bill of bills){for(const charge of bill.charges.filter(l=>l.refundId===refund.id && l.amount<0)){
+       const available=-charge.amount-(charge.cancellationAppliedAmount||0),part=Math.min(creditLeft,available);
+       charge.cancellationAppliedAmount=(charge.cancellationAppliedAmount||0)+part;creditLeft-=part;
+     }await save(c,s,"bill",bill.id,bill);}
+     if(creditLeft)throw fail("Refund bill credits do not cover this cancellation.",409);
+    }
+    order.recognitionTotal??=order.total+(order.cancellationRefundApplied||0);
+    order.cancellationRefundApplied=(order.cancellationRefundApplied||0)+amount;
+    remaining=0;
+   } else {
    for(const bill of bills){
     const charges=bill.charges.filter(l=>l.orderId===order.id && l.amount>0 && (l.lineIndex===lineIndex || l.lineIndex===null)).sort((a,b)=>(a.lineIndex===lineIndex?-1:1)-(b.lineIndex===lineIndex?-1:1));
     for(const charge of charges){const removed=Math.min(remaining,charge.amount);charge.amount-=removed;remaining-=removed;if(charge.lineIndex===lineIndex)charge.quantity=charge.amount/line.unitPrice;if(!remaining)break;}
@@ -30,6 +48,7 @@ export function mountMeraCancellation(router,{guard,scope,locked,find,readRecord
     bill.total=bill.charges.reduce((n,l)=>n+l.amount,0);bill.paid=bill.allocations.reduce((n,a)=>n+a.amount,0);bill.balance=bill.total-bill.paid;
     await save(c,s,"bill",bill.id,bill);
     if(!remaining)break;
+   }
    }
    if(remaining)throw fail("Bill charges could not be reconciled. No cancellation was applied.",409);
    if(!order.holdExpired){
@@ -41,7 +60,7 @@ export function mountMeraCancellation(router,{guard,scope,locked,find,readRecord
    }
    order.originalTotal??=order.total;
    line.originalQuantity??=line.quantity;line.cancelledQuantity=(line.cancelledQuantity||0)+input.quantity;line.quantity-=input.quantity;line.total=line.quantity*line.unitPrice;
-   order.total-=amount;order.version++;order.paymentStatus=paymentStatus(order);
+   order.total-=amount;if(order.pricing){order.pricing.subtotal-=amount;order.pricing.total-=amount;}order.effectivePaid=paidForBill(order);order.version++;order.paymentStatus=paymentStatus(order);
    if(ticketLine){ticketLine.quantity-=input.quantity;ticketLine.cancelledQuantity=(ticketLine.cancelledQuantity||0)+input.quantity;ticket.version=(ticket.version||1)+1;ticket.status=ticket.items.every(i=>i.quantity===0)?"cancelled":ticket.items.every(i=>(i.preparedQuantity||0)===i.quantity)?"ready":ticket.status;await save(c,s,"ticket",ticket.id,ticket);}
    if(order.items.every(i=>!i.quantity)){order.status="cancelled";order.stockHeld=false;}
    else if(order.status!=="submitted" && tickets.length && tickets.every(t=>["ready","cancelled"].includes(t.status))) order.status="ready";

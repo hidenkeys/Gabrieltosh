@@ -10,7 +10,7 @@
   height: 42px;
   border-radius: 12px;
   background: #e9faff;
-  color: #1558c9;
+  color: var(--mc-link, #1558c9);
   font-size: 25px;
 }
 .mc-photo-placeholder {
@@ -53,7 +53,7 @@
 .mera-customer input:focus-visible,
 .mera-customer select:focus-visible,
 .mera-customer textarea:focus-visible {
-  outline: 3px solid #1558c9;
+  outline: 3px solid var(--mc-link, #1558c9);
   outline-offset: 3px;
 }
 .mera-customer .mc-wrap {
@@ -123,7 +123,7 @@
   letter-spacing: 1.7px;
   font-size: 10px;
   font-weight: 800;
-  color: #1558c9;
+  color: var(--mc-link, #1558c9);
 }
 .mc-tabs {
   display: flex;
@@ -205,7 +205,7 @@
 }
 .mc-product .mc-price {
   font-size: 15px;
-  color: #1558c9;
+  color: var(--mc-link, #1558c9);
   font-weight: 800;
 }
 .mc-panel {
@@ -314,7 +314,7 @@
   padding: 6px 10px;
   border-radius: 20px;
   background: #edf3ff;
-  color: #1558c9;
+  color: var(--mc-link, #1558c9);
   font-size: 12px;
   margin-right: 6px;
 }
@@ -454,3 +454,9 @@
 }
 
 .mera-customer .mc-activity article { border-top:1px solid #e8e6e0; padding:16px 0; overflow-wrap:anywhere; }
+
+.mera-customer .mc-hero img.mc-uploaded-cover { width: min(100%,300px); height:200px; object-fit:cover; border-radius:20px; }
+
+.mera-customer .mc-primary, .mera-customer .mc-product button { background:var(--mc-primary,#29262b); color:var(--mc-primary-foreground,#fff); }
+.mera-customer .mc-hero { background:color-mix(in srgb,var(--mc-accent,#83ddf7) 18%,#fffdf8); }
+.mera-customer .mc-initial { background:var(--mc-accent,#83ddf7); color:var(--mc-accent-foreground,#29262b); }

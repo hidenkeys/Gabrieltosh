@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { brandingStyle } from "../branding";
 import GuestActivity from "./GuestActivity";
 import { ProductImage } from "../../ProductImage";
 import { money } from "../../api";
@@ -9,6 +10,7 @@ type Product = {
   name: string;
   code: string;
   imageCode?: string;
+  image?: string;
   category: string;
   parentCategory?: string;
   description: string;
@@ -71,6 +73,14 @@ export default function CustomerExperience({
     [reservation, setReservation] = useState<any>(null),
     [visit, setVisit] = useState<any>(null),
     [success, setSuccess] = useState("");
+  const assetUrl = (value: unknown) =>
+    typeof value === "string" &&
+    /^\/api\/mera\/v1\/public\/assets\/[a-zA-Z0-9-]+$/.test(value)
+      ? value
+      : undefined;
+  const logo = assetUrl(menu?.organization?.branding?.logo);
+  const cover = assetUrl(menu?.organization?.branding?.coverImage);
+  const [quote, setQuote] = useState<any>(null);
   const checkoutKey = useRef(requestId());
   const modalRef = useRef<HTMLDivElement>(null);
   const reservationKey = useRef(requestId());
@@ -123,7 +133,10 @@ export default function CustomerExperience({
           );
           if (
             active &&
-            (!requestedTable || currentVisit.visit?.tableId === requestedTable)
+            (!requestedTable ||
+              (
+                currentVisit.visit?.tableIds || [currentVisit.visit?.tableId]
+              ).includes(requestedTable))
           ) {
             setVisit(currentVisit);
             setFulfillment("table_service");
@@ -154,11 +167,15 @@ export default function CustomerExperience({
       if (event.key === "Escape") setSelected(null);
       if (event.key === "Tab" && modalRef.current) {
         const controls = modalRef.current.querySelectorAll<HTMLElement>(
-          'button,input,select,[tabindex="0"]',
+          'button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]',
         );
         const first = controls[0],
           last = controls[controls.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
+        if (
+          event.shiftKey &&
+          (document.activeElement === first ||
+            document.activeElement === modalRef.current)
+        ) {
           event.preventDefault();
           last?.focus();
         } else if (!event.shiftKey && document.activeElement === last) {
@@ -297,13 +314,35 @@ export default function CustomerExperience({
     setSelected(null);
     setError("");
   }
+  const cartSignature = JSON.stringify(
+    cart.map(({ productId, quantity, variantId, modifiers }) => ({
+      productId,
+      quantity,
+      variantId,
+      modifiers,
+    })),
+  );
+  const currentQuote =
+    quote?.cartSignature === cartSignature &&
+    quote?.menuVersion === menu?.version
+      ? quote
+      : null;
   async function submitOrder() {
     setBusy(true);
     setError("");
     try {
       await guest();
+      if (menu.pricingPolicy?.enabled && !currentQuote) {
+        const nextQuote = await customerRequest(prefix + "/quote", "POST", {
+          menuVersion: menu.version,
+          items: JSON.parse(cartSignature),
+        });
+        setQuote({ ...nextQuote, cartSignature });
+        return;
+      }
       const next = await customerRequest(prefix + "/orders", "POST", {
         requestKey: checkoutKey.current,
+        ...(menu.pricingPolicy?.enabled ? { quoteId: currentQuote.id } : {}),
         menuVersion: menu.version,
         displayName: displayName.trim(),
         fulfillment,
@@ -317,11 +356,13 @@ export default function CustomerExperience({
         note,
       });
       setOrder(next);
+      setQuote(null);
       setCart([]);
       setTab("track");
       checkoutKey.current = requestId();
     } catch (e) {
       const message = (e as Error).message;
+      if ((e as any).status === 409) setQuote(null);
       await load().catch(() => {});
       setError(message);
     } finally {
@@ -382,12 +423,21 @@ export default function CustomerExperience({
     }
   }
   return (
-    <div className="mera-customer">
+    <div
+      className="mera-customer"
+      style={brandingStyle(menu?.organization?.branding)}
+    >
       <header className="mc-top">
         <div className="mc-wrap">
           <div className="mc-brand">
-            {bingChun ? (
-              <img src="/brand/brand-logo.png" alt="" />
+            {logo || bingChun ? (
+              <img
+                src={logo || "/brand/brand-logo.png"}
+                alt=""
+                onError={(event) => {
+                  event.currentTarget.style.visibility = "hidden";
+                }}
+              />
             ) : (
               <span className="mc-initial" aria-hidden="true">
                 {(menu?.organization?.name || "Mera").slice(0, 1)}
@@ -452,8 +502,19 @@ export default function CustomerExperience({
               <p className="mc-note">{menu.branch.settings.address}</p>
             )}
           </div>
-          {bingChun && (
-            <img src="/brand/brand-logo.png" alt="Bing Chun mascot" />
+          {cover ? (
+            <img
+              className="mc-uploaded-cover"
+              src={cover}
+              alt={`${menu.organization.name} welcome`}
+              onError={(event) => {
+                event.currentTarget.style.visibility = "hidden";
+              }}
+            />
+          ) : (
+            bingChun && (
+              <img src="/brand/brand-logo.png" alt="Bing Chun mascot" />
+            )
           )}
         </section>
         {requestedTable && menu && (
@@ -552,9 +613,13 @@ export default function CustomerExperience({
                   )
                   .map((p) => (
                     <article className="mc-product" key={p.id}>
-                      {bingChun || p.imageCode ? (
+                      {assetUrl(p.image) || bingChun || p.imageCode ? (
                         <ProductImage
-                          product={{ ...p, code: p.imageCode || p.code }}
+                          product={{
+                            ...p,
+                            image: assetUrl(p.image),
+                            code: p.imageCode || p.code,
+                          }}
                           decorative
                         />
                       ) : (
@@ -676,10 +741,34 @@ export default function CustomerExperience({
                   placeholder="Optional order note"
                 />
               </label>
+              {currentQuote && (
+                <div aria-label="Server price review" role="status">
+                  <p>Subtotal {money(currentQuote.subtotal)}</p>
+                  {currentQuote.lines?.map((line: any, index: number) => (
+                    <p key={index}>
+                      {line.label}: {money(line.amount)}
+                    </p>
+                  ))}
+                  <p>
+                    Review these charges before submitting. Quote expires{" "}
+                    {new Date(currentQuote.expiresAt).toLocaleTimeString()}.
+                  </p>
+                </div>
+              )}
               <div className="mc-total">
-                <span>Total</span>
-                <span>{money(total)}</span>
+                <span>
+                  {menu.pricingPolicy?.enabled && !currentQuote
+                    ? "Items estimate"
+                    : "Total"}
+                </span>
+                <span>{money(currentQuote?.total ?? total)}</span>
               </div>
+              {menu.pricingPolicy?.enabled && !currentQuote && (
+                <p>
+                  Review the server’s discount, service charge and tax before
+                  submitting your order.
+                </p>
+              )}
               <p className="mc-note">
                 The venue checks final prices and availability when you submit.
                 Online payment is unavailable until the provider and charging
@@ -700,7 +789,11 @@ export default function CustomerExperience({
                 }
                 onClick={submitOrder}
               >
-                {busy ? "Submitting…" : "Submit order"}
+                {busy
+                  ? "Checking…"
+                  : menu.pricingPolicy?.enabled && !currentQuote
+                    ? "Review total"
+                    : "Submit order"}
               </button>
             </aside>
           </div>
@@ -761,9 +854,19 @@ export default function CustomerExperience({
                       <p>{money(line.total ?? line.lineTotal ?? 0)}</p>
                     </div>
                   ))}
+                  {order.pricing?.lines?.map((line: any, index: number) => (
+                    <p key={index}>
+                      {line.label}: {money(line.amount)}
+                    </p>
+                  ))}
                   <p>
                     Order total {money(order.total)} · Outstanding{" "}
-                    {money(Math.max(0, order.total - (order.paid || 0)))}
+                    {money(
+                      Math.max(
+                        0,
+                        order.total - (order.effectivePaid ?? order.paid ?? 0),
+                      ),
+                    )}
                   </p>
                   {order.paymentStatus === "paid" && (
                     <button
@@ -1203,6 +1306,18 @@ export default function CustomerExperience({
                 {error}
               </div>
             )}
+            <p>
+              Item estimate{" "}
+              {money(
+                (selected.variants?.find((v) => v.id === variant)?.price ??
+                  selected.price) +
+                  (selected.modifierGroups || [])
+                    .flatMap((group) => group.options)
+                    .filter((option) => modifiers.includes(option.id))
+                    .reduce((sum, option) => sum + option.price, 0),
+              )}
+              . Any order-level charges are reviewed at checkout.
+            </p>
             <button className="mc-primary" onClick={addProduct}>
               Add to collection
             </button>

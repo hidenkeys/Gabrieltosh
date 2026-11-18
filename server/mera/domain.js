@@ -113,21 +113,23 @@ export function transition(order, next, { payLater = false } = {}) {
   if (
     ["preparing", "ready", "collected", "completed"].includes(next) &&
     !payLater &&
-    order.paid < order.total
+    paidForBill(order) < order.total
   )
     throw fail(
       "Payment must be confirmed before preparation.",
       409,
       "PAYMENT_REQUIRED",
     );
-  if (next === "completed" && order.paid < order.total)
+  if (next === "completed" && paidForBill(order) < order.total)
     throw fail("The outstanding bill must be settled.", 409);
   if (["cancelled", "rejected"].includes(next) && order.paid > order.refunded)
     throw fail("Refund the payment before cancelling.", 409);
   return next;
 }
+export const paidForBill = order => order.paid-(order.cancellationRefundApplied||0);
 export function paymentStatus(order) {
   if (order.refunded === order.paid && order.refunded > 0) return "refunded";
+  if (order.cancellationRefundApplied && paidForBill(order)>=order.total) return "paid";
   if (order.refunded > 0) return "partially_refunded";
   if (order.paid >= order.total) return "paid";
   if (order.paid > 0) return "partially_paid";
@@ -203,7 +205,7 @@ export function report(records, branch, date) {
       ?.at;
   const orders = allOrders.filter((o) => day(o.createdAt) === date);
   const payments = records
-    .filter((r) => r.kind === "payment" && day(r.data.createdAt) === date)
+    .filter((r) => ["payment","deposit"].includes(r.kind) && day(r.data.createdAt) === date)
     .map((r) => r.data);
   const refunds = records
     .filter((r) => r.kind === "refund" && day(r.data.createdAt) === date)
@@ -211,7 +213,7 @@ export function report(records, branch, date) {
   const recognized = allOrders.filter(
     (o) => recognizedAt(o) && day(recognizedAt(o)) === date,
   );
-  const grossSales = recognized.reduce((n, o) => n + o.total, 0);
+  const grossSales = recognized.reduce((n, o) => n + (o.recognitionTotal??o.total)-(o.pricing?.tax||0), 0);
   const salesReturns = records
     .filter((r) => r.kind === "refund")
     .map((r) => r.data)
@@ -224,7 +226,7 @@ export function report(records, branch, date) {
           : recognizedAt(o);
       return day(instant) === date;
     })
-    .reduce((n, r) => n + r.amount, 0);
+    .reduce((n, r) => n + r.amount-(r.taxAmount||0), 0);
   return {
     date,
     grossOrderValue: orders
@@ -232,13 +234,17 @@ export function report(records, branch, date) {
       .reduce((n, o) => n + o.total, 0),
     recognitionBasis: "immutable_collected_at",
     grossSales,
+    recognizedTax:recognized.reduce((n,o)=>n+(o.pricing?.tax||0),0),
+    discounts:recognized.reduce((n,o)=>n+(o.pricing?.discount||0),0),
+    serviceCharges:recognized.reduce((n,o)=>n+(o.pricing?.serviceCharge||0),0),
+    deposits:records.filter(r=>r.kind==="deposit" && day(r.data.createdAt)===date).reduce((n,r)=>n+r.data.amount,0),
     collections: payments.reduce((n, p) => n + p.amount, 0),
     refunds: refunds.reduce((n, r) => n + r.amount, 0),
     salesReturns,
     netSales: grossSales - salesReturns,
     outstanding: orders
       .filter((o) => !["cancelled", "rejected"].includes(o.status))
-      .reduce((n, o) => n + Math.max(0, o.total - o.paid), 0),
+      .reduce((n, o) => n + Math.max(0, o.total - paidForBill(o)), 0),
     orders: orders.length,
     products: recognized.flatMap((o) => o.items),
     paymentMethods: Object.fromEntries(

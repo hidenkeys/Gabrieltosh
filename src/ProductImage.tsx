@@ -5,7 +5,7 @@ export function ProductImage({
   className = "",
   decorative = false,
 }: {
-  product: { code: string; category: string; name: string };
+  product: { code: string; category: string; name: string; image?: string };
   className?: string;
   decorative?: boolean;
 }) {
@@ -13,11 +13,25 @@ export function ProductImage({
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     setFailed(false);
-  }, [photo.src]);
+  }, [photo.src, product.image]);
+  if (failed && product.image)
+    return (
+      <span
+        className={`${className} product-image-placeholder`}
+        role={decorative ? undefined : "img"}
+        aria-label={decorative ? undefined : product.name}
+      >
+        {product.name.slice(0, 2).toUpperCase()}
+      </span>
+    );
   return (
     <img
       className={`${className} ${photo.fit === "cover" ? "photo-cover" : ""}`}
-      src={failed ? "/brand/brand-logo.png" : "/products/" + photo.src}
+      src={
+        failed
+          ? "/brand/brand-logo.png"
+          : product.image || "/products/" + photo.src
+      }
       alt={decorative ? "" : product.name}
       loading="lazy"
       decoding="async"

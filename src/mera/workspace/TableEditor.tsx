@@ -3,8 +3,10 @@ export default function TableEditor({
   table,
   base,
   disabled,
+  held = false,
   save,
 }: {
+  held?: boolean;
   table: any;
   base: string;
   disabled: boolean;
@@ -23,9 +25,15 @@ export default function TableEditor({
     y: table.y || 0,
   });
   const [error, setError] = useState("");
+  const [status, setStatus] = useState(
+    ["available", "cleaning", "unavailable"].includes(table.status)
+      ? table.status
+      : "cleaning",
+  );
+  const [reason, setReason] = useState("");
   return (
     <details>
-      <summary>Edit table</summary>
+      <summary>Edit table & service status</summary>
       <form
         className="mw-form"
         onSubmit={(e) => {
@@ -69,6 +77,55 @@ export default function TableEditor({
             Save table
           </button>
         </div>
+      </form>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          setError("");
+          void save(
+            base + "/tables/" + table.id + "/status",
+            "POST",
+            { status, reason },
+            "Table service status updated.",
+          )
+            .then(() => setReason(""))
+            .catch((e) => setError(e.message));
+        }}
+      >
+        <fieldset
+          disabled={disabled || held || table.status === "occupied"}
+          style={{ border: 0, padding: 0 }}
+        >
+          <legend>Return table to service</legend>
+          <p>
+            Confirm cleaning is complete before making a table available. Active
+            visits must close or release the table first.
+          </p>
+          <div className="mw-form">
+            <label>
+              Table service status
+              <select
+                value={status}
+                onChange={(event) => setStatus(event.target.value)}
+              >
+                <option value="available">Available</option>
+                <option value="cleaning">Cleaning</option>
+                <option value="unavailable">Unavailable</option>
+              </select>
+            </label>
+            <label>
+              Table status reason
+              <input
+                required
+                minLength={3}
+                maxLength={300}
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+              />
+            </label>
+          </div>
+          <button className="secondary">Update service status</button>
+        </fieldset>
       </form>
       {error && (
         <p role="alert" className="mw-note mw-error">

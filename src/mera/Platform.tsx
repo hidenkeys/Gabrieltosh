@@ -12,7 +12,14 @@ export default function Platform() {
     [status, setStatus] = useState("trialing"),
     [reason, setReason] = useState(""),
     [support, setSupport] = useState<any>(null),
-    [pendingChange, setPendingChange] = useState<any>(null);
+    [pendingChange, setPendingChange] = useState<any>(null),
+    [reference, setReference] = useState(""),
+    [lookup, setLookup] = useState<any>(null),
+    [dates, setDates] = useState<Record<string, string>>({
+      trialEndsAt: "",
+      paidThrough: "",
+      dueAt: "",
+    });
   async function load() {
     setError("");
     setBusy(true);
@@ -30,6 +37,10 @@ export default function Platform() {
   }
   useEffect(() => {
     void load();
+    const timer = setInterval(() => {
+      void load();
+    }, 30000);
+    return () => clearInterval(timer);
   }, []);
   async function verify(event: React.FormEvent) {
     event.preventDefault();
@@ -53,6 +64,12 @@ export default function Platform() {
       organizationId: selected.id,
       status,
       reason,
+      ...Object.fromEntries(
+        Object.entries(dates).map(([key, value]) => [
+          key,
+          value ? value + ":00.000Z" : null,
+        ]),
+      ),
       requestKey: crypto.randomUUID(),
     };
     setPendingChange(intent);
@@ -64,6 +81,9 @@ export default function Platform() {
           status: intent.status,
           reason: intent.reason,
           requestKey: intent.requestKey,
+          trialEndsAt: intent.trialEndsAt,
+          paidThrough: intent.paidThrough,
+          dueAt: intent.dueAt,
         },
       );
       setPendingChange(null);
@@ -92,6 +112,41 @@ export default function Platform() {
           { reason },
         ),
       );
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function lookupReference() {
+    setBusy(true);
+    setError("");
+    setLookup(null);
+    try {
+      setLookup(
+        await workspaceApi(
+          "/platform/organizations/" + selected.id + "/lookup",
+          "POST",
+          { reference, reason },
+        ),
+      );
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function approvePolicy() {
+    setBusy(true);
+    setError("");
+    try {
+      await workspaceApi(
+        "/platform/organizations/" + selected.id + "/policy-approval",
+        "POST",
+        { version: selected.policy.version, reason },
+      );
+      setSelected(null);
+      await load();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -246,6 +301,7 @@ export default function Platform() {
                     <th>Organization</th>
                     <th>Subdomain</th>
                     <th>Subscription</th>
+                    <th>Branches</th>
                     <th>Operations</th>
                   </tr>
                 </thead>
@@ -259,15 +315,28 @@ export default function Platform() {
                           org.subscription?.status || "Not activated"
                         ).replaceAll("_", " ")}
                       </td>
+                      <td>{org.branches?.length ?? "—"}</td>
                       <td>
                         <button
                           className="secondary"
-                          disabled={!!pendingChange}
+                          disabled={busy || !!pendingChange}
                           onClick={() => {
                             setSelected(org);
                             setStatus(org.subscription?.status || "trialing");
                             setReason("");
                             setSupport(null);
+                            setLookup(null);
+                            setReference("");
+                            setDates(
+                              Object.fromEntries(
+                                ["trialEndsAt", "paidThrough", "dueAt"].map(
+                                  (key) => [
+                                    key,
+                                    org.subscription?.[key]?.slice(0, 16) || "",
+                                  ],
+                                ),
+                              ),
+                            );
                           }}
                         >
                           Review organization
@@ -321,6 +390,28 @@ export default function Platform() {
                     required
                   />
                 </label>
+                {[
+                  ["trialEndsAt", "Trial ends (UTC)"],
+                  ["paidThrough", "Paid through (UTC)"],
+                  ["dueAt", "Payment due (UTC)"],
+                ].map(([key, label]) => (
+                  <label key={key}>
+                    {label}
+                    <input
+                      type="datetime-local"
+                      value={dates[key]}
+                      disabled={!!pendingChange}
+                      onChange={(e) =>
+                        setDates({ ...dates, [key]: e.target.value })
+                      }
+                    />
+                  </label>
+                ))}
+                <p>
+                  Blank dates stay unresolved. A production trial needs an
+                  explicit end date; grace periods require approved policy.
+                  Manual activation does not collect a payment.
+                </p>
                 <p>
                   Changes are audited. This does not charge an account, verify
                   provider readiness or change an agreed price. Paid active
@@ -357,6 +448,112 @@ export default function Platform() {
                   {support.organization.onboarding?.status || "In progress"}.
                   Customer records and impersonation are excluded.
                 </p>
+              )}
+              <h3 style={{ marginTop: 24 }}>Reference lookup</h3>
+              <p>
+                Enter an exact order, payment or invoice reference. Results
+                exclude customer names and contact details; every lookup records
+                the reason above.
+              </p>
+              <label>
+                Record reference
+                <input
+                  value={reference}
+                  onChange={(e) => setReference(e.target.value)}
+                  maxLength={120}
+                />
+              </label>
+              <button
+                className="secondary"
+                type="button"
+                disabled={
+                  busy ||
+                  !!pendingChange ||
+                  reason.trim().length < 10 ||
+                  reference.trim().length < 3
+                }
+                onClick={lookupReference}
+              >
+                Look up reference
+              </button>
+              {lookup && (
+                <div role="status">
+                  {!lookup.records.length ? (
+                    <p>No matching reference in this organization.</p>
+                  ) : (
+                    lookup.records.map((r: any) => (
+                      <p key={r.id}>
+                        {r.kind} · {r.reference} · {formatMoney(r.amount)} ·{" "}
+                        {r.status}. Provider and settlement: unverified.
+                      </p>
+                    ))
+                  )}
+                </div>
+              )}
+              {!!selected.branches?.length && (
+                <div>
+                  <h3 style={{ marginTop: 24 }}>Branch configuration</h3>
+                  {selected.branches.map((b: any) => (
+                    <p key={b.id}>
+                      {b.name} · {b.timezone} · {b.launch_state || "draft"} ·{" "}
+                      {b.contact || "No published contact"}
+                    </p>
+                  ))}
+                </div>
+              )}
+              {selected.policy && (
+                <section style={{ marginTop: 24 }}>
+                  <h3>Commercial policy review</h3>
+                  <p>
+                    Current state: {selected.policy.status || "proposed"}. Live
+                    billing remains disabled.
+                  </p>
+                  <dl>
+                    {[
+                      ["monthlyPrice", "Monthly price"],
+                      ["includedBranches", "Included branches"],
+                      ["additionalBranchPrice", "Additional branch price"],
+                      ["integratedFeeBps", "Integrated fee (basis points)"],
+                      ["feePayer", "Fee payer"],
+                      ["feeBasis", "Fee basis"],
+                      ["refundTreatment", "Refund treatment"],
+                      ["trialDays", "Trial days"],
+                      ["graceDays", "Grace days"],
+                    ].map(([field, label]) => (
+                      <div key={field}>
+                        <dt>{label}</dt>
+                        <dd>
+                          {selected.policy[field] == null
+                            ? "Unresolved"
+                            : field.toLowerCase().includes("price")
+                              ? formatMoney(selected.policy[field])
+                              : String(selected.policy[field]).replaceAll(
+                                  "_",
+                                  " ",
+                                )}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <p>
+                    Review the proposal in organization billing. Approval
+                    requires resolved commercial choices and records your reason
+                    above; it does not activate collections or recurring debit.
+                  </p>
+                  <button
+                    className="secondary"
+                    type="button"
+                    disabled={
+                      busy ||
+                      !!pendingChange ||
+                      reason.trim().length < 10 ||
+                      selected.policy.status === "approved"
+                    }
+                    onClick={approvePolicy}
+                  >
+                    Approve reviewed commercial policy
+                  </button>
+                </section>
               )}
             </section>
           )}

@@ -72,6 +72,7 @@ export const moneySchema = z.number().int().safe().min(0).max(100000000000);
 export const orderInputSchema = z.object({
   requestKey: z.string().uuid(),
   menuVersion: z.number().int().positive(),
+  quoteId:z.string().uuid().optional(),
   displayName: z.string().trim().min(1).max(100),
   fulfillment: z
     .enum(["counter_pickup", "takeaway", "table_service"])
@@ -160,6 +161,7 @@ export const productInputSchema = z.object({
   allergens: z.array(z.string().max(80)).default([]),
   dietary: z.array(z.string().max(80)).default([]),
   imageCode: z.string().max(30).default(""),
+  image:z.string().regex(/^(?:|\/api\/mera\/v1\/public\/assets\/[a-f\d-]{36})$/i).default(""),
 });
 export const proposedPolicy = {
   version: "proposal-1",

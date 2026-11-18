@@ -1,4 +1,10 @@
 import express from "express";
+import { mountMeraFinancialRequests } from "./financial-requests.js";
+import { subscriptionEntitlement } from "./subscriptions.js";
+import { migrateMeraAssets,mountMeraAssets,assertMeraAsset } from "./assets.js";
+import { mountMeraPricing, resolveQuotedPricing } from "./pricing.js";
+import { mountMeraShifts } from "./shifts.js";
+import { mountMeraTableService } from "./table-service.js";
 import { mountMeraCancellation } from "./cancellation.js";
 import { mountMeraReadiness } from "./readiness.js";
 import { mountMeraReservationPolicy, assertReservationWindow, reservationOverlaps } from "./reservation-policy.js";
@@ -33,6 +39,7 @@ import {
   quote,
   transition,
   paymentStatus,
+  paidForBill,
   ledgerPostings,
   report,
   tradingDate,
@@ -93,6 +100,7 @@ export async function migrateMera(db) {
   );
   await migrateMeraPlatform(db);
   await migrateMeraIdentity(db);
+  await migrateMeraAssets(db);
 }
 export async function seedMeraDemo(db) {
   if (process.env.NODE_ENV === "production" || process.env.MERA_DEMO !== "true")
@@ -197,6 +205,17 @@ export async function seedMeraDemo(db) {
 }
 export function createMeraRouter(db) {
   const router = express.Router();
+  const commercial=(access=[])=>access.includes("billing.manage")||access.includes("organization.manage");
+  const safeSubscription=(value={},access=[])=>commercial(access)?value:Object.fromEntries(["status","trialEndsAt","paidThrough","dueAt","billingEnabled"].filter(k=>value[k]!==undefined).map(k=>[k,value[k]]));
+  router.use((req,res,next)=>{
+    const json=res.json.bind(res);
+    res.json=(body)=>{
+      if(commercial(req.meraMembership?.permissions))return json(body);
+      const redact=v=>Array.isArray(v)?v.map(redact):v&&typeof v==="object"?Object.fromEntries(Object.entries(v).filter(([key])=>key!=="financialPolicy"&&!(Object.hasOwn(v,"financialPolicy")&&key==="policyVersion")).map(([k,value])=>[k,redact(value)])):v;
+      return json(redact(body));
+    };
+    next();
+  });
   const rateBuckets = new Map();
   router.use("/public", (req, res, next) => {
     const key = req.ip + ":" + (req.method === "GET" ? "read" : "write");
@@ -234,6 +253,7 @@ export function createMeraRouter(db) {
     return row;
   };
   const update = async (c, scope, kind, id, data) => {
+    if(kind==="order")data.effectivePaid=paidForBill(data);
     const result = await c.query(
       "UPDATE mera_records SET data=$1 WHERE id=$2 AND organization_id=$3 AND branch_id=$4 AND kind=$5 RETURNING id",
       [JSON.stringify(data), id, scope.organizationId, scope.branchId, kind],
@@ -299,6 +319,12 @@ export function createMeraRouter(db) {
         403,
         "FORBIDDEN",
       );
+    if(!rolePermissions[m.role]) {
+      let custom;
+      try { custom=await resolveRole(db,org,m.role); } catch { throw fail("Your organization role is unavailable.",403,"FORBIDDEN"); }
+      m.permissions=m.permissions.filter(p=>custom.permissions.includes(p));
+      if(!(Array.isArray(permission)?permission.some(p=>m.permissions.includes(p)):m.permissions.includes(permission)))throw fail("Your organization role no longer grants this permission.",403,"FORBIDDEN");
+    }
     return m;
   }
   const scope = (req) => ({
@@ -322,7 +348,7 @@ export function createMeraRouter(db) {
     if (!req.user) throw fail("Sign in to continue.", 401);
     const rows = (
       await q(
-        "SELECT m.*,o.name,o.slug,o.branding,o.onboarding,o.subscription FROM mera_memberships m JOIN mera_organizations o ON o.id=m.organization_id WHERE m.user_id=$1 AND m.active=true",
+        "SELECT m.*,o.name,o.slug,o.branding,o.onboarding,o.subscription,o.policy FROM mera_memberships m JOIN mera_organizations o ON o.id=m.organization_id WHERE m.user_id=$1 AND m.active=true",
         [req.user.id],
       )
     ).rows;
@@ -340,7 +366,9 @@ export function createMeraRouter(db) {
         slug: m.slug,
         branding: m.branding,
         onboarding: m.onboarding,
-        subscription: m.subscription,
+        subscription: safeSubscription(m.subscription,m.permissions),
+        policy:commercial(m.permissions)?m.policy:null,
+        entitlements:subscriptionEntitlement(m.subscription,m.subscription?.approvedPolicySnapshot||m.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production"),
         branches: branches.map(branchView),
         permissions: m.permissions,
         role: m.role,
@@ -495,6 +523,7 @@ export function createMeraRouter(db) {
         visits: access.includes("tables.manage") ? by("visit") : [],
         shifts: access.includes("shifts.manage") ? by("shift") : [],
         payments: access.includes("payments.record") ? by("payment") : [],
+        refunds:access.includes("refunds.approve")?by("refund").map(r=>({...r,cancellationAppliedAmount:by("item_cancellation").flatMap(c=>c.refundAllocations||[]).filter(a=>a.refundId===r.id).reduce((n,a)=>n+a.amount,0)})):[],
         complaints: access.includes("organization.manage")
           ? by("complaint")
           : [],
@@ -510,8 +539,9 @@ export function createMeraRouter(db) {
               ),
             )
           : null,
-        subscription: org.subscription,
-        policy: org.policy,
+        subscription: safeSubscription(org.subscription,access),
+        entitlements:subscriptionEntitlement(org.subscription,org.subscription?.approvedPolicySnapshot||org.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production"),
+        policy: commercial(access)?org.policy:null,
         providers,
         onboarding: org.onboarding,
         permissions: access,
@@ -520,6 +550,7 @@ export function createMeraRouter(db) {
   );
   router.post(B + "/products", guard("menu.edit"), async (req, res) => {
     const input = productInputSchema.parse(req.body);
+    await assertMeraAsset(db,req.params.organizationId,req.params.branchId,input.image);
     if(!req.meraMembership.permissions.includes("stock.adjust") && (input.stock>0 || input.variants.some(v=>v.stock>0))) throw fail("Opening stock requires stock adjustment permission.",403);
     res.status(201).json(
       await locked(scope(req), async (c) => {
@@ -533,6 +564,7 @@ export function createMeraRouter(db) {
   });
   router.put(B + "/products/:id", guard("menu.edit"), async (req, res) => {
     const input = productInputSchema.parse(req.body);
+    await assertMeraAsset(db,req.params.organizationId,req.params.branchId,input.image);
     res.json(
       await locked(scope(req), async (c) => {
         const old = await find(c, scope(req), "product", req.params.id);
@@ -666,13 +698,14 @@ export function createMeraRouter(db) {
         amount: line.total,
         name: line.name,
       });
+    for(const adjustment of order.pricing?.lines||[]) bill.charges.push({id:randomUUID(),orderId:order.id,lineIndex:null,quantity:null,unitPrice:0,amount:adjustment.amount,name:adjustment.label,type:adjustment.type});
     if (order.paid > 0)
       bill.allocations.push({
         paymentId: "opening-" + order.id,
         orderId: order.id,
         amount: order.paid,
       });
-    let due = order.total - order.paid;
+    let due = order.total - paidForBill(order);
     for (const credit of [...bill.allocations]) {
       if (credit.orderId !== null || credit.amount <= 0 || !due) continue;
       const consumed = Math.min(due, credit.amount);
@@ -701,7 +734,7 @@ export function createMeraRouter(db) {
     }
     bill.allocations = bill.allocations.filter((a) => a.amount !== 0);
     order.paymentStatus = paymentStatus(order);
-    if (order.paid === order.total) order.stockHeld = false;
+    if (paidForBill(order) === order.total) order.stockHeld = false;
     await update(c, s, "bill", bill.id, billAmounts(bill));
     order.billId = bill.id;
     await update(c, s, "order", order.id, order);
@@ -763,12 +796,14 @@ export function createMeraRouter(db) {
         [s.organizationId],
       )
     ).rows[0];
-    if (["suspended", "cancelled"].includes(organization.subscription.status))
+    const entitlements=subscriptionEntitlement(organization.subscription,organization.subscription?.approvedPolicySnapshot||organization.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production");
+    if (!entitlements.newOrdersAllowed)
       throw fail(
         "New ordering is restricted for this organization. Existing orders and account exports remain available.",
         409,
         "SUBSCRIPTION_RESTRICTED",
       );
+    const financialPolicy=organization.subscription?.approvedPolicySnapshot||organization.policy;
     const branchCount = Number(
       (
         await c.query(
@@ -778,8 +813,8 @@ export function createMeraRouter(db) {
       ).rows[0].count,
     );
     if (
-      branchCount > organization.policy.includedBranches &&
-      organization.policy.additionalBranchPrice === null &&
+      branchCount > financialPolicy.includedBranches &&
+      financialPolicy.additionalBranchPrice === null &&
       !(organization.subscription.includedBranchIds || [DEMO_BRANCH]).includes(
         s.branchId,
       )
@@ -828,6 +863,7 @@ export function createMeraRouter(db) {
     });
     if(!availableNow(b.settings.serviceHours,b.timezone)) throw fail("Ordering is closed outside branch service hours.",409,"BRANCH_CLOSED");
     const priced = quote(input.items, published);
+    const pricing=await resolveQuotedPricing(c,s,b,input,actor,guestId,priced.total);
     const quantities = new Map();
     for (const l of priced.items)
       quantities.set(
@@ -862,12 +898,14 @@ export function createMeraRouter(db) {
     const stamp = now();
     const order = await record(c, s, "order", {
       ...priced,
+      total:pricing.total,
+      pricing,
       items: priced.items.map((line) => ({...line, orderLineId: randomUUID()})),
       requestKey: input.requestKey,
       intentHash: intentHash(input),
       reference: "M-" + randomBytes(4).toString("hex").toUpperCase(),
       status: "submitted",
-      paymentStatus: "unpaid",
+      paymentStatus: pricing.total===0?"paid":"unpaid",
       paid: 0,
       refunded: 0,
       version: 1,
@@ -882,7 +920,7 @@ export function createMeraRouter(db) {
       history: [
         { action: "submitted", actorId: actor?.id || guestId, at: stamp },
       ],
-      stockHeld: true,
+      stockHeld: pricing.total>0,
       holdExpired: false,
       holdExpiresAt: new Date(
         Date.now() +
@@ -890,16 +928,8 @@ export function createMeraRouter(db) {
       ).toISOString(),
       note: input.note,
       menuVersion: b.menu_version,
-      policyVersion: (
-        await c.query("SELECT policy FROM mera_organizations WHERE id=$1", [
-          s.organizationId,
-        ])
-      ).rows[0].policy.version,
-      financialPolicy: (
-        await c.query("SELECT policy FROM mera_organizations WHERE id=$1", [
-          s.organizationId,
-        ])
-      ).rows[0].policy,
+      policyVersion:financialPolicy.version,
+      financialPolicy,
       createdAt: stamp,
     });
     await attachBill(c, s, order);
@@ -940,7 +970,7 @@ export function createMeraRouter(db) {
         version: z.number().int().positive(),
       })
       .parse(req.body);
-    await membership(
+    req.meraMembership=await membership(
       req,
       req.params.organizationId,
       req.params.branchId,
@@ -987,7 +1017,8 @@ export function createMeraRouter(db) {
         if (input.status === "collected" && !o.collectedAt) {
           o.collectedAt = now();
           const postings = [
-            { account: "merchant_sales", debit: 0, credit: o.total },
+            { account: "merchant_sales", debit: 0, credit: (o.recognitionTotal??o.total)-(o.pricing?.tax||0) },
+            ...(o.pricing?.tax?[{account:"tax_payable",debit:0,credit:o.pricing.tax}]:[]),
           ];
           if (o.paid - o.refunded > 0)
             postings.push({
@@ -995,19 +1026,20 @@ export function createMeraRouter(db) {
               debit: o.paid - o.refunded,
               credit: 0,
             });
-          if (o.total - o.paid > 0)
+          if ((o.recognitionTotal??o.total) - o.paid > 0)
             postings.push({
               account: "merchant_receivable",
-              debit: o.total - o.paid,
+              debit: (o.recognitionTotal??o.total) - o.paid,
               credit: 0,
             });
           if (o.refunded > 0)
             postings.push({
               account: "sales_returns",
-              debit: o.refunded,
+              debit: o.refunded-(o.refundedTax||0),
               credit: 0,
             });
-          await record(c, scope(req), "ledger", {
+          if(o.refundedTax)postings.push({account:"tax_payable",debit:o.refundedTax,credit:0});
+          if((o.recognitionTotal??o.total)>0) await record(c, scope(req), "ledger", {
             orderId: o.id,
             type: "sale_recognition",
             postings,
@@ -1142,7 +1174,7 @@ export function createMeraRouter(db) {
               409,
               "PAYMENT_EXCEPTION",
             );
-          if (input.amount > o.total - o.paid)
+          if (input.amount > o.total - paidForBill(o))
             throw fail(
               "Payment exceeds the outstanding amount. Record and resolve excess funds separately.",
               409,
@@ -1179,7 +1211,7 @@ export function createMeraRouter(db) {
           );
           o.paid += input.amount;
           o.paymentStatus = paymentStatus(o);
-          if (o.paid === o.total) o.stockHeld = false;
+          if (paidForBill(o) === o.total) o.stockHeld = false;
           o.version++;
           o.history.push({
             action: "payment_recorded",
@@ -1217,6 +1249,7 @@ export function createMeraRouter(db) {
           amount: z.number().int().positive(),
           reason: z.string().trim().min(3).max(300),
           method: z.enum(["cash", "external_pos", "external_transfer"]),
+          reference:z.string().max(200).default(""),
         })
         .parse(req.body);
       res.json(
@@ -1246,7 +1279,9 @@ export function createMeraRouter(db) {
           const o = await find(c, scope(req), "order", req.params.id);
           if (input.amount > o.paid - o.refunded)
             throw fail("Refund exceeds collected funds.");
+          const taxAmount=Math.min((o.pricing?.tax||0)-(o.refundedTax||0),Number((BigInt(input.amount)*BigInt(o.pricing?.tax||0)+BigInt(o.recognitionTotal??o.total)/2n)/BigInt(o.recognitionTotal??o.total)));
           const refund = await record(c, scope(req), "refund", {
+            taxAmount,
             ...input,
             intentHash: intentHash(input),
             orderId: o.id,
@@ -1256,12 +1291,11 @@ export function createMeraRouter(db) {
           });
           await record(c, scope(req), "ledger", {
             refundId: refund.id,
-            postings: ledgerPostings(
-              input.amount,
-              input.method,
-              true,
-              !!o.collectedAt,
-            ),
+            postings: o.collectedAt && taxAmount ? [
+              ...(input.amount-taxAmount?[{account:"sales_returns",debit:input.amount-taxAmount,credit:0}]:[]),
+              {account:"tax_payable",debit:taxAmount,credit:0},
+              {account:"collections_"+input.method,debit:0,credit:input.amount},
+            ] : ledgerPostings(input.amount,input.method,true,!!o.collectedAt),
             createdAt: now(),
           });
           let remainingRefund = input.amount;
@@ -1308,6 +1342,7 @@ export function createMeraRouter(db) {
               "ALLOCATION_CONFLICT",
             );
           o.refunded += input.amount;
+          o.refundedTax=(o.refundedTax||0)+taxAmount;
           o.paymentStatus = paymentStatus(o);
           o.version++;
           o.history.push({
@@ -1393,6 +1428,7 @@ export function createMeraRouter(db) {
       res.json(
         await locked(scope(req), async (c) => {
           const visit = await find(c, scope(req), "visit", req.params.id);
+          if(visit.status!=="open")throw fail("This visit is already closed.",409);
           const orders = (
             await readRecords(
               c,
@@ -1410,7 +1446,7 @@ export function createMeraRouter(db) {
           if (
             orders.some(
               (o) =>
-                o.paid < o.total ||
+                paidForBill(o) < o.total ||
                 !["collected", "completed"].includes(o.status),
             )
           )
@@ -1442,9 +1478,10 @@ export function createMeraRouter(db) {
           visit.guestIds = [];
           visit.joiningCodeHash = null;
           await update(c, scope(req), "visit", visit.id, visit);
-          const table = await find(c, scope(req), "table", visit.tableId);
-          table.status = "cleaning";
-          await update(c, scope(req), "table", table.id, table);
+          for(const tableId of new Set(visit.tableIds||[visit.tableId])){
+            const table=await find(c,scope(req),"table",tableId);table.status="cleaning";
+            await update(c,scope(req),"table",table.id,table);
+          }
           await event(c, scope(req), "visit_closed", req.user, {
             visitId: visit.id,
           });
@@ -1457,18 +1494,21 @@ export function createMeraRouter(db) {
     B + "/tables/:id/status",
     guard("tables.manage"),
     async (req, res) => {
-      const { status } = z
-        .object({ status: z.enum(["available", "cleaning", "unavailable"]) })
+      const { status,reason } = z
+        .object({ status: z.enum(["available", "cleaning", "unavailable"]),reason:z.string().trim().min(3).max(300) })
         .parse(req.body);
       res.json(
         await locked(scope(req), async (c) => {
           const table = await find(c, scope(req), "table", req.params.id);
-          if (table.status === "occupied")
+          const active=(await readRecords(c,scope(req).organizationId,scope(req).branchId,"visit")).some(r=>r.data.status==="open" && (r.data.tableIds||[r.data.tableId]).includes(table.id));
+          if (table.status === "occupied" || active)
             throw fail(
               "Close the current visit before resetting the table.",
               409,
             );
+          const from=table.status;
           table.status = status;
+          await event(c,scope(req),"table_status_changed",req.user,{tableId:table.id,from,status,reason});
           return update(c, scope(req), "table", table.id, table);
         }),
       );
@@ -1648,6 +1688,7 @@ export function createMeraRouter(db) {
     async (req, res) => {
       const input = z
         .object({
+          requestKey:uuid,
           direction: z.enum(["in", "out"]),
           amount: z.number().int().positive(),
           reason: z.string().trim().min(3).max(300),
@@ -1655,10 +1696,13 @@ export function createMeraRouter(db) {
         .parse(req.body);
       res.json(
         await locked(scope(req), async (c) => {
+          const previous=(await readRecords(c,scope(req).organizationId,scope(req).branchId,"cash_movement")).map(r=>r.data).find(r=>r.requestKey===input.requestKey);
+          if(previous){if(previous.intentHash!==intentHash(input)||previous.shiftId!==req.params.id||previous.actorId!==req.user.id)throw fail("Cash movement request key conflict.",409,"IDEMPOTENCY_CONFLICT");return previous;}
           const shift = await find(c, scope(req), "shift", req.params.id);
           if (shift.status !== "open") throw fail("The shift is closed.", 409);
           return record(c, scope(req), "cash_movement", {
             ...input,
+            intentHash:intentHash(input),
             shiftId: shift.id,
             actorId: req.user.id,
             actorName: req.user.name,
@@ -1692,7 +1736,7 @@ export function createMeraRouter(db) {
           for (const r of rs) {
             if (Date.parse(r.data.createdAt) < Date.parse(shift.createdAt))
               continue;
-            if (r.kind === "payment" && r.data.method === "cash")
+            if (["payment","deposit"].includes(r.kind) && r.data.method === "cash")
               expectedCash += r.data.amount;
             if (r.kind === "refund" && r.data.method === "cash")
               expectedCash -= r.data.amount;
@@ -1857,6 +1901,9 @@ export function createMeraRouter(db) {
       .object({ token: z.string().regex(/^[a-f0-9]{64}$/) })
       .parse(req.body);
     await db.transaction(async (c) => {
+      const preliminary=(await c.query("SELECT organization_id FROM mera_invitations WHERE token_hash=$1",[hash(token)])).rows[0];
+      if(!preliminary)throw fail("Invitation is invalid, expired or revoked.",409);
+      await c.query("SELECT id FROM mera_organizations WHERE id=$1 FOR UPDATE",[preliminary.organization_id]);
       const invite = (
         await c.query(
           "SELECT * FROM mera_invitations WHERE token_hash=$1 FOR UPDATE",
@@ -1870,15 +1917,17 @@ export function createMeraRouter(db) {
         new Date(invite.expires_at) <= new Date()
       )
         throw fail("Invitation is invalid, expired or revoked.", 409);
+      const currentRole=await resolveRole(c,invite.organization_id,invite.role);
       await c.query(
-        "INSERT INTO mera_memberships(id,user_id,organization_id,role,permissions,branch_ids) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(user_id,organization_id) DO NOTHING",
+        "INSERT INTO mera_memberships(id,user_id,organization_id,role,permissions,branch_ids,organization_wide) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(user_id,organization_id) DO NOTHING",
         [
           randomUUID(),
           req.user.id,
           invite.organization_id,
           invite.role,
-          JSON.stringify(invite.permissions),
+          JSON.stringify(currentRole.permissions),
           JSON.stringify(invite.branch_ids),
+          invite.role==="owner",
         ],
       );
       await c.query("UPDATE mera_invitations SET accepted=true WHERE id=$1", [
@@ -1937,6 +1986,9 @@ export function createMeraRouter(db) {
     status: o.status,
     paymentStatus: o.paymentStatus,
     total: o.total,
+    pricing:o.pricing?{subtotal:o.pricing.subtotal,discount:o.pricing.discount,serviceCharge:o.pricing.serviceCharge,tax:o.pricing.tax,total:o.pricing.total,lines:o.pricing.lines,policyVersion:o.pricing.policyVersion}:null,
+    effectivePaid:paidForBill(o),
+    recognitionTotal:o.recognitionTotal??o.total,
     paid: o.paid,
     refunded: o.refunded,
     items: o.items,
@@ -1991,7 +2043,8 @@ export function createMeraRouter(db) {
       products,
       tables,
       providers,
-      orderingAvailable: !b.settings.orderingPaused && !!b.menu_version && availableNow(b.settings.serviceHours,b.timezone),
+      orderingAvailable: !b.settings.orderingPaused && !!b.menu_version && availableNow(b.settings.serviceHours,b.timezone) && subscriptionEntitlement(organization.subscription,organization.subscription?.approvedPolicySnapshot||organization.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production").newOrdersAllowed,
+      pricingPolicy:b.settings.pricingPolicy||null,
       reservationPolicy: {
         enabled: !!b.settings.reservationsEnabled,
         depositRequired: !!b.settings.depositRequired,
@@ -2084,7 +2137,7 @@ export function createMeraRouter(db) {
       .parse(req.body);
     res.json(
       await locked(s, async (c) => {
-        const v = input.visitId ? await find(c, s, "visit", input.visitId) : (await readRecords(c,s.organizationId,s.branchId,"visit")).map(r=>r.data).find(v=>v.tableId===input.tableId && v.status==="open");
+        const v = input.visitId ? await find(c, s, "visit", input.visitId) : (await readRecords(c,s.organizationId,s.branchId,"visit")).map(r=>r.data).find(v=>(v.tableIds||[v.tableId]).includes(input.tableId) && v.status==="open");
         if (!v) throw fail("The visit or joining code is invalid.",403);
         if (
           v.status !== "open" ||
@@ -2096,6 +2149,7 @@ export function createMeraRouter(db) {
         return {
           id: v.id,
           tableId: v.tableId,
+          tableIds:v.tableIds||[v.tableId],
           tableName: v.tableName,
           status: v.status,
         };
@@ -2121,6 +2175,7 @@ export function createMeraRouter(db) {
       visit: {
         id: row.id,
         tableId: row.data.tableId,
+        tableIds:row.data.tableIds||[row.data.tableId],
         tableName: row.data.tableName,
         status: row.data.status,
       },
@@ -2154,7 +2209,7 @@ export function createMeraRouter(db) {
         }),
       balance: orders
         .filter((o) => !["cancelled", "rejected"].includes(o.status))
-        .reduce((n, o) => n + Math.max(0, o.total - o.paid), 0),
+        .reduce((n, o) => n + Math.max(0, o.total - paidForBill(o)), 0),
     });
   });
   router.post("/public/orders/:id/feedback", async (req, res) => {
@@ -2283,11 +2338,15 @@ export function createMeraRouter(db) {
           accent: z.string().regex(/^#[a-fA-F0-9]{6}$/),
           description: z.string().max(500),
           font: z.enum(["system", "serif", "sans"]).default("system"),
+          logo:z.string().max(200).optional(),
+          coverImage:z.string().max(200).optional(),
         })
         .strict()
         .parse(req.body);
+      const oldBranding=(await q("SELECT branding FROM mera_organizations WHERE id=$1",[req.params.organizationId])).rows[0].branding;
+      for(const field of ["logo","coverImage"]) if(branding[field]!==undefined && branding[field]!==oldBranding[field]) await assertMeraAsset(db,req.params.organizationId,null,branding[field]);
       await q("UPDATE mera_organizations SET branding=$1 WHERE id=$2", [
-        JSON.stringify(branding),
+        JSON.stringify({...oldBranding,...branding}),
         req.params.organizationId,
       ]);
       res.json(branding);
@@ -2365,7 +2424,7 @@ export function createMeraRouter(db) {
     )
       .map((r) => r.data)
       .filter((v) => v.status === "open" && v.guestIds.includes(g.id))
-      .map((v) => ({ id: v.id, tableId: v.tableId, tableName: v.tableName }));
+      .map((v) => ({ id: v.id, tableId: v.tableId,tableIds:v.tableIds||[v.tableId], tableName: v.tableName }));
     res.json({ displayName: g.display_name, orders, reservations, openVisits });
   });
   router.post(
@@ -2633,7 +2692,7 @@ export function createMeraRouter(db) {
             if (
               order.holdExpired ||
               ["cancelled", "rejected"].includes(order.status) ||
-              allocated > order.total - order.paid
+              allocated > order.total - paidForBill(order)
             )
               throw fail("Order allocation is no longer valid.", 409);
             bill.allocations.push({
@@ -2650,7 +2709,7 @@ export function createMeraRouter(db) {
             });
             order.paid += allocated;
             order.paymentStatus = paymentStatus(order);
-            if (order.paid === order.total) order.stockHeld = false;
+            if (paidForBill(order) === order.total) order.stockHeld = false;
             order.version++;
             order.history.push({
               action: "payment_recorded",
@@ -3047,6 +3106,11 @@ export function createMeraRouter(db) {
     },
   );
 
+  mountMeraFinancialRequests(router,{db,guard});
+  mountMeraAssets(router,{db,guard,scope,event});
+  mountMeraPricing(router,{guard,scope,locked,record,readRecords,event,publicContext,guest});
+  mountMeraShifts(router,{db,guard,scope,locked,find,update,event});
+  mountMeraTableService(router,{db,guard,scope,locked,record,readRecords,find,update,event});
   mountMeraCancellation(router,{guard,scope,locked,find,readRecords,record,event});
   mountMeraReadiness(router,{db,guard,scope,locked,readRecords,event});
   mountMeraReservationPolicy(router,{guard,scope,locked,event});

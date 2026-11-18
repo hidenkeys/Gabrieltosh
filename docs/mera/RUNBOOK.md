@@ -41,3 +41,11 @@ For delayed orders, inspect canonical order/ticket/payment states before resubmi
 For uncertain writes, preserve the original request key and payload. Refresh canonical state and retry the same intent; a conflicting payload receives409. Do not tell a customer payment succeeded based on a network timeout, browser return page or simulated provider event. Escalate unmatched/late/provider-discrepant records for reconciliation; live provider actions remain blocked.
 
 For data recovery, stop writes only under an approved incident procedure, identify the backup and encryption-key version, restore into a separate database, compare scoped counts/amounts/ledger balance before redirecting traffic, and retain an audit trail. Local fixture rehearsals do not authorize production restore or destructive migration.
+
+## Media, subscription and financial review
+
+Images are limited to PNG/JPEG/WebP raster uploads,512KB each and4096px per side. Stored bytes remain in PostgreSQL so database recovery includes media; the fixture restore verifies a real image hash. Staff previews require tenant authorization. Public image URLs are only served for exact published menu/brand references. Storage quota currently limits an organization to500 images; retention/replacement policy needs business approval before production use.
+
+Platform status changes can configure trial end/paid-through/due dates explicitly. Proposed merchant commercial edits do not replace the approved snapshot used for entitlements. A production trial without an explicit date stays restricted; unknown grace periods do not silently become an unlimited trial. Paid active service and authorized exports continue. Commercial approval requires resolved fee/duration choices and an audit reason, and always leaves live billing disabled.
+
+Financial validation rule: make source/test edits in normal calls, inspect assertions on disk, then run the isolated PG command separately. An approval timeout means the command did not execute; never report intended edits or tests as completed. Review the exact assertion and actual stdout before closing a financial gate.

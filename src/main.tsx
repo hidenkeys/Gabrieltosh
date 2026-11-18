@@ -1,16 +1,23 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
+const App = React.lazy(() => import("./App"));
 import "./styles.css";
 import "./mera/platform.css";
 import "./mera/signup.css";
-import Signup from "./mera/Signup";
+const Signup = React.lazy(() => import("./mera/Signup"));
 import "./mera/marketing/marketing.css";
 import "./mera/customer/customer.css";
 import "./mera/workspace/workspace.css";
-import Marketing, { LegalInformation } from "./mera/marketing/Marketing";
-import CustomerExperience from "./mera/customer/CustomerExperience";
-import Platform from "./mera/Platform";
+const Marketing = React.lazy(() => import("./mera/marketing/Marketing"));
+const LegalInformation = React.lazy(() =>
+  import("./mera/marketing/Marketing").then((module) => ({
+    default: module.LegalInformation,
+  })),
+);
+const CustomerExperience = React.lazy(
+  () => import("./mera/customer/CustomerExperience"),
+);
+const Platform = React.lazy(() => import("./mera/Platform"));
 if (window.location.pathname.startsWith("/mera"))
   document.title = window.location.pathname.startsWith("/mera/workspace")
     ? "Workspace · Mera"
@@ -54,20 +61,29 @@ class WorkspaceBoundary extends React.Component<
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <WorkspaceBoundary>
-      {window.location.pathname === "/mera" ||
-      window.location.pathname === "/mera/" ? (
-        <Marketing />
-      ) : window.location.pathname === "/mera/legal" ? (
-        <LegalInformation />
-      ) : window.location.pathname === "/mera/signup" ? (
-        <Signup />
-      ) : /^\/mera\/(menu|store)\//.test(window.location.pathname) ? (
-        <CustomerExperience />
-      ) : window.location.pathname === "/mera/platform" ? (
-        <Platform />
-      ) : (
-        <App />
-      )}
+      <React.Suspense
+        fallback={
+          <main style={{ padding: 40 }} role="status">
+            <h1>Opening your workspace…</h1>
+            <p>Connecting to the current service.</p>
+          </main>
+        }
+      >
+        {window.location.pathname === "/mera" ||
+        window.location.pathname === "/mera/" ? (
+          <Marketing />
+        ) : window.location.pathname === "/mera/legal" ? (
+          <LegalInformation />
+        ) : window.location.pathname === "/mera/signup" ? (
+          <Signup />
+        ) : /^\/mera\/(menu|store)\//.test(window.location.pathname) ? (
+          <CustomerExperience />
+        ) : window.location.pathname === "/mera/platform" ? (
+          <Platform />
+        ) : (
+          <App />
+        )}
+      </React.Suspense>
     </WorkspaceBoundary>
   </React.StrictMode>,
 );

@@ -22,10 +22,12 @@ export function mountMeraReconciliation(router,{db,guard,scope,locked,record,rea
   });res.status(result.replayed?200:201).json(result);
  });
  router.get(B+"/reconciliation",guard("billing.manage"),async(req,res)=>{
-  const s=scope(req),kinds=["provider_event","payment","refund","order"];
-  const [events,payments,refunds,orders]=await Promise.all(kinds.map(async k=>(await readRecords(db,s.organizationId,s.branchId,k)).map(r=>r.data)));
-  const policy=(await db.query("SELECT policy FROM mera_organizations WHERE id=$1",[s.organizationId])).rows[0].policy;
-  res.json(projectReconciliation(events,payments,refunds,orders,policy));
+  const s=scope(req),kinds=["provider_event","payment","refund","order","bill"];
+  const [events,payments,refunds,orders,bills]=await Promise.all(kinds.map(async k=>(await readRecords(db,s.organizationId,s.branchId,k)).map(r=>r.data)));
+  const org=(await db.query("SELECT policy,subscription FROM mera_organizations WHERE id=$1",[s.organizationId])).rows[0];
+  const policy=org.subscription?.approvedPolicySnapshot||org.policy;
+  const attributed=payments.flatMap(p=>p.orderId?[p]:bills.flatMap(b=>b.allocations.filter(a=>a.paymentId===p.id && a.amount>0).map(a=>({...p,orderId:a.orderId,amount:a.amount}))));
+  res.json(projectReconciliation(events,attributed,refunds,orders,policy));
  });
 }
 export function projectReconciliation(events,payments,refunds,orders,policy={}) {

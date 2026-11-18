@@ -7,7 +7,7 @@ export default function ReportDetails({ report }: { report: any }) {
   for (const line of report?.products || []) {
     const key = line.productId + ":" + (line.variantId || line.name);
     const previous = products.get(key) || {
-      name: line.name,
+      name: line.name + (line.size ? " · " + line.size : ""),
       quantity: 0,
       value: 0,
     };
@@ -23,7 +23,9 @@ export default function ReportDetails({ report }: { report: any }) {
       <p>
         Sales are recognized when an order is collected or completed, using the
         recorded fulfillment time. Collections are money received that day and
-        may include deposits or payments for other days.
+        may include payments for other days. Deposits are shown separately.
+        Recognized totals include configured charges and tax; their breakdown is
+        shown below.
       </p>
       <div className="mw-grid">
         <article>
@@ -33,10 +35,18 @@ export default function ReportDetails({ report }: { report: any }) {
             ["Recognized sales returns", report?.salesReturns],
             ["Net sales", report?.netSales],
             ["Refunds paid today", report?.refunds],
+            ["Discounts on recognized orders", report?.discounts],
+            ["Service charges on recognized orders", report?.serviceCharges],
+            ["Tax on recognized orders", report?.recognizedTax],
+            ["Deposits received today", report?.deposits],
           ].map(([label, amount]) => (
             <div className="mw-row" key={String(label)}>
               <span>{label}</span>
-              <b>{formatMoney(Number(amount))}</b>
+              <b>
+                {Number.isSafeInteger(amount)
+                  ? formatMoney(Number(amount))
+                  : "Not reported"}
+              </b>
             </div>
           ))}
         </article>

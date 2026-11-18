@@ -139,3 +139,9 @@ test("Mera availability windows use branch timezone and exclude end boundary",as
  assert.equal(availableNow(windows,"Africa/Lagos",new Date("2026-11-18T10:00:00Z")),false);
  assert.equal(availableNow([],"Africa/Lagos"),true);
 });
+
+test("reservation deposit collections are cash flow, never recognized sales",async()=>{
+ const {report}=await import("../server/mera/domain.js");
+ const result=report([{kind:"deposit",data:{amount:50000,method:"cash",createdAt:"2026-11-18T10:00:00Z"}}],{timezone:"Africa/Lagos",cutoff:0},"2026-11-18");
+ assert.equal(result.collections,50000);assert.equal(result.deposits,50000);assert.equal(result.paymentMethods.cash,50000);assert.equal(result.netSales,0);
+});

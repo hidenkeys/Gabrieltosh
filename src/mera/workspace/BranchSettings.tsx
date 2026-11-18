@@ -1,5 +1,7 @@
 import { useState } from "react";
 import TimeWindows from "./TimeWindows";
+import MediaUpload from "../MediaUpload";
+import { brandingTokens } from "../branding";
 type Props = {
   branch: any;
   organization: any;
@@ -36,7 +38,10 @@ export default function BranchSettings({
     accent: organization.branding?.accent || "#83ddf7",
     description: organization.branding?.description || "",
     font: organization.branding?.font || "system",
+    logo: organization.branding?.logo || "",
+    coverImage: organization.branding?.coverImage || "",
   });
+  const tokens = brandingTokens(branding);
   return (
     <>
       <section className="mw-card">
@@ -189,6 +194,49 @@ export default function BranchSettings({
             ).catch(() => {});
           }}
         >
+          <div className="mw-wide">
+            <h3>Organization logo</h3>
+            {branding.logo && (
+              <img
+                alt="Current organization logo"
+                style={{ maxWidth: 180, maxHeight: 120, objectFit: "contain" }}
+                src={branding.logo.replace(
+                  "/api/mera/v1/public/assets/",
+                  `/api/mera/v1/organizations/${organization.id}/assets/`,
+                )}
+              />
+            )}
+            <MediaUpload
+              endpoint={`/api/mera/v1/organizations/${organization.id}/assets`}
+              disabled={disabled}
+              onUploaded={(asset) =>
+                setBranding((current) => ({ ...current, logo: asset.url }))
+              }
+            />
+          </div>
+          <div className="mw-wide">
+            <h3>Storefront cover photo</h3>
+            {branding.coverImage && (
+              <img
+                alt="Current storefront cover"
+                style={{ maxWidth: "100%", maxHeight: 200, objectFit: "cover" }}
+                src={branding.coverImage.replace(
+                  "/api/mera/v1/public/assets/",
+                  `/api/mera/v1/organizations/${organization.id}/assets/`,
+                )}
+              />
+            )}
+            <MediaUpload
+              endpoint={`/api/mera/v1/organizations/${organization.id}/assets`}
+              disabled={disabled}
+              onUploaded={(asset) =>
+                setBranding((current) => ({
+                  ...current,
+                  coverImage: asset.url,
+                }))
+              }
+            />
+          </div>
           <label>
             Primary color
             <input
@@ -235,14 +283,23 @@ export default function BranchSettings({
           <div
             className="mw-wide mw-preview"
             style={{
-              background: branding.accent,
-              fontFamily:
-                branding.font === "serif" ? "Georgia,serif" : "inherit",
+              background: tokens.accent,
+              color: tokens.accentForeground,
+              fontFamily: tokens.font,
             }}
           >
-            <span className="mw-eyebrow">LIVE STYLE PREVIEW</span>
-            <h2 style={{ color: "#111b2f" }}>{organization.name}</h2>
-            <p style={{ color: "#111b2f" }}>{branding.description}</p>
+            <span
+              className="mw-eyebrow"
+              style={{ color: tokens.accentForeground }}
+            >
+              LIVE STYLE PREVIEW
+            </span>
+            <h2 style={{ color: tokens.accentForeground }}>
+              {organization.name}
+            </h2>
+            <p style={{ color: tokens.accentForeground }}>
+              {branding.description}
+            </p>
             <span
               style={{
                 display: "inline-block",
@@ -260,8 +317,8 @@ export default function BranchSettings({
           </div>
         </form>
         <p>
-          Preview text uses dark ink for readability. Branding does not permit
-          custom scripts or unrestricted HTML.
+          Preview text uses an accessible contrasting foreground. Branding does
+          not permit custom scripts or unrestricted HTML.
         </p>
       </section>
     </>

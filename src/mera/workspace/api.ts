@@ -2,6 +2,7 @@ export class WorkspaceError extends Error {
   constructor(
     message: string,
     public status = 0,
+    public code?: string,
   ) {
     super(message);
   }
@@ -70,6 +71,7 @@ export async function workspaceApi<T = any>(
               content?.error ||
               "This action could not be completed.",
             response.status,
+            content?.code || content?.error?.code,
           );
         }
         return content;

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { assertMeraAsset } from "./assets.js";
 import { randomUUID } from "node:crypto";
 import { productInputSchema } from "../../shared/mera-contracts.js";
 import { fail } from "./domain.js";
@@ -13,6 +14,7 @@ export function mountMeraMenus(router,{db,guard,scope,locked,record,readRecords,
    const branch=(await c.query("SELECT id FROM mera_branches WHERE organization_id=$1 ORDER BY id LIMIT 1",[req.params.organizationId])).rows[0];
    let old;
    if(id){old=(await c.query("SELECT data FROM mera_records WHERE id=$1 AND organization_id=$2 AND kind='shared_menu'",[id,req.params.organizationId])).rows[0]?.data;if(!old)throw fail("Shared menu not found.",404);if(old.version!==input.version)throw fail("Shared menu changed. Refresh first.",409,"STALE_VERSION");}
+   for(const item of input.items) await assertMeraAsset(c,req.params.organizationId,null,item.image);
    const items=input.items.map(p=>({...p,stockMode:"unlimited",stock:0,variants:p.variants.map(v=>({...v,stockMode:"unlimited",stock:0}))}));
    const data={id:id||randomUUID(),name:input.name,items,version:(old?.version||0)+1,updatedAt:stamp(),updatedBy:req.user.id};
    if(old)await c.query("UPDATE mera_records SET data=$1 WHERE id=$2 AND organization_id=$3 AND kind='shared_menu'",[JSON.stringify(data),id,req.params.organizationId]);
@@ -25,7 +27,7 @@ export function mountMeraMenus(router,{db,guard,scope,locked,record,readRecords,
  router.patch(O+"/menus/:id",guard("menu.edit"),async(req,res)=>res.json(await save(req,{...schema.parse(req.body),version:z.number().int().positive().parse(req.body.version)},req.params.id)));
  router.post(B+"/menu/shared-use",guard("menu.publish"),async(req,res)=>{
   if(!req.meraMembership.permissions.includes("menu.edit"))throw fail("Menu editing permission is required.",403);
-  const input=z.object({menuId:z.string().uuid(),version:z.number().int().positive(),overrides:z.array(z.object({code:z.string().min(1),price:z.number().int().safe().min(0).optional(),available:z.boolean().optional(),category:z.string().min(1).max(100).optional()}).strict()).max(500).default([])}).strict().parse(req.body);
+  const input=z.object({menuId:z.string().uuid(),version:z.number().int().positive(),overrides:z.array(z.object({code:z.string().min(1),price:z.number().int().safe().min(0).optional(),available:z.boolean().optional(),category:z.string().min(1).max(100).optional(),image:z.string().max(200).optional()}).strict()).max(500).default([])}).strict().parse(req.body);
   res.json(await locked(scope(req),async(c,b)=>{
    const s=scope(req),shared=(await c.query("SELECT data FROM mera_records WHERE id=$1 AND organization_id=$2 AND kind='shared_menu' FOR SHARE",[input.menuId,s.organizationId])).rows[0]?.data;
    if(!shared)throw fail("Shared menu not found.",404);if(shared.version!==input.version)throw fail("Shared menu version changed.",409,"STALE_VERSION");
@@ -34,6 +36,7 @@ export function mountMeraMenus(router,{db,guard,scope,locked,record,readRecords,
    const holds=(await readRecords(c,s.organizationId,s.branchId,"order")).map(r=>r.data).filter(o=>o.stockHeld);
    for(const item of shared.items){
     const old=existing.find(p=>p.code===item.code),override=input.overrides.find(o=>o.code===item.code)||{},data={...item,...override,id:old?.id||randomUUID(),stockMode:old?.stockMode||"unlimited",stock:old?.stock||0,variants:item.variants.map(v=>({...v,stockMode:old?.variants.find(i=>i.id===v.id)?.stockMode||"unlimited",stock:old?.variants.find(i=>i.id===v.id)?.stock||0}))};
+    await assertMeraAsset(c,s.organizationId,s.branchId,data.image);
     if(old?.variants.some(v=>!data.variants.some(n=>n.id===v.id) && ((v.stockMode==="counted"&&v.stock>0)||holds.some(o=>o.items.some(l=>l.productId===old.id&&l.variantId===v.id))))) throw fail("Shared menu cannot remove sizes with stock or active holds.",409);
     if(old)await c.query("UPDATE mera_records SET data=$1 WHERE id=$2 AND organization_id=$3 AND branch_id=$4 AND kind='product'",[JSON.stringify(data),data.id,s.organizationId,s.branchId]);
     else await c.query("INSERT INTO mera_records(id,organization_id,branch_id,kind,data) VALUES($1,$2,$3,'product',$4)",[data.id,s.organizationId,s.branchId,JSON.stringify(data)]);

@@ -29,6 +29,13 @@ import VariantsEditor from "./VariantsEditor";
 import SharedMenus from "./SharedMenus";
 import LaunchReadiness from "./LaunchReadiness";
 import ReservationPolicy from "./ReservationPolicy";
+import ItemCancellation from "./ItemCancellation";
+import Reconciliation from "./Reconciliation";
+import VisitTables from "./VisitTables";
+import CashMovement from "./CashMovement";
+import ShiftActions from "./ShiftActions";
+import MediaUpload from "../MediaUpload";
+import PricingPolicy from "./PricingPolicy";
 import { workspaceApi, formatMoney, WorkspaceError } from "./api";
 
 type RecordData = Record<string, any>;
@@ -92,9 +99,12 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
     items: [],
     note: "",
   });
+  const [staffQuote, setStaffQuote] = useState<any>(null);
   const requestKey = useRef<string | null>(null);
   const [uncertainOrder, setUncertainOrder] = useState<RecordData | null>(null);
   const pendingRequests = useRef(new Map<string, string>());
+  const financialRequests = useRef(new Map<string, any>());
+  const [, setFinancialRevision] = useState(0);
   const uncertainOrders = useRef(new Map<string, RecordData>());
   const [tabForm, setTabForm] = useState<RecordData>({});
   const organizations = list(context?.organizations);
@@ -138,6 +148,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
     setProductEdit(null);
     setTabForm({});
     setUncertainOrder(null);
+    setStaffQuote(null);
     uncertainOrders.current.clear();
     requestKey.current = null;
     setOrderDraft({
@@ -314,6 +325,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
       note: "",
     });
     requestKey.current = null;
+    setStaffQuote(null);
     const unresolved = uncertainOrders.current.get(branchBase);
     setUncertainOrder(unresolved || null);
     if (unresolved) {
@@ -374,7 +386,23 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
     const generation = ++mutationGeneration.current;
     setBusy(true);
     setError("");
+    const financial =
+      !!body?.requestKey &&
+      (/\/(payments|refunds|deposits|movements)$/.test(path) ||
+        /\/items\/[^/]+\/cancel$/.test(path));
+    const financialSignature = financial
+      ? method + path + JSON.stringify({ ...body, requestKey: undefined })
+      : null;
+    let attemptedBody: any;
     try {
+      const pending = financialRequests.current.get(requestedScope);
+      if (financial && pending && pending.signature !== financialSignature)
+        throw new WorkspaceError(
+          "Resolve the original uncertain financial submission before changing the amount, reference, order or another financial record.",
+          409,
+          "FINANCIAL_INTENT_PENDING",
+        );
+      if (financial && pending) body = pending.body;
       const signature = body?.requestKey
         ? path + JSON.stringify({ ...body, requestKey: undefined })
         : null;
@@ -384,7 +412,13 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
         pendingRequests.current.set(signature, stable);
         body = { ...body, requestKey: stable };
       }
+      attemptedBody = body;
       const result = await workspaceApi(path, method, body);
+      if (financial) {
+        financialRequests.current.delete(requestedScope);
+        if (activeScope.current === requestedScope)
+          setFinancialRevision((revision) => revision + 1);
+      }
       if (signature) pendingRequests.current.delete(signature);
       if (
         activeScope.current !== requestedScope ||
@@ -409,6 +443,21 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
       return result;
     } catch (e) {
       if (
+        financial &&
+        attemptedBody &&
+        e instanceof WorkspaceError &&
+        (!e.status || e.status >= 500)
+      ) {
+        financialRequests.current.set(requestedScope, {
+          path,
+          method,
+          body: JSON.parse(JSON.stringify(attemptedBody)),
+          signature: financialSignature,
+        });
+        if (activeScope.current === requestedScope)
+          setFinancialRevision((revision) => revision + 1);
+      }
+      if (
         activeScope.current === requestedScope &&
         scopeEpoch.current.generation === scopeVersion
       )
@@ -430,6 +479,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
       ...orderDraft,
       menuVersion: data?.menuVersion,
       requestKey: requestKey.current,
+      ...(staffQuote?.quote?.id ? { quoteId: staffQuote.quote.id } : {}),
     };
     uncertainOrders.current.set(scope, body);
     try {
@@ -441,6 +491,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
         return;
       uncertainOrders.current.delete(scope);
       setUncertainOrder(null);
+      setStaffQuote(null);
       requestKey.current = null;
       setOrderDraft({
         displayName: "",
@@ -451,7 +502,9 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
     } catch (error) {
       if (
         error instanceof WorkspaceError &&
-        (!error.status || error.status >= 500 || error.status === 409)
+        (!error.status ||
+          error.status >= 500 ||
+          (error.status === 409 && error.code === "IDEMPOTENCY_CONFLICT"))
       ) {
         uncertainOrders.current.set(scope, body);
         if (
@@ -459,8 +512,15 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
           scopeEpoch.current.generation === scopeVersion
         )
           setUncertainOrder(body);
-      } else if ((error as Error).name !== "AbortError")
+      } else if ((error as Error).name !== "AbortError") {
         uncertainOrders.current.delete(scope);
+        requestKey.current = null;
+        if (
+          error instanceof WorkspaceError &&
+          ["QUOTE_CHANGED", "QUOTE_REQUIRED"].includes(error.code || "")
+        )
+          setStaffQuote(null);
+      }
       throw error;
     }
   };
@@ -480,6 +540,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
     ) {
       uncertainOrders.current.delete(scope);
       setUncertainOrder(null);
+      setStaffQuote(null);
       requestKey.current = null;
       setOrderDraft({
         displayName: "",
@@ -573,6 +634,57 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
       (!orderFilters.unassigned || !order.handlerId)
     );
   });
+  const entitlements = data?.entitlements || organization?.entitlements;
+  const pendingFinancial = financialRequests.current.get(branchBase);
+  const canResolveFinancial = permissions.some((permission: string) =>
+    [
+      "payments.record",
+      "refunds.approve",
+      "shifts.manage",
+      "orders.fulfill",
+    ].includes(permission),
+  );
+  const resolveFinancial = async () => {
+    const current = pendingFinancial;
+    if (!current) return;
+    const epoch = scopeEpoch.current.generation;
+    const authorization = authorizationEpoch.current;
+    const result = await workspaceApi(
+      branchBase +
+        "/financial-requests/" +
+        encodeURIComponent(current.body.requestKey),
+    );
+    if (
+      epoch !== scopeEpoch.current.generation ||
+      authorization !== authorizationEpoch.current
+    )
+      return;
+    if (result.status === "recorded") {
+      financialRequests.current.delete(branchBase);
+      setFinancialRevision((revision) => revision + 1);
+      setTabForm({});
+      await refresh();
+      notify(
+        "The original financial submission is recorded. No second entry was created.",
+      );
+    } else
+      setError(
+        "The original submission is not yet recorded. This does not prove it was rejected. Retry the unchanged original request to resolve it safely.",
+      );
+  };
+  const quoteIntent = JSON.stringify({
+    menuVersion: data?.menuVersion,
+    items: orderDraft.items,
+  });
+  const requiresQuote = !!data?.branch?.settings?.pricingPolicy?.enabled;
+  const validQuote =
+    !!staffQuote &&
+    staffQuote.intent === quoteIntent &&
+    new Date(staffQuote.quote.expiresAt).getTime() > Date.now() &&
+    staffQuote.quote.policyVersion ===
+      (data?.branch?.settings?.pricingPolicy?.enabled
+        ? data.branch.settings.pricingPolicy.version
+        : null);
   const products = list(data?.products);
   const branch =
     data?.branch || branches.find((row: any) => row.id === branchId);
@@ -699,6 +811,65 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
             Creating a development organization does not publish a hosted site
             or activate a wallet.
           </p>
+        </div>
+      )}
+      {entitlements?.warning && (
+        <div role="status" className="mw-note">
+          <strong>Subscription attention</strong>
+          <p>{entitlements.warning}</p>
+          {entitlements.restrictionAt && (
+            <p>
+              Configured restriction time:{" "}
+              {dateLabel(entitlements.restrictionAt)}
+            </p>
+          )}
+          {allowed("billing.manage") && (
+            <button className="secondary" onClick={() => setSection("billing")}>
+              Review subscription
+            </button>
+          )}
+        </div>
+      )}
+      {pendingFinancial && canResolveFinancial && (
+        <div role="status" className="mw-note">
+          <strong>Financial submission not confirmed</strong>
+          <p>
+            This session has an unresolved financial action for this branch.
+            Changes to its amount, reference or target and other financial
+            submissions from this session are blocked until the original result
+            is known. No new entry is created automatically.
+          </p>
+          <div className="mw-actions">
+            <button
+              disabled={busy || offline}
+              onClick={() =>
+                void mutate(
+                  pendingFinancial.path,
+                  pendingFinancial.method,
+                  pendingFinancial.body,
+                  "Original financial submission confirmed.",
+                )
+                  .then(() => setTabForm({}))
+                  .catch(() => {})
+              }
+            >
+              Retry original financial submission
+            </button>
+            <button
+              disabled={busy || offline}
+              onClick={() =>
+                void resolveFinancial().catch((error) => {
+                  if (
+                    activeScope.current === branchBase &&
+                    scopeEpoch.current.generation === scopeVersion
+                  )
+                    setError(error.message);
+                })
+              }
+            >
+              Check original financial record
+            </button>
+          </div>
         </div>
       )}
       {!!organizations.length && (
@@ -838,6 +1009,15 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                   />
                 </>
               )}
+              {activeSection === "onboarding" && (
+                <PricingPolicy
+                  key={branchBase + "pricing"}
+                  base={branchBase}
+                  policy={branch?.settings?.pricingPolicy}
+                  disabled={busy || offline}
+                  save={mutate}
+                />
+              )}
               {activeSection === "care" && (
                 <Complaints
                   key={branchBase}
@@ -859,6 +1039,16 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                 <ExportJobs
                   key={branchBase}
                   base={branchBase}
+                  disabled={busy || offline}
+                  save={mutate}
+                />
+              )}
+              {activeSection === "billing" && (
+                <Reconciliation
+                  key={branchBase + "reconciliation"}
+                  base={branchBase}
+                  orders={orders}
+                  demo={!!context?.demo}
                   disabled={busy || offline}
                   save={mutate}
                 />
@@ -1189,6 +1379,7 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                             modifierGroupsJson,
                             allergensText,
                             dietaryText,
+                            imagePreview,
                             ...product
                           } = productEdit;
                           for (const [key, text] of [
@@ -1328,6 +1519,42 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                             }
                           />
                         </label>
+                        <div className="mw-wide">
+                          <h3>Product photo</h3>
+                          {productEdit.image && (
+                            <img
+                              alt="Selected product"
+                              style={{
+                                width: 160,
+                                height: 160,
+                                objectFit: "cover",
+                                borderRadius: 12,
+                              }}
+                              src={
+                                productEdit.imagePreview ||
+                                productEdit.image.replace(
+                                  "/api/mera/v1/public/assets/",
+                                  "/api/mera/v1" + branchBase + "/assets/",
+                                )
+                              }
+                            />
+                          )}
+                          <MediaUpload
+                            endpoint={"/api/mera/v1" + branchBase + "/assets"}
+                            disabled={busy || offline}
+                            onUploaded={(asset) =>
+                              setProductEdit((current) =>
+                                current
+                                  ? {
+                                      ...current,
+                                      image: asset.url,
+                                      imagePreview: asset.previewUrl,
+                                    }
+                                  : current,
+                              )
+                            }
+                          />
+                        </div>
                         <details className="mw-wide">
                           <summary>
                             Sizes, modifier groups & dietary information
@@ -1622,6 +1849,17 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                                     ),
                                   )}
                                 </details>
+                                {allowed("orders.fulfill") && (
+                                  <ItemCancellation
+                                    base={branchBase}
+                                    order={order}
+                                    refunds={list(data.refunds)}
+                                    canRefund={allowed("refunds.approve")}
+                                    tickets={list(data.tickets)}
+                                    disabled={busy || offline}
+                                    save={mutate}
+                                  />
+                                )}
                               </div>
                               <div className="mw-actions">
                                 <span className="mw-pill">
@@ -1775,6 +2013,61 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                               setOrderDraft({ ...orderDraft, items });
                             }}
                           />
+                          <button
+                            type="button"
+                            className="secondary"
+                            disabled={
+                              busy ||
+                              offline ||
+                              !orderDraft.items.length ||
+                              !data.menuVersion
+                            }
+                            onClick={() => {
+                              const intent = quoteIntent;
+                              void mutate(
+                                branchBase + "/quote",
+                                "POST",
+                                {
+                                  menuVersion: data.menuVersion,
+                                  items: orderDraft.items,
+                                },
+                                "Order quote prepared. No order was placed.",
+                              )
+                                .then((quote) =>
+                                  setStaffQuote({ intent, quote }),
+                                )
+                                .catch(() => {});
+                            }}
+                          >
+                            Review current order total
+                          </button>
+                          {staffQuote && (
+                            <div className="mw-note">
+                              <strong>
+                                {validQuote
+                                  ? "Reviewed order total"
+                                  : "Quote changed or expired · review again"}
+                              </strong>
+                              <div className="mw-row">
+                                <span>Items</span>
+                                <b>{formatMoney(staffQuote.quote.subtotal)}</b>
+                              </div>
+                              {list(staffQuote.quote.lines).map(
+                                (line: any, index: number) => (
+                                  <div className="mw-row" key={index}>
+                                    <span>{line.label}</span>
+                                    <b>{formatMoney(line.amount)}</b>
+                                  </div>
+                                ),
+                              )}
+                              <div className="mw-row">
+                                <strong>Total</strong>
+                                <strong>
+                                  {formatMoney(staffQuote.quote.total)}
+                                </strong>
+                              </div>
+                            </div>
+                          )}
                           <div className="mw-note">
                             The server validates current publication, modifier
                             requirements, prices and stock. No payment is
@@ -1786,7 +2079,9 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                               busy ||
                               offline ||
                               !orderDraft.items.length ||
-                              !data.menuVersion
+                              !data.menuVersion ||
+                              entitlements?.newOrdersAllowed === false ||
+                              (requiresQuote && !validQuote)
                             }
                           >
                             Submit order
@@ -1846,6 +2141,13 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                           <p>{table.capacity} seats</p>
                           <TableEditor
                             table={table}
+                            held={list(data.visits).some(
+                              (visit: any) =>
+                                visit.status === "open" &&
+                                (visit.tableIds || [visit.tableId]).includes(
+                                  table.id,
+                                ),
+                            )}
                             base={branchBase}
                             disabled={busy || offline}
                             save={mutate}
@@ -1898,6 +2200,16 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                             )?.name || visit.tableId}{" "}
                             · {visit.status}
                           </small>
+                          {visit.status === "open" && (
+                            <VisitTables
+                              base={branchBase}
+                              visit={visit}
+                              tables={list(data.tables)}
+                              visits={list(data.visits)}
+                              disabled={busy || offline}
+                              save={mutate}
+                            />
+                          )}
                         </div>
                         {visit.status !== "closed" &&
                           button("Close visit", () =>
@@ -2275,53 +2587,22 @@ export default function OrganizationWorkspace({ user, notify }: Props) {
                           ? formatMoney(shift.countedCash)
                           : "not counted"}
                       </p>
+                      <ShiftActions
+                        base={branchBase}
+                        shift={shift}
+                        canApprove={allowed("organization.manage")}
+                        disabled={busy || offline}
+                        save={mutate}
+                      />
                       {shift.status === "open" && (
-                        <form
-                          className="mw-form"
-                          onSubmit={submit(() =>
-                            mutate(
-                              branchBase + `/shifts/${shift.id}/movements`,
-                              "POST",
-                              {
-                                direction: tabForm.direction || "out",
-                                amount: Math.round(
-                                  Number(tabForm.movementAmount) * 100,
-                                ),
-                                reason: tabForm.movementReason,
-                              },
-                              "Cash movement recorded.",
-                            ),
-                          )}
-                        >
-                          <label>
-                            Cash movement
-                            <select
-                              value={tabForm.direction || "out"}
-                              onChange={(event) =>
-                                updateForm("direction", event.target.value)
-                              }
-                            >
-                              <option value="out">Cash out</option>
-                              <option value="in">Cash in</option>
-                            </select>
-                          </label>
-                          {field(
-                            "Movement amount (naira)",
-                            "movementAmount",
-                            "number",
-                          )}
-                          {field("Movement reason", "movementReason")}
-                          <div className="mw-wide">
-                            <button
-                              className="secondary"
-                              disabled={busy || offline}
-                            >
-                              Record cash movement
-                            </button>
-                          </div>
-                        </form>
+                        <CashMovement
+                          base={branchBase}
+                          shiftId={shift.id}
+                          disabled={busy || offline}
+                          save={mutate}
+                        />
                       )}
-                      {shift.status !== "closed" && (
+                      {shift.status === "open" && (
                         <form
                           className="mw-form"
                           onSubmit={submit(() =>

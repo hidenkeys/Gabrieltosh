@@ -1168,3 +1168,637 @@ test("scope aborts remain AbortError while a stalled response body receives the 
     globalThis.setTimeout = originalTimeout;
   }
 });
+
+test("unpaid item cancellation respects prepared quantities and paid orders stay under review", async () => {
+  const { default: ItemCancellation } =
+    await import("../src/mera/workspace/ItemCancellation");
+  const calls: any[] = [];
+  const order = {
+    id: "order",
+    version: 5,
+    status: "preparing",
+    paid: 0,
+    items: [{ orderLineId: "line", name: "Milk tea", quantity: 3 }],
+  };
+  try {
+    render(
+      React.createElement(ItemCancellation, {
+        base: "/organizations/org/branches/branch",
+        order,
+        tickets: [
+          {
+            orderId: "order",
+            items: [{ orderLineId: "line", preparedQuantity: 1 }],
+          },
+        ],
+        disabled: false,
+        save: async (...args: any[]) => {
+          calls.push(args);
+          return {};
+        },
+      }),
+    );
+    fireEvent.change(screen.getByLabelText("Item to cancel"), {
+      target: { value: "line" },
+    });
+    assert.equal(
+      (screen.getByLabelText("Quantity to cancel") as HTMLInputElement).max,
+      "2",
+    );
+    fireEvent.change(screen.getByLabelText("Cancellation reason"), {
+      target: { value: "Customer changed their order" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Cancel selected quantity",
+          hidden: true,
+        }),
+      ),
+    );
+    assert.equal(
+      calls[0][0],
+      "/organizations/org/branches/branch/orders/order/items/line/cancel",
+    );
+    assert.equal(calls[0][2].quantity, 1);
+    assert.equal(calls[0][2].version, 5);
+    assert.match(calls[0][2].requestKey, /^[a-f0-9-]{36}$/);
+    cleanup();
+    render(
+      React.createElement(ItemCancellation, {
+        base: "/organizations/org/branches/branch",
+        order: { ...order, paid: 1000 },
+        tickets: [],
+        disabled: false,
+        save: async () => {
+          throw new Error("Must not submit");
+        },
+      }),
+    );
+    assert.equal(
+      (
+        screen.getByLabelText("Cancellation reason") as HTMLInputElement
+      ).closest("fieldset")?.disabled,
+      true,
+    );
+    assert(
+      screen.getByText(
+        "This order requires financial review or is beyond the supported cancellation stage.",
+      ),
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("reconciliation records explicit simulator observations without claiming settlement or confirming orders", async () => {
+  const { default: Reconciliation } =
+    await import("../src/mera/workspace/Reconciliation");
+  const originalFetch = globalThis.fetch;
+  const calls: any[] = [];
+  globalThis.fetch = (async () =>
+    Response.json({
+      simulation: true,
+      fundsMoved: false,
+      transactions: [],
+    })) as any;
+  try {
+    render(
+      React.createElement(Reconciliation, {
+        base: "/organizations/org/branches/branch",
+        orders: [{ id: "order", reference: "BC1", displayName: "Ada" }],
+        demo: true,
+        disabled: false,
+        save: async (...args: any[]) => {
+          calls.push(args);
+          return { event: {}, replayed: false };
+        },
+      }),
+    );
+    await screen.findByText(
+      "No provider observations recorded for this branch.",
+    );
+    fireEvent.change(screen.getByLabelText("Simulator transaction ID"), {
+      target: { value: "TX-123" },
+    });
+    fireEvent.change(screen.getByLabelText("Simulator order"), {
+      target: { value: "order" },
+    });
+    fireEvent.change(screen.getByLabelText("Observed amount (naira)"), {
+      target: { value: "1500" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Record test observation",
+          hidden: true,
+        }),
+      ),
+    );
+    assert.equal(
+      calls[0][0],
+      "/organizations/org/branches/branch/provider-simulator/events",
+    );
+    assert.equal(calls[0][2].amount, 150000);
+    assert.equal(calls[0][2].transactionId, "TX-123");
+    assert.equal(calls[0][2].type, "collection_reported");
+    assert(calls[0][3].includes("No funds moved"));
+    assert.equal(
+      calls.some((call) => call[0].includes("/payments")),
+      false,
+    );
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("cash movement uncertainty locks intent and retries the original idempotency key", async () => {
+  const { default: CashMovement } =
+    await import("../src/mera/workspace/CashMovement");
+  const { WorkspaceError } = await import("../src/mera/workspace/api");
+  const calls: any[] = [];
+  let fail = true;
+  try {
+    render(
+      React.createElement(CashMovement, {
+        base: "/organizations/org/branches/branch",
+        shiftId: "shift",
+        disabled: false,
+        save: async (...args: any[]) => {
+          calls.push(args);
+          if (fail) throw new WorkspaceError("Connection timed out");
+          return {};
+        },
+      }),
+    );
+    fireEvent.change(screen.getByLabelText("Movement amount (naira)"), {
+      target: { value: "500" },
+    });
+    fireEvent.change(screen.getByLabelText("Movement reason"), {
+      target: { value: "Petty cash supplies" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Record cash movement" }),
+      ),
+    );
+    assert.equal(
+      (screen.getByLabelText("Movement reason") as HTMLInputElement).closest(
+        "fieldset",
+      )?.disabled,
+      true,
+    );
+    fail = false;
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Retry original cash movement" }),
+      ),
+    );
+    assert.equal(
+      calls[0][0],
+      "/organizations/org/branches/branch/shifts/shift/movements",
+    );
+    assert.deepEqual(calls[0][2], calls[1][2]);
+    assert.equal(calls[0][2].amount, 50000);
+    assert.match(calls[0][2].requestKey, /^[a-f0-9-]{36}$/);
+  } finally {
+    cleanup();
+  }
+});
+
+test("visit table moves cannot select another party and preserve the canonical visit version", async () => {
+  const { default: VisitTables } =
+    await import("../src/mera/workspace/VisitTables");
+  const calls: any[] = [];
+  const visit = { id: "visit", tableId: "one", status: "open", version: 4 };
+  try {
+    render(
+      React.createElement(VisitTables, {
+        base: "/organizations/org/branches/branch",
+        visit,
+        tables: [
+          { id: "one", name: "Window", capacity: 2, status: "occupied" },
+          { id: "two", name: "Garden", capacity: 4, status: "available" },
+          {
+            id: "three",
+            name: "Occupied elsewhere",
+            capacity: 4,
+            status: "occupied",
+          },
+        ],
+        visits: [visit, { id: "another", tableId: "three", status: "open" }],
+        disabled: false,
+        save: async (...args: any[]) => {
+          calls.push(args);
+          return { tableIds: ["one", "two"], tableId: "one" };
+        },
+      }),
+    );
+    assert.equal(
+      (
+        screen.getByLabelText(
+          "Occupied elsewhere · 4 seats · occupied",
+        ) as HTMLInputElement
+      ).disabled,
+      true,
+    );
+    fireEvent.click(screen.getByLabelText("Garden · 4 seats · available"));
+    fireEvent.change(screen.getByLabelText("Table change reason"), {
+      target: { value: "Party needs more seats" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Save this party’s tables",
+          hidden: true,
+        }),
+      ),
+    );
+    assert.equal(
+      calls[0][0],
+      "/organizations/org/branches/branch/visits/visit/tables",
+    );
+    assert.deepEqual(calls[0][2].tableIds, ["one", "two"]);
+    assert.equal(calls[0][2].version, 4);
+    assert.equal(calls[0][2].primaryTableId, "one");
+  } finally {
+    cleanup();
+  }
+});
+
+test("paid item cancellation allocates existing approved refund credit without initiating another payout", async () => {
+  const { default: ItemCancellation } =
+    await import("../src/mera/workspace/ItemCancellation");
+  const calls: any[] = [];
+  try {
+    render(
+      React.createElement(ItemCancellation, {
+        base: "/organizations/org/branches/branch",
+        order: {
+          id: "order",
+          version: 4,
+          status: "accepted",
+          paid: 300000,
+          items: [
+            {
+              orderLineId: "line",
+              name: "Milk tea",
+              quantity: 2,
+              unitPrice: 150000,
+            },
+          ],
+        },
+        tickets: [],
+        refunds: [
+          {
+            id: "refund",
+            orderId: "order",
+            reference: "REF1",
+            amount: 200000,
+            cancellationAppliedAmount: 50000,
+          },
+        ],
+        canRefund: true,
+        disabled: false,
+        save: async (...args: any[]) => {
+          calls.push(args);
+          return {};
+        },
+      }),
+    );
+    fireEvent.change(screen.getByLabelText("Item to cancel"), {
+      target: { value: "line" },
+    });
+    fireEvent.change(screen.getByLabelText("Cancellation reason"), {
+      target: { value: "Refund approved for this item" },
+    });
+    assert.equal(
+      (
+        screen.getByRole("button", {
+          name: "Cancel selected quantity",
+          hidden: true,
+        }) as HTMLButtonElement
+      ).disabled,
+      true,
+    );
+    fireEvent.change(
+      screen.getByLabelText("Allocate refund REF1 · ₦1,500.00 unused"),
+      { target: { value: "1500" } },
+    );
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Cancel selected quantity",
+          hidden: true,
+        }),
+      ),
+    );
+    assert.deepEqual(calls[0][2].refundAllocations, [
+      { refundId: "refund", amount: 150000 },
+    ]);
+    assert.equal(
+      calls.some((call) => call[0].endsWith("/refunds")),
+      false,
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("configured pricing requires canonical quote review and expired quotes permit a fresh review", async () => {
+  const originalFetch = globalThis.fetch;
+  const previous = [...context.organizations[0].permissions];
+  context.organizations[0].permissions.push("orders.create");
+  const writes: any[] = [];
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    if (String(input).endsWith("/workspace"))
+      return Response.json({
+        ...snapshot("branch-1"),
+        branch: {
+          name: "Surulere",
+          settings: { pricingPolicy: { enabled: true, version: "p1" } },
+        },
+        menuVersion: 1,
+        products: [
+          { id: "tea", name: "Milk tea", price: 150000, available: true },
+        ],
+      });
+    if (String(input).endsWith("/quote"))
+      return Response.json({
+        id: "canonical-quote",
+        expiresAt: new Date(Date.now() + 300000).toISOString(),
+        subtotal: 150000,
+        discount: 0,
+        serviceCharge: 15000,
+        tax: 12375,
+        total: 177375,
+        lines: [
+          { label: "Service", amount: 15000 },
+          { label: "Tax", amount: 12375 },
+        ],
+        policyVersion: "p1",
+      });
+    if (String(input).endsWith("/orders") && init.method === "POST") {
+      writes.push(JSON.parse(init.body));
+      return Response.json(
+        { error: "Quote expired; review again", code: "QUOTE_CHANGED" },
+        { status: 409 },
+      );
+    }
+    return originalFetch(input, init);
+  }) as any;
+  try {
+    render(React.createElement(Workspace, { user, notify: () => {} }));
+    await screen.findByText("Surulere customer", { exact: false });
+    fireEvent.change(screen.getByLabelText("Customer display name"), {
+      target: { value: "Ada" },
+    });
+    fireEvent.change(screen.getByLabelText("Quantity of Milk tea"), {
+      target: { value: "1" },
+    });
+    assert.equal(
+      (
+        screen.getByRole("button", {
+          name: "Submit order",
+        }) as HTMLButtonElement
+      ).disabled,
+      true,
+    );
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Review current order total" }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    assert(screen.getByText("₦1,773.75"));
+    assert.equal(
+      (
+        screen.getByRole("button", {
+          name: "Submit order",
+        }) as HTMLButtonElement
+      ).disabled,
+      false,
+    );
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Submit order" })),
+    );
+    assert.equal(writes[0].quoteId, "canonical-quote");
+    assert.equal(screen.queryByText("Submission not confirmed"), null);
+    assert.equal(
+      (
+        screen.getByRole("button", {
+          name: "Submit order",
+        }) as HTMLButtonElement
+      ).disabled,
+      true,
+    );
+    assert.equal(
+      (
+        screen.getByLabelText("Customer display name") as HTMLInputElement
+      ).closest("fieldset")?.disabled,
+      false,
+    );
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+    context.organizations[0].permissions = previous;
+  }
+});
+
+test("shift variance approval is restricted to managers and handover uses authorized branch staff", async () => {
+  const { default: ShiftActions } =
+    await import("../src/mera/workspace/ShiftActions");
+  const originalFetch = globalThis.fetch;
+  const calls: any[] = [];
+  globalThis.fetch = (async () =>
+    Response.json([{ userId: "receiver", name: "Bola" }])) as any;
+  try {
+    render(
+      React.createElement(ShiftActions, {
+        base: "/organizations/org/branches/branch",
+        shift: { id: "shift", status: "pending_approval", variance: 5000 },
+        canApprove: false,
+        disabled: false,
+        save: async () => ({}),
+      }),
+    );
+    assert.equal(
+      screen.queryByRole("button", { name: "Approve reconciled variance" }),
+      null,
+    );
+    cleanup();
+    render(
+      React.createElement(ShiftActions, {
+        base: "/organizations/org/branches/branch",
+        shift: { id: "shift", status: "pending_approval", variance: 5000 },
+        canApprove: true,
+        disabled: false,
+        save: async (...args: any[]) => {
+          calls.push(args);
+          return {};
+        },
+      }),
+    );
+    fireEvent.change(screen.getByLabelText("Variance approval reason"), {
+      target: { value: "Count verified against till audit" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Approve reconciled variance" }),
+      ),
+    );
+    assert.equal(
+      calls[0][0],
+      "/organizations/org/branches/branch/shifts/shift/approve",
+    );
+    cleanup();
+    render(
+      React.createElement(ShiftActions, {
+        base: "/organizations/org/branches/branch",
+        shift: { id: "shift", status: "open" },
+        canApprove: false,
+        disabled: false,
+        save: async (...args: any[]) => {
+          calls.push(args);
+          return {};
+        },
+      }),
+    );
+    await screen.findByRole("option", { name: "Bola", hidden: true });
+    fireEvent.change(screen.getByLabelText("Receiving staff"), {
+      target: { value: "receiver" },
+    });
+    fireEvent.change(screen.getByLabelText("Handover reason"), {
+      target: { value: "Evening shift responsibility" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Record shift handover",
+          hidden: true,
+        }),
+      ),
+    );
+    assert.equal(
+      calls[1][0],
+      "/organizations/org/branches/branch/shifts/shift/handover",
+    );
+    assert.equal(calls[1][2].toUserId, "receiver");
+    assert.match(calls[1][2].requestKey, /^[a-f0-9-]{36}$/);
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("an uncertain financial record blocks edited amounts and other targets until its original retry resolves", async () => {
+  attempts = [];
+  failPayment = true;
+  try {
+    render(React.createElement(Workspace, { user, notify: () => {} }));
+    await screen.findByText("Surulere customer", { exact: false });
+    fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
+    fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
+      target: { value: "order-branch-1" },
+    });
+    fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
+      target: { value: "1000" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Record verified collection" }),
+      ),
+    );
+    await screen.findByText("Financial submission not confirmed");
+    assert.equal(attempts.length, 1);
+    fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
+      target: { value: "500" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Record verified collection" }),
+      ),
+    );
+    assert.equal(attempts.length, 1);
+    assert(
+      screen.getByText(/Resolve the original uncertain financial submission/, {
+        exact: false,
+      }),
+    );
+    failPayment = false;
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Retry original financial submission",
+        }),
+      ),
+    );
+    assert.equal(attempts.length, 2);
+    assert.deepEqual(attempts[0], attempts[1]);
+    assert.equal(attempts[1].amount, 100000);
+    assert.equal(
+      screen.queryByText("Financial submission not confirmed"),
+      null,
+    );
+  } finally {
+    cleanup();
+    failPayment = true;
+  }
+});
+
+test("absence from canonical lookup never abandons financial uncertainty; a recorded result resolves without another write", async () => {
+  const originalFetch = globalThis.fetch;
+  let recorded = false;
+  attempts = [];
+  failPayment = true;
+  globalThis.fetch = (async (input: any, init: any = {}) =>
+    String(input).includes("/financial-requests/")
+      ? Response.json({
+          status: recorded ? "recorded" : "not_found",
+          kind: "payment",
+          id: recorded ? "payment" : undefined,
+        })
+      : originalFetch(input, init)) as any;
+  try {
+    render(React.createElement(Workspace, { user, notify: () => {} }));
+    await screen.findByText("Surulere customer", { exact: false });
+    fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
+    fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
+      target: { value: "order-branch-1" },
+    });
+    fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
+      target: { value: "1000" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Record verified collection" }),
+      ),
+    );
+    await screen.findByText("Financial submission not confirmed");
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Check original financial record" }),
+      ),
+    );
+    assert(screen.getByText("Financial submission not confirmed"));
+    assert(
+      screen.getByText(/does not prove it was rejected/, { exact: false }),
+    );
+    recorded = true;
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "Check original financial record" }),
+      ),
+    );
+    assert.equal(
+      screen.queryByText("Financial submission not confirmed"),
+      null,
+    );
+    assert.equal(attempts.length, 1);
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+    failPayment = true;
+  }
+});

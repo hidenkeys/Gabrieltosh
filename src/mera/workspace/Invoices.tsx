@@ -44,16 +44,46 @@ export default function Invoices({
       ) : (
         <>
           <p>Subscription: {data.subscription?.status || "Unconfigured"}</p>
-          {data.subscription?.entitlements && (
+          {data.entitlements?.warning && (
+            <p role="status" className="mw-note">
+              {data.entitlements.warning}
+            </p>
+          )}
+          {data.entitlements && (
             <dl>
-              {Object.entries(data.subscription.entitlements).map(
-                ([name, value]) => (
-                  <div key={name}>
-                    <dt>{name.replaceAll("_", " ")}</dt>
-                    <dd>{String(value)}</dd>
-                  </div>
-                ),
-              )}
+              {[
+                [
+                  "Effective subscription state",
+                  data.entitlements.effectiveState,
+                ],
+                [
+                  "New orders",
+                  data.entitlements.newOrdersAllowed ? "Allowed" : "Restricted",
+                ],
+                [
+                  "Existing paid orders",
+                  data.entitlements.existingPaidOrdersContinue
+                    ? "Continue service"
+                    : "Review required",
+                ],
+                [
+                  "Report exports",
+                  data.entitlements.exportsAllowed
+                    ? "Available with permission"
+                    : "Restricted",
+                ],
+                [
+                  "Configured restriction time",
+                  data.entitlements.restrictionAt
+                    ? new Date(data.entitlements.restrictionAt).toLocaleString()
+                    : "Not configured",
+                ],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
             </dl>
           )}
           <form

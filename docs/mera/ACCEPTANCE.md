@@ -30,3 +30,9 @@ Scope remains the full PRD. Checked items have direct evidence; partial items re
 - `RUN_MERA_PG_TESTS=true node --test tests/mera.integration.test.js`: passed in its own temporary database; covers finance/bills/deposits/immutable ledger, Zidi scoped simulator, exports, proposed invoices, MFA session/replay/revocation and subscription restrictions.
 - `node --test tests/mera-platform.test.js`: RFC6238 published SHA-1 vectors (including post2038), replay/expiry, authenticated encryption/key/tamper tests passed.
 - No production database, provider money movement, deployment or message delivery was used as test evidence.
+
+## Fourth checkpoint update
+
+Actual corrected PostgreSQL assertions were inspected before execution; detailed financial evidence in BOARD.md supersedes an earlier overstated run. Current suite103 passed/2 skipped (three category graph tests prepare a module not yet mounted). Server quote disclosures, proportional tax refund postings, refund-credit reuse, scoped assets, combined table turnover, platform approval/date handling and commercial field projections have real isolated PG evidence. Full23-table recovery now verifies a real PNG BYTEA hash as well as MFA ciphertext and financial tamper detection.
+
+Remaining unverified/code-incomplete gates include pricing-aware cancellation review, fenced uncertain-request abandonment, advanced lounge/write-off outcomes, complete nested category integration, Zidi quote delivery, actual operational legacy import and representative mobile/accessibility/load verification. Provider credentials/agreements and physical hardware remain independently blocked. No deployment, provider settlement or external email delivery is claimed.
