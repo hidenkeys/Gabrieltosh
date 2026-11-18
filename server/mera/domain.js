@@ -27,6 +27,10 @@ export const providers = {
       "Physical receipt/sticker calibration required; submission does not prove output.",
   },
 };
+export function assertHistoricalWritable(record) {
+  if(record?.historicalReadOnly)throw fail("Imported historical records are read-only; use the original system or an explicit reviewed migration correction.",409,"HISTORICAL_READ_ONLY");
+  return record;
+}
 export function assertMoney(n) {
   if (!Number.isSafeInteger(n) || n < 0 || n > 100000000000)
     throw fail("Invalid amount.");
@@ -82,6 +86,8 @@ export function quote(items, products) {
       categoryId:p.categoryId||null,
       category:p.category,
       categoryPath:p.categoryPath||[],
+      allergens:[...(p.allergens||[])],
+      dietary:[...(p.dietary||[])],
       name: p.name,
       size: variant?.name || p.size,
       quantity: line.quantity,
@@ -107,6 +113,7 @@ export const transitions = {
   cancelled: [],
 };
 export function transition(order, next, { payLater = false } = {}) {
+  assertHistoricalWritable(order);
   if (!transitions[order.status]?.includes(next))
     throw fail(
       "That order transition is not allowed.",
@@ -116,20 +123,22 @@ export function transition(order, next, { payLater = false } = {}) {
   if (
     ["preparing", "ready", "collected", "completed"].includes(next) &&
     !payLater &&
-    paidForBill(order) < order.total
+    (next==="completed"?effectiveSettlement(order):paidForBill(order)) < order.total
   )
     throw fail(
       "Payment must be confirmed before preparation.",
       409,
       "PAYMENT_REQUIRED",
     );
-  if (next === "completed" && paidForBill(order) < order.total)
+  if (next === "completed" && orderBalance(order)>0)
     throw fail("The outstanding bill must be settled.", 409);
   if (["cancelled", "rejected"].includes(next) && order.paid > order.refunded)
     throw fail("Refund the payment before cancelling.", 409);
   return next;
 }
 export const paidForBill = order => order.paid-(order.cancellationRefundApplied||0);
+export const effectiveSettlement=order=>paidForBill(order)+(order.writtenOff||0);
+export const orderBalance=order=>Math.max(0,order.total-effectiveSettlement(order));
 export function paymentStatus(order) {
   if (order.refunded === order.paid && order.refunded > 0) return "refunded";
   if (order.cancellationRefundApplied && paidForBill(order)>=order.total) return "paid";
@@ -197,66 +206,52 @@ export function overlaps(a, b) {
   );
 }
 export function report(records, branch, date) {
-  const day = (instant) => tradingDate(instant, branch.timezone, branch.cutoff);
-  const allOrders = records
-    .filter((r) => r.kind === "order")
-    .map((r) => r.data);
-  const recognizedAt = (o) =>
-    o.collectedAt ||
-    o.completedAt ||
-    o.history?.find((h) => h.action === "collected" || h.action === "completed")
-      ?.at;
-  const orders = allOrders.filter((o) => day(o.createdAt) === date);
-  const payments = records
-    .filter((r) => ["payment","deposit"].includes(r.kind) && day(r.data.createdAt) === date)
-    .map((r) => r.data);
-  const refunds = records
-    .filter((r) => r.kind === "refund" && day(r.data.createdAt) === date)
-    .map((r) => r.data);
-  const recognized = allOrders.filter(
-    (o) => recognizedAt(o) && day(recognizedAt(o)) === date,
-  );
-  const grossSales = recognized.reduce((n, o) => n + (o.recognitionTotal??o.total)-(o.recognitionPricing?.tax??o.pricing?.tax??0), 0);
-  const salesReturns = records
-    .filter((r) => r.kind === "refund")
-    .map((r) => r.data)
-    .filter((r) => {
-      const o = allOrders.find((o) => o.id === r.orderId);
-      if (!o || !recognizedAt(o)) return false;
-      const instant =
-        Date.parse(r.createdAt) > Date.parse(recognizedAt(o))
-          ? r.createdAt
-          : recognizedAt(o);
-      return day(instant) === date;
-    })
-    .reduce((n, r) => n + r.amount-(r.taxAmount||0), 0);
+  const day=instant=>tradingDate(instant,branch.timezone,branch.cutoff);
+  const data=kind=>records.filter(r=>r.kind===kind).map(r=>r.data);
+  const onDay=rows=>rows.filter(r=>r.createdAt&&day(r.createdAt)===date);
+  const sum=rows=>rows.reduce((n,r)=>n+r.amount,0);
+  const allOrders=data("order"),orderMap=new Map(allOrders.map(o=>[o.id,o]));
+  const recognizedAt=o=>(o.historicalReadOnly&&["legacy_paid_basis","fulfilled_only"].includes(o.historicalRecognitionBasis)&&o.historicalRecognitionAt)||o.collectedAt||o.completedAt||o.history?.find(h=>["collected","completed"].includes(h.action))?.at;
+  const orders=allOrders.filter(o=>day(o.createdAt)===date);
+  const recognized=allOrders.filter(o=>recognizedAt(o)&&day(recognizedAt(o))===date).sort((a,b)=>Date.parse(recognizedAt(a))-Date.parse(recognizedAt(b))||String(a.id||"").localeCompare(String(b.id||"")));
+  const payments=onDay([...data("payment"),...data("deposit")]);
+  const refunds=onDay([...data("refund"),...data("deposit_refund")]);
+  const recognizedRefunds=data("refund").filter(r=>{const o=orderMap.get(r.orderId);if(!o||!recognizedAt(o))return false;return day(Date.parse(r.createdAt)>Date.parse(recognizedAt(o))?r.createdAt:recognizedAt(o))===date;});
+  const forfeitures=onDay(data("deposit_forfeiture"));
+  const gross=o=>o.recognitionTotal??o.total;
+  const tax=o=>o.recognitionPricing?.tax??o.pricing?.tax??0;
+  const grossSales=recognized.reduce((n,o)=>n+gross(o),0),salesReturns=sum(recognizedRefunds),netSales=grossSales-salesReturns;
+  const historical=recognized.filter(o=>o.historicalReadOnly);
+  const unresolvedHistoricalTax=recognized.some(o=>o.historicalTaxStatus==="unresolved_source_tax_breakdown")||recognizedRefunds.some(r=>orderMap.get(r.orderId)?.historicalTaxStatus==="unresolved_source_tax_breakdown");
+  const unresolvedOtherTax=forfeitures.some(r=>r.taxAmount===null||r.taxAmount===undefined);
+  const knownRecognizedTax=recognized.filter(o=>o.historicalTaxStatus!=="unresolved_source_tax_breakdown").reduce((n,o)=>n+tax(o),0);
+  const knownTaxReturns=recognizedRefunds.filter(r=>orderMap.get(r.orderId)?.historicalTaxStatus!=="unresolved_source_tax_breakdown").reduce((n,r)=>n+(r.taxAmount||0),0);
+  const knownOtherTax=forfeitures.reduce((n,r)=>n+(r.taxAmount||0),0);
+  const nonProductIncome=sum(forfeitures);
+  const salesRevenueExTax=unresolvedHistoricalTax?null:netSales-knownRecognizedTax+knownTaxReturns;
+  const nonProductIncomeExTax=unresolvedOtherTax?null:nonProductIncome-knownOtherTax;
+  const netRevenueExTax=salesRevenueExTax===null||nonProductIncomeExTax===null?null:salesRevenueExTax+nonProductIncomeExTax;
+  const netTaxLiability=unresolvedHistoricalTax||unresolvedOtherTax?null:knownRecognizedTax-knownTaxReturns+knownOtherTax;
+  const reservationLiability=records.filter(r=>r.kind==="ledger"&&r.data.createdAt&&day(r.data.createdAt)<=date).flatMap(r=>r.data.postings||[]).filter(p=>p.account==="reservation_liability").reduce((n,p)=>n+p.credit-p.debit,0);
   return {
-    date,
-    grossOrderValue: orders
-      .filter((o) => !["cancelled", "rejected"].includes(o.status))
-      .reduce((n, o) => n + o.total, 0),
-    recognitionBasis: "immutable_collected_at",
-    grossSales,
-    recognizedTax:recognized.reduce((n,o)=>n+(o.recognitionPricing?.tax??o.pricing?.tax??0),0),
+    date,grossOrderValue:orders.filter(o=>!["cancelled","rejected"].includes(o.status)).reduce((n,o)=>n+o.total,0),
+    recognitionBasis:[...new Set(recognized.map(o=>o.historicalReadOnly?o.historicalRecognitionBasis:"immutable_collected_at"))].sort().join("+")||"immutable_collected_at",
+    historicalRecognitionBases:[...new Set(historical.map(o=>o.historicalRecognitionBasis))].sort(),
+    historicalTaxStatus:unresolvedHistoricalTax?"unresolved_source_tax_breakdown":null,
+    historicalGrossSales:historical.reduce((n,o)=>n+gross(o),0),
+    historicalNetSales:historical.reduce((n,o)=>n+gross(o),0)-sum(recognizedRefunds.filter(r=>orderMap.get(r.orderId)?.historicalReadOnly)),
+    grossSales,salesReturns,netSales,
+    recognizedTax:unresolvedHistoricalTax?null:knownRecognizedTax,
+    refundedTax:unresolvedHistoricalTax?null:knownTaxReturns,
+    netRevenueExTax,salesRevenueExTax,netTaxLiability,
+    taxBreakdownStatus:unresolvedHistoricalTax||unresolvedOtherTax?"unresolved":"recorded",
+    nonProductIncome,nonProductIncomeExTax,
     discounts:recognized.reduce((n,o)=>n+(o.recognitionPricing?.discount??o.pricing?.discount??0),0),
     serviceCharges:recognized.reduce((n,o)=>n+(o.recognitionPricing?.serviceCharge??o.pricing?.serviceCharge??0),0),
-    deposits:records.filter(r=>r.kind==="deposit" && day(r.data.createdAt)===date).reduce((n,r)=>n+r.data.amount,0),
-    collections: payments.reduce((n, p) => n + p.amount, 0),
-    refunds: refunds.reduce((n, r) => n + r.amount, 0),
-    salesReturns,
-    netSales: grossSales - salesReturns,
-    outstanding: orders
-      .filter((o) => !["cancelled", "rejected"].includes(o.status))
-      .reduce((n, o) => n + Math.max(0, o.total - paidForBill(o)), 0),
-    orders: orders.length,
-    products: recognized.flatMap((o) => o.items),
-    paymentMethods: Object.fromEntries(
-      ["cash", "external_pos", "external_transfer"].map((m) => [
-        m,
-        payments
-          .filter((p) => p.method === m)
-          .reduce((n, p) => n + p.amount, 0),
-      ]),
-    ),
+    deposits:sum(onDay(data("deposit"))),depositReturns:sum(onDay(data("deposit_refund"))),depositForfeitures:nonProductIncome,reservationLiability,
+    collections:sum(payments),refunds:sum(refunds),writeOffs:sum(onDay(data("writeoff"))),
+    outstanding:orders.filter(o=>!["cancelled","rejected"].includes(o.status)).reduce((n,o)=>n+orderBalance(o),0),
+    orders:orders.length,products:recognized.flatMap(o=>o.items),
+    paymentMethods:Object.fromEntries(["cash","external_pos","external_transfer"].map(method=>[method,sum(payments.filter(p=>p.method===method))])),
   };
 }

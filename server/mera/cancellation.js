@@ -2,7 +2,7 @@ import { assertFinancialRequestActive } from "./financial-requests.js";
 import { priceBreakdown } from "./pricing.js";
 import { z } from "zod";
 import { createHash } from "node:crypto";
-import { fail,paymentStatus,paidForBill } from "./domain.js";
+import { fail,paymentStatus,paidForBill,assertHistoricalWritable } from "./domain.js";
 const stamp=()=>new Date().toISOString();
 export function mountMeraCancellation(router,{guard,scope,locked,find,readRecords,record,event}) {
  const B="/organizations/:organizationId/branches/:branchId";
@@ -10,10 +10,10 @@ export function mountMeraCancellation(router,{guard,scope,locked,find,readRecord
  router.post(B+"/orders/:id/items/:orderLineId/cancel-quote",guard("orders.fulfill"),async(req,res)=>{
   const input=z.object({quantity:z.number().int().positive(),version:z.number().int().positive()}).strict().parse(req.body);
   res.status(201).json(await locked(scope(req),async c=>{
-   const s=scope(req),order=await find(c,s,"order",req.params.id),line=order.items.find(l=>l.orderLineId===req.params.orderLineId);
+   const s=scope(req),order=assertHistoricalWritable(await find(c,s,"order",req.params.id)),line=order.items.find(l=>l.orderLineId===req.params.orderLineId);
    if(order.version!==input.version)throw fail("Order changed. Refresh before reviewing cancellation.",409,"STALE_VERSION");
    if(!line||input.quantity>line.quantity||!["submitted","accepted","preparing"].includes(order.status))throw fail("This item cannot be cancelled.",409);
-   const tickets=(await readRecords(c,s.organizationId,s.branchId,"ticket")).map(r=>r.data).filter(t=>t.orderId===order.id);
+   const tickets=(await c.query("SELECT data FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='ticket' AND data->>'orderId'=$3",[s.organizationId,s.branchId,order.id])).rows.map(r=>r.data);
    const prepared=tickets.flatMap(t=>t.items).find(i=>i.orderLineId===line.orderLineId)?.preparedQuantity||0;
    if(input.quantity>line.quantity-Math.max(prepared,line.fulfilledQuantity||0))throw fail("Prepared or handed-over quantities cannot be cancelled as unused stock.",409);
    const subtotal=(order.pricing?.subtotal??order.items.reduce((n,l)=>n+l.total,0))-line.unitPrice*input.quantity;
@@ -26,8 +26,8 @@ export function mountMeraCancellation(router,{guard,scope,locked,find,readRecord
   const input=z.object({requestKey:z.string().uuid(),quantity:z.number().int().positive(),version:z.number().int().positive(),reason:z.string().trim().min(3).max(300),cancellationQuoteId:z.string().uuid().optional(),refundAllocations:z.array(z.object({refundId:z.string().uuid(),amount:z.number().int().positive()})).max(100).optional()}).strict().parse(req.body);
   const intentHash=createHash("sha256").update(JSON.stringify({...input,orderId:req.params.id,orderLineId:req.params.orderLineId,actor:req.user.id})).digest("hex");
   res.json(await locked(scope(req),async c=>{
-   const s=scope(req),previous=(await readRecords(c,s.organizationId,s.branchId,"item_cancellation")).map(r=>r.data).find(r=>r.requestKey===input.requestKey);
-   const order=await find(c,s,"order",req.params.id);
+   const s=scope(req),previous=(await c.query("SELECT data FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='item_cancellation' AND data ? 'requestKey' AND data->>'requestKey'=$3 LIMIT 1",[s.organizationId,s.branchId,input.requestKey])).rows[0]?.data;
+   const order=assertHistoricalWritable(await find(c,s,"order",req.params.id));
    if(previous){if(previous.intentHash!==intentHash)throw fail("Cancellation request key conflict.",409,"IDEMPOTENCY_CONFLICT");return {order,cancellation:previous};}
    await assertFinancialRequestActive(c,s,input.requestKey,"item_cancellation",req.user.id);
    if(order.version!==input.version)throw fail("Order changed. Refresh before cancelling.",409,"STALE_VERSION");
@@ -36,7 +36,7 @@ export function mountMeraCancellation(router,{guard,scope,locked,find,readRecord
 
    const lineIndex=order.items.findIndex(l=>l.orderLineId===req.params.orderLineId),line=order.items[lineIndex];
    if(!line||input.quantity>line.quantity)throw fail("Invalid item quantity.",409);
-   const tickets=(await readRecords(c,s.organizationId,s.branchId,"ticket")).map(r=>r.data).filter(t=>t.orderId===order.id);
+   const tickets=(await c.query("SELECT data FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='ticket' AND data->>'orderId'=$3",[s.organizationId,s.branchId,order.id])).rows.map(r=>r.data);
    const ticket=tickets.find(t=>t.items.some(i=>i.orderLineId===line.orderLineId)),ticketLine=ticket?.items.find(i=>i.orderLineId===line.orderLineId);
    if(input.quantity>line.quantity-Math.max(ticketLine?.preparedQuantity||0,line.fulfilledQuantity||0))throw fail("Already prepared quantities cannot be cancelled as unprepared stock.",409);
    let reviewed;
@@ -49,7 +49,7 @@ export function mountMeraCancellation(router,{guard,scope,locked,find,readRecord
    if(order.paid>0 && (!req.meraMembership.permissions.includes("refunds.approve") || (amount>0&&!input.refundAllocations?.length)))throw fail("Paid cancellation requires refund approval permission and existing credits for any positive return.",409,"PAID_ITEM_REVIEW_REQUIRED");
    const allocations=input.refundAllocations||[];
    let remaining=amount;
-   const bills=(await readRecords(c,s.organizationId,s.branchId,"bill")).map(r=>r.data).filter(b=>b.status==="open");
+   const bills=(await c.query("SELECT data FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='bill' AND data->>'status'='open' AND data->'charges' @> $3::jsonb ORDER BY created_at,id",[s.organizationId,s.branchId,JSON.stringify([{orderId:order.id}])])).rows.map(r=>r.data);
    if(order.paid>0){
     if(new Set(allocations.map(a=>a.refundId)).size!==allocations.length || allocations.reduce((n,a)=>n+a.amount,0)!==amount) throw fail("Refund allocations must uniquely equal the cancelled item value.",409);
     let allocatedTax=0;

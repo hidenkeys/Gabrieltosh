@@ -107,6 +107,8 @@ export const reservationInputSchema = z
     endsAt: z.string().datetime(),
     tableId: z.string().uuid().optional(),
     notes: z.string().max(500).default(""),
+    minimumSpendAcknowledged:z.boolean().optional(),
+    minimumSpendPolicyVersion:z.string().max(120).optional(),
   })
   .refine(
     (v) => Date.parse(v.endsAt) > Date.parse(v.startsAt),

@@ -127,6 +127,7 @@ export function createApp() {
         `http://${req.get("host")}`,
         `https://${req.get("host")}`,
         process.env.PUBLIC_ORIGIN,
+        process.env.MERA_PUBLIC_ORIGIN,
       ].filter(Boolean);
       if (origin && !allowed.includes(origin))
         return next(fail("Request origin is not permitted.", 403));

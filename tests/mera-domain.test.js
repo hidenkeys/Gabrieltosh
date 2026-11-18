@@ -145,3 +145,36 @@ test("reservation deposit collections are cash flow, never recognized sales",asy
  const result=report([{kind:"deposit",data:{amount:50000,method:"cash",createdAt:"2026-11-18T10:00:00Z"}}],{timezone:"Africa/Lagos",cutoff:0},"2026-11-18");
  assert.equal(result.collections,50000);assert.equal(result.deposits,50000);assert.equal(result.paymentMethods.cash,50000);assert.equal(result.netSales,0);
 });
+
+test("historical recognition is explicit and never fabricates fulfillment or tax evidence",async()=>{
+ const {report,assertHistoricalWritable}=await import("../server/mera/domain.js");
+ const order={id:"legacy-paid",status:"accepted",total:500000,paid:500000,refunded:300000,items:[],historicalReadOnly:true,historicalRecognitionBasis:"legacy_paid_basis",historicalRecognitionAt:"2026-11-18T12:00:00Z",historicalTaxStatus:"unresolved_source_tax_breakdown",createdAt:"2026-11-18T10:00:00Z"};
+ const result=report([{kind:"order",data:order},{kind:"refund",data:{orderId:order.id,amount:300000,createdAt:"2026-11-18T13:00:00Z"}}],{timezone:"Africa/Lagos",cutoff:0},"2026-11-18");
+ assert.equal(result.grossSales,500000);assert.equal(result.netSales,200000);assert.match(result.recognitionBasis,/legacy_paid_basis/);assert.deepEqual(result.historicalRecognitionBases,["legacy_paid_basis"]);assert.equal(result.historicalTaxStatus,"unresolved_source_tax_breakdown");assert.equal(order.collectedAt,undefined);
+ assert.throws(()=>assertHistoricalWritable(order),e=>e.status===409&&e.code==="HISTORICAL_READ_ONLY");
+});
+
+test("a noncash writeoff settles debt without becoming a payment or reducing recognized revenue",async()=>{
+ const {orderBalance,effectiveSettlement,paymentStatus,report}=await import("../server/mera/domain.js");
+ const order={id:"debt",status:"collected",total:10000,paid:4000,refunded:0,writtenOff:6000,createdAt:"2026-11-18T10:00:00Z",collectedAt:"2026-11-18T11:00:00Z",items:[]};
+ assert.equal(orderBalance(order),0);assert.equal(effectiveSettlement(order),10000);assert.equal(paymentStatus(order),"partially_paid");assert.equal(transition(order,"completed",{payLater:false}),"completed");
+ const result=report([{kind:"order",data:order},{kind:"payment",data:{amount:4000,method:"cash",createdAt:order.createdAt}},{kind:"writeoff",data:{amount:6000,createdAt:order.collectedAt}}],{timezone:"Africa/Lagos",cutoff:0},"2026-11-18");
+ assert.equal(result.collections,4000);assert.equal(result.netSales,10000);assert.equal(result.writeOffs,6000);assert.equal(result.outstanding,0);
+});
+
+test("bill totals stay gross while ex-tax revenue reconciles to the ledger, unknown legacy tax stays unknown",async()=>{
+ const {report}=await import("../server/mera/domain.js");
+ const order={id:"taxed",total:20790,paid:20790,refunded:2079,pricing:{tax:1890},items:[],createdAt:"2026-11-18T10:00:00Z",collectedAt:"2026-11-18T11:00:00Z"};
+ const records=[{kind:"order",data:order},{kind:"refund",data:{orderId:order.id,amount:2079,taxAmount:189,createdAt:"2026-11-18T12:00:00Z"}}];
+ const current=report(records,{timezone:"Africa/Lagos",cutoff:0},"2026-11-18");assert.equal(current.grossSales,20790);assert.equal(current.netSales,18711);assert.equal(current.netRevenueExTax,17010);assert.equal(current.netTaxLiability,1701);
+ records.push({kind:"order",data:{...order,id:"legacy",total:10000,pricing:null,historicalReadOnly:true,historicalRecognitionBasis:"legacy_paid_basis",historicalRecognitionAt:order.collectedAt,historicalTaxStatus:"unresolved_source_tax_breakdown"}});
+ const mixed=report(records,{timezone:"Africa/Lagos",cutoff:0},"2026-11-18");assert.equal(mixed.netSales,28711);assert.equal(mixed.netRevenueExTax,null);assert.equal(mixed.netTaxLiability,null);assert.equal(mixed.historicalNetSales,10000);
+});
+
+test("forfeited escrow is separate non-product income, with unknown tax left unresolved",async()=>{
+ const {report}=await import("../server/mera/domain.js");
+ const at="2026-11-18T10:00:00Z",branch={timezone:"Africa/Lagos",cutoff:0};
+ const known=report([{kind:"deposit_forfeiture",data:{amount:60000,taxAmount:6000,createdAt:at}}],branch,"2026-11-18");
+ assert.equal(known.netSales,0);assert.equal(known.nonProductIncome,60000);assert.equal(known.netRevenueExTax,54000);assert.equal(known.netTaxLiability,6000);assert.equal(known.collections,0);assert.deepEqual(known.products,[]);
+ const unknown=report([{kind:"deposit_forfeiture",data:{amount:60000,taxAmount:null,createdAt:at}}],branch,"2026-11-18");assert.equal(unknown.netRevenueExTax,null);assert.equal(unknown.netTaxLiability,null);assert.equal(unknown.taxBreakdownStatus,"unresolved");
+});

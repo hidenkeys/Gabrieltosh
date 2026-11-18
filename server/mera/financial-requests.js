@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { fail } from "./domain.js";
-const kinds={payment:{permission:"payments.record",actor:"recordedBy"},deposit:{permission:"payments.record",actor:"recordedBy"},refund:{permission:"refunds.approve",actor:"approvedBy"},cash_movement:{permission:"shifts.manage",actor:"actorId"},item_cancellation:{permission:"orders.fulfill",actor:"actorId"}};
+const kinds={deposit_hold:{permission:"refunds.approve",actor:"approvedBy"},deposit_refund:{permission:"refunds.approve",actor:"approvedBy"},deposit_forfeiture:{permission:"refunds.approve",actor:"approvedBy"},writeoff:{permission:"refunds.approve",actor:"approvedBy"},payment:{permission:"payments.record",actor:"recordedBy"},deposit:{permission:"payments.record",actor:"recordedBy"},refund:{permission:"refunds.approve",actor:"approvedBy"},cash_movement:{permission:"shifts.manage",actor:"actorId"},item_cancellation:{permission:"orders.fulfill",actor:"actorId"}};
 export async function assertFinancialRequestActive(c,s,key,kind,actorId) {
  const denied=(await c.query("SELECT id FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='financial_request_resolution' AND data->>'requestKey'=$3 AND data->>'financialKind'=$4 AND data->>'actorId'=$5",[s.organizationId,s.branchId,key,kind,actorId])).rows[0];
  if(denied)throw fail("This financial request was safely abandoned. Start a new reviewed intent if needed.",409,"REQUEST_ABANDONED");

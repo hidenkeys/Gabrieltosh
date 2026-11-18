@@ -1,3 +1,4 @@
+import { organizationSlugSchema } from "./organization-aliases.js";
 // Host routing is opt-in. This does not provision DNS, certificates or ownership.
 export function resolveMeraHost(hostname, rootDomain) {
   const root = String(rootDomain || "")
@@ -15,10 +16,7 @@ export function resolveMeraHost(hostname, rootDomain) {
   if (host === "platform." + root) return { surface: "platform" };
   if (!host.endsWith("." + root)) return null;
   const slug = host.slice(0, -root.length - 1);
-  if (
-    !/^[a-z0-9](?:[a-z0-9-]{1,48}[a-z0-9])$/.test(slug) ||
-    ["api", "admin", "support", "mail", "cdn", "status", "www"].includes(slug)
-  )
+  if (!organizationSlugSchema.safeParse(slug).success)
     return null;
   return { surface: "organization", slug };
 }
@@ -48,7 +46,7 @@ export function meraHostRoutes(query) {
     try {
       const result = (
         await query(
-          "SELECT o.slug,b.id FROM mera_organizations o JOIN mera_branches b ON b.organization_id=o.id WHERE o.slug=$1 AND o.onboarding->>'status'='published' AND b.settings->>'launchState'='published' AND b.menu_version>0 ORDER BY b.name,b.id LIMIT 1",
+          "SELECT o.slug,b.id FROM mera_organizations o JOIN mera_branches b ON b.organization_id=o.id WHERE (o.id=(SELECT organization_id FROM mera_slug_claims WHERE slug=$1) OR (o.slug=$1 AND NOT EXISTS(SELECT 1 FROM mera_slug_claims WHERE slug=$1))) AND o.onboarding->>'status'='published' AND b.settings->>'launchState'='published' AND b.menu_version>0 ORDER BY b.name,b.id LIMIT 1",
           [context.slug],
         )
       ).rows[0];

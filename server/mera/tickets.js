@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { fail,paidForBill } from "./domain.js";
+import { fail,paidForBill,assertHistoricalWritable } from "./domain.js";
 const stamp = () => new Date().toISOString();
 export function mountMeraTickets(router, {guard,scope,locked,find,readRecords,event}) {
   const B = "/organizations/:organizationId/branches/:branchId";
@@ -11,7 +11,7 @@ export function mountMeraTickets(router, {guard,scope,locked,find,readRecords,ev
       if (["kitchen","bar"].includes(role) && ticket.station!==role) throw fail("This ticket belongs to another station.",403);
       ticket.version ||= 1;
       if (ticket.version!==input.version) throw fail("This ticket changed. Refresh before continuing.",409,"STALE_VERSION");
-      const order=await find(c,s,"order",ticket.orderId);
+      const order=assertHistoricalWritable(await find(c,s,"order",ticket.orderId));
       if (!["accepted","preparing"].includes(order.status)) throw fail("Only accepted active orders can be prepared.",409);
       if (order.holdExpired || (!b.settings.payLater && paidForBill(order)<order.total)) throw fail("Confirm payment before preparing this order.",409);
       if (["ready","cancelled"].includes(ticket.status)) throw fail("This ticket is already ready.",409);
@@ -27,7 +27,7 @@ export function mountMeraTickets(router, {guard,scope,locked,find,readRecords,ev
       ticket.version++;
       ticket.updatedAt=stamp(); ticket.updatedBy=req.user.id;
       await save(c,s,"ticket",ticket.id,ticket);
-      const tickets=(await readRecords(c,s.organizationId,s.branchId,"ticket")).map(r=>r.data).filter(t=>t.orderId===order.id);
+      const tickets=(await c.query("SELECT data FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='ticket' AND data->>'orderId'=$3",[s.organizationId,s.branchId,order.id])).rows.map(r=>r.data);
       order.status=tickets.length && tickets.every(t=>["ready","cancelled"].includes(t.status))?"ready":"preparing";
       order.version++; order.handlerId=req.user.id; order.handlerName=req.user.name;
       order.history.push({action:order.status,actorId:req.user.id,actorName:req.user.name,station:ticket.station,ticketId:ticket.id,at:stamp()});

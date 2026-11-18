@@ -1,6 +1,6 @@
 # MERA delivery board
 
-Contract: shared/mera-contracts.js v1.0.0. Canonical scope: /MERA_PRD.md.
+Contract: shared/mera-contracts.js v1.1.0. Canonical scope: /MERA_PRD.md.
 
 | Task                                  | Owner / writable paths                                         | State       | Dependencies / acceptance                                                  |
 | ------------------------------------- | -------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------- |
@@ -87,3 +87,30 @@ Contract1.1 now integrates nested category publication snapshots, credential-bou
 - Partial handoffs cannot exceed prepared quantities and do not prematurely recognize sales. Aggregate final collection remains the recognition boundary. JSONB key-order replay defects were caught in real PG, fixed by normalized field comparisons and covered with reordered-key regressions.
 - Opt-in hosted backups now validate encryption/interval/retention, stream encryption into authenticated BC01 artifacts, fence concurrent snapshot workers, bound snapshot retry attempts and expose failed cloud transfer metadata/retry under platform MFA. Encryption/tamper/environment/lease tests passed. **No real scheduled database snapshot or S3 upload was executed by this change**; the isolated23-table restore evidence remains separate.
 - Remaining code slice: read-only operational legacy importing/report basis (work in progress, excluded), explicit minimum-spend and noncash write-off outcomes, structured modifier editing and remaining live UI walkthroughs. Provider agreements/credentials, verified email delivery, target hosting and physical printers remain external gates.
+
+## Sixth checkpoint in progress
+
+| Task | Owner / writable paths | State | Dependencies / evidence |
+| --- | --- | --- | --- |
+| Minimum-spend acknowledgements/waivers, noncash write-offs, deposit returns/forfeitures | Lead modules + backend integration + workspace consumers | REVIEW | Actual PostgreSQL conservation/privacy/idempotency gates passed; no provider payouts |
+| Operational historical importer | Customer module/rehearsal + backend guards | REVIEW | Isolated PG17 fixture import passed; exact replay, immutable historical records and original-price reconciliation; no production cutover |
+| Bounded order history and daily reports | Lead queries/projection + backend + workspace history | REVIEW | Current lateral/budget queries passed actual PG:220 orders,100/100/20 pages, scope/filter cursor rejection, bounded200 snapshot, full-vs-date report equality,23/25h DST |
+| Platform support and new-service flags | Customer support module + lead platform/flags + workspace | REVIEW | API/consumer tests and actual PG support/restriction gates passed; in-app records only |
+| Stable organization address aliases | Customer aliases module + backend + lead QR/platform UI | IN_PROGRESS | Unit3 passed; creation/seed/public resolver integration and actual PG pending |
+| Uniform paid receipt/sticker jobs | Backend + workspace PrintStudio | IN_PROGRESS | Require consistent receipt/per-unit sticker jobs across manual, bill and deposit settlement paths; physical output remains blocked |
+| Customer hierarchy, settlement disclosure, own-session recovery | Customer + lead followup APIs | IN_PROGRESS | Published category IDs, canonical outstanding/writeoff projection, guest-owned history and explicit server-side session expiry |
+| Remaining workspace PRD consumers | Workspace + backend contracts, lead missing modules | IN_PROGRESS | Branch settings, reassignment, stock movements, dated reports, actual document previews; further refund/customer/substitution gaps tracked below |
+
+Current build passed. Expanded first combined run:162 passed,1 outdated QR fixture failed,2 skipped; corrected alias fixture then focused QR2/2 passed. A fresh combined run is still required after in-progress integrations. Workspace56/56 passed before the next consumer changes. Actual browser reviewed workspace at768×1024 and390×844; representative physical tablet/network/accessibility verification remains open.
+
+Coverage audit separates remaining code from external access: request/approve refund separation, complaint reassignment/escalation, merchant customer activity/consent administration, explicit approved substitutions, floor-map interaction and per-guest split are still implementation tasks. Rubies/Zidi agreements/credentials, verified email, DNS/TLS target and physical printer calibration remain external gates. No production deployment, production data change, real funds or external delivery occurred.
+
+## UI correction pilot requested by owner
+
+Scope: overview and POS first; other surface layouts remain pending their own audit. Current backend work and uncommitted integration changes were retained. The user explicitly identified the original app at localhost:3003 `/` as the visual authority.
+
+- DONE: project skill `.agents/skills/mera-ui` created with Skill Creator, verified source/component/asset map, supported YAML metadata, source captures and per-surface constraints. Bundled validator passed. Independent forward test findings were corrected. No invented marketing reference or token system.
+- DONE: Product Design Audit captured original Counter/Reports and current Mera before changes. Mobbin research images inspected; source theme retained. Image to Code applied after the user explicitly selected the original running app as the visual.
+- DONE (local pilot): compact overview hierarchy, grouped sidebar variant, real photo POS/current-order panel, existing quote/permission/retry/visit handlers preserved. Keyboard/manual activation, compact-menu Escape, menu search/quantities and narrow basket access verified in the browser. Other modules deliberately retain their current layouts.
+- VERIFIED: TypeScript/Vite build; full suite183 passed/0 failed/2 skipped. No new actual-PG/provider/physical printer claim follows from this UI run. Screenshot comparisons and actual viewport measurements are in project-root design-qa.md and docs/mera/ui-audit.
+- Source UI integration remains alongside the earlier uncommitted operational milestone. Documentation/skill checkpoint can be committed independently without publishing unfinished accounting/provider work. Remaining original build dependencies and launch gates still apply.

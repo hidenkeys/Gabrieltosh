@@ -36,7 +36,7 @@ const cluster = join(folder, "cluster"),
   user = "mera_migration";
 const suffix = randomBytes(8).toString("hex"),
   sourceName = "mera_source_" + suffix,
-  targetName = "mera_staging_" + suffix;
+  targetName = "mera_fixture_import_" + suffix;
 const config = {
   host: "127.0.0.1",
   port: 55444,
@@ -226,84 +226,70 @@ try {
     "INSERT INTO mera_branches(id,organization_id,name) VALUES($1,$2,$3)",
     [branchId, organizationId, "Staging only"],
   );
-  async function insert(kind, data) {
-    const id = randomUUID();
-    await restored.query(
-      "INSERT INTO mera_records(id,organization_id,branch_id,kind,data) VALUES($1,$2,$3,$4,$5)",
-      [
-        id,
-        organizationId,
-        branchId,
-        kind,
-        JSON.stringify({ ...data, batchId }),
-      ],
-    );
-    return id;
-  }
-  await restored.query("BEGIN");
-  for (const order of orders) {
-    const snapshot = JSON.parse(JSON.stringify(order));
-    const stagingId = await insert("legacy_staging_order", {
-      sourceSystem: "bing-chun-pos",
-      sourceId: order.id,
-      currency: "NGN",
-      moneyUnit: "kobo",
-      snapshot,
-    });
-    await insert("audit", {
-      action: "migration_fixture_snapshot",
-      sourceTable: "orders",
-      sourceId: order.id,
-      stagingId,
-      snapshot,
-      sourceSha256: createHash("sha256")
-        .update(JSON.stringify(snapshot))
-        .digest("hex"),
-    });
-    if (order.paid_at)
-      await insert("legacy_staging_payment", {
-        sourceId: order.id,
-        orderSourceId: order.id,
-        amount: order.total,
-        method: order.payment_method,
-        recordedAt: order.paid_at,
-        actorId: order.paid_by,
-        actorName: order.paid_by_name,
-      });
-  }
-  for (const refund of refunds)
-    await insert("legacy_staging_refund", {
-      sourceId: refund.id,
-      orderSourceId: refund.order_id,
-      amount: refund.amount,
-      snapshot: refund,
-    });
-  for (const audit of audits)
-    await insert("audit", {
-      action: "legacy_source_audit",
-      sourceId: audit.id,
-      sourceOrderId: audit.order_id,
-      snapshot: audit,
-    });
-  await restored.query("COMMIT");
+  const { importLegacyFixture } =
+    await import("../server/mera/legacy-import.js");
+  const targetDb = {
+    query: (sql, params) => restored.query(sql, params),
+    transaction: async (fn) => {
+      await restored.query("BEGIN");
+      try {
+        const value = await fn(restored);
+        await restored.query("COMMIT");
+        return value;
+      } catch (error) {
+        await restored.query("ROLLBACK");
+        throw error;
+      }
+    },
+  };
+  process.env.MERA_LEGACY_IMPORT_FIXTURE = "true";
+  const importOptions = {
+    db: targetDb,
+    organizationId,
+    branchId,
+    batchId,
+    payload: { orders, refunds, audits },
+    recognitionPolicy: "legacy_paid_basis",
+  };
+  const imported = await importLegacyFixture(importOptions);
   const records = (
     await restored.query("SELECT id,kind,data FROM mera_records ORDER BY id")
   ).rows;
-  const staged = records.filter((r) => r.kind === "legacy_staging_order");
+  const beforeCount = records.length;
+  const replay = await importLegacyFixture(importOptions);
+  assert.equal(replay.replayed, true);
+  assert.equal(
+    Number(
+      (await restored.query("SELECT COUNT(*) FROM mera_records")).rows[0].count,
+    ),
+    beforeCount,
+  );
+  await assert.rejects(
+    importLegacyFixture({
+      ...importOptions,
+      payload: {
+        ...importOptions.payload,
+        orders: orders.map((order, index) =>
+          index === 0 ? { ...order, staff_name: "CHANGED SOURCE" } : order,
+        ),
+      },
+    }),
+    (error) => error.status === 409,
+  );
   for (const original of orders) {
-    const actual = staged.find((r) => r.data.sourceId === original.id);
+    const actual = records.find(
+      (r) => r.kind === "order" && r.data.sourceId === original.id,
+    );
     assert.deepEqual(
-      actual.data.snapshot,
+      actual.data.legacySnapshot,
       JSON.parse(JSON.stringify(original)),
     );
-    assert.equal(actual.data.snapshot.items[0].basePrice, product.price);
-    assert.notEqual(
-      actual.data.snapshot.items[0].basePrice,
-      product.price + 777,
-    );
-    assert(
-      records.some((r) => r.kind === "audit" && r.data.stagingId === actual.id),
-    );
+    assert.equal(actual.data.items[0].basePrice, product.price);
+    assert.notEqual(actual.data.items[0].basePrice, product.price + 777);
+    assert.equal(actual.data.historicalReadOnly, true);
+    assert.equal(actual.data.guestId, null);
+    assert.equal(actual.data.stockHeld, false);
+    assert.equal("collectedAt" in actual.data, false);
   }
   const sum = (values, key) =>
     values.reduce((total, value) => {
@@ -315,49 +301,92 @@ try {
       "total",
     ),
     sourceRefunds = sum(refunds, "amount");
-  const stagedGross = sum(
-      records
-        .filter((r) => r.kind === "legacy_staging_payment")
-        .map((r) => r.data),
+  assert.equal(
+    sum(
+      records.filter((r) => r.kind === "payment").map((r) => r.data),
       "amount",
     ),
-    stagedRefunds = sum(
-      records
-        .filter((r) => r.kind === "legacy_staging_refund")
-        .map((r) => r.data),
+    sourceGross,
+  );
+  assert.equal(
+    sum(
+      records.filter((r) => r.kind === "refund").map((r) => r.data),
       "amount",
+    ),
+    sourceRefunds,
+  );
+  const ledgers = records.filter((r) => r.kind === "ledger");
+  for (const row of ledgers)
+    assert.equal(
+      row.data.postings.reduce((n, p) => n + p.debit - p.credit, 0),
+      0,
     );
-  assert.equal(sourceGross, stagedGross);
-  assert.equal(sourceRefunds, stagedRefunds);
-  assert.equal(stagedGross - stagedRefunds, sourceGross - sourceRefunds);
+  const { report, tradingDate, assertHistoricalWritable } =
+    await import("../server/mera/domain.js");
+  const branch = { timezone: "Africa/Lagos", cutoff: 0 };
+  const actualReport = report(
+    records,
+    branch,
+    tradingDate(orders[0].created_at, branch.timezone, 0),
+  );
+  assert.equal(actualReport.collections, sourceGross);
+  assert.equal(actualReport.refunds, sourceRefunds);
+  assert.equal(actualReport.grossSales, sourceGross);
+  assert.equal(actualReport.netSales, sourceGross - sourceRefunds);
+  assert.match(actualReport.recognitionBasis, /legacy_paid_basis/);
   await assert.rejects(
     restored.query("UPDATE mera_records SET data='{}' WHERE kind='audit'"),
-    /append-only/,
+    /append-only|read-only/,
   );
   assert.equal(
     records.filter((r) =>
-      ["order", "payment", "refund", "ledger"].includes(r.kind),
+      ["bill", "ticket", "stock_hold", "guest"].includes(r.kind),
     ).length,
     0,
+  );
+  const historicalOrder = records.find((row) => row.kind === "order").data;
+  assert.throws(
+    () => assertHistoricalWritable(historicalOrder),
+    (error) => error.status === 409 && error.code === "HISTORICAL_READ_ONLY",
+  );
+  await assert.rejects(
+    restored.query(
+      "UPDATE mera_records SET data=jsonb_set(data,'{total}','1') WHERE id=$1",
+      [historicalOrder.id],
+    ),
+    /read-only/,
+  );
+  await assert.rejects(
+    restored.query("DELETE FROM mera_records WHERE id=$1", [
+      historicalOrder.id,
+    ]),
+    /read-only/,
   );
   await source.query("COMMIT");
   console.log(
     JSON.stringify({
       status: "passed",
-      scope: "fixture staging reconciliation only",
+      scope: "isolated operational historical import fixture only",
       legacyOrders: 3,
       legacyPayments: 2,
       legacyRefunds: 1,
+      operationalOrdersImported: imported.orders,
+      balancedLedgerEntries: ledgers.length,
       grossMinorUnits: sourceGross,
       refundMinorUnits: sourceRefunds,
       netMinorUnits: sourceGross - sourceRefunds,
+      canonicalReportReconciled: true,
+      recognitionBasis: actualReport.recognitionBasis,
+      historicalReadOnly: true,
+      historicalMutationBlocked: true,
       historicalSnapshotsPreserved: true,
       currentMenuRepricingPrevented: true,
       immutableAuditLinks: true,
-      operationalOrdersImported: 0,
-      operationalImportVerified: false,
+      exactReplayNoWrites: true,
+      changedSourceRejected: true,
       productionCutoverApproved: false,
       productionDataRead: false,
+      fulfilledOnlyImporterSupported: false,
     }),
   );
 } finally {

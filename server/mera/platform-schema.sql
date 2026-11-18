@@ -4,3 +4,4 @@ CREATE TABLE IF NOT EXISTS mera_platform_audit(id TEXT PRIMARY KEY,actor_id TEXT
 CREATE OR REPLACE FUNCTION mera_platform_audit_immutable() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'Platform audit is append-only'; END; $$;
 DROP TRIGGER IF EXISTS mera_platform_audit_immutable ON mera_platform_audit;
 CREATE TRIGGER mera_platform_audit_immutable BEFORE UPDATE OR DELETE ON mera_platform_audit FOR EACH ROW EXECUTE FUNCTION mera_platform_audit_immutable();
+ALTER TABLE mera_organizations ADD COLUMN IF NOT EXISTS platform_flags JSONB NOT NULL DEFAULT '{}';

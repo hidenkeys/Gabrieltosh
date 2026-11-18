@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { loadBranchReportRecords } from "./queries.js";
 import { subscriptionEntitlement } from "./subscriptions.js";
 import { randomUUID } from "node:crypto";
 import { report, fail,assertMoney } from "./domain.js";
@@ -54,22 +55,13 @@ export async function processMeraJobs(db) {
           [job.branch_id, job.organization_id],
         )
       ).rows[0];
-      const records = (
-        await db.query(
-          "SELECT * FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind IN ('order','payment','refund','deposit')",
-          [job.organization_id, job.branch_id],
-        )
-      ).rows;
-      if (records.length > 50000)
-        throw new Error(
-          "This branch requires a paged export; contact support.",
-        );
-      const summary = report(records, branch, job.data.date);
+      const reportData=await loadBranchReportRecords(db,{organizationId:job.organization_id,branchId:job.branch_id},branch,job.data.date);
+      const summary={...report(reportData.reportRecords,branch,job.data.date),reservationLiability:reportData.reservationLiabilityAsOf};
       const csv = [
         "Metric,Amount or count",
         ...Object.entries(summary)
-          .filter(([, v]) => typeof v === "number" || typeof v === "string")
-          .map(([k, v]) => [k, v].map(cell).join(",")),
+          .filter(([, v]) => typeof v === "number" || typeof v === "string" || v === null)
+          .map(([k, v]) => [k, v === null?"unknown":v].map(cell).join(",")),
       ].join("\r\n");
       artifact = {
         id: job.data.artifactId,

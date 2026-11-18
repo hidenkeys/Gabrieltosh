@@ -10,6 +10,7 @@ import {
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { hostedBackupPolicy } from "./backup-policy.js";
+import { organizationFeatures } from "./feature-flags.js";
 const fail = (message, status = 403, code = "PLATFORM_ACCESS_REQUIRED") =>
   Object.assign(new Error(message), { status, code });
 const hash = (value) => createHash("sha256").update(value).digest("hex");
@@ -156,6 +157,7 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
       ).rows.length > 0;
     res.json({
       enrolled,
+      userId: req.user.id,
       verified,
       method: "authenticator",
       enrollment: "Operator-provisioned; no public self-enrollment.",
@@ -243,7 +245,7 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
     ).rows;
     const organizations = (
       await db.query(
-        "SELECT id,name,slug,policy,subscription,onboarding FROM mera_organizations ORDER BY name",
+        "SELECT id,name,slug,policy,subscription,onboarding,platform_flags FROM mera_organizations ORDER BY name",
       )
     ).rows;
     const branches = (
@@ -275,6 +277,7 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
     res.json({
       organizations: organizations.map((o) => ({
         ...o,
+        features: organizationFeatures(o),
         branches: branches.filter((b) => b.organization_id === o.id),
       })),
       audits,
@@ -564,4 +567,5 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
       });
     },
   );
+  return { guard, audit };
 }

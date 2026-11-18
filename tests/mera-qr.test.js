@@ -35,8 +35,13 @@ test("public directory projects published branches; explicit consent is private 
   mountMeraQr(router, {
     db: {
       query: async (sql, args) => {
-        if (sql.includes("WHERE slug"))
-          return { rows: args[0] === "shop" ? [{ id: "org" }] : [] };
+        if (sql.includes("mera_slug_claims"))
+          return {
+            rows:
+              args[0] === "shop"
+                ? [{ id: "org", onboarding: { status: "published" } }]
+                : [],
+          };
         assert.match(sql, /menu_version>0/);
         return {
           rows: [

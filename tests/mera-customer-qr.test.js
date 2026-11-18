@@ -63,7 +63,7 @@ test("table QR context never fetches a private bill before code validation", asy
     if (path.endsWith("/guest"))
       return Response.json({ error: "guest" }, { status: 401 });
     if (path.endsWith("/guests")) return Response.json({ displayName: "Ada" });
-    if (path.endsWith("/visits/join"))
+    if (path.endsWith("/visits/terms"))
       return Response.json({ error: "Invalid joining code" }, { status: 403 });
     throw Error("Unexpected request");
   });
@@ -90,7 +90,7 @@ test("table QR context never fetches a private bill before code validation", asy
   });
   fireEvent.click(screen.getByRole("button", { name: "Join current visit" }));
   await screen.findByRole("alert");
-  const joined = calls.find((c) => c.path.endsWith("/visits/join"));
+  const joined = calls.find((c) => c.path.endsWith("/visits/terms"));
   assert.deepEqual(JSON.parse(joined.body), {
     tableId: "table-one",
     code: "invalid",
@@ -235,8 +235,10 @@ test("configured charges require server review and uncertain retries preserve qu
   });
   render(React.createElement(CustomerExperience));
   await screen.findByText("Brown Sugar Boba");
-  fireEvent.click(screen.getByRole("button", { name: "Choose" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add to collection" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Choose: Brown Sugar Boba" }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
     target: { value: "Ada" },
   });
@@ -245,7 +247,7 @@ test("configured charges require server review and uncertain retries preserve qu
   assert.equal(orders.length, 0);
   fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
   await screen.findByRole("alert");
-  fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
+  fireEvent.click(screen.getByRole("button", { name: "Retry original order" }));
   await screen.findByRole("alert");
   assert.equal(quotes, 1);
   assert.equal(orders.length, 2);
@@ -263,7 +265,9 @@ test("customization modal contains keyboard focus and restores its trigger", asy
   );
   render(React.createElement(CustomerExperience));
   await screen.findByText("Brown Sugar Boba");
-  const trigger = screen.getByRole("button", { name: "Choose" });
+  const trigger = screen.getByRole("button", {
+    name: "Choose: Brown Sugar Boba",
+  });
   trigger.focus();
   fireEvent.click(trigger);
   const dialog = screen.getByRole("dialog");
@@ -271,7 +275,7 @@ test("customization modal contains keyboard focus and restores its trigger", asy
   fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
   assert.equal(
     document.activeElement,
-    screen.getByRole("button", { name: "Add to collection" }),
+    screen.getByRole("button", { name: "Add to basket" }),
   );
   fireEvent.keyDown(document, { key: "Tab" });
   assert.equal(
@@ -324,5 +328,395 @@ test("help request uncertainty retries original intent without claiming external
   assert.equal(attempts.length, 2);
   assert.deepEqual(attempts[0], attempts[1]);
   assert.equal("visitId" in attempts[0], false);
+  cleanup();
+});
+
+test("minimum-spend visit terms require explicit acknowledgement before private joining", async (t) => {
+  let joins = 0,
+    bills = 0,
+    body;
+  const originalPolicy = {
+    enabled: true,
+    approved: true,
+    amount: 1000000,
+    basis: "net_paid_bill",
+    shortfallTreatment: "manager_review",
+    disclosure: "Original visit terms saved before the current policy changed.",
+    version: "original-version",
+  };
+  t.mock.method(globalThis, "fetch", async (input, init) => {
+    const path = String(input);
+    if (path.endsWith("/menu"))
+      return Response.json({
+        ...menu,
+        minimumSpendPolicy: {
+          ...originalPolicy,
+          version: "new-version",
+          disclosure: "Current branch terms",
+        },
+      });
+    if (path.endsWith("/branches")) return Response.json({ branches: [] });
+    if (path.endsWith("/guest"))
+      return Response.json({ error: "guest" }, { status: 401 });
+    if (path.endsWith("/guests")) return Response.json({ displayName: "Ada" });
+    if (path.endsWith("/visits/terms"))
+      return Response.json({
+        visitId: "visit-one",
+        minimumSpendPolicy: originalPolicy,
+        privateBillAccessGranted: false,
+      });
+    if (path.endsWith("/visits/join")) {
+      joins++;
+      body = JSON.parse(init.body);
+      return Response.json({ id: "visit-one" });
+    }
+    if (path.endsWith("/public/visits/visit-one")) {
+      bills++;
+      return Response.json({
+        visit: { id: "visit-one", tableName: "Window table", status: "open" },
+        orders: [],
+        bills: [],
+        balance: 0,
+        minimumSpend: {
+          policy: originalPolicy,
+          summary: { netPaid: 0, waived: 0, shortfall: 1000000 },
+        },
+      });
+    }
+    throw Error("Unexpected request");
+  });
+  render(React.createElement(CustomerExperience));
+  await screen.findByText("Brown Sugar Boba");
+  fireEvent.click(screen.getByRole("button", { name: "Join a table" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
+    target: { value: "Ada" },
+  });
+  fireEvent.change(screen.getByRole("textbox", { name: "Visit reference" }), {
+    target: { value: "visit-one" },
+  });
+  fireEvent.change(screen.getByRole("textbox", { name: "Joining code" }), {
+    target: { value: "1234" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Join current visit" }));
+  await screen.findByText(originalPolicy.disclosure);
+  assert.equal(joins, 0);
+  assert.equal(bills, 0);
+  assert.equal(screen.queryByText("Current branch terms"), null);
+  assert.equal(
+    screen.getByRole("checkbox", {
+      name: "I acknowledge this visit’s minimum-spend policy",
+    }).checked,
+    false,
+  );
+  assert.equal(
+    screen.getByRole("button", { name: "Join current visit" }).disabled,
+    true,
+  );
+  fireEvent.click(
+    screen.getByRole("checkbox", {
+      name: "I acknowledge this visit’s minimum-spend policy",
+    }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Join current visit" }));
+  await screen.findByRole("button", { name: "Your order" });
+  assert.equal(joins, 1);
+  assert.equal(body.minimumSpendPolicyVersion, "original-version");
+  assert.equal(body.minimumSpendAcknowledged, true);
+  assert.equal(body.visitId, "visit-one");
+  assert.equal(bills, 1);
+  cleanup();
+});
+
+test("reservation acknowledgement and original details survive uncertain delivery", async (t) => {
+  const attempts = [];
+  const policy = {
+    enabled: true,
+    approved: true,
+    amount: 1000000,
+    basis: "net_paid_bill",
+    disclosure: "Booking minimum-spend terms",
+    version: "booking-v1",
+  };
+  t.mock.method(globalThis, "fetch", async (input, init) => {
+    const path = String(input);
+    if (path.endsWith("/menu"))
+      return Response.json({
+        ...menu,
+        tables: [{ id: "table-preference", name: "Window preference" }],
+        reservationPolicy: {
+          enabled: true,
+          minimumSpend: 1000000,
+          minimumSpendPolicy: policy,
+        },
+      });
+    if (path.endsWith("/branches")) return Response.json({ branches: [] });
+    if (path.endsWith("/guest"))
+      return Response.json({ error: "guest" }, { status: 401 });
+    if (path.endsWith("/guests")) return Response.json({ displayName: "Ada" });
+    if (path.endsWith("/reservations")) {
+      attempts.push(JSON.parse(init.body));
+      throw new TypeError("Failed to fetch");
+    }
+    throw Error("Unexpected request");
+  });
+  render(React.createElement(CustomerExperience));
+  await screen.findByText("Brown Sugar Boba");
+  fireEvent.click(screen.getByRole("button", { name: "Reserve a table" }));
+  await screen.findByText(policy.disclosure);
+  fireEvent.change(
+    screen.getByRole("combobox", { name: "Preferred table (optional)" }),
+    { target: { value: "table-preference" } },
+  );
+  assert.equal(
+    screen.getByRole("button", { name: "Request reservation" }).disabled,
+    true,
+  );
+  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
+    target: { value: "Ada" },
+  });
+  fireEvent.change(
+    screen.getByRole("textbox", { name: "Contact email or phone" }),
+    { target: { value: "fixture@example.invalid" } },
+  );
+  fireEvent.change(document.querySelector('input[name="startsAt"]'), {
+    target: { value: "2026-12-10T12:00" },
+  });
+  fireEvent.click(
+    screen.getByRole("checkbox", {
+      name: "I acknowledge this minimum-spend policy",
+    }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Request reservation" }));
+  await screen.findByRole("alert");
+  assert.equal(
+    screen
+      .getByRole("textbox", { name: "Contact email or phone" })
+      .matches(":disabled"),
+    true,
+  );
+  assert.equal(document.querySelector("fieldset").disabled, true);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Retry original reservation" }),
+  );
+  await screen.findByRole("alert");
+  assert.equal(attempts.length, 2);
+  assert.deepEqual(attempts[0], attempts[1]);
+  assert.equal(attempts[0].minimumSpendPolicyVersion, "booking-v1");
+  assert.equal(attempts[0].minimumSpendAcknowledged, true);
+  assert.equal(attempts[0].tableId, "table-preference");
+  cleanup();
+});
+
+test("customer private requests select organization from explicit menu/store route", async (t) => {
+  const { customerOrganizationSlug, customerRequest } =
+    await import("../src/mera/customer/client.ts");
+  assert.equal(
+    customerOrganizationSlug("/mera/menu/venue-one/branch"),
+    "venue-one",
+  );
+  assert.equal(
+    customerOrganizationSlug("/mera/store/venue-two/branch"),
+    "venue-two",
+  );
+  assert.equal(customerOrganizationSlug("/mera/workspace"), undefined);
+  assert.equal(
+    customerOrganizationSlug("/mera/menu/%0Avenue/branch"),
+    undefined,
+  );
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (input, init) => {
+    calls.push(init);
+    return Response.json({ id: "own-order" });
+  });
+  window.history.replaceState({}, "", "/mera/menu/venue-two/branch");
+  const body = { requestKey: "preserved-key", rating: 4 };
+  await customerRequest("/public/orders/own-order/feedback", "POST", body);
+  assert.equal(calls[0].headers["X-Mera-Organization-Slug"], "venue-two");
+  assert.deepEqual(JSON.parse(calls[0].body), body);
+  window.history.replaceState(
+    {},
+    "",
+    "/mera/menu/bing-chun/20000000-0000-4000-8000-000000000001",
+  );
+});
+
+test("published nested category IDs filter descendants and retain legacy category fallback", async (t) => {
+  const graph = [
+    {
+      id: "drinks",
+      name: "Drinks",
+      parentId: null,
+      active: true,
+      sortOrder: 0,
+    },
+    { id: "tea", name: "Tea", parentId: "drinks", active: true, sortOrder: 0 },
+    {
+      id: "hidden",
+      name: "Unpublished or inactive",
+      parentId: null,
+      active: false,
+    },
+  ];
+  const products = [
+    {
+      ...menu.products[0],
+      id: "tea-product",
+      categoryId: "tea",
+      category: "Old category name",
+      dietary: ["Vegan"],
+    },
+    {
+      ...menu.products[0],
+      id: "legacy-product",
+      name: "Legacy sundae",
+      category: "Desserts",
+    },
+  ];
+  t.mock.method(globalThis, "fetch", async (input) =>
+    String(input).endsWith("/menu")
+      ? Response.json({ ...menu, categories: graph, products })
+      : Response.json({ error: "guest" }, { status: 401 }),
+  );
+  render(React.createElement(CustomerExperience));
+  await screen.findByText("Brown Sugar Boba");
+  assert(screen.getByText("Dietary: Vegan"));
+  assert.equal(
+    screen.queryByRole("button", { name: "Unpublished or inactive" }),
+    null,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Drinks" }));
+  assert(screen.getByText("Brown Sugar Boba"));
+  assert.equal(screen.queryByText("Legacy sundae"), null);
+  fireEvent.click(screen.getByRole("button", { name: "Drinks / Tea" }));
+  assert(screen.getByText("Brown Sugar Boba"));
+  fireEvent.click(screen.getByRole("button", { name: "Desserts" }));
+  assert(screen.getByText("Legacy sundae"));
+  assert.equal(screen.queryByText("Brown Sugar Boba"), null);
+  cleanup();
+});
+
+test("canonical outstanding and authorized writeoff are disclosed instead of recalculating cash due", async (t) => {
+  t.mock.method(globalThis, "fetch", async (input) => {
+    const path = String(input);
+    if (path.endsWith("/menu")) return Response.json(menu);
+    if (path.endsWith("/guest"))
+      return Response.json({
+        displayName: "Ada",
+        orders: [{ id: "own-order", createdAt: "2026-11-18T12:00:00Z" }],
+      });
+    if (path.endsWith("/public/orders/own-order"))
+      return Response.json({
+        id: "own-order",
+        reference: "M-WRITEOFF",
+        status: "completed",
+        paymentStatus: "partially_paid",
+        total: 380000,
+        paid: 100000,
+        effectivePaid: 100000,
+        effectiveSettlement: 380000,
+        outstandingBalance: 0,
+        writtenOff: 280000,
+        refunded: 0,
+        settlementOutcome: "settled_with_writeoff",
+        items: [],
+        history: [],
+      });
+    if (path.endsWith("/branches")) return Response.json({ branches: [] });
+    if (path.endsWith("/activity"))
+      return Response.json({ reservations: [], feedback: [] });
+    if (path.endsWith("/consent"))
+      return Response.json({ marketing: false, deliveryAvailable: false });
+    throw Error("Unexpected request");
+  });
+  render(React.createElement(CustomerExperience));
+  await screen.findByText("Brown Sugar Boba");
+  fireEvent.click(screen.getByRole("button", { name: "Your order" }));
+  await screen.findByText("M-WRITEOFF");
+  assert(screen.getByText(/Order total ₦3,800 · Outstanding ₦0/));
+  assert(screen.getByText(/Authorized write-off ₦2,800/));
+  cleanup();
+});
+
+test("session history pages and ending require explicit in-app confirmation", async (t) => {
+  const { default: SessionOrders } =
+    await import("../src/mera/customer/SessionOrders.tsx");
+  const calls = [];
+  let cleared = "",
+    selected;
+  t.mock.method(globalThis, "fetch", async (input, init) => {
+    const path = String(input);
+    calls.push({ path, method: init.method });
+    if (path.endsWith("/guest/end"))
+      return Response.json({
+        ended: true,
+        ordersCancelled: false,
+        refundConfirmed: false,
+      });
+    if (path.includes("cursor=page-two"))
+      return Response.json({
+        orders: [
+          {
+            id: "second",
+            reference: "M-SECOND",
+            status: "completed",
+            paymentStatus: "paid",
+          },
+        ],
+        nextCursor: null,
+      });
+    if (path.includes("/guest-orders?take=20"))
+      return Response.json({
+        orders: [
+          {
+            id: "first",
+            reference: "M-FIRST",
+            status: "ready",
+            paymentStatus: "paid",
+          },
+        ],
+        nextCursor: "page-two",
+      });
+    if (path.endsWith("/public/orders/second"))
+      return Response.json({
+        id: "second",
+        reference: "M-SECOND",
+        status: "completed",
+      });
+    throw Error("Unexpected request");
+  });
+  render(
+    React.createElement(SessionOrders, {
+      prefix: "/public/org/branch",
+      onSelect: (order) => {
+        selected = order;
+      },
+      onClear: (message) => {
+        cleared = message;
+      },
+    }),
+  );
+  await screen.findByText("M-FIRST · ready · paid");
+  fireEvent.click(
+    screen.getByRole("button", { name: "Load more session orders" }),
+  );
+  await screen.findByText("M-SECOND · completed · paid");
+  fireEvent.click(screen.getByRole("button", { name: "Open order M-SECOND" }));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(selected.id, "second");
+  fireEvent.click(screen.getByRole("button", { name: "End guest session…" }));
+  assert.equal(
+    calls.some((call) => call.path.endsWith("/guest/end")),
+    false,
+  );
+  assert(screen.getByText(/Other venues’ guest sessions stay active/));
+  fireEvent.click(
+    screen.getByRole("button", { name: "End this guest session" }),
+  );
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.match(cleared, /Existing orders and visits remain unchanged/);
+  assert.equal(
+    calls.filter((call) => call.path.endsWith("/guest/end")).length,
+    1,
+  );
   cleanup();
 });

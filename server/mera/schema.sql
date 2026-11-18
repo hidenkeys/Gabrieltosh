@@ -8,7 +8,10 @@ CREATE TABLE IF NOT EXISTS mera_invitations(id TEXT PRIMARY KEY,organization_id 
 CREATE TABLE IF NOT EXISTS mera_platform_members(user_id TEXT PRIMARY KEY REFERENCES users(id),active BOOLEAN NOT NULL DEFAULT true,strong_auth_verified BOOLEAN NOT NULL DEFAULT false);
 CREATE OR REPLACE FUNCTION mera_record_immutability() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
- IF TG_OP <> 'INSERT' AND OLD.kind IN ('ledger','audit','provider_event','financial_request_resolution') THEN
+ IF TG_OP <> 'INSERT' AND OLD.data->>'historicalReadOnly'='true' THEN
+  RAISE EXCEPTION 'Imported historical records are read-only';
+ END IF;
+ IF TG_OP <> 'INSERT' AND OLD.kind IN ('ledger','audit','provider_event','financial_request_resolution','writeoff','minimum_spend_waiver','deposit_hold','deposit_refund','deposit_forfeiture') THEN
   RAISE EXCEPTION 'Mera ledger and audit records are append-only';
  END IF;
  IF TG_OP <> 'DELETE' AND NEW.kind='ledger' THEN
@@ -25,3 +28,9 @@ END;
 $$;
 DROP TRIGGER IF EXISTS mera_record_immutable ON mera_records;
 CREATE TRIGGER mera_record_immutable BEFORE INSERT OR UPDATE OR DELETE ON mera_records FOR EACH ROW EXECUTE FUNCTION mera_record_immutability();
+
+CREATE INDEX IF NOT EXISTS mera_record_requests ON mera_records(organization_id,branch_id,kind,(data->>'requestKey')) WHERE data ? 'requestKey';
+CREATE INDEX IF NOT EXISTS mera_held_orders ON mera_records(organization_id,branch_id,(data->>'holdExpiresAt')) WHERE kind='order' AND data->>'stockHeld'='true';
+CREATE INDEX IF NOT EXISTS mera_bill_charges ON mera_records USING GIN ((data->'charges')) WHERE kind='bill';
+
+CREATE UNIQUE INDEX IF NOT EXISTS mera_paid_document_keys ON mera_records(organization_id,branch_id,(data->>'documentKey')) WHERE kind='print_job' AND data->>'automaticPaid'='true';

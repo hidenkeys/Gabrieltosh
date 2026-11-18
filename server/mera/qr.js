@@ -1,5 +1,6 @@
 import { z } from "zod";
 import QRCode from "qrcode";
+import { resolveOrganizationSlug } from "./organization-aliases.js";
 const B = "/organizations/:organizationId/branches/:branchId";
 const input = z
   .object({
@@ -41,17 +42,13 @@ export function mountMeraQr(router, services) {
     guest,
   } = services;
   router.get("/public/organizations/:slug/branches", async (req, res) => {
-    const organization = (
-      await db.query(
-        "SELECT id FROM mera_organizations WHERE slug=$1 AND ($2::boolean OR onboarding->>'status'='published')",
-        [
-          req.params.slug.toLowerCase(),
-          process.env.MERA_DEMO === "true" &&
-            process.env.NODE_ENV !== "production",
-        ],
-      )
-    ).rows[0];
-    if (!organization)
+    const organization = await resolveOrganizationSlug(db, req.params.slug);
+    const demo =
+      process.env.MERA_DEMO === "true" && process.env.NODE_ENV !== "production";
+    if (
+      !organization ||
+      (!demo && organization.onboarding?.status !== "published")
+    )
       return res.status(404).json({ error: "Organization not found." });
     const rows = (
       await db.query(

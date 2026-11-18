@@ -12,6 +12,8 @@ import {
   CONTRACT_VERSION,
 } from "../../shared/mera-contracts.js";
 import { fail,availableNow } from "./domain.js";
+import { organizationFeatures } from "./feature-flags.js";
+import { publicMinimumSpend } from "./minimum-spend.js";
 import { subscriptionEntitlement } from "./subscriptions.js";
 const digest = (value) => createHash("sha256").update(value).digest("hex");
 const allowed = [
@@ -204,18 +206,21 @@ export function mountMeraZidi(
     const live = (
       await readRecords(db, s.organizationId, s.branchId, "product")
     ).map((r) => r.data);
-    const organization=(await db.query("SELECT policy,subscription FROM mera_organizations WHERE id=$1",[s.organizationId])).rows[0];
+    const organization=(await db.query("SELECT policy,subscription,platform_flags FROM mera_organizations WHERE id=$1",[s.organizationId])).rows[0];
     res.json({
       mode: "simulator",
       contractVersion: CONTRACT_VERSION,
       organizationId: s.organizationId,
       branchId: s.branchId,
       menuVersion: b.menu_version,
+      features:organizationFeatures(organization),
+      minimumSpendPolicy:publicMinimumSpend(b.settings.minimumSpendPolicy),
+      reservationPolicy:{enabled:!!b.settings.reservationsEnabled,minimumSpendPolicy:publicMinimumSpend(b.settings.minimumSpendPolicy),timingPolicy:b.settings.reservationPolicy||null,depositPolicy:b.settings.depositPolicy||null},
       pricingPolicy:b.settings.pricingPolicy||null,
       pricingPolicyRequired:!!b.settings.pricingPolicy?.enabled,
       categories:b.settings.publishedCategories||[],
       capabilities:{quote:true,outboundEvents:{state:"blocked",reason:"Signed outbound events require a verified external Zidi contract and delivery configuration."}},
-      orderingAvailable: !b.settings.orderingPaused && b.menu_version > 0 && availableNow(b.settings.serviceHours,b.timezone) && subscriptionEntitlement(organization.subscription,organization.subscription?.approvedPolicySnapshot||organization.policy,Date.now(),true).newOrdersAllowed,
+      orderingAvailable: organizationFeatures(organization).flags.zidi && !b.settings.orderingPaused && b.menu_version > 0 && availableNow(b.settings.serviceHours,b.timezone) && subscriptionEntitlement(organization.subscription,organization.subscription?.approvedPolicySnapshot||organization.policy,Date.now(),true).newOrdersAllowed,
       products: b.published_menu
         .map((p) => {
           const current = live.find((l) => l.id === p.id);

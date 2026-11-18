@@ -67,8 +67,10 @@ test("an uncertain checkout remains visible and retries retain the original idem
   });
   render(React.createElement(CustomerExperience));
   await screen.findByText("Brown Sugar Boba");
-  fireEvent.click(screen.getByRole("button", { name: "Choose" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add to collection" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Choose: Brown Sugar Boba" }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
     target: { value: "Ada" },
   });
@@ -79,7 +81,7 @@ test("an uncertain checkout remains visible and retries retain the original idem
     /an order may already have reached/,
   );
   assert.equal(screen.queryByText(/Reference/), null);
-  fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
+  fireEvent.click(screen.getByRole("button", { name: "Retry original order" }));
   await screen.findByRole("alert");
   assert.equal(keys.length, 2);
   assert.equal(keys[0], keys[1]);
@@ -97,6 +99,12 @@ test("an expired table visit removes the previous private bill", async (t) => {
         { status: 401 },
       );
     if (path.endsWith("/guests")) return Response.json({ displayName: "Ada" });
+    if (path.endsWith("/visits/terms"))
+      return Response.json({
+        visitId: "visit-one",
+        minimumSpendPolicy: { enabled: false },
+        privateBillAccessGranted: false,
+      });
     if (path.endsWith("/visits/join"))
       return Response.json({ id: "visit-one" });
     if (path.endsWith("/visits/visit-one"))
