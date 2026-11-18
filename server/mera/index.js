@@ -208,6 +208,14 @@ export async function seedMeraDemo(db) {
     }
   });
 }
+export function redactMeraFinancialPolicy(value) {
+  if (value instanceof Date) return value.toJSON();
+  if (Array.isArray(value)) return value.map(redactMeraFinancialPolicy);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value)
+    .filter(([key])=>key!=="financialPolicy"&&!(Object.hasOwn(value,"financialPolicy")&&key==="policyVersion"))
+    .map(([key,item])=>[key,redactMeraFinancialPolicy(item)]));
+  return value;
+}
 export function createMeraRouter(db) {
   const router = express.Router();
   const commercial=(access=[])=>access.includes("billing.manage")||access.includes("organization.manage");
@@ -216,8 +224,7 @@ export function createMeraRouter(db) {
     const json=res.json.bind(res);
     res.json=(body)=>{
       if(commercial(req.meraMembership?.permissions))return json(body);
-      const redact=v=>Array.isArray(v)?v.map(redact):v&&typeof v==="object"?Object.fromEntries(Object.entries(v).filter(([key])=>key!=="financialPolicy"&&!(Object.hasOwn(v,"financialPolicy")&&key==="policyVersion")).map(([k,value])=>[k,redact(value)])):v;
-      return json(redact(body));
+      return json(redactMeraFinancialPolicy(body));
     };
     next();
   });

@@ -78,6 +78,21 @@ test("uncertain operator status change retains exact request intent and key", as
       (screen.getByLabelText("Service status") as HTMLSelectElement).disabled,
       true,
     );
+    assert.equal(
+      (screen.getByLabelText("Reason for this action") as HTMLTextAreaElement)
+        .disabled,
+      true,
+    );
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    assert.ok(screen.getByRole("dialog"));
+    assert.equal(
+      (
+        screen.getByRole("button", {
+          name: "Close organization",
+        }) as HTMLButtonElement
+      ).disabled,
+      true,
+    );
     fail = false;
     fireEvent.click(
       screen.getByRole("button", { name: "Retry original status change" }),
@@ -207,6 +222,11 @@ test("organization review opens a named dialog and returns keyboard focus when c
       name: "Review business",
     });
     assert.equal(dialog.contains(document.activeElement), true);
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    assert.equal(screen.queryByRole("dialog"), null);
+    assert.equal(document.activeElement, trigger);
+    fireEvent.click(trigger);
+    await screen.findByRole("dialog", { name: "Review business" });
     fireEvent.click(screen.getByRole("button", { name: "Close organization" }));
     assert.equal(screen.queryByRole("dialog"), null);
     assert.equal(document.activeElement, trigger);
@@ -271,6 +291,128 @@ test("access failure and authenticator recovery move focus to the current state"
       screen.queryByRole("heading", { name: "Organization directory" }),
       null,
     );
+  } finally {
+    cleanup();
+  }
+});
+test("shared reason retains native service-form validation while disclosures preserve drafts", async () => {
+  const writes: any[] = [];
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    if (String(input).endsWith("/auth"))
+      return Response.json({ enrolled: true, verified: true });
+    if (String(input).endsWith("/support-cases"))
+      return Response.json({ cases: [] });
+    if (init.method === "PATCH") {
+      writes.push(JSON.parse(init.body));
+      return Response.json({ subscription: { status: "past_due" } });
+    }
+    return Response.json({
+      organizations: [
+        {
+          id: "org",
+          name: "Disclosure business",
+          slug: "disclosure",
+          subscription: { status: "active" },
+        },
+      ],
+      audits: [],
+      policy: {},
+    });
+  }) as any;
+  try {
+    render(<Platform />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Review organization" }),
+    );
+    const reason = screen.getByLabelText(
+      "Reason for this action",
+    ) as HTMLTextAreaElement;
+    assert.equal(reason.closest("form"), null);
+    assert.equal(reason.form?.id, "mera-platform-service-form");
+    assert.equal(reason.required, true);
+    assert.equal(reason.minLength, 10);
+    assert.equal(reason.maxLength, 500);
+    const addressSummary = screen.getByText("Organization address", {
+      selector: "summary",
+    });
+    const addressBlock = addressSummary.closest("details")!;
+    assert.equal(addressBlock.open, false);
+    fireEvent.click(addressSummary);
+    const address = screen.getByLabelText(
+      "New organization address",
+    ) as HTMLInputElement;
+    fireEvent.change(address, { target: { value: "reviewed-address" } });
+    fireEvent.change(reason, {
+      target: { value: "Reviewed operator action for fixture" },
+    });
+    fireEvent.click(addressSummary);
+    assert.equal(addressBlock.open, false);
+    fireEvent.click(addressSummary);
+    assert.equal(addressBlock.open, true);
+    assert.equal(address.value, "reviewed-address");
+    assert.equal(reason.value, "Reviewed operator action for fixture");
+    fireEvent.change(screen.getByLabelText("Service status"), {
+      target: { value: "past_due" },
+    });
+    assert.equal(
+      (screen.getByLabelText("Service status") as HTMLSelectElement)
+        .selectedOptions[0].textContent,
+      "Past due",
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Save service status" }),
+    );
+    await waitFor(() => assert.equal(writes.length, 1));
+    assert.equal(writes[0].status, "past_due");
+    assert.equal(writes[0].reason, "Reviewed operator action for fixture");
+    assert.equal(screen.queryByText("Configuration only"), null);
+  } finally {
+    cleanup();
+  }
+});
+test("compact platform chooser reaches all five sections and shares desktop navigation state", async () => {
+  globalThis.fetch = (async (input: any) => {
+    if (String(input).endsWith("/auth"))
+      return Response.json({ enrolled: true, verified: true });
+    if (String(input).endsWith("/support-cases"))
+      return Response.json({ cases: [] });
+    return Response.json({ organizations: [], audits: [], policy: {} });
+  }) as any;
+  try {
+    render(<Platform />);
+    const chooser = (await screen.findByLabelText(
+      "Platform section",
+    )) as HTMLSelectElement;
+    assert.deepEqual(
+      Array.from(chooser.options).map((option) => option.value),
+      ["organizations", "support", "health", "backups", "audit"],
+    );
+    fireEvent.change(chooser, { target: { value: "audit" } });
+    assert.ok(screen.getByRole("heading", { name: "Operator audit" }));
+    assert.equal(
+      screen
+        .getByRole("button", { name: "Audit log" })
+        .getAttribute("aria-current"),
+      "page",
+    );
+    assert.equal(
+      screen.queryByRole("heading", { name: "Organization directory" }),
+      null,
+    );
+    const auditRegion = screen.getByRole("region", {
+      name: "Operator audit table",
+    });
+    assert.equal(auditRegion.getAttribute("tabindex"), "0");
+    fireEvent.click(screen.getByRole("button", { name: "Organizations" }));
+    assert.equal(chooser.value, "organizations");
+    assert.equal(
+      screen
+        .getByRole("region", { name: "Organization directory table" })
+        .getAttribute("tabindex"),
+      "0",
+    );
+    fireEvent.change(chooser, { target: { value: "backups" } });
+    assert.ok(screen.getByRole("heading", { name: "Backup readiness" }));
   } finally {
     cleanup();
   }

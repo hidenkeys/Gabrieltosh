@@ -1045,18 +1045,14 @@ test(
         ).status,
         401,
       );
-      assert.equal(
-        (
-          await call(
-            "/platform",
-            "GET",
-            undefined,
-            owner,
-            "pos_session=" + sessionA,
-          )
-        ).status,
-        200,
-      );
+      const datedPlatformResponse = await call("/platform","GET",undefined,owner,"pos_session="+sessionA);
+      assert.equal(datedPlatformResponse.status,200);
+      const datedPlatformStepup=datedPlatformResponse.data.audits.find(row=>row.action==="platform_stepup");
+      assert.ok(datedPlatformStepup);
+      const datedStoredStepup=(await db.query("SELECT created_at FROM mera_platform_audit WHERE id=$1",[datedPlatformStepup.id])).rows[0].created_at;
+      assert.ok(datedStoredStepup instanceof Date);
+      assert.equal(datedPlatformStepup.created_at,datedStoredStepup.toISOString());
+      assert.equal(typeof datedPlatformStepup.created_at,"string");
       assert.equal(
         (
           await call(

@@ -1,6 +1,25 @@
 import { useEffect, useState, useRef } from "react";
 import { workspaceApi, formatMoney, WorkspaceError } from "./workspace/api";
 
+const subscriptionLabels: Record<string, string> = {
+  trialing: "Trial",
+  active: "Active",
+  past_due: "Past due",
+  suspended: "Suspended",
+  cancelled: "Cancelled",
+};
+const subscriptionLabel = (value: string | undefined) =>
+  subscriptionLabels[value || ""] ||
+  (value ? value.replaceAll("_", " ") : "Not activated");
+
+const platformSections = [
+  ["organizations", "Organizations"],
+  ["support", "Support inbox"],
+  ["health", "Service health"],
+  ["backups", "Backups"],
+  ["audit", "Audit log"],
+];
+
 export default function Platform() {
   const accessHeading = useRef<HTMLHeadingElement>(null);
   const verificationHeading = useRef<HTMLHeadingElement>(null);
@@ -418,13 +437,7 @@ export default function Platform() {
       {data && (
         <>
           <nav className="mera-platform-nav" aria-label="Platform sections">
-            {[
-              ["organizations", "Organizations"],
-              ["support", "Support inbox"],
-              ["health", "Service health"],
-              ["backups", "Backups"],
-              ["audit", "Audit log"],
-            ].map(([id, label]) => (
+            {platformSections.map(([id, label]) => (
               <button
                 key={id}
                 type="button"
@@ -440,6 +453,19 @@ export default function Platform() {
               </button>
             ))}
           </nav>
+          <label className="mera-platform-section-select">
+            Platform section
+            <select
+              value={panel}
+              onChange={(event) => setPanel(event.target.value)}
+            >
+              {platformSections.map(([id, label]) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
           <section className="mera-stat-grid">
             {[
               ["Organizations", data.organizations.length],
@@ -450,7 +476,7 @@ export default function Platform() {
                   : formatMoney(data.policy.monthlyPrice),
               ],
               ["Live collections", "Disabled"],
-              ["Support access", "Configuration only"],
+              ["Support", "In-app cases"],
             ].map(([label, value]) => (
               <article
                 className="mera-panel"
@@ -646,13 +672,18 @@ export default function Platform() {
                     "cancelled",
                   ].map((value) => (
                     <option key={value} value={value}>
-                      {value.replaceAll("_", " ")}
+                      {subscriptionLabel(value)}
                     </option>
                   ))}
                 </select>
               </label>
             </div>
-            <div className="table-wrap">
+            <div
+              className="table-wrap"
+              role="region"
+              aria-label="Organization directory table"
+              tabIndex={0}
+            >
               <table>
                 <thead>
                   <tr>
@@ -668,11 +699,7 @@ export default function Platform() {
                     <tr key={org.id}>
                       <td>{org.name}</td>
                       <td>{org.slug}</td>
-                      <td>
-                        {(
-                          org.subscription?.status || "Not activated"
-                        ).replaceAll("_", " ")}
-                      </td>
+                      <td>{subscriptionLabel(org.subscription?.status)}</td>
                       <td>{org.branches?.length ?? "—"}</td>
                       <td>
                         <button
@@ -728,6 +755,12 @@ export default function Platform() {
               ref={reviewDialog}
               className="mera-platform-review"
               aria-labelledby="mera-organization-title"
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  if (!pendingChange) setSelected(null);
+                }
+              }}
               onCancel={(event) => {
                 event.preventDefault();
                 if (!pendingChange) setSelected(null);
@@ -758,61 +791,16 @@ export default function Platform() {
                   original request before starting another action.
                 </p>
               )}
-              <form onSubmit={renameOrganization} style={{ marginBottom: 24 }}>
-                <h3>Organization address</h3>
-                <p>
-                  Current address: {selected.slug}. Previous addresses stay
-                  reserved for this organization, and existing QR codes keep
-                  working. DNS and certificates require separate setup.
-                </p>
-                <label>
-                  New organization address
-                  <input
-                    value={newSlug}
-                    onChange={(e) => setNewSlug(e.target.value.toLowerCase())}
-                    pattern="[a-z][a-z0-9]*(-[a-z0-9]+)*"
-                    minLength={3}
-                    maxLength={50}
-                    required
-                    disabled={busy || !!pendingChange}
-                  />
-                </label>
-                <p>Use the action reason below before saving.</p>
-                <button
-                  disabled={
-                    busy ||
-                    !!pendingChange ||
-                    reason.trim().length < 10 ||
-                    newSlug === selected.slug
-                  }
-                >
-                  Save organization address
-                </button>
-              </form>
-              <form onSubmit={changeSubscription}>
-                <label>
-                  Service status
-                  <select
-                    value={status}
-                    disabled={!!pendingChange}
-                    onChange={(e) => setStatus(e.target.value)}
-                  >
-                    {[
-                      "trialing",
-                      "active",
-                      "past_due",
-                      "suspended",
-                      "cancelled",
-                    ].map((s) => (
-                      <option key={s} value={s}>
-                        {s.replaceAll("_", " ")}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+              <p className="mera-platform-org-context">
+                {selected.slug} ·{" "}
+                {subscriptionLabel(selected.subscription?.status)}
+              </p>
+              <div className="mera-platform-action-reason">
                 <label>
                   Reason for this action
                   <textarea
+                    form="mera-platform-service-form"
+                    aria-describedby="mera-platform-reason-help"
                     value={reason}
                     disabled={!!pendingChange}
                     onChange={(e) => setReason(e.target.value)}
@@ -821,67 +809,133 @@ export default function Platform() {
                     required
                   />
                 </label>
-                {[
-                  ["trialEndsAt", "Trial ends (UTC)"],
-                  ["paidThrough", "Paid through (UTC)"],
-                  ["dueAt", "Payment due (UTC)"],
-                ].map(([key, label]) => (
-                  <label key={key}>
-                    {label}
+                <p id="mera-platform-reason-help">
+                  Required for changes and reference lookups. This reason is
+                  saved in the audit log.
+                </p>
+              </div>
+              <details className="mera-platform-operation">
+                <summary>Organization address</summary>
+                <form onSubmit={renameOrganization}>
+                  <p>
+                    Current address: {selected.slug}. Previous addresses stay
+                    reserved for this organization, and existing QR codes keep
+                    working. DNS and certificates require separate setup.
+                  </p>
+                  <label>
+                    New organization address
                     <input
-                      type="datetime-local"
-                      value={dates[key]}
-                      disabled={!!pendingChange}
-                      onChange={(e) =>
-                        setDates({ ...dates, [key]: e.target.value })
-                      }
+                      value={newSlug}
+                      onChange={(e) => setNewSlug(e.target.value.toLowerCase())}
+                      pattern="[a-z][a-z0-9]*(-[a-z0-9]+)*"
+                      minLength={3}
+                      maxLength={50}
+                      required
+                      disabled={busy || !!pendingChange}
                     />
                   </label>
-                ))}
-                <p>
-                  Blank dates stay unresolved. A production trial needs an
-                  explicit end date; grace periods require approved policy.
-                  Manual activation does not collect a payment.
-                </p>
-                <p>
-                  Changes are audited. This does not charge an account, verify
-                  provider readiness or change an agreed price. Paid active
-                  orders remain accessible.
-                </p>
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  <button disabled={busy || reason.trim().length < 10}>
-                    {pendingChange
-                      ? "Retry original status change"
-                      : "Save service status"}
-                  </button>
+                  <p>Use the shared action reason above before saving.</p>
                   <button
-                    type="button"
-                    className="secondary"
-                    disabled={busy || reason.trim().length < 10}
-                    onClick={supportView}
+                    disabled={
+                      busy ||
+                      !!pendingChange ||
+                      reason.trim().length < 10 ||
+                      newSlug === selected.slug
+                    }
                   >
-                    Open audited configuration support
+                    Save organization address
                   </button>
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={!!pendingChange}
-                    onClick={() => setSelected(null)}
-                  >
-                    Close
-                  </button>
-                </div>
-              </form>
-              {support && (
-                <p role="status">
-                  Configuration opened for {support.organization.name}.
-                  Onboarding status:{" "}
-                  {support.organization.onboarding?.status || "In progress"}.
-                  Customer records and impersonation are excluded.
-                </p>
-              )}
-              <section style={{ marginTop: 24 }}>
-                <h3>Service controls</h3>
+                </form>
+              </details>
+              <details className="mera-platform-operation" open>
+                <summary>Service status</summary>
+                <form
+                  id="mera-platform-service-form"
+                  onSubmit={changeSubscription}
+                >
+                  <label>
+                    Service status
+                    <select
+                      value={status}
+                      disabled={!!pendingChange}
+                      onChange={(e) => setStatus(e.target.value)}
+                    >
+                      {[
+                        "trialing",
+                        "active",
+                        "past_due",
+                        "suspended",
+                        "cancelled",
+                      ].map((s) => (
+                        <option key={s} value={s}>
+                          {subscriptionLabel(s)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  {[
+                    ["trialEndsAt", "Trial ends (UTC)"],
+                    ["paidThrough", "Paid through (UTC)"],
+                    ["dueAt", "Payment due (UTC)"],
+                  ].map(([key, label]) => (
+                    <label key={key}>
+                      {label}
+                      <input
+                        type="datetime-local"
+                        value={dates[key]}
+                        disabled={!!pendingChange}
+                        onChange={(e) =>
+                          setDates({ ...dates, [key]: e.target.value })
+                        }
+                      />
+                    </label>
+                  ))}
+                  <p>
+                    Blank dates stay unresolved. A production trial needs an
+                    explicit end date; grace periods require approved policy.
+                    Manual activation does not collect a payment.
+                  </p>
+                  <p>
+                    Changes are audited. This does not charge an account, verify
+                    provider readiness or change an agreed price. Paid active
+                    orders remain accessible.
+                  </p>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <button disabled={busy || reason.trim().length < 10}>
+                      {pendingChange
+                        ? "Retry original status change"
+                        : "Save service status"}
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={busy || reason.trim().length < 10}
+                      onClick={supportView}
+                    >
+                      Open audited configuration support
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={!!pendingChange}
+                      onClick={() => setSelected(null)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </form>
+                {support && (
+                  <p role="status">
+                    Configuration opened for {support.organization.name}.
+                    Onboarding status:{" "}
+                    {support.organization.onboarding?.status || "In progress"}.
+                    Customer records and impersonation are excluded.
+                  </p>
+                )}
+              </details>
+              <details className="mera-platform-operation">
+                <summary>Service controls</summary>
                 <p>
                   These controls apply to new requests. Accepted requests,
                   existing service and permitted exports can continue. Provider
@@ -922,48 +976,50 @@ export default function Platform() {
                 >
                   Save reviewed service controls
                 </button>
-              </section>
-              <h3 style={{ marginTop: 24 }}>Reference lookup</h3>
-              <p>
-                Enter an exact order, payment or invoice reference. Results
-                exclude customer names and contact details; every lookup records
-                the reason above.
-              </p>
-              <label>
-                Record reference
-                <input
-                  value={reference}
-                  onChange={(e) => setReference(e.target.value)}
-                  maxLength={120}
-                />
-              </label>
-              <button
-                className="secondary"
-                type="button"
-                disabled={
-                  busy ||
-                  !!pendingChange ||
-                  reason.trim().length < 10 ||
-                  reference.trim().length < 3
-                }
-                onClick={lookupReference}
-              >
-                Look up reference
-              </button>
-              {lookup && (
-                <div role="status">
-                  {!lookup.records.length ? (
-                    <p>No matching reference in this organization.</p>
-                  ) : (
-                    lookup.records.map((r: any) => (
-                      <p key={r.id}>
-                        {r.kind} · {r.reference} · {formatMoney(r.amount)} ·{" "}
-                        {r.status}. Provider and settlement: unverified.
-                      </p>
-                    ))
-                  )}
-                </div>
-              )}
+              </details>
+              <details className="mera-platform-operation">
+                <summary>Reference lookup</summary>
+                <p>
+                  Enter an exact order, payment or invoice reference. Results
+                  exclude customer names and contact details; every lookup
+                  records the reason above.
+                </p>
+                <label>
+                  Record reference
+                  <input
+                    value={reference}
+                    onChange={(e) => setReference(e.target.value)}
+                    maxLength={120}
+                  />
+                </label>
+                <button
+                  className="secondary"
+                  type="button"
+                  disabled={
+                    busy ||
+                    !!pendingChange ||
+                    reason.trim().length < 10 ||
+                    reference.trim().length < 3
+                  }
+                  onClick={lookupReference}
+                >
+                  Look up reference
+                </button>
+                {lookup && (
+                  <div role="status">
+                    {!lookup.records.length ? (
+                      <p>No matching reference in this organization.</p>
+                    ) : (
+                      lookup.records.map((r: any) => (
+                        <p key={r.id}>
+                          {r.kind} · {r.reference} · {formatMoney(r.amount)} ·{" "}
+                          {r.status}. Provider and settlement: unverified.
+                        </p>
+                      ))
+                    )}
+                  </div>
+                )}
+              </details>
               {!!selected.branches?.length && (
                 <div>
                   <h3 style={{ marginTop: 24 }}>Branch configuration</h3>
@@ -1048,7 +1104,12 @@ export default function Platform() {
                     maxLength={500}
                   />
                 </label>
-                <div className="table-wrap">
+                <div
+                  className="table-wrap"
+                  role="region"
+                  aria-label="Backup history table"
+                  tabIndex={0}
+                >
                   <table>
                     <thead>
                       <tr>
@@ -1116,7 +1177,12 @@ export default function Platform() {
           </section>
           <section hidden={panel !== "audit"} className="mera-panel">
             <h2>Operator audit</h2>
-            <div className="table-wrap">
+            <div
+              className="table-wrap"
+              role="region"
+              aria-label="Operator audit table"
+              tabIndex={0}
+            >
               <table>
                 <thead>
                   <tr>
