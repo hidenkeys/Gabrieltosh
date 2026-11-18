@@ -1,0 +1,15 @@
+# Selected Mera homepage QA checkpoint
+
+18November2026. Scope M1 homepage pilot only. Full Q1 remains blocked until all four pilot integration checks pass. No full-application completion or production handoff is claimed.
+
+Exact selected source: references/mera-selected-ivory-green.png (1003×1568). Actual implementation: screenshots/24-mera-home-selected-width-final.jpg atCSS1003×1568. Source and rendered implementation inspected together in marketing-comparison-final.html/.jpg; earlier findings and captures retained in iteration1/2 boards. Chrome90% zoom required903×1411 browser override to produce the actual1003×1568CSS capture. Compared equal image sizes; no device frame.
+
+Iterations: first Georgia caused three-line headline/heavy wordmark and extra40px section spacing; Instrument Serif fixed wrapping but was too condensed/tall. Final self-hosted Libre Caslon Display400 matches the natural two-line hierarchy more closely, at~64px for the selected width. This is a measured close available font, not identification of a nonexistent named source font. Header and copy/rule spacing corrected. Overall composition, focused header/headline/buttons and lower image/copy regions inspected in the combined board.
+
+Fidelity surfaces: editorial serif hierarchy and readable sans body;88px header and split hero/three-label strip/lower section rhythm; scoped ivory/deep-green palette and visible green focus; real Bing Chun product captures with natural crop and original image text; coherent selected headline/body copy with truthful commercial/readiness content below. Standard icons reuse Lucide. Real previews intentionally differ from generated product UI; no fake client logos/testimonials/metrics. Public navigation uses real anchors rather than fake dropdowns.
+
+Responsive/interactions: screenshots29-wide1440×1000,30-narrow433×938,31-mobile-menu and32-tablet834×1194 saved/opened. No horizontal document overflow at these measured widths. Tablet CTA buttons intentionally wrap. Mobile menu opens, Pricing navigates to#pricing and closes, Escape returns focus to Open menu. View demo opens actual Bing Chun menu; Explore Mera opens explicit simulated owner onboarding. No account created or order submitted. Browser console errors: none in exercised marketing flow. Targeted marketing/signup tests7passed; build passed. Global customer-dialog fixtures are under separate integration review, so this report cannot clear Q1.
+
+No actionable P0/P1/P2 visual mismatch found in the final M1 candidate. P3: real screenshot crop and available font differ slightly from generated mock, intentionally preserving real UI and platform font portability. Full signup/legal/platform workflow acceptance and fullWCAG/device/provider/printing certification remain separate tasks.
+
+Font primary source and bundled license: https://github.com/google/fonts/tree/main/ofl/librecaslondisplay ; public/fonts/mera/LibreCaslonDisplay-OFL.txt. Font investigation also checked https://github.com/google/fonts/blob/main/ofl/instrumentserif/METADATA.pb before choosing the closer Caslon proportions; unused candidate is not shipped.

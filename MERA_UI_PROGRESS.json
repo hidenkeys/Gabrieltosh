@@ -2,13 +2,17 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-18T16:17:45+01:00",
-  "revision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd",
+  "lastUpdated": "2026-11-18T17:08:29+01:00",
+  "revision": "024c0f6e1f93d04ff39c55b138a875398207da57",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
       "at": "2026-11-18T15:56:52+01:00",
       "text": "Owner confirms no original Mera screenshot exists; create a sophisticated modern enterprise identity for marketing/platform. Bing Chun running source remains authority for organization screens. F2 now visual direction/selection, not missing file."
+    },
+    {
+      "at": "2026-11-18T16:32:27+01:00",
+      "text": "Owner explicitly selected option1, ivory and green. First displayed generated image is saved as the exact marketing/platform visual target; no visual-acceptance credit implied."
     }
   ],
   "workstreams": [
@@ -79,20 +83,29 @@
       "workstream": "F",
       "title": "New Mera visual direction and explicit selection",
       "weight": 2,
-      "checkpoint": 0,
-      "status": "IN_PROGRESS",
+      "checkpoint": 100,
+      "status": "VERIFIED",
       "owner": "lead",
       "dependencies": [
         "F1"
       ],
       "acceptance": "Research and show three visual directions for selection; original Mera screenshot does not exist per owner clarification.",
-      "evidence": [],
+      "evidence": [
+        "docs/mera/ui-audit/MERA-VISUAL-SELECTION.md",
+        "docs/mera/ui-audit/references/mera-selected-ivory-green.png",
+        ".agents/skills/mera-ui/references/marketing.md"
+      ],
       "blockers": [],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 0,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T16:32:27+01:00",
+          "checkpoint": 100,
+          "note": "Three independent concepts shown; owner explicitly selected first displayed ivory/green image. Exact target saved and opened; implementation acceptance remains M1/Q1."
         }
       ]
     },
@@ -235,7 +248,7 @@
       "workstream": "O",
       "title": "Overview actionable content and date context",
       "weight": 3,
-      "checkpoint": 0,
+      "checkpoint": 40,
       "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
@@ -246,7 +259,11 @@
       "evidence": [
         "src/mera/workspace/OverviewAttention.tsx",
         "tests/mera-ui-pilot.test.tsx",
-        "docs/mera/ui-audit/PILOT-CHECKPOINT-2026-11-18.md"
+        "docs/mera/ui-audit/PILOT-CHECKPOINT-2026-11-18.md",
+        "src/mera/workspace/OverviewActivity.tsx",
+        "tests/mera-overview-activity.test.tsx",
+        "docs/mera/ui-audit/screenshots/21-overview-selected-date.jpg",
+        "docs/mera/ui-audit/screenshots/23-overview-activity-narrow.jpg"
       ],
       "blockers": [],
       "history": [
@@ -259,6 +276,11 @@
           "at": "2026-11-18T16:17:45+01:00",
           "checkpoint": 0,
           "note": "Priority sections/date entry and handler/time integrated; browser overflow corrected. Staff/recent activity, full drilldowns/date-state acceptance incomplete; no checkpoint credit yet."
+        },
+        {
+          "at": "2026-11-18T16:32:27+01:00",
+          "checkpoint": 40,
+          "note": "Required overview sections implemented with permission-aware activity/known shift responsibility, accurate date-report validation and current/previous date browser checks. Complete states/visual comparison and positive-data integration remain pending."
         }
       ]
     },
@@ -617,19 +639,27 @@
       "title": "Customization dialogs and organization themes",
       "weight": 2,
       "checkpoint": 0,
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "owner": "customer",
       "dependencies": [
         "C1"
       ],
       "acceptance": "Required variants/modifiers/limits, keyboard focus/long-content/narrow dialogs, actual organization branding and photo fallback.",
-      "evidence": [],
+      "evidence": [
+        "tests/mera-customer-ui-correction.test.tsx",
+        "docs/mera/ui-audit/screenshots/22-customer-dialog-narrow.jpg"
+      ],
       "blockers": [],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 0,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T16:32:27+01:00",
+          "checkpoint": 0,
+          "note": "Menu/cart dialog accessibility slice exercised, but long-option browser states and full theme acceptance incomplete; no full-task credit."
         }
       ]
     },
@@ -638,20 +668,38 @@
       "workstream": "M",
       "title": "Marketing homepage pilot",
       "weight": 4,
-      "checkpoint": 0,
-      "status": "NOT_STARTED",
+      "checkpoint": 80,
+      "status": "IN_PROGRESS",
       "owner": "backend",
       "dependencies": [
         "F2"
       ],
       "acceptance": "Selected new enterprise Mera direction, credible product preview and responsive composition; four-surface visual gate.",
-      "evidence": [],
+      "evidence": [
+        "docs/mera/ui-audit/MARKETING-QA.md",
+        "docs/mera/ui-audit/marketing-comparison-final.jpg",
+        "docs/mera/ui-audit/screenshots/24-mera-home-selected-width-final.jpg",
+        "docs/mera/ui-audit/screenshots/29-mera-home-wide.jpg",
+        "docs/mera/ui-audit/screenshots/30-mera-home-narrow.jpg",
+        "docs/mera/ui-audit/screenshots/32-mera-home-tablet.jpg",
+        "tests/mera-marketing-ui.test.tsx"
+      ],
       "blockers": [],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 0,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-18T16:32:27+01:00",
+          "checkpoint": 0,
+          "note": "Selected-image implementation ready for lead comparison; no visual acceptance yet."
+        },
+        {
+          "at": "2026-11-18T17:08:29+01:00",
+          "checkpoint": 80,
+          "note": "Selected visual compared through four iterations; typography/rhythm/crop corrected. Desktop/tablet/narrow and primary navigation/CTA/console checked. Final integration acceptance pending Q1."
         }
       ]
     },
@@ -714,7 +762,7 @@
       "title": "Four-surface reference comparison gate",
       "weight": 3,
       "checkpoint": 0,
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
         "O1",
@@ -723,8 +771,13 @@
         "M1"
       ],
       "acceptance": "Overview, POS, mobile menu/cart and marketing captured against actual selected references before broad rollout; correct P0/P1/P2.",
-      "evidence": [],
-      "blockers": [],
+      "evidence": [
+        "design-qa.md",
+        "docs/mera/ui-audit/MARKETING-QA.md"
+      ],
+      "blockers": [
+        "Customer dialog tests must wait for recovery-enabled controls; unchanged focus/privacy assertions and full rerun pending."
+      ],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
@@ -1302,8 +1355,8 @@
         "permission": "UNVERIFIED",
         "recovery": "UNVERIFIED"
       },
-      "responsive": "NOT_VERIFIED",
-      "visualReview": "NOT_STARTED",
+      "responsive": "Desktop/tablet/narrow inspected; exact dimensions/evidence in pilot checkpoint",
+      "visualReview": "Integrated browser pilot; final source comparison and complete states pending",
       "blockers": []
     },
     {
@@ -1324,8 +1377,8 @@
         "permission": "UNVERIFIED",
         "recovery": "UNVERIFIED"
       },
-      "responsive": "NOT_VERIFIED",
-      "visualReview": "NOT_STARTED",
+      "responsive": "Desktop/tablet/narrow inspected; exact dimensions/evidence in pilot checkpoint",
+      "visualReview": "Integrated browser pilot; final source comparison and complete states pending",
       "blockers": []
     },
     {
@@ -1501,10 +1554,8 @@
         "recovery": "UNVERIFIED"
       },
       "responsive": "NOT_VERIFIED",
-      "visualReview": "NOT_STARTED",
-      "blockers": [
-        "Selected Mera direction pending"
-      ]
+      "visualReview": "Option1 selected; implementation comparison pending",
+      "blockers": []
     },
     {
       "id": "PUB-features-pricing-modes-support",
@@ -1526,9 +1577,7 @@
       },
       "responsive": "NOT_VERIFIED",
       "visualReview": "NOT_STARTED",
-      "blockers": [
-        "Selected Mera direction pending"
-      ]
+      "blockers": []
     },
     {
       "id": "PUB-legal",
@@ -1550,9 +1599,7 @@
       },
       "responsive": "NOT_VERIFIED",
       "visualReview": "NOT_STARTED",
-      "blockers": [
-        "Selected Mera direction pending"
-      ]
+      "blockers": []
     },
     {
       "id": "PUB-signup",
@@ -1574,9 +1621,7 @@
       },
       "responsive": "NOT_VERIFIED",
       "visualReview": "NOT_STARTED",
-      "blockers": [
-        "Selected Mera direction pending"
-      ]
+      "blockers": []
     },
     {
       "id": "PUB-staff-login",
@@ -1620,9 +1665,7 @@
       },
       "responsive": "NOT_VERIFIED",
       "visualReview": "NOT_STARTED",
-      "blockers": [
-        "Selected Mera direction pending"
-      ]
+      "blockers": []
     },
     {
       "id": "PUB-platform-directory-support-finance-health",
@@ -1644,9 +1687,7 @@
       },
       "responsive": "NOT_VERIFIED",
       "visualReview": "NOT_STARTED",
-      "blockers": [
-        "Selected Mera direction pending"
-      ]
+      "blockers": []
     }
   ],
   "overallPrdCoverage": {
@@ -1681,6 +1722,21 @@
       "scopeWeight": 100,
       "weightedPoints": 14.8,
       "roundedCompletion": 14
+    },
+    {
+      "at": "2026-11-18T16:32:27+01:00",
+      "event": "Exact Mera visual selected; overview required sections implemented; no scope change or backend visual credit",
+      "scopeWeight": 100,
+      "weightedPoints": 18.0,
+      "roundedCompletion": 18
+    },
+    {
+      "at": "2026-11-18T17:08:29+01:00",
+      "event": "Selected Mera homepage visual/state review corrected; global pilot gate still pending; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 21.2,
+      "roundedCompletion": 21
     }
-  ]
+  ],
+  "baselineRevision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd"
 }
