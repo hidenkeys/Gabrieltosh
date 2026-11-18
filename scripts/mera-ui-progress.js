@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Reservation creation/reload/cancellation and partial People hierarchy verified at aad2c89. Next complete staff scopes/recovery, remaining management and operational screens, customer visit/checkout states and isolated platform MFA verification; provider/hardware acceptance remains separate.",
+  "Private visit and approved isolated platform MFA/read/review milestones verified at9533313; subscription surface corrected. Next complete remaining management/operational screens, customer help/checkout/recovery, shared primitives and broad state/accessibility acceptance. Live provider and hardware gates remain separate.",
   "",
   "## Measurement",
   "",

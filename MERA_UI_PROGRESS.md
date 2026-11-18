@@ -2,15 +2,15 @@
 
 Goal: Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.
 
-Scope **1.0** · revision `aad2c89` · updated 2026-11-18T23:41:52+01:00
+Scope **1.0** · revision `9533313` · updated 2026-11-19T00:24:32+01:00
 
-**UI correction: 43% complete | 57% remaining.** Weighted evidence: 43.0/100. This is checklist completion, not a time estimate.
+**UI correction: 46% complete | 54% remaining.** Weighted evidence: 46.2/100. This is checklist completion, not a time estimate.
 
 Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.
 
 ## Current milestone
 
-Reservation creation/reload/cancellation and partial People hierarchy verified at aad2c89. Next complete staff scopes/recovery, remaining management and operational screens, customer visit/checkout states and isolated platform MFA verification; provider/hardware acceptance remains separate.
+Private visit and approved isolated platform MFA/read/review milestones verified at9533313; subscription surface corrected. Next complete remaining management/operational screens, customer help/checkout/recovery, shared primitives and broad state/accessibility acceptance. Live provider and hardware gates remain separate.
 
 ## Measurement
 
@@ -23,8 +23,8 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | References, design system and application shell | 15% | 81% | lead |
 | Organization management | 25% | 37% | workspace / lead overview |
 | POS and operational roles | 20% | 29% | lead / rotating operational agent |
-| Customer experience | 20% | 43% | customer |
-| Marketing and platform administration | 10% | 40% | backend (presentation workstream A) |
+| Customer experience | 20% | 51% | customer |
+| Marketing and platform administration | 10% | 56% | backend (presentation workstream A) |
 | Integration, accessibility and delivery | 10% | 30% | lead |
 
 ## Task board
@@ -43,7 +43,7 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | O4 | Menu, categories, modifiers and stock management | 5% | 60% | IN_PROGRESS · workspace | [MenuManagement.tsx](src/mera/workspace/MenuManagement.tsx), [MenuPublication.tsx](src/mera/workspace/MenuPublication.tsx), [mera-menu-management.test.tsx](tests/mera-menu-management.test.tsx), [mera-menu-publication.test.tsx](tests/mera-menu-publication.test.tsx), [menu-management-comparison.jpg](docs/mera/ui-audit/menu-management-comparison.jpg), [MENU-BRANCH-CHECKPOINT.md](docs/mera/ui-audit/MENU-BRANCH-CHECKPOINT.md) |
 | O5 | Staff, invitations, scopes and custom roles | 3% | 40% | IN_PROGRESS · workspace | [STAFF-MANAGEMENT-MOUNT.md](docs/mera/ui-audit/STAFF-MANAGEMENT-MOUNT.md), [staff-management-comparison.html](docs/mera/ui-audit/staff-management-comparison.html), [64-people-narrow.jpg](docs/mera/ui-audit/screenshots/64-people-narrow.jpg), [mera-role-management-ui.test.tsx](tests/mera-role-management-ui.test.tsx) |
 | O6 | Transactions, shifts, reports and exports | 4% | 0% | NOT_STARTED · workspace | Pending |
-| O7 | Subscriptions, printing, QR and customer/support care | 4% | 0% | NOT_STARTED · workspace | Pending |
+| O7 | Subscriptions, printing, QR and customer/support care | 4% | 0% | IN_PROGRESS · workspace | [BILLING-MANAGEMENT-MOUNT.md](docs/mera/ui-audit/BILLING-MANAGEMENT-MOUNT.md), [subscription-comparison.html](docs/mera/ui-audit/subscription-comparison.html) |
 | P1 | Original-style POS catalog and current order | 5% | 80% | IN_PROGRESS · lead | [06-mera-pos-after-empty.jpg](docs/mera/ui-audit/screenshots/06-mera-pos-after-empty.jpg), [07-mera-pos-tablet.jpg](docs/mera/ui-audit/screenshots/07-mera-pos-tablet.jpg), [09-mera-pos-narrow-basket.jpg](docs/mera/ui-audit/screenshots/09-mera-pos-narrow-basket.jpg), [mera-ui-pilot.test.tsx](tests/mera-ui-pilot.test.tsx), [counter-comparison-current.jpg](docs/mera/ui-audit/counter-comparison-current.jpg) |
 | P2 | Order lists, details, responsibility and help | 4% | 0% | NOT_STARTED · lead | Pending |
 | P3 | Waiter tables, rounds, bills and handoffs | 4% | 0% | NOT_STARTED · lead | Pending |
@@ -51,12 +51,12 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | P5 | Front desk reservations, arrivals and waitlist | 4% | 0% | NOT_STARTED · lead | Pending |
 | C1 | Mobile menu and persistent cart pilot | 6% | 80% | IN_PROGRESS · customer | [CustomerExperience.tsx](src/mera/customer/CustomerExperience.tsx), [mera-customer-ui-correction.test.tsx](tests/mera-customer-ui-correction.test.tsx), [PILOT-CHECKPOINT-2026-11-18.md](docs/mera/ui-audit/PILOT-CHECKPOINT-2026-11-18.md), [13-customer-narrow-menu.jpg](docs/mera/ui-audit/screenshots/13-customer-narrow-menu.jpg), [14-customer-narrow-basket.jpg](docs/mera/ui-audit/screenshots/14-customer-narrow-basket.jpg), [15-customer-tablet.jpg](docs/mera/ui-audit/screenshots/15-customer-tablet.jpg), [customer-comparison-current.jpg](docs/mera/ui-audit/customer-comparison-current.jpg) |
 | C2 | Checkout, pending recovery, tracking and receipts | 5% | 40% | IN_PROGRESS · customer | [mera-customer-ui-correction.test.tsx](tests/mera-customer-ui-correction.test.tsx), [checkoutRecovery.ts](src/mera/customer/checkoutRecovery.ts), [quoteClock.ts](src/mera/customer/quoteClock.ts), [mera-customer-recovery.test.tsx](tests/mera-customer-recovery.test.tsx), [mera-customer-quote-clock.test.js](tests/mera-customer-quote-clock.test.js), [39-customer-unpaid-tracking.jpg](docs/mera/ui-audit/screenshots/39-customer-unpaid-tracking.jpg) |
-| C3 | Visit joining, bills, rounds and help | 4% | 0% | IN_PROGRESS · customer | [HelpRequests.tsx](src/mera/customer/HelpRequests.tsx), [40-customer-help-narrow.jpg](docs/mera/ui-audit/screenshots/40-customer-help-narrow.jpg), [41-customer-join-narrow.jpg](docs/mera/ui-audit/screenshots/41-customer-join-narrow.jpg) |
+| C3 | Visit joining, bills, rounds and help | 4% | 40% | IN_PROGRESS · customer | [HelpRequests.tsx](src/mera/customer/HelpRequests.tsx), [40-customer-help-narrow.jpg](docs/mera/ui-audit/screenshots/40-customer-help-narrow.jpg), [41-customer-join-narrow.jpg](docs/mera/ui-audit/screenshots/41-customer-join-narrow.jpg), [VisitSummary.tsx](src/mera/customer/VisitSummary.tsx), [mera-customer-visit-refresh.test.tsx](tests/mera-customer-visit-refresh.test.tsx), [SUBSCRIPTION-VISIT-PLATFORM-CHECKPOINT.md](docs/mera/ui-audit/SUBSCRIPTION-VISIT-PLATFORM-CHECKPOINT.md), [68-visit-bill-desktop.jpg](docs/mera/ui-audit/screenshots/68-visit-bill-desktop.jpg), [70-visit-bill-narrow.jpg](docs/mera/ui-audit/screenshots/70-visit-bill-narrow.jpg) |
 | C4 | Reservations, activity and consent | 3% | 60% | IN_PROGRESS · customer | [53-reservation-form-narrow.jpg](docs/mera/ui-audit/screenshots/53-reservation-form-narrow.jpg), [MENU-BRANCH-CHECKPOINT.md](docs/mera/ui-audit/MENU-BRANCH-CHECKPOINT.md), [RESERVATION-STAFF-CHECKPOINT.md](docs/mera/ui-audit/RESERVATION-STAFF-CHECKPOINT.md), [66-reservation-cancelled-narrow.jpg](docs/mera/ui-audit/screenshots/66-reservation-cancelled-narrow.jpg), [reservation-activity-comparison.html](docs/mera/ui-audit/reservation-activity-comparison.html), [mera-customer-reservation-recovery.test.tsx](tests/mera-customer-reservation-recovery.test.tsx), [mera-customer-activity.test.tsx](tests/mera-customer-activity.test.tsx) |
 | C5 | Customization dialogs and organization themes | 2% | 0% | IN_PROGRESS · customer | [mera-customer-ui-correction.test.tsx](tests/mera-customer-ui-correction.test.tsx), [22-customer-dialog-narrow.jpg](docs/mera/ui-audit/screenshots/22-customer-dialog-narrow.jpg) |
 | M1 | Marketing homepage pilot | 4% | 100% | VERIFIED · backend | [MARKETING-QA.md](docs/mera/ui-audit/MARKETING-QA.md), [marketing-comparison-final.jpg](docs/mera/ui-audit/marketing-comparison-final.jpg), [24-mera-home-selected-width-final.jpg](docs/mera/ui-audit/screenshots/24-mera-home-selected-width-final.jpg), [29-mera-home-wide.jpg](docs/mera/ui-audit/screenshots/29-mera-home-wide.jpg), [30-mera-home-narrow.jpg](docs/mera/ui-audit/screenshots/30-mera-home-narrow.jpg), [32-mera-home-tablet.jpg](docs/mera/ui-audit/screenshots/32-mera-home-tablet.jpg), [mera-marketing-ui.test.tsx](tests/mera-marketing-ui.test.tsx) |
 | M2 | Marketing features, pricing, legal and signup | 2% | 0% | IN_PROGRESS · backend | [mera-signup-ui.test.tsx](tests/mera-signup-ui.test.tsx) |
-| M3 | Mera platform administration | 4% | 0% | IN_PROGRESS · backend | [Platform.tsx](src/mera/Platform.tsx), [mera-platform-ui.test.tsx](tests/mera-platform-ui.test.tsx), [38-platform-access-state.jpg](docs/mera/ui-audit/screenshots/38-platform-access-state.jpg) |
+| M3 | Mera platform administration | 4% | 40% | IN_PROGRESS · backend | [Platform.tsx](src/mera/Platform.tsx), [mera-platform-ui.test.tsx](tests/mera-platform-ui.test.tsx), [38-platform-access-state.jpg](docs/mera/ui-audit/screenshots/38-platform-access-state.jpg), [SUBSCRIPTION-VISIT-PLATFORM-CHECKPOINT.md](docs/mera/ui-audit/SUBSCRIPTION-VISIT-PLATFORM-CHECKPOINT.md), [VISUAL-OPERATOR-FIXTURE.md](docs/mera/ui-audit/VISUAL-OPERATOR-FIXTURE.md), [platform-review-comparison.html](docs/mera/ui-audit/platform-review-comparison.html), [83-platform-directory-narrow-after.jpg](docs/mera/ui-audit/screenshots/83-platform-directory-narrow-after.jpg), [84-platform-mfa-expired-narrow.jpg](docs/mera/ui-audit/screenshots/84-platform-mfa-expired-narrow.jpg), [mera-response-dates.test.js](tests/mera-response-dates.test.js) |
 | Q1 | Four-surface reference comparison gate | 3% | 100% | VERIFIED · lead | [design-qa.md](design-qa.md), [MARKETING-QA.md](docs/mera/ui-audit/MARKETING-QA.md), [overview-comparison-current.jpg](docs/mera/ui-audit/overview-comparison-current.jpg), [counter-comparison-current.jpg](docs/mera/ui-audit/counter-comparison-current.jpg), [customer-comparison-current.jpg](docs/mera/ui-audit/customer-comparison-current.jpg), [marketing-comparison-final.jpg](docs/mera/ui-audit/marketing-comparison-final.jpg) |
 | Q2 | Cross-screen states, accessibility and responsiveness | 3% | 0% | NOT_STARTED · lead | Pending |
 | Q3 | Functional integration and regression gate | 3% | 0% | NOT_STARTED · lead | Pending |
@@ -79,7 +79,7 @@ Task acceptance criteria, dependency IDs, change history and blockers are in [ME
 | WS-payments | /mera/workspace#payments | Cashier/manager | O6 | Transactions/refunds/writeoff/recovery | NOT_STARTED; Prior pilot evidence only for overview/counter; full scope pending |
 | WS-shifts | /mera/workspace#shifts | Cashier/manager | O6 | CashMovement/ShiftActions | NOT_STARTED; Prior pilot evidence only for overview/counter; full scope pending |
 | WS-team | /mera/workspace#team | Owner/admin | O5 | RoleManager/member list | Partial owner People desktop/narrow reviewed; captures61/62/64 and matched comparison. No role/grant/invitation browser mutation.; 1440×1000 and390×844 no overflow; tablet/long-data review pending |
-| WS-billing | /mera/workspace#billing | Owner | O7 | Invoices/PolicyEditor/Reconciliation | NOT_STARTED; Prior pilot evidence only for overview/counter; full scope pending |
+| WS-billing | /mera/workspace#billing | Owner | O7 | Invoices/PolicyEditor/Reconciliation | Actual67/71 matched desktop comparison;72/73 tablet/narrow, disclosures retain unsaved draft; pricing proposals remain configurable; 1440×1000,834×1194,390×844; no document overflow |
 | WS-printing | /mera/workspace#printing | Manager | O7 | PrintStudio/PrintDocument | NOT_STARTED; Prior pilot evidence only for overview/counter; full scope pending |
 | WS-qr | /mera/workspace#qr | Manager | O7 | QrCodes | NOT_STARTED; Prior pilot evidence only for overview/counter; full scope pending |
 | WS-integrations | /mera/workspace#integrations | Owner/admin | O7 | Integrations | NOT_STARTED; Prior pilot evidence only for overview/counter; full scope pending |
@@ -92,7 +92,7 @@ Task acceptance criteria, dependency IDs, change history and blockers are in [ME
 | CU-cart | /mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: cart | Guest/customer | C1 | cart | Integrated browser pilot; final source comparison and complete states pending; Desktop/tablet/narrow inspected; exact dimensions/evidence in pilot checkpoint |
 | CU-checkout | /mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: checkout | Guest/customer | C2 | checkout | NOT_STARTED; NOT_VERIFIED |
 | CU-tracking-receipt-history | /mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: tracking-receipt-history | Guest/customer | C2 | tracking-receipt-history | NOT_STARTED; NOT_VERIFIED |
-| CU-table-visit-bills | /mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: table-visit-bills | Guest/customer | C3 | table-visit-bills | NOT_STARTED; NOT_VERIFIED |
+| CU-table-visit-bills | /mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: table-visit-bills | Guest/customer | C3 | table-visit-bills | Actual authorized visit and unpaid round bill68–70; first joined captures, no original or matched before comparison claimed; 1440×1000,834×1194,390×844; no document overflow; narrow Enter item disclosure |
 | CU-help | /mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: help | Guest/customer | C3 | help | NOT_STARTED; NOT_VERIFIED |
 | CU-reservations | /mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: reservations | Guest/customer | C4 | reservations | Actual form/request/reload/activity and canonical cancellation; captures59/60/63/65/66, source theme preserved; 1440×1000 and390×844 activity reviewed; no narrow overflow; complete form/state/tablet acceptance pending |
 | CU-activity-consent | /mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: activity-consent | Guest/customer | C4 | activity-consent | Actual form/request/reload/activity and canonical cancellation; captures59/60/63/65/66, source theme preserved; 1440×1000 and390×844 activity reviewed; no narrow overflow; complete form/state/tablet acceptance pending |
@@ -102,8 +102,8 @@ Task acceptance criteria, dependency IDs, change history and blockers are in [ME
 | PUB-legal | /mera/legal | Public | M2 | legal | NOT_STARTED; NOT_VERIFIED |
 | PUB-signup | /mera/signup | Owner | M2 | signup | NOT_STARTED; NOT_VERIFIED |
 | PUB-staff-login | /mera/workspace (signed out) | Staff | F5 | staff-login | NOT_STARTED; NOT_VERIFIED |
-| PUB-platform-auth | /mera/platform (unverified) | Platform operator | M3 | platform-auth | NOT_STARTED; NOT_VERIFIED |
-| PUB-platform-directory-support-finance-health | /mera/platform (verified) | MFA-verified operator | M3 | platform-directory-support-finance-health | NOT_STARTED; NOT_VERIFIED |
+| PUB-platform-auth | /mera/platform (unverified) | Platform operator | M3 | platform-auth | Actual nonoperator denial74, required MFA75, genuine expired verification84 and fresh-TOTP recovery in isolated approved fixture; Desktop initial entry and390×844 expired state; full auth device/focus acceptance pending |
+| PUB-platform-directory-support-finance-health | /mera/platform (verified) | MFA-verified operator | M3 | platform-directory-support-finance-health | Actual authenticated76–85; paired review comparison, human states/shared audit reason/Escape fix and corrected narrow navigation; 1440×1000,834×1194,390×844; no document overflow; narrow dialog356px/354px client+scroll |
 
 ## Separate PRD coverage
 
@@ -141,5 +141,6 @@ Status: INVENTORY_DRAFT_REVIEW_PENDING. 208 requirement IDs inventoried in docs/
 - 2026-11-18T22:52:35+01:00: Menu/branch integrated and exercised with actual publication recovery; basic reservation interface corrected; scope unchanged; weight 100; 39.4 points / 39% rounded.
 - 2026-11-18T23:28:34+01:00: Station preparation browser integration verified; published POS pricing and reservation recovery integrated with regressions; reservation browser review remains pending; scope unchanged; weight 100; 41.2 points / 41% rounded.
 - 2026-11-18T23:41:52+01:00: Reservation browser milestone and partial People hierarchy/read-state review accepted; safe recent-history/platform read-state integrations tested; no scope change; weight 100; 43 points / 43% rounded.
+- 2026-11-19T00:24:32+01:00: Private visit and approved protected-platform partial milestones verified; subscription surface accepted without broad O7 credit; source46.2weighted points, scope unchanged; weight 100; 46.2 points / 46% rounded.
 
 Regenerate this report with `node scripts/mera-ui-progress.js`. The calculation validates weights, task IDs, mapped screens and local evidence paths; the lead still reviews whether evidence supports each checkpoint.

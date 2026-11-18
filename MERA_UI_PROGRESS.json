@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-18T23:41:52+01:00",
-  "revision": "aad2c89",
+  "lastUpdated": "2026-11-19T00:24:32+01:00",
+  "revision": "9533313",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -13,6 +13,10 @@
     {
       "at": "2026-11-18T16:32:27+01:00",
       "text": "Owner explicitly selected option1, ivory and green. First displayed generated image is saved as the exact marketing/platform visual target; no visual-acceptance credit implied."
+    },
+    {
+      "at": "2026-11-19T00:24:32+01:00",
+      "text": "Owner explicitly approved isolated QA operator creation after automatic-review rejection. Guarded visual database fixture then exercised normal password/MFA only; no production operator/merchant access approval implied."
     }
   ],
   "workstreams": [
@@ -452,20 +456,28 @@
       "title": "Subscriptions, printing, QR and customer/support care",
       "weight": 4,
       "checkpoint": 0,
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "owner": "workspace",
       "dependencies": [
         "F4",
         "F5"
       ],
       "acceptance": "Purpose-built compact screens/details for invoices/templates/jobs/QR/complaints/support/integrations with advanced configuration disclosed; genuine blocked states actionable.",
-      "evidence": [],
+      "evidence": [
+        "docs/mera/ui-audit/BILLING-MANAGEMENT-MOUNT.md",
+        "docs/mera/ui-audit/subscription-comparison.html"
+      ],
       "blockers": [],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 0,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-19T00:24:32+01:00",
+          "checkpoint": 0,
+          "note": "Subscription/invoices corrected and visually exercised, but broad O7 printing/QR/care/support/integrations acceptance is incomplete; no weighted completion credit for a single surface."
         }
       ]
     },
@@ -694,7 +706,7 @@
       "workstream": "C",
       "title": "Visit joining, bills, rounds and help",
       "weight": 4,
-      "checkpoint": 0,
+      "checkpoint": 40,
       "status": "IN_PROGRESS",
       "owner": "customer",
       "dependencies": [
@@ -704,7 +716,12 @@
       "evidence": [
         "src/mera/customer/HelpRequests.tsx",
         "docs/mera/ui-audit/screenshots/40-customer-help-narrow.jpg",
-        "docs/mera/ui-audit/screenshots/41-customer-join-narrow.jpg"
+        "docs/mera/ui-audit/screenshots/41-customer-join-narrow.jpg",
+        "src/mera/customer/VisitSummary.tsx",
+        "tests/mera-customer-visit-refresh.test.tsx",
+        "docs/mera/ui-audit/SUBSCRIPTION-VISIT-PLATFORM-CHECKPOINT.md",
+        "docs/mera/ui-audit/screenshots/68-visit-bill-desktop.jpg",
+        "docs/mera/ui-audit/screenshots/70-visit-bill-narrow.jpg"
       ],
       "blockers": [],
       "history": [
@@ -717,6 +734,11 @@
           "at": "2026-11-18T17:29:28+01:00",
           "checkpoint": 0,
           "note": "Visit/bill/help hierarchy and loading/privacy guards corrected; unit tests pass. Browser checked help empty form and private join form only. Successful private visit, multi-round bills and deposit fixture acceptance remain."
+        },
+        {
+          "at": "2026-11-19T00:24:32+01:00",
+          "checkpoint": 40,
+          "note": "Private table summary integrated and actual invalid-code/join/unpaid-round/canonical refresh verified at three widths; join/read scope races tested. Help/deposit/split/full state/comparison acceptance still incomplete."
         }
       ]
     },
@@ -875,7 +897,7 @@
       "workstream": "M",
       "title": "Mera platform administration",
       "weight": 4,
-      "checkpoint": 0,
+      "checkpoint": 40,
       "status": "IN_PROGRESS",
       "owner": "backend",
       "dependencies": [
@@ -886,7 +908,13 @@
       "evidence": [
         "src/mera/Platform.tsx",
         "tests/mera-platform-ui.test.tsx",
-        "docs/mera/ui-audit/screenshots/38-platform-access-state.jpg"
+        "docs/mera/ui-audit/screenshots/38-platform-access-state.jpg",
+        "docs/mera/ui-audit/SUBSCRIPTION-VISIT-PLATFORM-CHECKPOINT.md",
+        "docs/mera/ui-audit/VISUAL-OPERATOR-FIXTURE.md",
+        "docs/mera/ui-audit/platform-review-comparison.html",
+        "docs/mera/ui-audit/screenshots/83-platform-directory-narrow-after.jpg",
+        "docs/mera/ui-audit/screenshots/84-platform-mfa-expired-narrow.jpg",
+        "tests/mera-response-dates.test.js"
       ],
       "blockers": [
         "Authenticated platform visual acceptance requires an authorized platform operator with MFA; current browser session has organization access only."
@@ -901,6 +929,11 @@
           "at": "2026-11-18T17:29:28+01:00",
           "checkpoint": 0,
           "note": "Ivory/green platform styling, compact section directory/filter and accessible review dialog implemented;5 DOM regressions pass. Browser inspected access-denied state only: existing demo principal has organization scope, no platform-operator MFA session."
+        },
+        {
+          "at": "2026-11-19T00:24:32+01:00",
+          "checkpoint": 40,
+          "note": "Approved synthetic-only fixture used normal password/TOTP; actual denied/required/expired states, directory/filters/support/health/backups/audit reviewed. Dialog/mobile navigation/date defect corrected; broader audited workflows/accessibility acceptance pending."
         }
       ]
     },
@@ -1291,13 +1324,13 @@
       "permissions": "billing.manage",
       "states": {
         "loading": "UNVERIFIED for full correction",
-        "empty": "UNVERIFIED for full correction",
-        "error": "UNVERIFIED for full correction",
+        "empty": "Actual confirmed no-invoices state",
+        "error": "Focused independent failed-read/retry tests; live failure not injected",
         "permission": "UNVERIFIED for full correction",
-        "recovery": "UNVERIFIED for full correction"
+        "recovery": "Actual disclosure draft retention; exact uncertain invoice period/key retries tested, component-local only"
       },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "NOT_STARTED",
+      "responsive": "1440\u00d71000,834\u00d71194,390\u00d7844; no document overflow",
+      "visualReview": "Actual67/71 matched desktop comparison;72/73 tablet/narrow, disclosures retain unsaved draft; pricing proposals remain configurable",
       "blockers": []
     },
     {
@@ -1595,11 +1628,11 @@
         "loading": "UNVERIFIED",
         "empty": "UNVERIFIED",
         "error": "UNVERIFIED",
-        "permission": "UNVERIFIED",
-        "recovery": "UNVERIFIED"
+        "permission": "Actual invalid code kept bill private;401/403/404/scope races tested",
+        "recovery": "Manual refresh actual success; older poll exclusion/local errors/initial join races and original order uncertainty tested"
       },
-      "responsive": "NOT_VERIFIED",
-      "visualReview": "NOT_STARTED",
+      "responsive": "1440\u00d71000,834\u00d71194,390\u00d7844; no document overflow; narrow Enter item disclosure",
+      "visualReview": "Actual authorized visit and unpaid round bill68\u201370; first joined captures, no original or matched before comparison claimed",
       "blockers": []
     },
     {
@@ -1815,11 +1848,11 @@
         "loading": "UNVERIFIED",
         "empty": "UNVERIFIED",
         "error": "UNVERIFIED",
-        "permission": "UNVERIFIED",
-        "recovery": "UNVERIFIED"
+        "permission": "Actual merchant denied and directory hidden",
+        "recovery": "Normal password/TOTP and fresh verification after real expiry; no fake session grants"
       },
-      "responsive": "NOT_VERIFIED",
-      "visualReview": "NOT_STARTED",
+      "responsive": "Desktop initial entry and390\u00d7844 expired state; full auth device/focus acceptance pending",
+      "visualReview": "Actual nonoperator denial74, required MFA75, genuine expired verification84 and fresh-TOTP recovery in isolated approved fixture",
       "blockers": []
     },
     {
@@ -1835,13 +1868,13 @@
       "functionalCoverage": "Existing consumers; correction/complete workflow coverage pending",
       "states": {
         "loading": "UNVERIFIED",
-        "empty": "UNVERIFIED",
+        "empty": "Actual filtered directory/support/backups empty; provider readiness blocked",
         "error": "UNVERIFIED",
         "permission": "UNVERIFIED",
-        "recovery": "UNVERIFIED"
+        "recovery": "Actual Escape/focus return and read-only filters; pending exact-write fences tested, real business changes not submitted"
       },
-      "responsive": "NOT_VERIFIED",
-      "visualReview": "NOT_STARTED",
+      "responsive": "1440\u00d71000,834\u00d71194,390\u00d7844; no document overflow; narrow dialog356px/354px client+scroll",
+      "visualReview": "Actual authenticated76\u201385; paired review comparison, human states/shared audit reason/Escape fix and corrected narrow navigation",
       "blockers": []
     }
   ],
@@ -1926,6 +1959,13 @@
       "scopeWeight": 100,
       "weightedPoints": 43.0,
       "roundedCompletion": 43
+    },
+    {
+      "at": "2026-11-19T00:24:32+01:00",
+      "event": "Private visit and approved protected-platform partial milestones verified; subscription surface accepted without broad O7 credit; source46.2weighted points, scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 46.2,
+      "roundedCompletion": 46
     }
   ],
   "baselineRevision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd"

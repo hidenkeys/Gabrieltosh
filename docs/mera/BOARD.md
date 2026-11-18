@@ -123,3 +123,11 @@ Scope: overview and POS first; other surface layouts remain pending their own au
 - Platform leaf fixes support loading/error/empty and auth focus; normal MFA/operator browser verification still pending. Backend owner read-only assessing a truly isolated synthetic MFA test fixture, without changing any authority.
 - Integration:324total/322pass/0fail/2skip; build passed; separate actualPG1pass/0fail/0skip. Physical output and production providers remain unverified.
 - Next dependencies: safe isolated platform test; customer visit/checkout and remaining management/operational layouts; broad state/accessibility review. Stable task weights and exact evidence remain in MERA_UI_PROGRESS.json.
+
+## Subscription / visit / protected-platform UI checkpoint
+
+- Workspace billing composition and invoice read/create hierarchy integrated; same contracts and exact uncertain period/key retained. O7 remains in-progress without broad completion credit for one surface.
+- Customer private visit summary integrated; actual invalid-code rejection, joining, unpaid round and canonical bill refresh verified. Scope-race/privacy regressions added; C3 partial40.
+- Owner explicitly approved isolated platform QA operator after automatic-review rejection. Guarded local fixture only, normal password+TOTP, genuine expiry/reverification exercised. Platform dialog/narrow navigation and actual audit-date redaction defect corrected; M3 partial40. Production operator/provider readiness remains separate.
+- Current frozen integration:357tests/355pass/0fail/2skip; build passed. Separate realPG audit-date scenario passed. Main3003/visual3006 running separately; original store3002 unchanged.
+- Next: remaining O6 management/finance and O7 print/QR/care/support/integration surfaces; P2/P3/P5 operational layouts; customer help/checkout/recovery and shared-primitives/accessibility acceptance. See fixed-weight MERA_UI_PROGRESS.json and SUBSCRIPTION-VISIT-PLATFORM-CHECKPOINT.md for actual evidence and limits.
