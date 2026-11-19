@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "UI workflow closure at e238eff/475ebe4: preparation ticket validation/filter draft preservation, setup lifecycle and customer history/focus fixes. Actual282–288 browser captures, matched preparation comparison and390/834 layouts. Build and704tests passed,2skipped. Fresh preparation mutations covered by tests; existing preview tickets expired/completed. No backend changes. Full role/state/accessibility matrix and signup/platform/provider/hardware gates remain; scope1.0 stays67.0/100.",
+  "Workflow acceptance at e0d478c: fresh browser preparation queued/start/partial1-of-3/ready3-of-3 with safe fixture restoration, customer unpaid checkout/tracking/reload/history and390px recovery. Parallel ticket drafts preserved and setup duplicate saves guarded. Build and707tests passed,2skipped. Scope1.0 remains67.0/100 pending complete role/state/accessibility, signup/platform and external launch gates. No backend expansion or real money.",
   "",
   "## Measurement",
   "",

@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T18:22:39+01:00",
-  "revision": "e238eff",
+  "lastUpdated": "2026-11-19T19:41:09+01:00",
+  "revision": "e0d478c",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -356,7 +356,8 @@
         "tests/mera-branch-administration.test.tsx",
         "tests/mera-business-details.test.tsx",
         "docs/mera/ui-audit/MENU-BRANCH-CHECKPOINT.md",
-        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md"
+        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md",
+        "docs/mera/ui-audit/WORKFLOW-ACCEPTANCE-BOARD.md"
       ],
       "blockers": [],
       "history": [
@@ -384,6 +385,11 @@
           "at": "2026-11-19T18:22:39+01:00",
           "checkpoint": 60,
           "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
+        },
+        {
+          "at": "2026-11-19T19:41:09+01:00",
+          "checkpoint": 60,
+          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290\u2013293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
         }
       ]
     },
@@ -721,7 +727,8 @@
         "docs/mera/ui-audit/screenshots/57-preparation-ready-tablet.jpg",
         "docs/mera/ui-audit/screenshots/58-preparation-ready-narrow.jpg",
         "tests/mera-preparation.test.tsx",
-        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md"
+        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md",
+        "docs/mera/ui-audit/WORKFLOW-ACCEPTANCE-BOARD.md"
       ],
       "blockers": [],
       "history": [
@@ -744,6 +751,11 @@
           "at": "2026-11-19T18:22:39+01:00",
           "checkpoint": 60,
           "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
+        },
+        {
+          "at": "2026-11-19T19:41:09+01:00",
+          "checkpoint": 60,
+          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290\u2013293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
         }
       ]
     },
@@ -847,7 +859,8 @@
         "docs/mera/ui-audit/screenshots/39-customer-unpaid-tracking.jpg",
         "docs/mera/ui-audit/CUSTOMER-CHECKOUT-CHECKPOINT.md",
         "docs/mera/ui-audit/customer-checkout-comparison.html",
-        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md"
+        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md",
+        "docs/mera/ui-audit/WORKFLOW-ACCEPTANCE-BOARD.md"
       ],
       "blockers": [],
       "history": [
@@ -875,6 +888,11 @@
           "at": "2026-11-19T18:22:39+01:00",
           "checkpoint": 60,
           "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
+        },
+        {
+          "at": "2026-11-19T19:41:09+01:00",
+          "checkpoint": 60,
+          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290\u2013293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
         }
       ]
     },
@@ -1237,7 +1255,8 @@
         "docs/mera/ui-audit/ACCESS-RECOVERY-CHECKPOINT.md",
         "docs/mera/ui-audit/ACCESS-RECOVERY-WORKBOARD.md",
         "docs/mera/ui-audit/access-recovery-comparison.jpg",
-        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md"
+        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md",
+        "docs/mera/ui-audit/WORKFLOW-ACCEPTANCE-BOARD.md"
       ],
       "blockers": [],
       "history": [
@@ -1270,6 +1289,11 @@
           "at": "2026-11-19T18:22:39+01:00",
           "checkpoint": 40,
           "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
+        },
+        {
+          "at": "2026-11-19T19:41:09+01:00",
+          "checkpoint": 40,
+          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290\u2013293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
         }
       ]
     },

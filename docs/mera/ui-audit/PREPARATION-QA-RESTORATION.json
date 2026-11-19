@@ -1,0 +1,39 @@
+{
+  "environment": "isolated frontdesk QA app3007/database55444",
+  "reference": "PREP-QA-69594D",
+  "organizationId": "10000000-0000-4000-8000-000000000001",
+  "branchId": "20000000-0000-4000-8000-000000000001",
+  "fixtureOrderId": "53f707b2-789a-4ee0-aaa0-cceb503b5106",
+  "fixtureTicketId": "6c0ad025-c20d-49b4-9725-1d1988664fbd",
+  "deletedMutableRows": 2,
+  "remainingFixtureRows": 0,
+  "protectedCounts": [
+    {
+      "kind": "ledger",
+      "count": 1
+    },
+    {
+      "kind": "stock_movement",
+      "count": 1
+    }
+  ],
+  "protectedCountsUnchanged": true,
+  "retainedAppendOnlyAuditEvents": [
+    {
+      "id": "169f8539-84fe-44a6-89ef-aa0e56c47ca2",
+      "action": "station_ticket_updated"
+    },
+    {
+      "id": "5efc5ebc-fe6f-4090-886d-e34ec27ee248",
+      "action": "station_ticket_updated"
+    },
+    {
+      "id": "74ce541f-ce8d-41be-8cca-2e3d98860ea2",
+      "action": "station_ticket_updated"
+    }
+  ],
+  "mainDatabaseTouched": false,
+  "realMoneyMoved": false,
+  "applicationBackendChanged": false,
+  "verifiedAt": "2026-11-19T18:39:27.296Z"
+}

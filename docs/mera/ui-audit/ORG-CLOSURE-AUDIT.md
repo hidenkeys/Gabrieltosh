@@ -1,0 +1,49 @@
+# Organization setup and menu closure audit
+
+Source assessment against scope1.0 O3/O4 at7156558,19November2026. This is a source/test acceptance audit, not a fresh browser review or a completion-percentage update. Lead owns browser evidence and main integration. No backend changes are required by this report.
+
+## Acceptance map
+
+| Criterion | Existing implementation/evidence | Remaining acceptance |
+| --- | --- | --- |
+| O3 coherent steps | SetupChecklist: business basics first, mounted optional setup disclosures, publication last. `mera-setup-ui.test.tsx` covers preserved drafts, absent permission-controlled slots and supplied loading/error states. | Check complete setup using keyboard at desktop1440×1000, tablet834×1194, phone390×844; no duplicate forms, clipped actions or focus loss. |
+| O3 saved/resumable details | BusinessDetails hydrates saved onboarding; background updates preserve edits and offer Use saved details. Same-tick writes lock; org changes reset; revoked late responses cannot claim success. BranchAdministration stores actor/org original keyed creation before POST, restores only matching scope, fails closed on unavailable storage. | Browser edit/save/reload business details; unknown original details retry; create draft branch and select after authoritative refresh. Business-details draft/recovery remains component-local, not reload-persistent. |
+| O3 branding previews | BranchSettings uses BrandColorField, brandingTokens and MediaUpload; local logo/cover preview and text/background contrast preview precede Save branding. Existing tests cover valid/incomplete hex text and retained section drafts. | Local duplicate-submit correction below; then upload/save/reload actual asset, invalid file/failed upload, alternate colors/font, unauthorized actor and responsive preview. No generated success or assumption that upload also saved/published. |
+| O3 policy approvals/readiness | Existing booking, deposits, minimum-spend and pricing leafs keep approval inputs and unresolved values; LaunchReadiness renders actual checks and explicit publication confirmation. `mera-management-ui.test.tsx` and workspace integration tests cover failed readiness/retry and exact terms. | Exercise blocked→reviewed conditions using disposable fixtures; policy changes must preserve original terms for existing bookings/visits. Publication is not public hosting verification. |
+| O3 branch management where APIs allow | Actual branch list, active indicator, selection, org-wide create; draft starts paused/unpublished. Keyed original intent survives unknown/reload; revoked/unmounted late outcomes do not clear it. Tests cover denial/scope/storage/initial rejection/later4xx. | Verify organization-wide owner versus branch-only manager and changed actor, plus failed list retry; no update/delete branch API is invented. |
+| O4 product-first browsing/detail | MenuManagement has real search/category/counts,12-item incremental listing, no-match reset, four local task views and mounted hidden drafts. Product editor belongs to parent and has explicit focus entry/return. | Browser create/edit existing product including actual photo, variants, required options, dietary text and schedule; ensure editor focus/draft survives local views and narrow widths. |
+| O4 reviewed publication | MenuPublication uses server review/hash/version, actor/scope tab journal, immutable retry/check/explicit stop. Tests cover changed review, storage refusal, wrong actor, malformed proof, original not-found, abandonment, unmount, Escape/focus and actual variant/modifier prices. | Actual successful publish and changed-review conflict/recovery browser subset exists in MENU-BRANCH-CHECKPOINT; finish role/keyboard/error matrix without changing a real branch. |
+| O4 categories/options stable IDs | Categories retries reads without falseempty, scope guards and versioned edits. ModifierGroupsEditor uses existing IDs and structured validated options. Workspace tests cover structured option save and destination shared-menu overrides. | Browser create parent/child, bind product, rename/reparent, invalid cycle/version/retirement, publish draft-label separation; edit/remove/add modifier and inspect stable existing IDs in request. |
+| O4 stock/history/permissions | Existing StockHistory uses reasoned restock/waste/loss and original requestKey/expectedStock; workspace integration covers immutable unknown stock loss, bulk availability and stock-only destination. | Browser counted product/variant history, stale balance, unknown exact retry, failed history GET versus successful empty, unauthorized inventory controls; never assume a refund restocks. |
+
+## Concrete correction and existing limits
+
+`src/mera/workspace/BranchSettings.tsx`: reproduced same-tick duplicate operations submissions and a second branding-form submission while the first save was held. Parent `busy` only protects rerendered controls. Added a synchronous local in-flight guard shared across the two existing forms, and a disabled guard. Focused test asserts exactly one settings PATCH, no cross-form write and no automatic retry after settlement. No API, policy or recovery contract changed.
+
+Existing limitation to report honestly: settings/branding PATCH endpoints are unversioned, and this leaf has no durable unknown-intent recovery. After a network failure staff must check saved values before making another deliberate change; component tests cannot establish cross-admin conflict protection. This audit does not propose a new general recovery/backend subsystem or block the browser checklist on one. Browser validation must verify error visibility and absence of false success; if it exposes a concrete unsafe interaction, record that exact interaction before any further source change.
+
+BusinessDetails and BranchAdministration have no additional demonstrated blocker from this assessment beyond their already-tested lifecycle fixes. SetupChecklist is presentational and must not manufacture completion badges or replace leaf permissions.
+
+## Browser execution checklist for the lead
+
+Use an isolated disposable organization/branch. Preserve published Surulere data. Record exact viewport, role and screenshots; open matched before/after evidence. No physical-printing/provider/hosting claim belongs to this closure.
+
+1. Owner: open Getting started; keyboard into essentials, enter/save details, reload, verify exact persisted fields. Edit locally, refresh remote details, verify retained draft and explicit replacement. Trigger duplicate submit and unknown response; one original write and no false success.
+2. Branch administration: known list/current indicator; unauthorized branch manager has no create control. Create one paused draft with timezone/cutoff/service modes, refresh and enter setup. Unknown response: reload restores original key; a list absence does not prove failure; retry original only. Logout/account switch cannot reveal previous draft.
+3. Operations/branding: separate local views retain edits; required/invalid timezone and incomplete color have useful focus/errors; upload preview then explicit save, reload confirms saved branding. Failed upload/save never looks successful. Confirm current organization scope.
+4. Policies/readiness: inspect actual unresolved values, required approvals and errors; retries do not silently enable policy. Readiness failures have readable reasons. Review/publish requires explicit branch-specific action; closing keeps unsaved drafts and pending original recovery.
+5. Menu: photo catalog→search→no match→clear→category→Show more; product editor open/close keyboard focus; edit variant price and required modifier with retained IDs; switch views and return without losing draft. Published staff/customer price remains unchanged until reviewed publication.
+6. Categories: failed GET→retry→successful empty; create nested group, bind product, reparent/retire invalid cases; draft changes stay separate from published menu. No raw opaque IDs as labels.
+7. Stock: choose counted product and variant; actual history before action, reasoned loss/restock/waste, stale expected balance rejection, original uncertain retry. Stock-only account sees permitted tools without catalog-edit/availability writes.
+8. Publication: review actual size/modifier values; change draft elsewhere→reject stale review; original check-not-found remains unresolved; stop with reason or exact retry; accepted publication cannot be erased by stopping. Escape/close returns focus and keeps journal.
+9. Repeat relevant views at1440×1000,834×1194,390×844; keyboard Tab/ShiftTab and native disclosures,44px actions, no page overflow, read loading/error/empty distinctions, and revoked permissions remove private/write controls. Save inspected comparisons; tests alone do not close visual acceptance.
+
+## Evidence and non-blockers
+
+Existing source evidence: `MENU-BRANCH-CHECKPOINT.md`, `UI-CLOSURE-WORKBOARD.md`, `menu-management-comparison.jpg`, screenshots35–53 and setup287 (see checkpoint for actual states/dimensions). Those subsets do not establish the complete matrix above. Main product forms, media/policy subflows and keyboard states need integrated evidence rather than an assumption from separate component tests.
+
+No missing credential, provider, printer or public DNS access blocks these local O3/O4 browser tasks. External delivery, public reachability and physical printer validation remain separate gates. No new branch update/delete, inventory automation, billing or payment policy should be introduced to increase this checklist's coverage.
+
+## Focused validation
+
+Original setup/menu acceptance subset:43/43 passed in `/tmp/mera-org-closure-audit-tests.log`. Additional synchronous duplicate/cross-form guard regression:5/5 management UI tests passed in `/tmp/mera-setup-submit-guard.log`. No browser session or production mutation performed for this audit.
