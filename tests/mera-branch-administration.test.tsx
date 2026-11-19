@@ -21,7 +21,7 @@ Object.defineProperty(globalThis, "navigator", {
   configurable: true,
 });
 const React = await import("react");
-const { render, screen, fireEvent, waitFor, cleanup } =
+const { render, screen, fireEvent, waitFor, cleanup, act } =
   await import("@testing-library/react");
 const { default: BranchAdministration } =
   await import("../src/mera/workspace/BranchAdministration");
@@ -297,3 +297,67 @@ test("O3 confirmed logout clears creation journals and corrupt recovery fails cl
     sessionStorage.clear();
   }
 });
+
+for (const transition of ["unmount", "revoke", "logout"] as const)
+  test(`branch create ignores late result after ${transition} without refreshing old scope`, async () => {
+    let resolve: any,
+      refreshes = 0,
+      body: any;
+    const props = {
+      ...base,
+      onRefresh: async () => {
+        refreshes++;
+      },
+      save: async (_p: string, _m: string, value: any) => {
+        body = value;
+        return new Promise((r) => {
+          resolve = r;
+        });
+      },
+    };
+    try {
+      const view = render(<BranchAdministration {...props} />);
+      fill();
+      const key =
+        "mera:branch-create:v1:" +
+        JSON.stringify([base.actorId, base.organizationId]);
+      assert(sessionStorage.getItem(key));
+      if (transition === "unmount") view.unmount();
+      else if (transition === "revoke")
+        view.rerender(<BranchAdministration {...props} canManage={false} />);
+      else act(() => window.dispatchEvent(new Event("mera:logout")));
+      await act(async () =>
+        resolve({
+          id: "new-branch",
+          name: "Lekki",
+          organizationId: base.organizationId,
+          requestKey: body.requestKey,
+        }),
+      );
+      assert.equal(refreshes, 0);
+      assert(!screen.queryByText("Draft branch “Lekki” was created."));
+      assert.equal(
+        sessionStorage.getItem(key) !== null,
+        transition !== "logout",
+      );
+      if (transition === "revoke") {
+        view.rerender(<BranchAdministration {...props} />);
+        fireEvent.click(
+          screen.getByText("Create a draft branch", { exact: true }),
+        );
+        assert(
+          screen.getByRole("button", {
+            name: "Retry original branch creation",
+          }),
+        );
+        assert(
+          (screen.getByLabelText("Branch name") as HTMLInputElement).matches(
+            ":disabled",
+          ),
+        );
+      }
+    } finally {
+      cleanup();
+      sessionStorage.clear();
+    }
+  });

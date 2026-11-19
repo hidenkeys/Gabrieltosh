@@ -162,3 +162,83 @@ test("canonical selection fetches current order, formats status, and denial clea
     null,
   );
 });
+
+for (const malformed of [
+  {},
+  { orders: null },
+  { orders: [null] },
+  { orders: [row, row] },
+  { orders: [], nextCursor: { private: "invalid" } },
+])
+  test("malformed successful history remains a recoverable read error rather than empty or a render crash", async (t) => {
+    let fixed = false;
+    t.mock.method(globalThis, "fetch", async () =>
+      Response.json(fixed ? { orders: [row], nextCursor: null } : malformed),
+    );
+    render(<SessionOrders {...props} />);
+    await screen.findByRole("alert");
+    assert.equal(screen.queryByText("No orders in this guest session."), null);
+    fixed = true;
+    fireEvent.click(
+      screen.getByRole("button", { name: "Refresh session orders" }),
+    );
+    await screen.findByRole("button", { name: "Open order M-ORIGINAL" });
+    assert.equal(screen.queryByRole("alert"), null);
+  });
+
+test("ending confirmation has keyboard focus and Keep restores its actual trigger without a write", async (t) => {
+  const methods: string[] = [];
+  t.mock.method(globalThis, "fetch", async (_input: any, init: any) => {
+    methods.push(init.method);
+    return Response.json({ orders: [], nextCursor: null });
+  });
+  render(<SessionOrders {...props} />);
+  await screen.findByText("No orders in this guest session.");
+  const trigger = screen.getByRole("button", { name: "End guest session…" });
+  trigger.focus();
+  fireEvent.click(trigger);
+  const heading = screen.getByRole("heading", {
+    name: "End this organization’s guest session?",
+  });
+  assert.ok(
+    document.activeElement === heading,
+    "confirmation heading must receive keyboard focus",
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Keep this guest session" }),
+  );
+  assert.ok(
+    document.activeElement ===
+      screen.getByRole("button", { name: "End guest session…" }),
+    "Keep must return focus to the new mounted trigger",
+  );
+  assert.deepEqual(methods, ["GET"]);
+});
+
+for (const status of [403, 404])
+  test(`session ending ${status} clears private history without implying orders were cancelled`, async (t) => {
+    t.mock.method(globalThis, "fetch", async (_input: any, init: any) =>
+      init.method === "POST"
+        ? Response.json({ error: "Access unavailable" }, { status })
+        : Response.json({ orders: [row], nextCursor: "private" }),
+    );
+    render(<SessionOrders {...props} />);
+    await screen.findByRole("button", { name: "Open order M-ORIGINAL" });
+    fireEvent.click(screen.getByRole("button", { name: "End guest session…" }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "End this guest session",
+        exact: true,
+      }),
+    );
+    await screen.findByRole("alert");
+    assert.equal(
+      screen.queryByRole("button", { name: "Open order M-ORIGINAL" }),
+      null,
+    );
+    assert.equal(
+      screen.queryByRole("button", { name: "Load more session orders" }),
+      null,
+    );
+    assert.equal(screen.queryByText("No orders in this guest session."), null);
+  });

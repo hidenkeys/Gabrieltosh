@@ -160,8 +160,18 @@ function ScopedBranchAdministration({
     [created, setCreated] = useState<Branch | null>(null);
   const submitting = useRef(false);
   const allowed = canManage && organizationWide;
+  const alive = useRef(true),
+    authority = useRef(allowed),
+    epoch = useRef(0);
+  if (authority.current !== allowed) epoch.current++;
+  authority.current = allowed;
+  const current = (started: number) =>
+    alive.current && authority.current && epoch.current === started;
   useEffect(() => {
+    alive.current = true;
     const logout = () => {
+      epoch.current++;
+      authority.current = false;
       try {
         for (let index = sessionStorage.length - 1; index >= 0; index--) {
           const key = sessionStorage.key(index);
@@ -174,7 +184,10 @@ function ScopedBranchAdministration({
       setBlocked(true);
     };
     window.addEventListener("mera:logout", logout);
-    return () => window.removeEventListener("mera:logout", logout);
+    return () => {
+      alive.current = false;
+      window.removeEventListener("mera:logout", logout);
+    };
   }, []);
   const refresh = async () => {
     setError("");
@@ -210,8 +223,10 @@ function ScopedBranchAdministration({
       );
       return;
     }
+    const started = epoch.current;
     const wasUncertain = !!pending;
     submitting.current = true;
+    setPending(body);
     setBusy(true);
     setError("");
     try {
@@ -221,6 +236,7 @@ function ScopedBranchAdministration({
         body,
         "Draft branch created. Complete its setup before publishing.",
       );
+      if (!current(started)) return;
       if (
         !result ||
         typeof result.id !== "string" ||
@@ -237,11 +253,13 @@ function ScopedBranchAdministration({
       try {
         await onRefresh();
       } catch {
+        if (!current(started)) return;
         setError(
           "The draft branch was created, but the branch list could not be refreshed. Refresh the list before opening it.",
         );
       }
     } catch (failure: any) {
+      if (!current(started)) return;
       setError(failure.message || "The branch could not be created.");
       if (
         wasUncertain ||
@@ -250,6 +268,7 @@ function ScopedBranchAdministration({
       )
         setPending(body);
       else {
+        setPending(null);
         try {
           if (storageKey) sessionStorage.removeItem(storageKey);
         } catch {
@@ -257,7 +276,7 @@ function ScopedBranchAdministration({
         }
       }
     } finally {
-      setBusy(false);
+      if (alive.current) setBusy(false);
       submitting.current = false;
     }
   };

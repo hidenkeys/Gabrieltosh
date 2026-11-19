@@ -14,7 +14,7 @@ Object.defineProperty(globalThis, "navigator", {
   configurable: true,
 });
 const React = await import("react");
-const { render, screen, fireEvent, waitFor, cleanup } =
+const { render, screen, fireEvent, waitFor, cleanup, act } =
   await import("@testing-library/react");
 const { default: BusinessDetails } =
   await import("../src/mera/workspace/BusinessDetails");
@@ -149,6 +149,82 @@ test("branch-scoped managers can read business details but cannot save organizat
       ),
       true,
     );
+  } finally {
+    cleanup();
+  }
+});
+
+test("business details blocks same-tick duplicate saves and retains original recovery after permission loss", async () => {
+  let resolve: any,
+    writes = 0;
+  const props = {
+    organizationId: "org",
+    onboarding: initial,
+    canEdit: true,
+    disabled: false,
+    save: async () => {
+      writes++;
+      return new Promise((r) => {
+        resolve = r;
+      });
+    },
+  };
+  try {
+    const view = render(<BusinessDetails {...props} />);
+    const form = screen
+      .getByRole("button", { name: "Save business details" })
+      .closest("form")!;
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+    assert.equal(writes, 1);
+    view.rerender(<BusinessDetails {...props} canEdit={false} />);
+    await act(async () => resolve({ saved: true }));
+    assert(!screen.queryByText("Business details saved."));
+    view.rerender(<BusinessDetails {...props} />);
+    assert(
+      screen.getByRole("button", { name: "Retry original business details" }),
+    );
+    assert(
+      (screen.getByLabelText("Business contact") as HTMLInputElement).matches(
+        ":disabled",
+      ),
+    );
+  } finally {
+    cleanup();
+  }
+});
+test("business details organization switch resets the draft and ignores the previous save", async () => {
+  let resolve: any;
+  const props = {
+    organizationId: "org-a",
+    onboarding: initial,
+    canEdit: true,
+    disabled: false,
+    save: async () =>
+      new Promise((r) => {
+        resolve = r;
+      }),
+  };
+  try {
+    const view = render(<BusinessDetails {...props} />);
+    fireEvent.submit(
+      screen
+        .getByRole("button", { name: "Save business details" })
+        .closest("form")!,
+    );
+    view.rerender(
+      <BusinessDetails
+        {...props}
+        organizationId="org-b"
+        onboarding={{ data: { contact: "New organization" } }}
+      />,
+    );
+    await act(async () => resolve({ saved: true }));
+    assert.equal(
+      (screen.getByLabelText("Business contact") as HTMLInputElement).value,
+      "New organization",
+    );
+    assert(!screen.queryByText("Business details saved."));
   } finally {
     cleanup();
   }

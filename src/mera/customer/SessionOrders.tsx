@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { customerRequest } from "./client";
 import {
   orderStateLabel,
@@ -29,6 +29,15 @@ function ScopedSessionOrders({
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
     [confirmEnd, setConfirmEnd] = useState(false);
+  const confirmationId = useId();
+  const confirmationHeading = useRef<HTMLHeadingElement>(null),
+    endTrigger = useRef<HTMLButtonElement>(null),
+    wasConfirming = useRef(false);
+  useEffect(() => {
+    if (confirmEnd) confirmationHeading.current?.focus();
+    else if (wasConfirming.current) endTrigger.current?.focus();
+    wasConfirming.current = confirmEnd;
+  }, [confirmEnd]);
   const generation = useRef(0),
     callbacks = useRef({ onSelect, onClear });
   callbacks.current = { onSelect, onClear };
@@ -43,6 +52,31 @@ function ScopedSessionOrders({
           (next ? "&cursor=" + encodeURIComponent(next) : ""),
       );
       if (current !== generation.current) return;
+      if (
+        !result ||
+        !Array.isArray(result.orders) ||
+        result.orders.length > 20 ||
+        result.orders.some(
+          (order: any) =>
+            !order ||
+            typeof order !== "object" ||
+            Array.isArray(order) ||
+            typeof order.id !== "string" ||
+            !order.id.trim(),
+        ) ||
+        new Set(result.orders.map((order: any) => order.id)).size !==
+          result.orders.length ||
+        !(
+          result.nextCursor === null ||
+          result.nextCursor === undefined ||
+          (typeof result.nextCursor === "string" &&
+            result.nextCursor.length > 0 &&
+            result.nextCursor.length <= 4096)
+        )
+      )
+        throw Error(
+          "Your orders could not be loaded. Refresh session orders to try again.",
+        );
       setOrders((previous) =>
         next ? [...previous, ...result.orders] : result.orders,
       );
@@ -145,8 +179,14 @@ function ScopedSessionOrders({
         </button>
       )}
       {confirmEnd ? (
-        <div className="mc-alert">
-          <h3>End this organization’s guest session?</h3>
+        <div
+          className="mc-alert"
+          role="region"
+          aria-labelledby={confirmationId}
+        >
+          <h3 id={confirmationId} ref={confirmationHeading} tabIndex={-1}>
+            End this organization’s guest session?
+          </h3>
           <p>
             You will lose access to this session’s private order, reservation
             and visit history. This does not cancel orders, close a table visit
@@ -174,6 +214,7 @@ function ScopedSessionOrders({
             onClick={async () => {
               const current = generation.current;
               setBusy(true);
+              setError("");
               try {
                 const result = await customerRequest(
                   prefix + "/guest/end",
@@ -192,6 +233,10 @@ function ScopedSessionOrders({
               } catch (e) {
                 if (current !== generation.current) return;
                 setError((e as Error).message);
+                if ([401, 403, 404].includes((e as any).status)) {
+                  setOrders([]);
+                  setCursor(null);
+                }
                 if ((e as any).status === 401)
                   callbacks.current.onClear(
                     "This guest session already expired. Existing orders remain unchanged.",
@@ -209,6 +254,7 @@ function ScopedSessionOrders({
           type="button"
           className="mc-secondary"
           disabled={busy}
+          ref={endTrigger}
           onClick={() => setConfirmEnd(true)}
         >
           End guest session…

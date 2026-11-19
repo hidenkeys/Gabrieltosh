@@ -16,13 +16,7 @@ function details(value: any): Draft {
       : "counter_takeaway",
   };
 }
-export default function BusinessDetails({
-  organizationId,
-  onboarding,
-  canEdit,
-  disabled,
-  save,
-}: {
+type Props = {
   organizationId: string;
   onboarding: any;
   canEdit: boolean;
@@ -33,7 +27,17 @@ export default function BusinessDetails({
     body: any,
     message: string,
   ) => Promise<any>;
-}) {
+};
+export default function BusinessDetails(props: Props) {
+  return <ScopedBusinessDetails key={props.organizationId} {...props} />;
+}
+function ScopedBusinessDetails({
+  organizationId,
+  onboarding,
+  canEdit,
+  disabled,
+  save,
+}: Props) {
   const saved = details(onboarding),
     signature = JSON.stringify(saved);
   const [draft, setDraft] = useState<Draft>(saved),
@@ -44,7 +48,12 @@ export default function BusinessDetails({
     [pending, setPending] = useState<Draft | null>(null);
   const changed = useRef(false),
     last = useRef(signature),
-    alive = useRef(true);
+    alive = useRef(true),
+    inFlight = useRef(false),
+    permission = useRef(canEdit),
+    epoch = useRef(0);
+  if (permission.current !== canEdit) epoch.current++;
+  permission.current = canEdit;
   useEffect(() => {
     alive.current = true;
     return () => {
@@ -63,7 +72,8 @@ export default function BusinessDetails({
     setStatus("");
   };
   const send = async () => {
-    if (disabled || working || !canEdit) return;
+    if (disabled || inFlight.current || !canEdit) return;
+    const started = epoch.current;
     const original = pending || {
       contact: draft.contact.trim(),
       phone: draft.phone.trim(),
@@ -80,6 +90,8 @@ export default function BusinessDetails({
       );
       return;
     }
+    inFlight.current = true;
+    setPending(original);
     setWorking(true);
     setError("");
     setStatus("");
@@ -90,7 +102,8 @@ export default function BusinessDetails({
         { step: 1, data: original },
         "Business details saved.",
       );
-      if (!alive.current) return;
+      if (!alive.current || started !== epoch.current || !permission.current)
+        return;
       if (result?.saved !== true)
         throw new Error("The save result could not be confirmed.");
       setDraft(original);
@@ -99,7 +112,8 @@ export default function BusinessDetails({
       setRemoteChanged(false);
       setStatus("Business details saved.");
     } catch (e: any) {
-      if (!alive.current) return;
+      if (!alive.current || started !== epoch.current || !permission.current)
+        return;
       if (
         pending ||
         !e.status ||
@@ -110,11 +124,14 @@ export default function BusinessDetails({
         setError(
           "We could not confirm the save. Retry the original details before making another change.",
         );
-      } else
+      } else {
+        setPending(null);
         setError(
           e.message || "Business details could not be saved. Try again.",
         );
+      }
     } finally {
+      inFlight.current = false;
       if (alive.current) setWorking(false);
     }
   };
