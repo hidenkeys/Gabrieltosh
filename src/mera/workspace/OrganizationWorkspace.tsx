@@ -1956,6 +1956,8 @@ export default function OrganizationWorkspace({
                 <PrintStudio
                   key={branchId}
                   base={branchBase}
+                  branchName={branch?.name}
+                  timeZone={branch?.timezone}
                   disabled={busy || offline}
                   canViewJobs={allowed("orders.view")}
                   canReprint={allowed("orders.fulfill")}

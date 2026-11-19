@@ -7,6 +7,8 @@ type Props = {
   disabled: boolean;
   canViewJobs: boolean;
   canReprint: boolean;
+  branchName?: string;
+  timeZone?: string;
   save: (
     path: string,
     method: string,
@@ -37,6 +39,8 @@ function ScopedPrintStudio({
   disabled,
   canViewJobs,
   canReprint,
+  branchName,
+  timeZone,
   save,
 }: Props) {
   const [templates, setTemplates] = useState<any>(null),
@@ -53,12 +57,77 @@ function ScopedPrintStudio({
     [formatUnknown, setFormatUnknown] = useState<any>(null),
     [savedReview, setSavedReview] = useState<any>(null),
     [reprintUnknown, setReprintUnknown] = useState(false),
-    [limit, setLimit] = useState(20);
+    [limit, setLimit] = useState(20),
+    [dirty, setDirty] = useState(false),
+    [denied, setDenied] = useState(false);
   const frame = useRef<HTMLIFrameElement>(null),
     active = useRef(true),
     formatsGeneration = useRef(0),
-    jobsGeneration = useRef(0);
+    jobsGeneration = useRef(0),
+    inFlight = useRef(false),
+    dirtyRef = useRef(false),
+    unknownFormatRef = useRef<any>(null),
+    unknownReprintRef = useRef(false),
+    deniedRef = useRef(false),
+    permissions = useRef({ canViewJobs, canReprint });
+  permissions.current = { canViewJobs, canReprint };
+  function editTemplates(value: any) {
+    dirtyRef.current = true;
+    setDirty(true);
+    setTemplates(value);
+  }
+  function deny() {
+    deniedRef.current = true;
+    formatsGeneration.current++;
+    jobsGeneration.current++;
+    setDenied(true);
+    setTemplates(null);
+    setJobs([]);
+    setReason("");
+    setSavedReview(null);
+    setFormatUnknown(null);
+    unknownFormatRef.current = null;
+    setReprintUnknown(false);
+    unknownReprintRef.current = false;
+    dirtyRef.current = false;
+    setDirty(false);
+    setFormatError("");
+    setJobsError("");
+    setWriteError("");
+    setFormatLoading(false);
+    setJobsLoading(false);
+  }
+  function jobDate(value: unknown) {
+    if (
+      typeof value !== "string" ||
+      !value.trim() ||
+      !Number.isFinite(Date.parse(value))
+    )
+      return "Time unavailable";
+    if (timeZone) {
+      try {
+        return (
+          new Intl.DateTimeFormat("en-GB", {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone,
+          }).format(new Date(value)) +
+          " · " +
+          timeZone
+        );
+      } catch {
+        /* Invalid branch zone uses a labelled device clock. */
+      }
+    }
+    return (
+      new Intl.DateTimeFormat("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(value)) + " · Device time"
+    );
+  }
   const readTemplates = async (signal?: AbortSignal) => {
+    if (deniedRef.current) return;
     const version = ++formatsGeneration.current;
     setFormatLoading(true);
     setFormatError("");
@@ -71,12 +140,13 @@ function ScopedPrintStudio({
       );
       if (
         !active.current ||
+        deniedRef.current ||
         signal?.aborted ||
         version !== formatsGeneration.current
       )
         return;
       if (!validTemplate(result)) throw new Error("Invalid format response");
-      if (!formatUnknown) setTemplates(result);
+      if (!unknownFormatRef.current && !dirtyRef.current) setTemplates(result);
       else setSavedReview(result);
     } catch (failure: any) {
       if (
@@ -84,8 +154,10 @@ function ScopedPrintStudio({
         !signal?.aborted &&
         version === formatsGeneration.current &&
         failure.name !== "AbortError"
-      )
-        setFormatError("Saved formats could not be loaded. Try again.");
+      ) {
+        if ([401, 403, 404].includes(failure.status)) deny();
+        else setFormatError("Saved formats could not be loaded. Try again.");
+      }
     } finally {
       if (
         active.current &&
@@ -96,7 +168,7 @@ function ScopedPrintStudio({
     }
   };
   const readJobs = async (signal?: AbortSignal, quiet = false) => {
-    if (!canViewJobs) return;
+    if (!permissions.current.canViewJobs || deniedRef.current) return;
     const version = ++jobsGeneration.current;
     if (!quiet) setJobsLoading(true);
     try {
@@ -108,6 +180,8 @@ function ScopedPrintStudio({
       );
       if (
         !active.current ||
+        deniedRef.current ||
+        !permissions.current.canViewJobs ||
         signal?.aborted ||
         version !== jobsGeneration.current
       )
@@ -126,8 +200,11 @@ function ScopedPrintStudio({
         !signal?.aborted &&
         version === jobsGeneration.current &&
         failure.name !== "AbortError"
-      )
-        setJobsError("Print jobs could not be loaded. Try again.");
+      ) {
+        if ([401, 403, 404].includes(failure.status)) deny();
+        else if (permissions.current.canViewJobs)
+          setJobsError("Print jobs could not be loaded. Try again.");
+      }
     } finally {
       if (
         active.current &&
@@ -141,21 +218,51 @@ function ScopedPrintStudio({
     active.current = true;
     const controller = new AbortController();
     void readTemplates(controller.signal);
-    if (canViewJobs) void readJobs(controller.signal);
-    const timer = setInterval(() => {
-      if (canViewJobs) void readJobs(controller.signal, true);
-    }, 2500);
     return () => {
       active.current = false;
       formatsGeneration.current++;
       jobsGeneration.current++;
       controller.abort();
+    };
+  }, [base]);
+  useEffect(() => {
+    const controller = new AbortController();
+    if (canViewJobs) void readJobs(controller.signal);
+    else {
+      jobsGeneration.current++;
+      setJobs([]);
+      setJobsError("");
+      setJobsLoading(false);
+      setReason("");
+    }
+    const timer = setInterval(() => {
+      if (
+        permissions.current.canViewJobs &&
+        !deniedRef.current &&
+        !document.hidden
+      )
+        void readJobs(controller.signal, true);
+    }, 2500);
+    return () => {
+      jobsGeneration.current++;
+      controller.abort();
       clearInterval(timer);
     };
   }, [base, canViewJobs]);
+  useEffect(() => {
+    if (!canReprint) setReason("");
+  }, [canReprint]);
   const saveFormat = async () => {
-    if (disabled || busy || formatUnknown || !templates) return;
+    if (
+      disabled ||
+      inFlight.current ||
+      deniedRef.current ||
+      unknownFormatRef.current ||
+      !validTemplate(templates)
+    )
+      return;
     const body = JSON.parse(JSON.stringify(templates));
+    inFlight.current = true;
     setBusy(true);
     setWriteError("");
     setWriteTarget("formats");
@@ -166,26 +273,41 @@ function ScopedPrintStudio({
         body,
         "Branch print templates saved.",
       );
-      if (!active.current) return;
-      if (validTemplate(result)) setTemplates(result);
+      if (!active.current || deniedRef.current) return;
+      if (!validTemplate(result))
+        throw Error("The saved format could not be confirmed.");
+      setTemplates(result);
+      dirtyRef.current = false;
+      setDirty(false);
+      setSavedReview(null);
     } catch (failure: any) {
-      if (active.current) {
-        setWriteError(failure.message);
-        if (!failure.status || failure.status >= 500) setFormatUnknown(body);
+      if (active.current && !deniedRef.current) {
+        if ([401, 403, 404].includes(failure.status)) deny();
+        else {
+          setWriteError(failure.message);
+          if (!failure.status || failure.status >= 500) {
+            unknownFormatRef.current = body;
+            setFormatUnknown(body);
+          }
+        }
       }
     } finally {
+      inFlight.current = false;
       if (active.current) setBusy(false);
     }
   };
   const reprint = async (job: any) => {
     if (
       disabled ||
-      busy ||
-      reprintUnknown ||
-      !canReprint ||
+      inFlight.current ||
+      deniedRef.current ||
+      unknownReprintRef.current ||
+      !permissions.current.canReprint ||
+      !permissions.current.canViewJobs ||
       reason.trim().length < 3
     )
       return;
+    inFlight.current = true;
     setBusy(true);
     setWriteError("");
     setWriteTarget("jobs");
@@ -196,16 +318,39 @@ function ScopedPrintStudio({
         { reason },
         "Duplicate print job queued and audited.",
       );
-      if (active.current) await readJobs();
+      if (
+        active.current &&
+        !deniedRef.current &&
+        permissions.current.canViewJobs
+      )
+        await readJobs();
     } catch (failure: any) {
-      if (active.current) {
-        setWriteError(failure.message);
-        if (!failure.status || failure.status >= 500) setReprintUnknown(true);
+      if (active.current && !deniedRef.current) {
+        if ([401, 403, 404].includes(failure.status)) deny();
+        else {
+          if (!failure.status || failure.status >= 500) {
+            unknownReprintRef.current = true;
+            setReprintUnknown(true);
+          }
+          if (permissions.current.canViewJobs && permissions.current.canReprint)
+            setWriteError(failure.message);
+        }
       }
     } finally {
+      inFlight.current = false;
       if (active.current) setBusy(false);
     }
   };
+  if (denied)
+    return (
+      <section className="mw-card">
+        <h2>Receipts & stickers</h2>
+        <p role="alert">
+          Print access needs checking. Refresh the workspace or sign in again
+          before continuing.
+        </p>
+      </section>
+    );
   let sample = "";
   const sampleError =
     templates && !validTemplate(templates)
@@ -214,9 +359,13 @@ function ScopedPrintStudio({
   if (templates && !sampleError) {
     const common = {
       businessName: templates.receipt.businessName,
-      branchName: "Layout preview",
+      branchName: branchName
+        ? branchName + " · Layout preview"
+        : "Layout preview",
       reference: "SAMPLE",
       currency: "NGN",
+      branch: { timezone: timeZone || null },
+      context: { fulfillment: "counter_pickup", tableName: null },
       customerName: "SAMPLE — NOT A SALE",
       staffName: "Sample staff",
       note: "Layout preview only. No payment recorded.",
@@ -237,6 +386,19 @@ function ScopedPrintStudio({
                 },
               ],
               total: 100000,
+              pricing: {
+                subtotal: 100000,
+                discount: 0,
+                serviceCharge: 0,
+                tax: 0,
+                lines: [],
+              },
+              paymentSummary: {
+                appliedPaid: 0,
+                lifetimeCollected: 0,
+                refunded: 0,
+                methodBreakdownStatus: "unavailable",
+              },
               appliedPaid: 0,
             }
           : {
@@ -311,6 +473,14 @@ function ScopedPrintStudio({
                     " mm sticker"}
               </p>
               {sampleError && <p role="alert">{sampleError}</p>}
+              {preview === "label" &&
+                !sampleError &&
+                (templates.label.width < 40 || templates.label.height < 30) && (
+                  <p className="mw-print-note">
+                    This small label may need more space; review all details and
+                    test on the actual printer.
+                  </p>
+                )}
               <iframe
                 title={
                   preview === "receipt"
@@ -340,6 +510,30 @@ function ScopedPrintStudio({
               className="mw-print-format"
               summary="Edit receipt & sticker format"
             >
+              {dirty && !formatUnknown && (
+                <p role="status">
+                  Unsaved format changes. Refreshing saved formats will not
+                  replace your draft.
+                </p>
+              )}
+              {dirty && !formatUnknown && (
+                <>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy || formatLoading}
+                    onClick={() => void readTemplates()}
+                  >
+                    Read latest saved format
+                  </button>
+                  {savedReview && (
+                    <p>
+                      Latest saved heading: {savedReview.receipt.businessName}.
+                      Your draft is unchanged.
+                    </p>
+                  )}
+                </>
+              )}
               {formatUnknown && (
                 <div className="mw-note" role="status">
                   <strong>Format save unconfirmed</strong>
@@ -383,7 +577,7 @@ function ScopedPrintStudio({
                       maxLength={100}
                       value={templates.receipt.businessName}
                       onChange={(e) =>
-                        setTemplates({
+                        editTemplates({
                           ...templates,
                           receipt: {
                             ...templates.receipt,
@@ -398,7 +592,7 @@ function ScopedPrintStudio({
                     <select
                       value={templates.receipt.paperWidth}
                       onChange={(e) =>
-                        setTemplates({
+                        editTemplates({
                           ...templates,
                           receipt: {
                             ...templates.receipt,
@@ -417,7 +611,7 @@ function ScopedPrintStudio({
                       maxLength={300}
                       value={templates.receipt.footer}
                       onChange={(e) =>
-                        setTemplates({
+                        editTemplates({
                           ...templates,
                           receipt: {
                             ...templates.receipt,
@@ -432,7 +626,7 @@ function ScopedPrintStudio({
                     <select
                       value={String(templates.receipt.showStaff)}
                       onChange={(e) =>
-                        setTemplates({
+                        editTemplates({
                           ...templates,
                           receipt: {
                             ...templates.receipt,
@@ -455,7 +649,7 @@ function ScopedPrintStudio({
                         max={key === "width" ? 60 : 150}
                         value={templates.label[key]}
                         onChange={(e) =>
-                          setTemplates({
+                          editTemplates({
                             ...templates,
                             label: {
                               ...templates.label,
@@ -497,7 +691,7 @@ function ScopedPrintStudio({
             </button>
           )}
         </header>
-        {writeError && writeTarget === "jobs" && (
+        {canViewJobs && canReprint && writeError && writeTarget === "jobs" && (
           <p role="alert">{writeError}</p>
         )}
         {!canViewJobs ? (
@@ -563,11 +757,18 @@ function ScopedPrintStudio({
                             "Order reference unavailable"}
                         </h3>
                         <p>
-                          {String(
-                            job.status || "Status unavailable",
-                          ).replaceAll("_", " ")}{" "}
+                          {(
+                            {
+                              queued: "Queued",
+                              submitted: "Submission recorded",
+                              processing: "Processing",
+                              failed: "Needs attention",
+                              cancelled: "Cancelled",
+                              confirmed: "Device confirmed",
+                            } as Record<string, string>
+                          )[job.status] || "Status unavailable"}{" "}
                           ·{" "}
-                          {job.physicalConfirmed
+                          {job.physicalConfirmed === true
                             ? "Device-confirmed output"
                             : "Physical output unconfirmed"}
                           {job.duplicate ? " · Duplicate" : ""}
@@ -589,6 +790,7 @@ function ScopedPrintStudio({
                         </button>
                       )}
                     </header>
+                    <p>{jobDate(job.createdAt)}</p>
                     {job.documentSnapshot && (
                       <PrintDocument job={job} disabled={disabled} />
                     )}

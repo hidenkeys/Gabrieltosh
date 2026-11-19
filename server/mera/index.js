@@ -3062,10 +3062,13 @@ export function createMeraRouter(db) {
       req.params.branchId,
       "template",
     );
+    if(rows[0]) return res.json(rows[0].data);
+    const organization=(await db.query("SELECT name FROM mera_organizations WHERE id=$1",[req.params.organizationId])).rows[0];
+    if(!organization?.name) throw fail("Organization template defaults are unavailable.",404,"NOT_FOUND");
     res.json(
-      rows[0]?.data || {
+      {
         receipt: {
-          businessName: "Bing Chun",
+          businessName: organization.name,
           footer: "Thank you. See you again soon.",
           showStaff: true,
           paperWidth: 58,

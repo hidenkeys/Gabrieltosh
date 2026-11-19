@@ -275,11 +275,40 @@ test(
         ).status,
         409,
       );
+      assert.equal((await call(B+"/print-jobs")).data.filter(j=>j.orderId===winner.order.id).length,0);
       await call(B + "/orders/" + winner.order.id + "/payments", "POST", {
         requestKey: randomUUID(),
         method: "external_pos",
         amount: 280000,
       });
+      // Real payment path queues a single immutable v2 batch; partial/replayed payments cannot duplicate it.
+      const paidJobs=(await call(B+"/print-jobs")).data.filter(j=>j.orderId===winner.order.id);
+      assert.equal(paidJobs.filter(j=>j.kind==="receipt").length,1);
+      assert.equal(paidJobs.filter(j=>j.kind==="label").length,winner.order.items.reduce((n,i)=>n+i.quantity,0));
+      const receiptJob=paidJobs.find(j=>j.kind==="receipt");
+      assert.equal(receiptJob.documentVersion,2);
+      assert.equal(receiptJob.documentSnapshot.branch.timezone,"Africa/Lagos");
+      assert.equal(receiptJob.documentSnapshot.branch.address,"75A Bode Thomas Street, Surulere, Lagos");
+      assert.equal(receiptJob.documentSnapshot.context.fulfillment,winner.order.fulfillment);
+      assert.equal(receiptJob.documentSnapshot.paymentSummary.appliedPaid,380000);
+      assert.equal(receiptJob.documentSnapshot.paymentSummary.methodBreakdownStatus,"unavailable");
+      assert.equal((await call(B+"/print-jobs/"+receiptJob.id)).status,200);
+      const originalBranchSettings=(await db.query("SELECT settings FROM mera_branches WHERE id=$1 AND organization_id=$2",[branch,org])).rows[0].settings;
+      await db.query("UPDATE mera_branches SET settings=$1 WHERE id=$2 AND organization_id=$3",[JSON.stringify({...originalBranchSettings,address:"Changed after settlement"}),branch,org]);
+      const duplicateDoc=await call(B+"/print-jobs/"+receiptJob.id+"/reprint","POST",{reason:"Synthetic immutable receipt check"});
+      assert.equal(duplicateDoc.status,201);assert.equal(duplicateDoc.data.duplicate,true);
+      assert.deepEqual(duplicateDoc.data.documentSnapshot,receiptJob.documentSnapshot);
+      await db.query("UPDATE mera_branches SET settings=$1 WHERE id=$2 AND organization_id=$3",[JSON.stringify(originalBranchSettings),branch,org]);
+      const browserSubmission=await call(B+"/print-jobs/"+receiptJob.id+"/browser-submission","POST",{requestKey:randomUUID()});
+      assert.equal(browserSubmission.status,200);assert.equal(browserSubmission.data.physicalConfirmed,false);
+      const legacyJobId=randomUUID();
+      await db.query("INSERT INTO mera_records(id,organization_id,branch_id,kind,data) VALUES($1,$2,$3,'print_job',$4)",[legacyJobId,org,branch,JSON.stringify({...receiptJob,id:legacyJobId,automaticPaid:false,documentVersion:1,status:"queued"})]);
+      assert.equal((await call(B+"/print-jobs/"+legacyJobId)).status,200);
+      const legacyReprint=await call(B+"/print-jobs/"+legacyJobId+"/reprint","POST",{reason:"Legacy snapshot compatibility check"});
+      assert.equal(legacyReprint.status,201);assert.equal(legacyReprint.data.documentVersion,1);assert.deepEqual(legacyReprint.data.documentSnapshot,receiptJob.documentSnapshot);
+      assert.equal((await call(B+"/print-jobs/"+legacyJobId+"/browser-submission","POST",{requestKey:randomUUID()})).status,200);
+      const unsupportedId=randomUUID();await db.query("INSERT INTO mera_records(id,organization_id,branch_id,kind,data) VALUES($1,$2,$3,'print_job',$4)",[unsupportedId,org,branch,JSON.stringify({...receiptJob,id:unsupportedId,automaticPaid:false,documentVersion:99,status:"queued"})]);
+      assert.equal((await call(B+"/print-jobs/"+unsupportedId)).data.code,"DOCUMENT_REVIEW_REQUIRED");
       let order = (
         await call(
           "/public/orders/" + winner.order.id,
@@ -1318,6 +1347,16 @@ test(
       const foreignOrg=await call("/organizations","POST",{name:"Foreign asset fixture",slug:"foreign-asset-fixture",branchName:"Other"});
       assert.equal(foreignOrg.status,201,JSON.stringify(foreignOrg.data));
       const foreignBase="/organizations/"+foreignOrg.data.organizationId+"/branches/"+foreignOrg.data.branchId;
+      const foreignTemplateDefault=await call(foreignBase+"/templates");
+      assert.equal(foreignTemplateDefault.status,200);
+      assert.equal(foreignTemplateDefault.data.receipt.businessName,"Foreign asset fixture");
+      assert.notEqual(foreignTemplateDefault.data.receipt.businessName,"Bing Chun");
+      const originalTemplateDefault=await call(B+"/templates");
+      assert.equal(originalTemplateDefault.status,200);assert.equal(originalTemplateDefault.data.receipt.businessName,"Bing Chun");
+      const savedForeignTemplate={receipt:{...foreignTemplateDefault.data.receipt,businessName:"Saved custom receipt title"},label:foreignTemplateDefault.data.label};
+      assert.equal((await call(foreignBase+"/templates","PUT",savedForeignTemplate)).status,200);
+      assert.equal((await call(foreignBase+"/templates")).data.receipt.businessName,"Saved custom receipt title");
+
       const foreignUpload=await call(foreignBase+"/assets","POST",{filename:"foreign.png",mime:"image/png",data:png});
       assert.equal(foreignUpload.status,201,JSON.stringify(foreignUpload.data));
       assert.equal((await call(B+"/products/"+sized.data.id,"PUT",{...latestSized,image:foreignUpload.data.url})).status,403);
