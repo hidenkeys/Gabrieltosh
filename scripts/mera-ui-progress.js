@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Private visit and approved isolated platform MFA/read/review milestones verified at9533313; subscription surface corrected. Next complete remaining management/operational screens, customer help/checkout/recovery, shared primitives and broad state/accessibility acceptance. Live provider and hardware gates remain separate.",
+  "Records, printing/QR and help partial milestones verified at645308d; shared operational primitives integrated. Next: finance/shift and remaining management screens, complete responsibility/recovery flows, dialog primitives and broad state/accessibility acceptance. Live providers and physical printing remain separate launch gates.",
   "",
   "## Measurement",
   "",

@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T00:24:32+01:00",
-  "revision": "9533313",
+  "lastUpdated": "2026-11-19T01:03:29+01:00",
+  "revision": "645308d",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -143,7 +143,7 @@
       "workstream": "F",
       "title": "Shared primitives and preservation specification",
       "weight": 2,
-      "checkpoint": 0,
+      "checkpoint": 40,
       "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
@@ -151,7 +151,8 @@
       ],
       "acceptance": "Extract source-grounded controls/tables/disclosures/dialogs and document effective typography/spacing/status/branding rules without invented token scale.",
       "evidence": [
-        "docs/mera/ui-audit/PRIMITIVES.md"
+        "docs/mera/ui-audit/PRIMITIVES.md",
+        "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md"
       ],
       "blockers": [],
       "history": [
@@ -164,6 +165,11 @@
           "at": "2026-11-18T16:10:03+01:00",
           "checkpoint": 0,
           "note": "Source preservation/primitives specification prepared; extraction and acceptance still pending."
+        },
+        {
+          "at": "2026-11-19T01:03:29+01:00",
+          "checkpoint": 40,
+          "note": "Records/printing/help integration: actual browser comparisons and help reply/privacy loop, regression suite391passed/2skipped. Partial acceptance only; remaining task scope documented."
         }
       ]
     },
@@ -455,7 +461,7 @@
       "workstream": "O",
       "title": "Subscriptions, printing, QR and customer/support care",
       "weight": 4,
-      "checkpoint": 0,
+      "checkpoint": 40,
       "status": "IN_PROGRESS",
       "owner": "workspace",
       "dependencies": [
@@ -465,7 +471,8 @@
       "acceptance": "Purpose-built compact screens/details for invoices/templates/jobs/QR/complaints/support/integrations with advanced configuration disclosed; genuine blocked states actionable.",
       "evidence": [
         "docs/mera/ui-audit/BILLING-MANAGEMENT-MOUNT.md",
-        "docs/mera/ui-audit/subscription-comparison.html"
+        "docs/mera/ui-audit/subscription-comparison.html",
+        "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md"
       ],
       "blockers": [],
       "history": [
@@ -478,6 +485,11 @@
           "at": "2026-11-19T00:24:32+01:00",
           "checkpoint": 0,
           "note": "Subscription/invoices corrected and visually exercised, but broad O7 printing/QR/care/support/integrations acceptance is incomplete; no weighted completion credit for a single surface."
+        },
+        {
+          "at": "2026-11-19T01:03:29+01:00",
+          "checkpoint": 40,
+          "note": "Records/printing/help integration: actual browser comparisons and help reply/privacy loop, regression suite391passed/2skipped. Partial acceptance only; remaining task scope documented."
         }
       ]
     },
@@ -519,21 +531,28 @@
       "workstream": "P",
       "title": "Order lists, details, responsibility and help",
       "weight": 4,
-      "checkpoint": 0,
-      "status": "NOT_STARTED",
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
         "F4",
         "F5"
       ],
       "acceptance": "Scan reference/time/customer/table/source/status/payment/amount/handler and next action; timeline/details; assignment/privacy preserved.",
-      "evidence": [],
+      "evidence": [
+        "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md"
+      ],
       "blockers": [],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 0,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-19T01:03:29+01:00",
+          "checkpoint": 40,
+          "note": "Records/printing/help integration: actual browser comparisons and help reply/privacy loop, regression suite391passed/2skipped. Partial acceptance only; remaining task scope documented."
         }
       ]
     },
@@ -706,7 +725,7 @@
       "workstream": "C",
       "title": "Visit joining, bills, rounds and help",
       "weight": 4,
-      "checkpoint": 40,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "customer",
       "dependencies": [
@@ -721,7 +740,8 @@
         "tests/mera-customer-visit-refresh.test.tsx",
         "docs/mera/ui-audit/SUBSCRIPTION-VISIT-PLATFORM-CHECKPOINT.md",
         "docs/mera/ui-audit/screenshots/68-visit-bill-desktop.jpg",
-        "docs/mera/ui-audit/screenshots/70-visit-bill-narrow.jpg"
+        "docs/mera/ui-audit/screenshots/70-visit-bill-narrow.jpg",
+        "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md"
       ],
       "blockers": [],
       "history": [
@@ -739,6 +759,11 @@
           "at": "2026-11-19T00:24:32+01:00",
           "checkpoint": 40,
           "note": "Private table summary integrated and actual invalid-code/join/unpaid-round/canonical refresh verified at three widths; join/read scope races tested. Help/deposit/split/full state/comparison acceptance still incomplete."
+        },
+        {
+          "at": "2026-11-19T01:03:29+01:00",
+          "checkpoint": 60,
+          "note": "Records/printing/help integration: actual browser comparisons and help reply/privacy loop, regression suite391passed/2skipped. Partial acceptance only; remaining task scope documented."
         }
       ]
     },
@@ -1342,7 +1367,7 @@
         "O7"
       ],
       "task": "PrintStudio/PrintDocument",
-      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "functionalCoverage": "Current slice exercised; full acceptance pending. docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
       "source": "src/mera/workspace/OrganizationWorkspace.tsx",
       "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
       "permissions": "menu.edit/orders.fulfill",
@@ -1354,7 +1379,7 @@
         "recovery": "UNVERIFIED for full correction"
       },
       "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "NOT_STARTED",
+      "visualReview": "Actual corrected screens92\u2013105; matched comparison101; partial state/size review, see docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
       "blockers": []
     },
     {
@@ -1366,7 +1391,7 @@
         "O7"
       ],
       "task": "QrCodes",
-      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "functionalCoverage": "Current slice exercised; full acceptance pending. docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
       "source": "src/mera/workspace/OrganizationWorkspace.tsx",
       "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
       "permissions": "qr.manage",
@@ -1378,7 +1403,7 @@
         "recovery": "UNVERIFIED for full correction"
       },
       "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "NOT_STARTED",
+      "visualReview": "Actual corrected screens92\u2013105; matched comparison101; partial state/size review, see docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
       "blockers": []
     },
     {
@@ -1510,7 +1535,7 @@
         "O7"
       ],
       "task": "SupportCases",
-      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "functionalCoverage": "Current slice exercised; full acceptance pending. docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
       "source": "src/mera/workspace/OrganizationWorkspace.tsx",
       "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
       "permissions": "support.manage",
@@ -1522,7 +1547,7 @@
         "recovery": "UNVERIFIED for full correction"
       },
       "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "NOT_STARTED",
+      "visualReview": "Actual corrected screens92\u2013105; matched comparison101; partial state/size review, see docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
       "blockers": []
     },
     {
@@ -1645,7 +1670,7 @@
       "task": "help",
       "source": "src/mera/customer/CustomerExperience.tsx",
       "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
-      "functionalCoverage": "Existing shared backend flows; UI correction unverified",
+      "functionalCoverage": "Current slice exercised; full acceptance pending. docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
       "states": {
         "loading": "UNVERIFIED",
         "empty": "UNVERIFIED",
@@ -1653,8 +1678,8 @@
         "permission": "UNVERIFIED",
         "recovery": "UNVERIFIED"
       },
-      "responsive": "NOT_VERIFIED",
-      "visualReview": "NOT_STARTED",
+      "responsive": "Actual1440\u00d71000/834\u00d71194/390\u00d7844; final mobile reply shortcut preserves draft/focus, private staff note absent",
+      "visualReview": "Actual corrected screens92\u2013105; matched comparison101; partial state/size review, see docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
       "blockers": []
     },
     {
@@ -1966,6 +1991,13 @@
       "scopeWeight": 100,
       "weightedPoints": 46.2,
       "roundedCompletion": 46
+    },
+    {
+      "at": "2026-11-19T01:03:29+01:00",
+      "event": "Records printing QR support and customer-help partial milestone verified; shared primitives introduced; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 51.0,
+      "roundedCompletion": 51
     }
   ],
   "baselineRevision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd"
