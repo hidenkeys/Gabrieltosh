@@ -12,6 +12,7 @@ export async function workspaceApi<T = any>(
   method = "GET",
   body?: unknown,
   signal?: AbortSignal,
+  options?: { expectedActorId?: string },
 ): Promise<T> {
   const startedAt = performance.now();
   const controller = new AbortController();
@@ -48,7 +49,13 @@ export async function workspaceApi<T = any>(
           signal: controller.signal,
           credentials: "same-origin",
           cache: "no-store",
-          headers: { "Content-Type": "application/json", "X-POS-Request": "1" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-POS-Request": "1",
+            ...(options?.expectedActorId
+              ? { "X-Mera-Actor-Id": options.expectedActorId }
+              : {}),
+          },
           body: body === undefined ? undefined : JSON.stringify(body),
         });
         const content = await response.json().catch((error) => {

@@ -2373,6 +2373,39 @@ test(
       const [recoveryRaceBooking,recoveryRaceStop]=await Promise.all([call(foreignPublic+"/reservations","POST",recoveryRaceIntent,null,multiVenueCookies),call(reservationRecoveryPrefix+recoveryRaceIntent.requestKey+"/abandon","POST",{reason:"Concurrent explicit reservation recovery"},null,multiVenueCookies)]);
       const recoveryRaceCount=Number((await db.query("SELECT COUNT(*) AS count FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='reservation' AND data->>'requestKey'=$3",[foreignOrg.data.organizationId,foreignOrg.data.branchId,recoveryRaceIntent.requestKey])).rows[0].count);
       if(recoveryRaceBooking.status===201){assert.equal(recoveryRaceStop.data.status,"recorded");assert.equal(recoveryRaceStop.data.reservation.id,recoveryRaceBooking.data.id);assert.equal(recoveryRaceCount,1);}else{assert.equal(recoveryRaceBooking.data.code,"RESERVATION_REQUEST_ABANDONED");assert.equal(recoveryRaceStop.data.status,"abandoned");assert.equal(recoveryRaceCount,0);}
+      { // Staff recovery has independent actor-bound fences, while guest and integration behavior remains unchanged.
+      const staffAttemptBase=foreignBase+"/reservation-attempts/";
+      const staffIntent={...recoveryBookingIntent,requestKey:randomUUID(),displayName:"Staff recovery fixture"};
+      const wrongActorHeader={"X-Mera-Actor-Id":other};
+      const wrongActorBooking=await call(foreignBase+"/reservations","POST",staffIntent,owner,"",wrongActorHeader);assert.equal(wrongActorBooking.status,403);assert.equal(wrongActorBooking.data.code,"ACTOR_CHANGED");
+      const wrongActorCheck=await call(staffAttemptBase+staffIntent.requestKey,"GET",undefined,owner,"",wrongActorHeader);assert.equal(wrongActorCheck.status,403);assert.equal(wrongActorCheck.data.code,"ACTOR_CHANGED");
+      const wrongActorStop=await call(staffAttemptBase+staffIntent.requestKey+"/abandon","POST",{reason:"Must not fence under changed actor"},owner,"",wrongActorHeader);assert.equal(wrongActorStop.status,403);assert.equal(wrongActorStop.data.code,"ACTOR_CHANGED");
+      assert.equal((await db.query("SELECT count(*)::int AS count FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind IN ('reservation','reservation_request_resolution') AND data->>'requestKey'=$3",[foreignOrg.data.organizationId,foreignOrg.data.branchId,staffIntent.requestKey])).rows[0].count,0);
+      const staffMissing=await call(staffAttemptBase+staffIntent.requestKey);
+      assert.equal(staffMissing.status,200);assert.equal(staffMissing.cacheControl,"no-store");assert.equal(staffMissing.data.status,"not_found");assert.equal(staffMissing.data.actorId,owner);assert.equal(staffMissing.data.requestKey,staffIntent.requestKey);assert.equal(staffMissing.data.organizationId,foreignOrg.data.organizationId);assert.equal(staffMissing.data.branchId,foreignOrg.data.branchId);
+      const staffBooked=await call(foreignBase+"/reservations","POST",staffIntent,owner,"",{"X-Mera-Actor-Id":owner});assert.equal(staffBooked.status,201,JSON.stringify(staffBooked.data));
+      const staffRecorded=await call(staffAttemptBase+staffIntent.requestKey,"GET",undefined,owner,"",{"X-Mera-Actor-Id":owner});assert.equal(staffRecorded.data.status,"recorded");assert.equal(staffRecorded.data.requestKey,staffIntent.requestKey);assert.equal(staffRecorded.data.reservation.id,staffBooked.data.id);assert.equal(staffRecorded.data.reservation.contact,staffIntent.contact);
+      const staffRecordedStop=await call(staffAttemptBase+staffIntent.requestKey+"/abandon","POST",{reason:"Resolve original staff booking"});assert.equal(staffRecordedStop.data.status,"recorded");assert.deepEqual(staffRecordedStop.data.reservation,staffRecorded.data.reservation);
+      await call(foreignBase+"/settings","PATCH",{reservationsEnabled:false});
+      const realNow=Date.now;try{Date.now=()=>realNow()+41*86400000;const expiredStaffReplay=await call(foreignBase+"/reservations","POST",staffIntent);assert.equal(expiredStaffReplay.status,201);assert.equal(expiredStaffReplay.data.id,staffBooked.data.id);}finally{Date.now=realNow;}
+      assert.equal((await call(foreignBase+"/reservations","POST",{...staffIntent,partySize:2})).data.code,"IDEMPOTENCY_CONFLICT");
+      await call(foreignBase+"/settings","PATCH",{reservationsEnabled:true});
+      assert.equal((await call(staffAttemptBase+staffIntent.requestKey,"GET",undefined,null)).status,401);
+      assert.equal((await call(staffAttemptBase+staffIntent.requestKey,"GET",undefined,other)).status,403);
+      await db.query("INSERT INTO mera_memberships(id,user_id,organization_id,role,permissions,branch_ids,organization_wide) VALUES($1,$2,$3,'cashier',$4,$5,false)",[randomUUID(),other,foreignOrg.data.organizationId,JSON.stringify(["reservations.manage"]),JSON.stringify([foreignOrg.data.branchId])]);
+      const staffOtherCheck=await call(staffAttemptBase+staffIntent.requestKey,"GET",undefined,other);assert.equal(staffOtherCheck.data.status,"not_found");assert.equal(staffOtherCheck.data.actorId,other);assert.equal(staffOtherCheck.data.reservation,undefined);
+      assert.equal((await call(B+"/reservation-attempts/"+staffIntent.requestKey)).data.status,"not_found");
+      assert.equal((await call(staffAttemptBase+recoveryBookingIntent.requestKey)).data.status,"not_found");
+      const staffFenceIntent={...staffIntent,requestKey:randomUUID()};
+      const staffFence=await call(staffAttemptBase+staffFenceIntent.requestKey+"/abandon","POST",{reason:"Fence delayed original staff request"},owner,"",{"X-Mera-Actor-Id":owner});assert.equal(staffFence.data.status,"abandoned");assert.equal(staffFence.data.requestKey,staffFenceIntent.requestKey);
+      assert.deepEqual((await call(staffAttemptBase+staffFenceIntent.requestKey+"/abandon","POST",{reason:"Repeat explicit staff resolution"})).data,staffFence.data);
+      const staffDelayed=await call(foreignBase+"/reservations","POST",staffFenceIntent);assert.equal(staffDelayed.status,409);assert.equal(staffDelayed.data.code,"RESERVATION_REQUEST_ABANDONED");
+      assert.equal((await call(staffAttemptBase+staffFenceIntent.requestKey,"GET",undefined,other)).data.status,"not_found");
+      assert.equal((await call(foreignBase+"/reservations","POST",staffFenceIntent,other)).status,201);
+      const staffRaceIntent={...staffIntent,requestKey:randomUUID()};const [staffRaceCreate,staffRaceAbandon]=await Promise.all([call(foreignBase+"/reservations","POST",staffRaceIntent),call(staffAttemptBase+staffRaceIntent.requestKey+"/abandon","POST",{reason:"Concurrent staff create versus safe stop"})]);
+      const staffRaceRows=(await db.query("SELECT id FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='reservation' AND data->>'requestKey'=$3",[foreignOrg.data.organizationId,foreignOrg.data.branchId,staffRaceIntent.requestKey])).rows;
+      if(staffRaceCreate.status===201){assert.equal(staffRaceAbandon.data.status,"recorded");assert.equal(staffRaceRows.length,1);}else{assert.equal(staffRaceCreate.data.code,"RESERVATION_REQUEST_ABANDONED");assert.equal(staffRaceAbandon.data.status,"abandoned");assert.equal(staffRaceRows.length,0);}
+      }
       // Counter/public/quotes/orders must all use offered publication, never unpublished draft prices.
       const counterFixtureProduct=await call(B+"/products","POST",{name:"Published counter tea",code:"COUNTER-PG",category:"Published counter category",price:350000,stockMode:"counted",stock:10,variants:[{id:"regular",name:"Regular",price:350000,stockMode:"counted",stock:10}],modifierGroups:[{id:"toppings",name:"Toppings",min:0,max:1,options:[{id:"pearl",name:"Pearls",price:50000}]}]});
       assert.equal(counterFixtureProduct.status,201,JSON.stringify(counterFixtureProduct.data));

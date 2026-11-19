@@ -1,4 +1,4 @@
-import { assertReservationRequestActive, mountMeraReservationAttempts } from "./reservation-attempts.js";
+import { assertReservationRequestActive, assertStaffReservationRequestActive, assertExpectedReservationActor, mountMeraReservationAttempts } from "./reservation-attempts.js";
 import { mountMeraRefundRequests, reviewRefundRequest, completeRefundRequest } from "./refund-requests.js";
 import { mountMeraWorkspaceAdmin } from "./workspace-admin.js";
 import { mountMeraStockHistory } from "./stock-history.js";
@@ -1586,6 +1586,7 @@ export function createMeraRouter(db) {
       return repeat;
     }
     if (guestId && !actor) await assertReservationRequestActive(c,s,input.requestKey,guestId);
+    if(actor && actor.type!=="integration" && !guestId) await assertStaffReservationRequestActive(c,s,input.requestKey,actor.id);
     const organization=(await c.query("SELECT platform_flags FROM mera_organizations WHERE id=$1",[s.organizationId])).rows[0];
     assertOrganizationFeature(organization,"new_reservations");
     if(actor?.type==="integration")assertOrganizationFeature(organization,"zidi");
@@ -1659,6 +1660,7 @@ export function createMeraRouter(db) {
     B + "/reservations",
     guard("reservations.manage"),
     async (req, res) => {
+      assertExpectedReservationActor(req);
       const input = reservationInputSchema.parse(req.body);
       res
         .status(201)
@@ -3161,7 +3163,7 @@ export function createMeraRouter(db) {
   mountMeraRefundRequests(router,{db,guard,scope,locked,readRecords,find,record,update,event});
   mountMeraWorkspaceAdmin(router,{db,guard,scope,event});
   mountMeraStockHistory(router,{db,guard,scope,locked,find,record,update,event});
-  mountMeraReservationAttempts(router,{publicContext,guest,locked,record,event});
+  mountMeraReservationAttempts(router,{publicContext,guest,locked,record,event,guard,scope});
   mountMeraOrderAttempts(router,{guard,scope,locked,record,event,publicContext,guest,publicOrder});
   mountMeraPrinting(router,{db,guard,scope,locked,find,record,update,event});
   mountMeraQueries(router,{db,guard,scope});

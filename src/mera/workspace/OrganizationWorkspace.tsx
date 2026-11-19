@@ -35,6 +35,13 @@ import { Disclosure } from "../ui/OperationalPrimitives";
 import Bills from "./Bills";
 import ReservationSettlement from "./ReservationSettlement";
 import ReservationDesk from "./ReservationDesk";
+import ReservationRequest from "./ReservationRequest";
+import {
+  staffReservationScopeSchema,
+  readStaffReservationJournal,
+  hasStaffReservationJournals,
+  redactStaffReservationJournals,
+} from "./staffReservationJournal";
 import ShiftWorkspace from "./ShiftWorkspace";
 import TableEditor from "./TableEditor";
 import PrintStudio from "./PrintStudio";
@@ -142,6 +149,9 @@ export default function OrganizationWorkspace({
   const confirmedPrincipal = useRef("");
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [logoutBusy, setLogoutBusy] = useState(false);
+  const [, setReservationRecoveryRevision] = useState(0);
+  const [reservationPrivacyWarning, setReservationPrivacyWarning] =
+    useState(false);
   const [journalWarning, setJournalWarning] = useState(false);
   const [abandonReason, setAbandonReason] = useState("");
   const [abandonConfirmed, setAbandonConfirmed] = useState(false);
@@ -161,6 +171,8 @@ export default function OrganizationWorkspace({
   } | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const taskHeading = useRef<HTMLHeadingElement>(null);
+  const reservationRequestPanel = useRef<HTMLDivElement>(null);
+  const pendingReservationReveal = useRef<string | null>(null);
   const pendingDestinationFocus = useRef<{
     scopeKey: string;
     section: string;
@@ -302,6 +314,20 @@ export default function OrganizationWorkspace({
       });
     }
   });
+  useEffect(() => {
+    if (!pendingReservationReveal.current) return;
+    if (pendingReservationReveal.current !== navigationScope) {
+      pendingReservationReveal.current = null;
+      return;
+    }
+    if (activeSection !== "reservations") return;
+    const details = reservationRequestPanel.current?.querySelector("details");
+    if (!details) return;
+    pendingReservationReveal.current = null;
+    details.open = true;
+    details.querySelector("summary")?.focus();
+    details.scrollIntoView?.({ block: "center" });
+  });
   const pagePresentation = getSectionPresentation(activeSection);
   useEffect(() => {
     if (!productEdit) {
@@ -330,7 +356,14 @@ export default function OrganizationWorkspace({
   const scopeVersion = scopeEpoch.current.generation;
   activeScope.current = branchBase;
 
+  useEffect(() => {
+    const changed = () => setReservationRecoveryRevision((value) => value + 1);
+    window.addEventListener("mera:reservation-recovery", changed);
+    return () =>
+      window.removeEventListener("mera:reservation-recovery", changed);
+  }, []);
   const clearProtected = useCallback(() => {
+    if (!redactStaffReservationJournals()) setReservationPrivacyWarning(true);
     setError("");
     setReadError("");
     authorizationEpoch.current++;
@@ -445,6 +478,7 @@ export default function OrganizationWorkspace({
           confirmedPrincipal.current = actor;
           setPrincipal(actor);
           clearFinancialJournals(actor);
+          setReservationPrivacyWarning(!redactStaffReservationJournals(actor));
         }
         setContext(result);
         if (!accessDenied.current) setReadError("");
@@ -632,8 +666,24 @@ export default function OrganizationWorkspace({
     const financialSignature = financial
       ? method + path + JSON.stringify({ ...body, requestKey: undefined })
       : null;
+    const originalReservation =
+      method === "POST" &&
+      /^\/organizations\/[^/]+\/branches\/[^/]+\/reservations$/.test(path);
     let attemptedBody: any;
     try {
+      if (
+        originalReservation &&
+        (!requestedActor ||
+          requestedActor !== principal ||
+          requestedScope !== branchBase ||
+          path !== branchBase + "/reservations" ||
+          scopeEpoch.current.generation !== scopeVersion)
+      )
+        throw new WorkspaceError(
+          "The staff account or branch changed. Refresh the workspace and check the original reservation before continuing.",
+          403,
+          "WORKSPACE_CHANGED",
+        );
       const pending = financialRequests.current.get(requestedScope);
       if (financial && pending && pending.signature !== financialSignature)
         throw new WorkspaceError(
@@ -642,9 +692,10 @@ export default function OrganizationWorkspace({
           "FINANCIAL_INTENT_PENDING",
         );
       if (financial && pending) body = pending.body;
-      const signature = body?.requestKey
-        ? path + JSON.stringify({ ...body, requestKey: undefined })
-        : null;
+      const signature =
+        body?.requestKey && !originalReservation
+          ? path + JSON.stringify({ ...body, requestKey: undefined })
+          : null;
       if (signature) {
         const stable =
           pendingRequests.current.get(signature) || body.requestKey;
@@ -652,7 +703,13 @@ export default function OrganizationWorkspace({
         body = { ...body, requestKey: stable };
       }
       attemptedBody = body;
-      const result = await workspaceApi(path, method, body);
+      const result = await workspaceApi(
+        path,
+        method,
+        body,
+        undefined,
+        originalReservation ? { expectedActorId: requestedActor } : undefined,
+      );
       if (financial && requestedActor === confirmedPrincipal.current) {
         const match = requestedScope.match(
           /^\/organizations\/([^/]+)\/branches\/([^/]+)$/,
@@ -962,6 +1019,10 @@ export default function OrganizationWorkspace({
     setLogoutBusy(true);
     setError("");
     try {
+      if (!redactStaffReservationJournals())
+        throw new Error(
+          "Guest details could not be cleared safely. Keep this session open and retry signing out after reviewing reservation recovery.",
+        );
       await onLogout();
       window.dispatchEvent(new window.Event("mera:logout"));
       setLogoutConfirm(false);
@@ -971,6 +1032,22 @@ export default function OrganizationWorkspace({
       setLogoutBusy(false);
     }
   };
+  const reservationScope = staffReservationScopeSchema.safeParse({
+    actorId: principal || user.id,
+    organizationId,
+    branchId,
+  });
+  const reservationRecovery = (() => {
+    if (!reservationScope.success) return { pending: false, blocked: false };
+    try {
+      return {
+        pending: !!readStaffReservationJournal(reservationScope.data),
+        blocked: false,
+      };
+    } catch {
+      return { pending: true, blocked: true };
+    }
+  })();
   const pendingFinancial = financialRequests.current.get(branchBase);
   const canResolveFinancial = permissions.some((permission: string) =>
     [
@@ -1247,7 +1324,8 @@ export default function OrganizationWorkspace({
                 ? () => {
                     if (
                       financialRequests.current.size ||
-                      uncertainOrders.current.size
+                      uncertainOrders.current.size ||
+                      hasStaffReservationJournals(principal || user.id)
                     )
                       setLogoutConfirm(true);
                     else void signOut();
@@ -1300,9 +1378,11 @@ export default function OrganizationWorkspace({
               An original submission still needs resolution
             </h2>
             <p id="mw-signout-detail">
-              Signing out clears this tab’s recovery details. It does not cancel
-              a submission or reverse a recorded transaction. Keep this tab open
-              to check its result, or make an explicit choice to sign out and
+              Signing out clears this tab’s financial recovery details and
+              private reservation guest details. A reservation request reference
+              is kept for checking after you sign in again. Signing out does not
+              cancel a request or reverse a transaction. Keep this session open
+              to resolve the original submission, or explicitly sign out and
               arrange reconciliation.
             </p>
             <div className="mw-actions">
@@ -1319,7 +1399,7 @@ export default function OrganizationWorkspace({
                 disabled={logoutBusy}
                 onClick={() => void signOut()}
               >
-                Sign out and clear tab recovery
+                Sign out and clear private details
               </button>
             </div>
           </section>
@@ -1494,6 +1574,43 @@ export default function OrganizationWorkspace({
             )}
           </div>
         )}
+      {reservationPrivacyWarning && (
+        <div role="alert" className="mw-note">
+          Private reservation details could not be cleared from this tab. Keep
+          this session open and resolve reservation recovery before signing out.
+        </div>
+      )}
+      {reservationRecovery.pending && (
+        <section
+          role="status"
+          className="mw-note"
+          aria-label="Reservation recovery"
+        >
+          <strong>An original reservation request needs checking</strong>
+          <p>
+            {reservationRecovery.blocked
+              ? "This tab could not read its saved request. A new booking is blocked until recovery is resolved."
+              : "Check the original request before starting another booking. No booking is sent automatically."}
+          </p>
+          {allowed("reservations.manage") ? (
+            <button
+              className="secondary"
+              onClick={() => {
+                pendingReservationReveal.current = navigationScope;
+                selectSection("reservations");
+                setReservationRecoveryRevision((value) => value + 1);
+              }}
+            >
+              Review original reservation request
+            </button>
+          ) : (
+            <p>
+              Sign in with the original account and reservation access to check
+              this request.
+            </p>
+          )}
+        </section>
+      )}
       {pendingFinancial && canResolveFinancial && data && (
         <div role="status" className="mw-note">
           <strong>
@@ -3573,83 +3690,41 @@ export default function OrganizationWorkspace({
                       </>
                     )}
                   />
-                  <Disclosure summary="Request a reservation">
-                    <form
-                      className="mw-form"
-                      onSubmit={submit(() => {
-                        const startsAt = new Date(
-                          tabForm.startsAt,
-                        ).toISOString();
-                        const endsAt = new Date(tabForm.endsAt).toISOString();
-                        return mutate(
-                          branchBase + "/reservations",
-                          "POST",
-                          {
-                            requestKey: uuid(),
-                            displayName: tabForm.name,
-                            ...minimumSpendAck,
-                            contact: tabForm.contact,
-                            partySize: Number(tabForm.partySize),
-                            startsAt,
-                            endsAt,
-                            ...(tabForm.tableId
-                              ? { tableId: tabForm.tableId }
-                              : {}),
-                            notes: tabForm.notes || "",
-                          },
-                          "Reservation requested.",
-                        );
-                      })}
-                    >
-                      {field("Guest name", "name")}
-                      {field("Contact", "contact")}
-                      {field("Party size", "partySize", "number")}
-                      {field(
-                        "Starts at (this device’s local time)",
-                        "startsAt",
-                        "datetime-local",
-                      )}
-                      {field(
-                        "Ends at (this device’s local time)",
-                        "endsAt",
-                        "datetime-local",
-                      )}
-                      <label>
-                        Preferred table
-                        <select
-                          value={tabForm.tableId || ""}
-                          onChange={(event) =>
-                            updateForm("tableId", event.target.value)
-                          }
-                        >
-                          <option value="">No preference</option>
-                          {list(data.tables).map((table: any) => (
-                            <option key={table.id} value={table.id}>
-                              {table.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      {minimumSpendField}
-                      <div className="mw-wide">
-                        <button
-                          className="primary"
-                          disabled={
-                            busy ||
-                            offline ||
-                            features?.flags?.new_reservations === false
-                          }
-                        >
-                          Request reservation
-                        </button>
-                      </div>
-                    </form>
-                    <div className="mw-note">
-                      Availability is checked before a reservation is confirmed.
-                      Deposits and cancellation/refund policies must be approved
-                      before live collection.
-                    </div>
-                  </Disclosure>
+                  <div ref={reservationRequestPanel}>
+                    <ReservationRequest
+                      userId={principal || user.id}
+                      organizationId={organizationId}
+                      branchId={branchId}
+                      branchName={branch?.name}
+                      timeZone={branch?.timezone}
+                      tables={
+                        Array.isArray(data.tables) ? data.tables : undefined
+                      }
+                      minimumSpendPolicy={minimumSpendPolicy}
+                      depositPolicy={data?.branch?.settings?.depositPolicy}
+                      reservationPolicy={
+                        data?.branch?.settings?.reservationPolicy
+                      }
+                      reservationsEnabled={
+                        data?.branch?.settings?.reservationsEnabled === true
+                      }
+                      newReservationsAllowed={
+                        features?.flags?.new_reservations !== false
+                      }
+                      disabled={busy || offline}
+                      canRequest={allowed("reservations.manage")}
+                      save={mutate}
+                      onRecorded={() => {
+                        if (
+                          activeScope.current === branchBase &&
+                          scopeEpoch.current.generation === scopeVersion &&
+                          authorizationEpoch.current ===
+                            renderedAuthorizationVersion
+                        )
+                          void refresh();
+                      }}
+                    />
+                  </div>
                 </section>
               )}
               {activeSection === "payments" && (

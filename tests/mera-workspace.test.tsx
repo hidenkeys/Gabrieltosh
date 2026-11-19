@@ -2028,7 +2028,9 @@ test("sign out warns about unresolved requests and only clears recovery after ex
     );
     await act(async () =>
       fireEvent.click(
-        screen.getByRole("button", { name: "Sign out and clear tab recovery" }),
+        screen.getByRole("button", {
+          name: "Sign out and clear private details",
+        }),
       ),
     );
     assert.equal(signedOut, 1);
@@ -3175,7 +3177,7 @@ test("new-service flags pause new visits and bookings while staff orders and exi
         screen.getByRole("button", {
           name: "Request reservation",
         }) as HTMLButtonElement
-      ).disabled,
+      ).matches(":disabled"),
       true,
     );
     assert.equal(

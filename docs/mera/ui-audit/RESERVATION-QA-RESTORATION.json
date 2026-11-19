@@ -1,0 +1,65 @@
+{
+  "verifiedAt": "2026-11-19T09:23:29.178Z",
+  "environment": "Disposable frontdesk QA only",
+  "databasePort": 55444,
+  "databaseDirectory": "data/mera-demo-frontdesk-db",
+  "baselineRecordedAt": "2026-11-19T09:18:40.615Z",
+  "deletedExactRows": 2,
+  "deletedKinds": {
+    "reservation": 1,
+    "reservation_request_resolution": 1
+  },
+  "retainedImmutableAuditRecords": [
+    {
+      "id": "c95fcead-11bf-4b07-8c00-f1d22a0152d4",
+      "action": "reservation_request_abandoned",
+      "createdAt": "2026-11-19T09:21:27.652Z"
+    },
+    {
+      "id": "cf3a54e9-9da8-481d-b33b-4b3b39525d02",
+      "action": "reservation_requested",
+      "createdAt": "2026-11-19T09:20:53.585Z"
+    }
+  ],
+  "appendOnlyGuardPreserved": true,
+  "fixture": {
+    "name": "ISOLATED RESERVATION RECOVERY QA 19NOV",
+    "bookingId": "a21d65ed-1c53-4d5d-a32c-4e53251352da",
+    "bookingRequestKey": "c769b27b-2adb-4b6b-993d-ae76de393341",
+    "resolutionId": "ea83a82b-7e1e-4fd3-b7b4-fcfea0f59656",
+    "abandonedRequestKey": "eeb511e7-5b21-4f3d-99ed-e8d9c3be9153"
+  },
+  "remainingMutableFixtureRows": 0,
+  "remainingImmutableFixtureAuditRows": 2,
+  "baselineRecordCount": 90,
+  "allBaselineRecordHashesUnchanged": true,
+  "allBaselineCountsRestored": false,
+  "expectedCountDelta": {
+    "audit": 2
+  },
+  "baselinePlusExpectedAuditDeltaVerified": true,
+  "branchSettingsUnchanged": true,
+  "financialStockPrintCountsUnchanged": true,
+  "restoredCounts": {
+    "product": 35,
+    "ticket": 3,
+    "bill": 4,
+    "order_quote": 2,
+    "table": 2,
+    "audit": 31,
+    "order": 3,
+    "waitlist": 2,
+    "export": 1,
+    "menu_publication": 1,
+    "item_fulfillment": 1,
+    "order_request_resolution": 1,
+    "visit_table_change": 1,
+    "job": 1,
+    "template": 1,
+    "visit": 1,
+    "stock_movement": 1,
+    "ledger": 1
+  },
+  "scope": "Exact manifest ID deletion only; no existing record updates or deletes; no production database access",
+  "limitation": "Invalid-date rejection and explicit fenced stop were tested; no unknown-network simulation claimed."
+}

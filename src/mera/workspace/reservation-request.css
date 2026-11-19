@@ -1,0 +1,74 @@
+.mw-reservation-request {
+  margin-block: 16px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mw-reservation-request > summary {
+  min-height: 44px;
+  padding-block: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.mw-reservation-request fieldset {
+  border: 0;
+  padding: 0;
+  margin: 16px 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  min-width: 0;
+}
+.mw-reservation-request label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  margin-block: 8px;
+}
+.mw-reservation-request .mw-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mw-reservation-request input:not([type="checkbox"]),
+.mw-reservation-request select,
+.mw-reservation-request textarea {
+  min-height: 44px;
+  min-width: 0;
+  width: 100%;
+}
+.mw-reservation-request input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.mw-reservation-request p {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #51647d;
+}
+.mw-reservation-request .mw-note {
+  grid-column: 1/-1;
+}
+.mw-reservation-request
+  :is(input, select, textarea, button, summary):focus-visible {
+  outline: 3px solid #2f7df6;
+  outline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .mw-reservation-request fieldset {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* Keep booking fields readable within the existing wide records workspace. */
+.mw-reservation-request form,
+.mw-reservation-request > section {
+  max-width: 960px;
+}
+.mw-reservation-request fieldset > button {
+  grid-column: 1 / -1;
+  justify-self: start;
+  align-self: start;
+  min-height: 44px;
+  width: auto;
+}
