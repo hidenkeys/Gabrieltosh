@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Overview/service/order drilldown partial milestone verified at77e397c: expired records excluded from current service, truthful unavailable states, positive alert and active/reference queue navigation, handheld table corrections. Full suite570pass/2skip, build and focused integration passed; temporary zero-value fixtures exactly restored. Next: broader role/other-alert/recovery acceptance and remaining platform surfaces. Main preview3003 running; provider, physical-printer and isolated-platform credential gates remain explicit.",
+  "Attention destinations milestone verified atf5b4452: focused stock/arrival/shift queues, source-derived reservation/shift wrappers, stock-only permission boundary, retained action drafts and explicit drilldown heading focus/scroll reset. Full suite584pass/2skip,25focused/6integrated tests, build and actual390/834comparisons passed; exact3QAfixture rows restored. Next: reservation/shift write recovery, broader role/financial acceptance and remaining platform surfaces. Main3003 running; provider, platform QA credential and physical-printer gates remain explicit.",
   "",
   "## Measurement",
   "",
