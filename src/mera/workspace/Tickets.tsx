@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import OrderInstructions from "./OrderInstructions";
 type Save = (
   path: string,
@@ -50,8 +50,52 @@ function ScopedTickets({
     [quantities, setQuantities] = useState<Record<string, string>>({}),
     [error, setError] = useState(""),
     [working, setWorking] = useState(false),
-    [pending, setPending] = useState<Intent | null>(null);
-  const valid = Array.isArray(tickets) && Array.isArray(orders);
+    [pending, setPending] = useState<Intent | null>(null),
+    [denied, setDenied] = useState(false);
+  const active = useRef(true),
+    flight = useRef(false),
+    pendingRef = useRef<Intent | null>(null);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
+  const validItem = (item: any) =>
+    item &&
+    typeof item === "object" &&
+    Number.isSafeInteger(item.quantity) &&
+    item.quantity >= 0 &&
+    (item.preparedQuantity === undefined ||
+      (Number.isSafeInteger(item.preparedQuantity) &&
+        item.preparedQuantity >= 0 &&
+        item.preparedQuantity <= item.quantity));
+  const valid =
+    Array.isArray(tickets) &&
+    Array.isArray(orders) &&
+    tickets.every(
+      (ticket) =>
+        ticket &&
+        typeof ticket.id === "string" &&
+        typeof ticket.station === "string",
+    ) &&
+    new Set(tickets.map((ticket) => ticket?.id)).size === tickets.length &&
+    orders.every(
+      (row) => row && typeof row === "object" && typeof row.id === "string",
+    ) &&
+    tickets
+      .filter((ticket) => !stationScope || ticket?.station === stationScope)
+      .every(
+        (ticket) =>
+          ticket &&
+          typeof ticket.id === "string" &&
+          typeof ticket.station === "string" &&
+          ["queued", "preparing", "ready", "cancelled"].includes(
+            ticket.status,
+          ) &&
+          Array.isArray(ticket.items) &&
+          ticket.items.every(validItem),
+      );
   const permitted = Array.isArray(tickets)
     ? tickets.filter(
         (ticket) =>
@@ -77,37 +121,64 @@ function ScopedTickets({
   const now =
     serverTime && Number.isFinite(Date.parse(serverTime))
       ? Date.parse(serverTime)
-      : Date.now();
-  const write = async (intent: Intent) => {
-    if (disabled || working) return;
+      : NaN;
+  const write = async (requested: Intent) => {
+    if (disabled || flight.current || denied) return;
+    const intent = pendingRef.current || requested;
+    flight.current = true;
     setWorking(true);
     setError("");
     try {
       await save(intent.path, "POST", intent.body, intent.message);
+      if (!active.current) return;
+      pendingRef.current = null;
       setPending(null);
       setQuantities({});
     } catch (failure: any) {
+      if (!active.current) return;
+      if (pendingRef.current || !failure.status || failure.status >= 500) {
+        pendingRef.current = intent;
+        setPending(intent);
+      }
+      if ([401, 403, 404].includes(failure.status)) {
+        setDenied(true);
+        setQuantities({});
+      }
       setError(
         failure.message || "The preparation update could not be confirmed.",
       );
-      if (pending || !failure.status || failure.status >= 500)
-        setPending(intent);
     } finally {
-      setWorking(false);
+      flight.current = false;
+      if (active.current) setWorking(false);
     }
   };
   const refresh = async () => {
-    if (!onRefresh) return;
+    if (!onRefresh || flight.current || denied || refreshDisabled) return;
+    flight.current = true;
     setWorking(true);
     setError("");
     try {
       await onRefresh();
-    } catch {
-      setError("Tickets could not be refreshed. Try again.");
+    } catch (failure: any) {
+      if (active.current) {
+        if ([401, 403, 404].includes(failure.status)) setDenied(true);
+        setError("Tickets could not be refreshed. Try again.");
+      }
     } finally {
-      setWorking(false);
+      flight.current = false;
+      if (active.current) setWorking(false);
     }
   };
+  if (denied)
+    return (
+      <section className="mw-preparation">
+        <h2>Station preparation</h2>
+        <p role="alert">
+          Preparation access needs checking. Refresh the workspace or sign in
+          again before continuing.
+        </p>
+      </section>
+    );
   return (
     <section className="mw-preparation" aria-label="Station preparation">
       <header className="mw-preparation-toolbar">
@@ -172,6 +243,8 @@ function ScopedTickets({
                 type="button"
                 disabled={disabled || working}
                 onClick={() => {
+                  if (flight.current) return;
+                  pendingRef.current = null;
                   setPending(null);
                   setQuantities({});
                   setError("");
@@ -212,6 +285,11 @@ function ScopedTickets({
           </select>
         </label>
       </div>
+      {!Number.isFinite(now) && (
+        <p className="mw-preparation-waiting">
+          Waiting times are unavailable until the branch clock is refreshed.
+        </p>
+      )}
       {loading ? (
         <p role="status">Loading preparation tickets…</p>
       ) : loadError ? (
@@ -244,9 +322,10 @@ function ScopedTickets({
               : "Accepted orders will appear when items are routed to your station."}
           </p>
         </div>
-      ) : (
-        <div className="mw-preparation-grid">
-          {rows.map((ticket) => {
+      ) : null}
+      {valid && (
+        <div className="mw-preparation-grid" hidden={loading || !!loadError}>
+          {permitted.map((ticket) => {
             const order = orders?.find((row) => row?.id === ticket.orderId),
               closed = ["ready", "cancelled"].includes(ticket.status);
             const inactive =
@@ -288,7 +367,11 @@ function ScopedTickets({
                 } as Record<string, string>
               )[ticket.status] || "Status unavailable";
             return (
-              <article className="mw-preparation-ticket" key={ticket.id}>
+              <article
+                className="mw-preparation-ticket"
+                key={ticket.id}
+                hidden={!rows.includes(ticket)}
+              >
                 <header>
                   <div>
                     <span className="mw-preparation-station">
@@ -312,7 +395,7 @@ function ScopedTickets({
                   ) : null}
                 </div>
                 <OrderInstructions order={order} />
-                {!Number.isInteger(ticket.version) && (
+                {(!Number.isInteger(ticket.version) || ticket.version < 1) && (
                   <p className="mw-preparation-waiting">
                     Refresh this older ticket before updating preparation.
                   </p>
@@ -337,7 +420,18 @@ function ScopedTickets({
                           key={key}
                           onSubmit={(event) => {
                             event.preventDefault();
-                            if (locked || !item.orderLineId) return;
+                            const raw =
+                                quantities[key] ??
+                                String(item.preparedQuantity ?? 0),
+                              count = raw.trim() === "" ? NaN : Number(raw);
+                            if (
+                              locked ||
+                              !item.orderLineId ||
+                              !Number.isSafeInteger(count) ||
+                              count < (item.preparedQuantity ?? 0) ||
+                              count > item.quantity
+                            )
+                              return;
                             void write({
                               path:
                                 base +
@@ -346,9 +440,7 @@ function ScopedTickets({
                                 "/items/" +
                                 encodeURIComponent(item.orderLineId),
                               body: {
-                                preparedQuantity: Number(
-                                  quantities[key] ?? item.preparedQuantity ?? 0,
-                                ),
+                                preparedQuantity: count,
                                 version: ticket.version,
                               },
                               ticketId: ticket.id,
@@ -393,12 +485,20 @@ function ScopedTickets({
                                       0
                                     }
                                     disabled={locked}
-                                    onChange={(event) =>
-                                      setQuantities({
-                                        ...quantities,
-                                        [key]: event.target.value,
-                                      })
-                                    }
+                                    onInput={(event) => {
+                                      const value = event.currentTarget.value;
+                                      setQuantities((old) => ({
+                                        ...old,
+                                        [key]: value,
+                                      }));
+                                    }}
+                                    onChange={(event) => {
+                                      const value = event.target.value;
+                                      setQuantities((old) => ({
+                                        ...old,
+                                        [key]: value,
+                                      }));
+                                    }}
                                   />
                                 </label>
                                 <button className="secondary" disabled={locked}>
