@@ -179,12 +179,12 @@
         {
           "at": "2026-11-19T15:16:12+01:00",
           "checkpoint": 80,
-          "note": "AllfourMera dialog consumers use shared source-grounded focus/scroll/isolation lifecycle. Matched actual233/235 same2782×1048, unchanged720×1015.77native layout, real nativekeyboard/narrow433CSS and customer834/390/errorfocus/return verified. Fullsuite616pass/2skip, build andfocusedconsumer/shared/integrated checks passed. Sharedprimitives80; fullcrossscreen/assistive/protectedplatformbrowser matrix incomplete, noQ2credit."
+          "note": "AllfourMera dialog consumers use shared source-grounded focus/scroll/isolation lifecycle. Matched actual233/235 same2782\u00d71048, unchanged720\u00d71015.77native layout, real nativekeyboard/narrow433CSS and customer834/390/errorfocus/return verified. Fullsuite616pass/2skip, build andfocusedconsumer/shared/integrated checks passed. Sharedprimitives80; fullcrossscreen/assistive/protectedplatformbrowser matrix incomplete, noQ2credit."
         },
         {
           "at": "2026-11-19T20:41:27+01:00",
           "checkpoint": 100,
-          "note": "Lead-reviewed role/menu acceptance at0e054fb; actual294–307 plus prior source/size/state evidence;117focused checks/build passed; full rerun pending. Exact dimensions/limits in ROLE-ACCEPTANCE-CLOSURE.md. Scopeunchanged."
+          "note": "Lead-reviewed role/menu acceptance at0e054fb; actual294\u2013307 plus prior source/size/state evidence;117focused checks/build passed; full rerun pending. Exact dimensions/limits in ROLE-ACCEPTANCE-CLOSURE.md. Scopeunchanged."
         },
         {
           "at": "2026-11-19T21:11:26+01:00",
@@ -235,7 +235,7 @@
         {
           "at": "2026-11-19T20:41:27+01:00",
           "checkpoint": 100,
-          "note": "Lead-reviewed role/menu acceptance at0e054fb; actual294–307 plus prior source/size/state evidence;117focused checks/build passed; full rerun pending. Exact dimensions/limits in ROLE-ACCEPTANCE-CLOSURE.md. Scopeunchanged."
+          "note": "Lead-reviewed role/menu acceptance at0e054fb; actual294\u2013307 plus prior source/size/state evidence;117focused checks/build passed; full rerun pending. Exact dimensions/limits in ROLE-ACCEPTANCE-CLOSURE.md. Scopeunchanged."
         },
         {
           "at": "2026-11-19T21:11:26+01:00",
@@ -303,7 +303,7 @@
         {
           "at": "2026-11-19T21:11:26+01:00",
           "checkpoint": 100,
-          "note": "Lead-reviewed final1280/834/390overview captures309–313, wrappedactionmeasurement, actualexactorder/stockdrilldowns pluspriorpositivearrivals/shifts evidence. Finalbuild/729pass2skip. Frozenacceptanceclosed; scopeunchanged."
+          "note": "Lead-reviewed final1280/834/390overview captures309\u2013313, wrappedactionmeasurement, actualexactorder/stockdrilldowns pluspriorpositivearrivals/shifts evidence. Finalbuild/729pass2skip. Frozenacceptanceclosed; scopeunchanged."
         }
       ]
     },
@@ -364,7 +364,7 @@
         {
           "at": "2026-11-19T21:11:26+01:00",
           "checkpoint": 100,
-          "note": "Lead-reviewed final1280/834/390overview captures309–313, wrappedactionmeasurement, actualexactorder/stockdrilldowns pluspriorpositivearrivals/shifts evidence. Finalbuild/729pass2skip. Frozenacceptanceclosed; scopeunchanged."
+          "note": "Lead-reviewed final1280/834/390overview captures309\u2013313, wrappedactionmeasurement, actualexactorder/stockdrilldowns pluspriorpositivearrivals/shifts evidence. Finalbuild/729pass2skip. Frozenacceptanceclosed; scopeunchanged."
         }
       ]
     },
@@ -426,12 +426,12 @@
         {
           "at": "2026-11-19T18:22:39+01:00",
           "checkpoint": 60,
-          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282–288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
+          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
         },
         {
           "at": "2026-11-19T19:41:09+01:00",
           "checkpoint": 60,
-          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290–293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
+          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290\u2013293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
         },
         {
           "at": "2026-11-19T21:22:54+01:00",
@@ -530,7 +530,7 @@
         {
           "at": "2026-11-19T09:12:02+01:00",
           "checkpoint": 60,
-          "note": "Members-first searchable scope/status/review, current grant controls and session/tab access-write journal integrated. Browser185–190 and paired comparison inspected; full suite560pass/2skip, build and19focused tests passed. Populated roles/invitations and full role/device/recovery matrix remain; no actual security write or email delivery."
+          "note": "Members-first searchable scope/status/review, current grant controls and session/tab access-write journal integrated. Browser185\u2013190 and paired comparison inspected; full suite560pass/2skip, build and19focused tests passed. Populated roles/invitations and full role/device/recovery matrix remain; no actual security write or email delivery."
         },
         {
           "at": "2026-11-19T18:08:09+01:00",
@@ -592,7 +592,7 @@
         {
           "at": "2026-11-19T10:39:08+01:00",
           "checkpoint": 60,
-          "note": "Shift opening/closing recovery and action-before-queue hierarchy verified at10e1feb. Exact actor/key/amount/target journal, immutable original acknowledgment+stopfence, fresh targetdraftreset, safe logout; actualPGpassed, fullsuite610pass/2skip, final18focused/build. Browser222–227 desktop/tablet/phone plus zero open/rejectedclose reload/stop/zero close verified. All92baselineQAhashes/settings unchanged,5immutable testrecords retained guardpreserved. Broad finance/role/accessibility acceptance remains; no new weighted credit."
+          "note": "Shift opening/closing recovery and action-before-queue hierarchy verified at10e1feb. Exact actor/key/amount/target journal, immutable original acknowledgment+stopfence, fresh targetdraftreset, safe logout; actualPGpassed, fullsuite610pass/2skip, final18focused/build. Browser222\u2013227 desktop/tablet/phone plus zero open/rejectedclose reload/stop/zero close verified. All92baselineQAhashes/settings unchanged,5immutable testrecords retained guardpreserved. Broad finance/role/accessibility acceptance remains; no new weighted credit."
         },
         {
           "at": "2026-11-19T21:22:54+01:00",
@@ -849,22 +849,22 @@
         {
           "at": "2026-11-18T23:28:34+01:00",
           "checkpoint": 60,
-          "note": "Integrated dedicated station view and verified local accepted→preparing→partial→ready flow; restricted-role/live conflict and full accessibility checks pending."
+          "note": "Integrated dedicated station view and verified local accepted\u2192preparing\u2192partial\u2192ready flow; restricted-role/live conflict and full accessibility checks pending."
         },
         {
           "at": "2026-11-19T18:22:39+01:00",
           "checkpoint": 60,
-          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282–288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
+          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
         },
         {
           "at": "2026-11-19T19:41:09+01:00",
           "checkpoint": 60,
-          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290–293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
+          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290\u2013293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
         },
         {
           "at": "2026-11-19T20:41:27+01:00",
           "checkpoint": 100,
-          "note": "Lead-reviewed role/menu acceptance at0e054fb; actual294–307 plus prior source/size/state evidence;117focused checks/build passed; full rerun pending. Exact dimensions/limits in ROLE-ACCEPTANCE-CLOSURE.md. Scopeunchanged."
+          "note": "Lead-reviewed role/menu acceptance at0e054fb; actual294\u2013307 plus prior source/size/state evidence;117focused checks/build passed; full rerun pending. Exact dimensions/limits in ROLE-ACCEPTANCE-CLOSURE.md. Scopeunchanged."
         },
         {
           "at": "2026-11-19T21:11:26+01:00",
@@ -967,7 +967,7 @@
         {
           "at": "2026-11-19T20:41:27+01:00",
           "checkpoint": 100,
-          "note": "Lead-reviewed role/menu acceptance at0e054fb; actual294–307 plus prior source/size/state evidence;117focused checks/build passed; full rerun pending. Exact dimensions/limits in ROLE-ACCEPTANCE-CLOSURE.md. Scopeunchanged."
+          "note": "Lead-reviewed role/menu acceptance at0e054fb; actual294\u2013307 plus prior source/size/state evidence;117focused checks/build passed; full rerun pending. Exact dimensions/limits in ROLE-ACCEPTANCE-CLOSURE.md. Scopeunchanged."
         },
         {
           "at": "2026-11-19T21:11:26+01:00",
@@ -1029,12 +1029,12 @@
         {
           "at": "2026-11-19T18:22:39+01:00",
           "checkpoint": 60,
-          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282–288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
+          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
         },
         {
           "at": "2026-11-19T19:41:09+01:00",
           "checkpoint": 60,
-          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290–293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
+          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290\u2013293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
         },
         {
           "at": "2026-11-19T21:22:54+01:00",
@@ -1167,7 +1167,7 @@
         {
           "at": "2026-11-19T21:33:18+01:00",
           "checkpoint": 100,
-          "note": "Leadaccepted actual325unknowncancellation→326reloadGETonlyoriginalreason/historycancelled→327explicitretryresolvessame/no-refund; separateconsentvisible. Durableclosure sourcebcc76e7/full736pass2skip/build; scopeunchanged."
+          "note": "Leadaccepted actual325unknowncancellation\u2192326reloadGETonlyoriginalreason/historycancelled\u2192327explicitretryresolvessame/no-refund; separateconsentvisible. Durableclosure sourcebcc76e7/full736pass2skip/build; scopeunchanged."
         }
       ]
     },
@@ -1311,12 +1311,12 @@
         {
           "at": "2026-11-19T15:38:02+01:00",
           "checkpoint": 60,
-          "note": "Public journey integrated at5b5816f: known section/skip/deep-link/history focus, mobilemenuclose→headingfocus, actual signup ack/singleflight/readiness/refresh-safe nonsecret marker. Real2782×1110 comparisons+390/834normalbrowser checks, build,25focused andfull630pass/2skip. No live credentials/accountmutation or dropped-response browser claim. M2only60 due missing authoritative signup recovery/provider/legal/mutation acceptance; scopeunchanged."
+          "note": "Public journey integrated at5b5816f: known section/skip/deep-link/history focus, mobilemenuclose\u2192headingfocus, actual signup ack/singleflight/readiness/refresh-safe nonsecret marker. Real2782\u00d71110 comparisons+390/834normalbrowser checks, build,25focused andfull630pass/2skip. No live credentials/accountmutation or dropped-response browser claim. M2only60 due missing authoritative signup recovery/provider/legal/mutation acceptance; scopeunchanged."
         },
         {
           "at": "2026-11-19T21:20:48+01:00",
           "checkpoint": 80,
-          "note": "Lead-reviewed actual317–324 platform/MFA/denial/rebuilt audit; final738total736pass0fail2skip52.05s/build. M3closed; M2responsive/public states80withsimulatedregistrationwalkthroughremaining. No backend expansion."
+          "note": "Lead-reviewed actual317\u2013324 platform/MFA/denial/rebuilt audit; final738total736pass0fail2skip52.05s/build. M3closed; M2responsive/public states80withsimulatedregistrationwalkthroughremaining. No backend expansion."
         },
         {
           "at": "2026-11-19T21:33:18+01:00",
@@ -1374,7 +1374,7 @@
         {
           "at": "2026-11-19T21:20:48+01:00",
           "checkpoint": 100,
-          "note": "Lead-reviewed actual317–324 platform/MFA/denial/rebuilt audit; final738total736pass0fail2skip52.05s/build. M3closed; M2responsive/public states80withsimulatedregistrationwalkthroughremaining. No backend expansion."
+          "note": "Lead-reviewed actual317\u2013324 platform/MFA/denial/rebuilt audit; final738total736pass0fail2skip52.05s/build. M3closed; M2responsive/public states80withsimulatedregistrationwalkthroughremaining. No backend expansion."
         }
       ]
     },
@@ -1511,12 +1511,12 @@
         {
           "at": "2026-11-19T18:22:39+01:00",
           "checkpoint": 40,
-          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282–288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
+          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
         },
         {
           "at": "2026-11-19T19:41:09+01:00",
           "checkpoint": 40,
-          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290–293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
+          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290\u2013293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
         },
         {
           "at": "2026-11-19T21:22:54+01:00",
@@ -1574,7 +1574,7 @@
         "permission": "UNVERIFIED for full correction",
         "recovery": "UNVERIFIED for full correction"
       },
-      "responsive": "Finalactual1280/834/390; longreferenceactions fit≤221.5pxcolumns; no documentoverflow.",
+      "responsive": "Finalactual1280/834/390; longreferenceactions fit\u2264221.5pxcolumns; no documentoverflow.",
       "visualReview": "O1/O2 acceptance closed: actual309/313desktop1280,310tablet834,311phone390 andmatchedcomparison inspected; exactorder/stockfocus andpriorarrivals/shifts evidence; ROLE-ACCEPTANCE-CLOSURE.md.",
       "blockers": []
     },
@@ -1625,7 +1625,7 @@
         "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
         "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
       },
-      "responsive": "Publication narrow CSS433 atChrome90%zoom, nooverflow; dialog233/235 matched2782×1048. Other menu/stock responsive acceptance remains partial.",
+      "responsive": "Publication narrow CSS433 atChrome90%zoom, nooverflow; dialog233/235 matched2782\u00d71048. Other menu/stock responsive acceptance remains partial.",
       "visualReview": "Accepted100 by lead literal audit: MENU-BRANCH-CHECKPOINT.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
       "blockers": []
     },
@@ -1695,10 +1695,10 @@
         "empty": "Browser active view empty after completed ticket; component regressions",
         "error": "Actual kitchen GETfailure302; successful refresh retained typed2 before explicit save.",
         "permission": "Separate normal kitchen/bar sessions limited to Orders/Preparation and own-station queues; order acceptance disabled.",
-        "recovery": "Actual failedread→successfulrefresh preserves draft; exact version/body uncertain-write semantics covered by tests."
+        "recovery": "Actual failedread\u2192successfulrefresh preserves draft; exact version/body uncertain-write semantics covered by tests."
       },
       "responsive": "Actual303 width927;304 width433 at90%zoom; prior genuine834/390 evidence retained. No Android certification.",
-      "visualReview": "Reviewed role acceptance: kitchen/bar actual300–304 plus prior56–58/282–286; ROLE-ACCEPTANCE-CLOSURE.md; task P4 verified within defined scope.",
+      "visualReview": "Reviewed role acceptance: kitchen/bar actual300\u2013304 plus prior56\u201358/282\u2013286; ROLE-ACCEPTANCE-CLOSURE.md; task P4 verified within defined scope.",
       "blockers": []
     },
     {
@@ -1822,7 +1822,7 @@
         "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
         "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
       },
-      "responsive": "Actual390px phone and834px tablet no document overflow; bounded staff table, keyboard reachable review; matched3091×1233 desktop captures.",
+      "responsive": "Actual390px phone and834px tablet no document overflow; bounded staff table, keyboard reachable review; matched3091\u00d71233 desktop captures.",
       "visualReview": "Accepted100 by lead literal audit: ACCESS-RECOVERY-CHECKPOINT.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
       "blockers": []
     },
@@ -1846,7 +1846,7 @@
         "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
         "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
       },
-      "responsive": "1440×1000,834×1194,390×844; no document overflow",
+      "responsive": "1440\u00d71000,834\u00d71194,390\u00d7844; no document overflow",
       "visualReview": "Accepted100 by lead literal audit: PRINT-RECOVERY-CHECKPOINT.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
       "blockers": []
     },
@@ -1961,12 +1961,12 @@
       "permissions": "reservations.manage",
       "states": {
         "loading": "UNVERIFIED for full correction",
-        "empty": "Actual empty main branch129; isolated3007 synthetic waiting→notified→seated/cancelled history130–132",
+        "empty": "Actual empty main branch129; isolated3007 synthetic waiting\u2192notified\u2192seated/cancelled history130\u2013132",
         "error": "UNVERIFIED for full correction",
         "permission": "UNVERIFIED for full correction",
         "recovery": "UNVERIFIED for full correction"
       },
-      "responsive": "Actual desktop and390×844/834×1194 subset; exact per-screen sizes/states and pending variants in checkpoint",
+      "responsive": "Actual desktop and390\u00d7844/834\u00d71194 subset; exact per-screen sizes/states and pending variants in checkpoint",
       "visualReview": "Reviewed80: RESERVATION-RECOVERY-CHECKPOINT.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
       "blockers": [
         "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
@@ -1990,7 +1990,7 @@
         "empty": "UNVERIFIED for full correction",
         "error": "UNVERIFIED for full correction",
         "permission": "UNVERIFIED for full correction",
-        "recovery": "Actual native-date failure found/fixed; selected date persisted through queue→ready→CSV download; unknown retries tested, full state matrix pending"
+        "recovery": "Actual native-date failure found/fixed; selected date persisted through queue\u2192ready\u2192CSV download; unknown retries tested, full state matrix pending"
       },
       "responsive": "Actual390px export reflow; focused export permission/late/unknown guards passed.",
       "visualReview": "Reviewed80: EOD-REPORTING-CHECKPOINT.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
@@ -2065,7 +2065,7 @@
         "recovery": "Existing component/integration state regressions; C1 lead-reviewed closure; see ROLE-ACCEPTANCE-CLOSURE.md."
       },
       "responsive": "Desktop/tablet/narrow inspected; exact dimensions/evidence in pilot checkpoint",
-      "visualReview": "Actual294–299 responsive category/search-clear-focus/basket-focus/quantity/required-option checks plus prior source comparison; ROLE-ACCEPTANCE-CLOSURE.md.",
+      "visualReview": "Actual294\u2013299 responsive category/search-clear-focus/basket-focus/quantity/required-option checks plus prior source comparison; ROLE-ACCEPTANCE-CLOSURE.md.",
       "blockers": []
     },
     {
@@ -2087,7 +2087,7 @@
         "recovery": "Existing component/integration state regressions; C1 lead-reviewed closure; see ROLE-ACCEPTANCE-CLOSURE.md."
       },
       "responsive": "Desktop/tablet/narrow inspected; exact dimensions/evidence in pilot checkpoint",
-      "visualReview": "Actual294–299 responsive category/search-clear-focus/basket-focus/quantity/required-option checks plus prior source comparison; ROLE-ACCEPTANCE-CLOSURE.md.",
+      "visualReview": "Actual294\u2013299 responsive category/search-clear-focus/basket-focus/quantity/required-option checks plus prior source comparison; ROLE-ACCEPTANCE-CLOSURE.md.",
       "blockers": []
     },
     {
@@ -2108,7 +2108,7 @@
         "permission": "UNVERIFIED",
         "recovery": "Actual check original/not-recorded and explicit stop of unreceived request; exact network/session retry covered by tests, wider browser matrix pending."
       },
-      "responsive": "Actual checkout desktop,390×844 phone and834×1194 tablet subset, document width equals viewport.",
+      "responsive": "Actual checkout desktop,390\u00d7844 phone and834\u00d71194 tablet subset, document width equals viewport.",
       "visualReview": "Reviewed80: CUSTOMER-FINAL-GATES.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
       "blockers": [
         "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
@@ -2156,7 +2156,7 @@
         "permission": "Actual invalid code kept bill private;401/403/404/scope races tested",
         "recovery": "Manual refresh actual success; older poll exclusion/local errors/initial join races and original order uncertainty tested"
       },
-      "responsive": "1440×1000,834×1194,390×844; no document overflow; narrow Enter item disclosure",
+      "responsive": "1440\u00d71000,834\u00d71194,390\u00d7844; no document overflow; narrow Enter item disclosure",
       "visualReview": "Reviewed80: HELP-DURABLE-CLOSURE.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
       "blockers": [
         "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
@@ -2180,7 +2180,7 @@
         "permission": "UNVERIFIED",
         "recovery": "UNVERIFIED"
       },
-      "responsive": "Actual1440×1000/834×1194/390×844; final mobile reply shortcut preserves draft/focus, private staff note absent",
+      "responsive": "Actual1440\u00d71000/834\u00d71194/390\u00d7844; final mobile reply shortcut preserves draft/focus, private staff note absent",
       "visualReview": "Reviewed80: HELP-DURABLE-CLOSURE.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
       "blockers": [
         "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
@@ -2204,7 +2204,7 @@
         "permission": "UNVERIFIED",
         "recovery": "Reservation journal same-session exact retry/abandon component+actualPG tests; normal browser reload proof, no live dropped-response claim"
       },
-      "responsive": "1440×1000 and390×844 activity reviewed; no narrow overflow; complete form/state/tablet acceptance pending",
+      "responsive": "1440\u00d71000 and390\u00d7844 activity reviewed; no narrow overflow; complete form/state/tablet acceptance pending",
       "visualReview": "C4accepted100: actual325unknown cancellation,326reloadGETonlyretainsoriginal,327same-resultretry/no-refund; separateconsentvisible; CANCELLATION-DURABLE-CLOSURE.md.",
       "blockers": []
     },
@@ -2226,7 +2226,7 @@
         "permission": "UNVERIFIED",
         "recovery": "Reservation journal same-session exact retry/abandon component+actualPG tests; normal browser reload proof, no live dropped-response claim"
       },
-      "responsive": "1440×1000 and390×844 activity reviewed; no narrow overflow; complete form/state/tablet acceptance pending",
+      "responsive": "1440\u00d71000 and390\u00d7844 activity reviewed; no narrow overflow; complete form/state/tablet acceptance pending",
       "visualReview": "C4accepted100: actual325unknown cancellation,326reloadGETonlyretainsoriginal,327same-resultretry/no-refund; separateconsentvisible; CANCELLATION-DURABLE-CLOSURE.md.",
       "blockers": []
     },
@@ -2249,7 +2249,7 @@
         "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
         "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
       },
-      "responsive": "Actual configured color/font theme desktop and390×844 phone dialog; full alternate identity/photo/tablet matrix pending. Shared dialog231/232 actual834/390CSS,560/362dialog widths, no documentoverflow; keyboardwrap/Escape/producttriggerreturn verified.",
+      "responsive": "Actual configured color/font theme desktop and390\u00d7844 phone dialog; full alternate identity/photo/tablet matrix pending. Shared dialog231/232 actual834/390CSS,560/362dialog widths, no documentoverflow; keyboardwrap/Escape/producttriggerreturn verified.",
       "visualReview": "Accepted100 by lead literal audit: CUSTOMER-CHECKOUT-CHECKPOINT.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
       "blockers": []
     },
@@ -2294,7 +2294,7 @@
         "recovery": "UNVERIFIED"
       },
       "responsive": "Actual390CSSpx phone/834CSSpx tablet normal flow, no document horizontaloverflow; Pricingmobilemenu closes andH2focuses, policytopic/deeplink/reload/back and keyboardskip verified. Full state/accessibility acceptance remains partial.",
-      "visualReview": "Actual123–143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md Actual236–246 and same-tab2782×1110 public-journey comparison inspected; PUBLIC-JOURNEY-CHECKPOINT.md records exact scope.",
+      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md Actual236\u2013246 and same-tab2782\u00d71110 public-journey comparison inspected; PUBLIC-JOURNEY-CHECKPOINT.md records exact scope.",
       "blockers": [
         "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
       ]
@@ -2318,7 +2318,7 @@
         "recovery": "UNVERIFIED"
       },
       "responsive": "Actual390CSSpx phone/834CSSpx tablet normal flow, no document horizontaloverflow; Pricingmobilemenu closes andH2focuses, policytopic/deeplink/reload/back and keyboardskip verified. Full state/accessibility acceptance remains partial.",
-      "visualReview": "Actual123–143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md Actual236–246 and same-tab2782×1110 public-journey comparison inspected; PUBLIC-JOURNEY-CHECKPOINT.md records exact scope.",
+      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md Actual236\u2013246 and same-tab2782\u00d71110 public-journey comparison inspected; PUBLIC-JOURNEY-CHECKPOINT.md records exact scope.",
       "blockers": [
         "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
       ]
@@ -2342,7 +2342,7 @@
         "recovery": "Unconfirmed registration/verification and corrupt/unavailable marker pause across remount with no PII/token/password storage; tests pass, live mutation matrix/authoritative recovery endpoint pending."
       },
       "responsive": "Actual390CSSpx phone/834CSSpx tablet normal flow, no document horizontaloverflow; Pricingmobilemenu closes andH2focuses, policytopic/deeplink/reload/back and keyboardskip verified. Full state/accessibility acceptance remains partial.",
-      "visualReview": "Actual123–143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md Actual236–246 and same-tab2782×1110 public-journey comparison inspected; PUBLIC-JOURNEY-CHECKPOINT.md records exact scope.",
+      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md Actual236\u2013246 and same-tab2782\u00d71110 public-journey comparison inspected; PUBLIC-JOURNEY-CHECKPOINT.md records exact scope.",
       "blockers": [
         "Authoritative account recovery/resend unavailable; real registration remains blocked pending email/sender setup.",
         "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
@@ -2367,7 +2367,7 @@
         "recovery": "UNVERIFIED"
       },
       "responsive": "NOT_VERIFIED",
-      "visualReview": "AcceptedF5 normal sign-in/sign-out with actual7role sessions300–312; ROLE-ACCEPTANCE-CLOSURE.md. Native account summary verified.",
+      "visualReview": "AcceptedF5 normal sign-in/sign-out with actual7role sessions300\u2013312; ROLE-ACCEPTANCE-CLOSURE.md. Native account summary verified.",
       "blockers": []
     },
     {
@@ -2388,8 +2388,8 @@
         "permission": "Actual merchant denied and directory hidden",
         "recovery": "Normal password/TOTP and fresh verification after real expiry; no fake session grants"
       },
-      "responsive": "Desktop initial entry and390×844 expired state; full auth device/focus acceptance pending",
-      "visualReview": "M3accepted: actual317–324 authorizeddirectory/scopedlookup/health/support/audit/dialog andpermissionloss; PLATFORM-ACCEPTANCE-CLOSURE.md.",
+      "responsive": "Desktop initial entry and390\u00d7844 expired state; full auth device/focus acceptance pending",
+      "visualReview": "M3accepted: actual317\u2013324 authorizeddirectory/scopedlookup/health/support/audit/dialog andpermissionloss; PLATFORM-ACCEPTANCE-CLOSURE.md.",
       "blockers": []
     },
     {
@@ -2411,8 +2411,8 @@
         "permission": "UNVERIFIED",
         "recovery": "Actual Escape/focus return and read-only filters; pending exact-write fences tested, real business changes not submitted Sharedfocusmigrationconsumer9tests pass includingpendingdismissalguard/return/isolationfallback; current protectedbrowser rerun pendingexistingQAcredentialartifact."
       },
-      "responsive": "1440×1000,834×1194,390×844; no document overflow; narrow dialog356px/354px client+scroll",
-      "visualReview": "M3accepted: actual317–324 authorizeddirectory/scopedlookup/health/support/audit/dialog andpermissionloss; PLATFORM-ACCEPTANCE-CLOSURE.md.",
+      "responsive": "1440\u00d71000,834\u00d71194,390\u00d7844; no document overflow; narrow dialog356px/354px client+scroll",
+      "visualReview": "M3accepted: actual317\u2013324 authorizeddirectory/scopedlookup/health/support/audit/dialog andpermissionloss; PLATFORM-ACCEPTANCE-CLOSURE.md.",
       "blockers": [
         "Current protected-browser rerun needs existing isolated QA session/credential artifact; not recovered in designated temporary paths. No re-enrollment/reset performed."
       ]
@@ -2572,14 +2572,14 @@
     },
     {
       "at": "2026-11-19T15:16:12+01:00",
-      "event": "Shared dialog/primitive source-and-browser milestone verified at49ffed5; F4 advances40→80, scopeunchanged",
+      "event": "Shared dialog/primitive source-and-browser milestone verified at49ffed5; F4 advances40\u219280, scopeunchanged",
       "scopeWeight": 100,
       "weightedPoints": 64.6,
       "roundedCompletion": 64
     },
     {
       "at": "2026-11-19T15:38:02+01:00",
-      "event": "Public marketing/onboarding milestone verified at5b5816f; M2 advances40→60; scopeunchanged",
+      "event": "Public marketing/onboarding milestone verified at5b5816f; M2 advances40\u219260; scopeunchanged",
       "scopeWeight": 100,
       "weightedPoints": 65.0,
       "roundedCompletion": 65
@@ -2618,6 +2618,10 @@
       "scopeWeight": 100,
       "weightedPoints": 93.0,
       "roundedCompletion": 93
+    },
+    {
+      "at": "2026-11-19",
+      "note": "Source bcc76e7: opt-in Mera PostgreSQL1/1 and POS PostgreSQL9/9 passed separately, including skipped standard-suite checks. User confirmed permission repair twice but browser still rejects origin3007 with saved/managed denial. No workaround;93% acceptance unchanged. Main preview restarted3003. See FINAL-INTEGRATION-STATUS.md."
     }
   ],
   "baselineRevision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd"
