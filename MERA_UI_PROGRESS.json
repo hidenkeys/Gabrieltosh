@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T09:12:02+01:00",
-  "revision": "90b8a50",
+  "lastUpdated": "2026-11-19T09:27:32+01:00",
+  "revision": "77e397c",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -273,7 +273,7 @@
       "workstream": "O",
       "title": "Overview actionable content and date context",
       "weight": 3,
-      "checkpoint": 40,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
@@ -288,7 +288,8 @@
         "src/mera/workspace/OverviewActivity.tsx",
         "tests/mera-overview-activity.test.tsx",
         "docs/mera/ui-audit/screenshots/21-overview-selected-date.jpg",
-        "docs/mera/ui-audit/screenshots/23-overview-activity-narrow.jpg"
+        "docs/mera/ui-audit/screenshots/23-overview-activity-narrow.jpg",
+        "docs/mera/ui-audit/OVERVIEW-OPERATIONS-CHECKPOINT.md"
       ],
       "blockers": [],
       "history": [
@@ -306,6 +307,11 @@
           "at": "2026-11-18T16:32:27+01:00",
           "checkpoint": 40,
           "note": "Required overview sections implemented with permission-aware activity/known shift responsibility, accurate date-report validation and current/previous date browser checks. Complete states/visual comparison and positive-data integration remain pending."
+        },
+        {
+          "at": "2026-11-19T09:27:32+01:00",
+          "checkpoint": 60,
+          "note": "Actual positive alert/reference/branch and active queue drilldowns, expired-service correction, safe missing/timezone/hold states and handheld table review passed. Temporary13-row zero-value fixture exactly restored; full suite570pass/2skip, build and focused integration passed. Other populated alert/role/stale browser states remain."
         }
       ]
     },
@@ -1179,8 +1185,8 @@
         "permission": "UNVERIFIED for full correction",
         "recovery": "UNVERIFIED for full correction"
       },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "Prior pilot reopened",
+      "responsive": "Actual390px phone/834px tablet no document overflow; service rows81.5\u201382px, named960px bounded table, Tab/Enter review reachable; final restored tablet metric spacing verified.",
+      "visualReview": "Actual191\u2013197 and matched2782\u00d71110 overview operations comparison inspected; synthetic4alerts/per-reference and branch filter exercised, exact fixture restoration verified. See OVERVIEW-OPERATIONS-CHECKPOINT.md.",
       "blockers": []
     },
     {
@@ -2118,6 +2124,13 @@
       "scopeWeight": 100,
       "weightedPoints": 62.6,
       "roundedCompletion": 62
+    },
+    {
+      "at": "2026-11-19T09:27:32+01:00",
+      "event": "Overview/service/order drilldown partial milestone verified at77e397c; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 63.2,
+      "roundedCompletion": 63
     }
   ],
   "baselineRevision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd"

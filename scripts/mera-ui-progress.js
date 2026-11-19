@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "People/access partial milestone verified at90b8a50: members-first scope/status/search/review, human grants and session/tab uncertain-write protection across navigation. Full suite560pass/2skip,19focused tests, build and actual responsive comparisons passed. Next: operational overview/order workflow acceptance, populated role/recovery matrix and remaining platform review. Main preview3003 running; provider, hardware and isolated-platform credential gates remain explicit.",
+  "Overview/service/order drilldown partial milestone verified at77e397c: expired records excluded from current service, truthful unavailable states, positive alert and active/reference queue navigation, handheld table corrections. Full suite570pass/2skip, build and focused integration passed; temporary zero-value fixtures exactly restored. Next: broader role/other-alert/recovery acceptance and remaining platform surfaces. Main preview3003 running; provider, physical-printer and isolated-platform credential gates remain explicit.",
   "",
   "## Measurement",
   "",
