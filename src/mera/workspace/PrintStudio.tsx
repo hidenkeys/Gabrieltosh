@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
+import { uuid } from "../../api";
+import {
+  readPrintStudioMarker,
+  savePrintStudioMarker,
+  clearPrintStudioMarker,
+  type PrintStudioMarker,
+} from "./printStudioJournal";
 import { Disclosure, DataRegion } from "../ui/OperationalPrimitives";
 import PrintDocument, { printDocumentHtml } from "./PrintDocument";
 type Props = {
   base: string;
+  actorId: string;
   disabled: boolean;
   canViewJobs: boolean;
   canReprint: boolean;
@@ -32,10 +40,13 @@ function validTemplate(value: any) {
   );
 }
 export default function PrintStudio(props: Props) {
-  return <ScopedPrintStudio key={props.base} {...props} />;
+  return (
+    <ScopedPrintStudio key={props.base + "|" + props.actorId} {...props} />
+  );
 }
 function ScopedPrintStudio({
   base,
+  actorId,
   disabled,
   canViewJobs,
   canReprint,
@@ -59,7 +70,14 @@ function ScopedPrintStudio({
     [reprintUnknown, setReprintUnknown] = useState(false),
     [limit, setLimit] = useState(20),
     [dirty, setDirty] = useState(false),
-    [denied, setDenied] = useState(false);
+    [denied, setDenied] = useState(false),
+    [marker, setMarker] = useState<PrintStudioMarker | null>(null),
+    [recoveryReady, setRecoveryReady] = useState(false),
+    [notice, setNotice] = useState("");
+  const markerRef = useRef<PrintStudioMarker | null>(null),
+    originalRef = useRef<{ path: string; method: string; body: any } | null>(
+      null,
+    );
   const frame = useRef<HTMLIFrameElement>(null),
     active = useRef(true),
     formatsGeneration = useRef(0),
@@ -72,11 +90,19 @@ function ScopedPrintStudio({
     permissions = useRef({ canViewJobs, canReprint });
   permissions.current = { canViewJobs, canReprint };
   function editTemplates(value: any) {
+    if (
+      markerRef.current ||
+      inFlight.current ||
+      deniedRef.current ||
+      !recoveryReady
+    )
+      return;
     dirtyRef.current = true;
     setDirty(true);
     setTemplates(value);
   }
   function deny() {
+    originalRef.current = null;
     deniedRef.current = true;
     formatsGeneration.current++;
     jobsGeneration.current++;
@@ -216,10 +242,29 @@ function ScopedPrintStudio({
   };
   useEffect(() => {
     active.current = true;
+    try {
+      const saved = readPrintStudioMarker(actorId, base);
+      markerRef.current = saved;
+      setMarker(saved);
+      setRecoveryReady(true);
+      if (saved?.operation === "template_save") {
+        unknownFormatRef.current = true;
+        setFormatUnknown(true);
+      }
+      if (saved?.operation === "reprint") {
+        unknownReprintRef.current = true;
+        setReprintUnknown(true);
+      }
+    } catch {
+      setWriteError(
+        "Saved print-request references could not be read. Keep this tab open and ask a supervisor to review them.",
+      );
+    }
     const controller = new AbortController();
     void readTemplates(controller.signal);
     return () => {
       active.current = false;
+      originalRef.current = null;
       formatsGeneration.current++;
       jobsGeneration.current++;
       controller.abort();
@@ -250,97 +295,277 @@ function ScopedPrintStudio({
     };
   }, [base, canViewJobs]);
   useEffect(() => {
-    if (!canReprint) setReason("");
-  }, [canReprint]);
-  const saveFormat = async () => {
-    if (
-      disabled ||
-      inFlight.current ||
-      deniedRef.current ||
-      unknownFormatRef.current ||
-      !validTemplate(templates)
-    )
-      return;
-    const body = JSON.parse(JSON.stringify(templates));
-    inFlight.current = true;
-    setBusy(true);
-    setWriteError("");
-    setWriteTarget("formats");
-    try {
-      const result = await save(
-        base + "/templates",
-        "PUT",
-        body,
-        "Branch print templates saved.",
-      );
-      if (!active.current || deniedRef.current) return;
-      if (!validTemplate(result))
-        throw Error("The saved format could not be confirmed.");
-      setTemplates(result);
-      dirtyRef.current = false;
-      setDirty(false);
-      setSavedReview(null);
-    } catch (failure: any) {
-      if (active.current && !deniedRef.current) {
-        if ([401, 403, 404].includes(failure.status)) deny();
-        else {
-          setWriteError(failure.message);
-          if (!failure.status || failure.status >= 500) {
-            unknownFormatRef.current = body;
-            setFormatUnknown(body);
-          }
-        }
+    if (!canReprint || !canViewJobs) {
+      setReason("");
+      if (markerRef.current?.operation === "reprint") {
+        originalRef.current = null;
+        setWriteError("");
       }
-    } finally {
-      inFlight.current = false;
-      if (active.current) setBusy(false);
     }
-  };
-  const reprint = async (job: any) => {
+  }, [canReprint, canViewJobs]);
+  const canRecover = (m: PrintStudioMarker) =>
+    m.operation === "template_save" ||
+    (permissions.current.canViewJobs && permissions.current.canReprint);
+  const proofPath = (m: PrintStudioMarker) =>
+    base +
+    (m.operation === "template_save"
+      ? `/templates/save-attempts/${m.requestKey}`
+      : `/print-jobs/${encodeURIComponent(m.targetId!)}/reprint-attempts/${m.requestKey}`);
+  const normalize = (operation: string, body: any) =>
+    operation === "reprint"
+      ? { reason: body?.reason?.trim() }
+      : {
+          receipt: {
+            businessName: body?.receipt?.businessName,
+            footer: body?.receipt?.footer,
+            showStaff: body?.receipt?.showStaff,
+            paperWidth: body?.receipt?.paperWidth,
+          },
+          label: { width: body?.label?.width, height: body?.label?.height },
+        };
+  function proof(result: any, m: PrintStudioMarker) {
+    const parts = base.split("/");
     if (
-      disabled ||
-      inFlight.current ||
-      deniedRef.current ||
-      unknownReprintRef.current ||
-      !permissions.current.canReprint ||
-      !permissions.current.canViewJobs ||
-      reason.trim().length < 3
+      !result ||
+      result.requestKey !== m.requestKey ||
+      result.actorId !== actorId ||
+      result.organizationId !== parts[2] ||
+      result.branchId !== parts[4] ||
+      result.operation !== m.operation ||
+      result.targetId !== m.targetId ||
+      !["recorded", "not_found", "abandoned"].includes(result.status)
     )
-      return;
-    inFlight.current = true;
-    setBusy(true);
-    setWriteError("");
-    setWriteTarget("jobs");
-    try {
-      await save(
-        base + `/print-jobs/${job.id}/reprint`,
-        "POST",
-        { reason },
-        "Duplicate print job queued and audited.",
+      throw Error(
+        "The print-request outcome could not be verified. Keep the saved reference and check again.",
       );
+    if (result.status === "recorded") {
+      const op = result.operationRecord,
+        r = result.result;
       if (
-        active.current &&
-        !deniedRef.current &&
-        permissions.current.canViewJobs
+        result.resultBasis !== "recorded_operation_snapshot" ||
+        typeof op?.id !== "string" ||
+        !op.id.trim() ||
+        op.requestKey !== m.requestKey ||
+        op.actorId !== actorId ||
+        op.operation !== m.operation ||
+        op.targetId !== m.targetId ||
+        (m.operation === "template_save"
+          ? !validTemplate(r) ||
+            typeof r.id !== "string" ||
+            !r.id.trim() ||
+            !Number.isSafeInteger(r.version) ||
+            r.version < 1
+          : typeof r?.id !== "string" ||
+            !r.id.trim() ||
+            r.id === m.targetId ||
+            r.originalJobId !== m.targetId ||
+            r.status !== "queued" ||
+            r.duplicate !== true ||
+            r.physicalConfirmed !== false)
       )
-        await readJobs();
+        throw Error("The recorded print request could not be verified.");
+      if (
+        originalRef.current &&
+        JSON.stringify(normalize(m.operation, originalRef.current.body)) !==
+          JSON.stringify(normalize(m.operation, op.intent))
+      )
+        throw Error(
+          "The recorded request differs from the original print request. Ask a supervisor to review it.",
+        );
+    }
+    if (
+      result.status === "abandoned" &&
+      (typeof result.resolutionId !== "string" || !result.resolutionId.trim())
+    )
+      throw Error("The stopped print request could not be verified.");
+    return result;
+  }
+  async function checkOutcome(m: PrintStudioMarker) {
+    const result = proof(
+      await workspaceApi(proofPath(m), "GET", undefined, undefined, {
+        expectedActorId: actorId,
+      }),
+      m,
+    );
+    if (!active.current || deniedRef.current || !canRecover(m)) return;
+    if (result.status === "not_found") {
+      setNotice(
+        "No completed request was found. This does not confirm that an in-flight request has stopped. Retry the original request or stop it before making a new one.",
+      );
+      return;
+    }
+    clearPrintStudioMarker(m);
+    markerRef.current = null;
+    originalRef.current = null;
+    setMarker(null);
+    unknownFormatRef.current = null;
+    setFormatUnknown(null);
+    unknownReprintRef.current = false;
+    setReprintUnknown(false);
+    if (m.operation === "template_save") {
+      if (result.status === "recorded") {
+        setTemplates(result.result);
+        dirtyRef.current = false;
+        setDirty(false);
+        setSavedReview(null);
+      }
+      await readTemplates();
+    } else {
+      setReason("");
+      await readJobs();
+    }
+    if (active.current && !deniedRef.current)
+      setNotice(
+        result.status === "recorded"
+          ? m.operation === "template_save"
+            ? "The original format save was recorded. Review the latest saved format before editing again."
+            : "The original duplicate request was recorded once. Check the queue for its current status; physical printing is still unconfirmed."
+          : "The original print request is stopped. It cannot be applied later. Review the current records before making a new request.",
+      );
+  }
+  async function perform(
+    operation: "template_save" | "reprint",
+    targetId: string | null,
+    body: any,
+    retry = false,
+  ) {
+    if (
+      disabled ||
+      inFlight.current ||
+      deniedRef.current ||
+      !recoveryReady ||
+      (!retry && markerRef.current) ||
+      (operation === "reprint" &&
+        (!permissions.current.canReprint || !permissions.current.canViewJobs))
+    )
+      return;
+    inFlight.current = true;
+    setBusy(true);
+    setWriteError("");
+    setNotice("");
+    setWriteTarget(operation === "template_save" ? "formats" : "jobs");
+    try {
+      let current = markerRef.current,
+        original = originalRef.current;
+      if (!retry) {
+        body = { ...JSON.parse(JSON.stringify(body)), requestKey: uuid() };
+        try {
+          current = savePrintStudioMarker({
+            version: 1,
+            actorId,
+            base,
+            operation,
+            targetId,
+            requestKey: body.requestKey,
+          });
+        } catch {
+          setRecoveryReady(false);
+          throw Error(
+            "This tab could not save a recovery reference. No print request was sent. Reload and review saved references before continuing.",
+          );
+        }
+        markerRef.current = current;
+        setMarker(current);
+        original = {
+          path:
+            base +
+            (operation === "template_save"
+              ? "/templates"
+              : `/print-jobs/${targetId}/reprint`),
+          method: operation === "template_save" ? "PUT" : "POST",
+          body,
+        };
+        originalRef.current = original;
+        if (operation === "template_save") {
+          unknownFormatRef.current = body;
+          setFormatUnknown(body);
+        } else {
+          unknownReprintRef.current = true;
+          setReprintUnknown(true);
+        }
+      }
+      if (!current || !original || !canRecover(current)) return;
+      await save(
+        original.path,
+        original.method,
+        original.body,
+        "Print request received; checking its recorded outcome.",
+      );
+      if (active.current && !deniedRef.current && canRecover(current))
+        await checkOutcome(current);
     } catch (failure: any) {
       if (active.current && !deniedRef.current) {
         if ([401, 403, 404].includes(failure.status)) deny();
-        else {
-          if (!failure.status || failure.status >= 500) {
-            unknownReprintRef.current = true;
-            setReprintUnknown(true);
-          }
-          if (permissions.current.canViewJobs && permissions.current.canReprint)
-            setWriteError(failure.message);
-        }
+        else if (
+          operation === "template_save" ||
+          (permissions.current.canViewJobs && permissions.current.canReprint)
+        )
+          setWriteError(
+            failure.message || "The print request could not be confirmed.",
+          );
       }
     } finally {
       inFlight.current = false;
       if (active.current) setBusy(false);
     }
+  }
+  const saveFormat = () => {
+    if (!validTemplate(templates)) return;
+    return perform(
+      "template_save",
+      null,
+      normalize("template_save", templates),
+    );
   };
+  const reprint = (job: any) => {
+    if (reason.trim().length < 3) return;
+    return perform("reprint", job.id, { reason });
+  };
+  async function recover(stop = false) {
+    const m = markerRef.current;
+    if (
+      !m ||
+      disabled ||
+      inFlight.current ||
+      deniedRef.current ||
+      !recoveryReady ||
+      !canRecover(m)
+    )
+      return;
+    inFlight.current = true;
+    setBusy(true);
+    setWriteError("");
+    setNotice("");
+    setWriteTarget(m.operation === "template_save" ? "formats" : "jobs");
+    try {
+      if (stop)
+        proof(
+          await workspaceApi(
+            proofPath(m) + "/abandon",
+            "POST",
+            {
+              reason: "Staff explicitly stopped the unresolved print request.",
+            },
+            undefined,
+            { expectedActorId: actorId },
+          ),
+          m,
+        );
+      if (active.current && !deniedRef.current && canRecover(m))
+        await checkOutcome(m);
+    } catch (failure: any) {
+      if (active.current && !deniedRef.current) {
+        if ([401, 403, 404].includes(failure.status)) deny();
+        else if (canRecover(m))
+          setWriteError(
+            failure.message || "The print request could not be checked.",
+          );
+      }
+    } finally {
+      inFlight.current = false;
+      if (active.current) setBusy(false);
+    }
+  }
   if (denied)
     return (
       <section className="mw-card">
@@ -417,6 +642,60 @@ function ScopedPrintStudio({
   );
   return (
     <div className="mw-printing-qr">
+      {(marker || !recoveryReady) && (
+        <section className="mw-card" aria-label="Print request recovery">
+          <h2>Review the previous print request</h2>
+          <p>
+            A format save or duplicate request is not yet confirmed. Refreshing
+            formats or jobs does not resolve it. This tab saves only a recovery
+            reference, without the format, reason or document contents.
+          </p>
+          {writeError && <p role="alert">{writeError}</p>}
+          {marker && (
+            <div className="mw-actions">
+              <button
+                className="secondary"
+                type="button"
+                disabled={disabled || busy || !canRecover(marker)}
+                onClick={() => void recover()}
+              >
+                Check print request outcome
+              </button>
+              {originalRef.current && canRecover(marker) && (
+                <button
+                  className="secondary"
+                  type="button"
+                  disabled={disabled || busy}
+                  onClick={() =>
+                    void perform(marker.operation, marker.targetId, {}, true)
+                  }
+                >
+                  Retry original print request
+                </button>
+              )}
+              <button
+                className="secondary"
+                type="button"
+                disabled={disabled || busy || !canRecover(marker)}
+                onClick={() => void recover(true)}
+              >
+                Stop original print request
+              </button>
+              {!canRecover(marker) && (
+                <p>
+                  The original account needs its print-queue and reprint access
+                  restored to review this request.
+                </p>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+      {notice && (
+        <p role="status" className="mw-note">
+          {notice}
+        </p>
+      )}
       <section className="mw-card">
         <header className="mw-print-heading">
           <div>
@@ -426,9 +705,10 @@ function ScopedPrintStudio({
             </p>
           </div>
         </header>
-        {writeError && writeTarget === "formats" && (
-          <p role="alert">{writeError}</p>
-        )}
+        {writeError &&
+          !marker &&
+          recoveryReady &&
+          writeTarget === "formats" && <p role="alert">{writeError}</p>}
         {formatError && (
           <div role="alert">
             <p>{formatError}</p>
@@ -538,9 +818,9 @@ function ScopedPrintStudio({
                 <div className="mw-note" role="status">
                   <strong>Format save unconfirmed</strong>
                   <p>
-                    Your original format is retained and further edits are
-                    paused. Ask an administrator to reconcile the saved format
-                    before sending another update.
+                    Further edits are paused. Use the print-request recovery
+                    controls to check, retry or stop the original save before
+                    making a new one.
                   </p>
                   <button
                     type="button"
@@ -567,7 +847,13 @@ function ScopedPrintStudio({
                 }}
               >
                 <fieldset
-                  disabled={disabled || busy || !!formatUnknown}
+                  disabled={
+                    disabled ||
+                    busy ||
+                    !!marker ||
+                    !recoveryReady ||
+                    !!formatUnknown
+                  }
                   className="mw-print-format-fields"
                 >
                   <label>
@@ -691,9 +977,12 @@ function ScopedPrintStudio({
             </button>
           )}
         </header>
-        {canViewJobs && canReprint && writeError && writeTarget === "jobs" && (
-          <p role="alert">{writeError}</p>
-        )}
+        {canViewJobs &&
+          canReprint &&
+          writeError &&
+          !marker &&
+          recoveryReady &&
+          writeTarget === "jobs" && <p role="alert">{writeError}</p>}
         {!canViewJobs ? (
           <p>Order access is required to view this branch’s print queue.</p>
         ) : jobsLoading ? (
@@ -716,9 +1005,9 @@ function ScopedPrintStudio({
               <div role="status" className="mw-note">
                 <strong>Duplicate request unconfirmed</strong>
                 <p>
-                  Check the refreshed queue with an administrator before
-                  requesting another duplicate. No repeat request will be sent
-                  automatically.
+                  Use the print-request recovery controls before requesting
+                  another duplicate. No repeat request is sent automatically. A
+                  queued document does not confirm physical output.
                 </p>
               </div>
             )}
@@ -729,7 +1018,13 @@ function ScopedPrintStudio({
                   value={reason}
                   minLength={3}
                   maxLength={300}
-                  disabled={disabled || busy || reprintUnknown}
+                  disabled={
+                    disabled ||
+                    busy ||
+                    !!marker ||
+                    !recoveryReady ||
+                    reprintUnknown
+                  }
                   onChange={(event) => setReason(event.target.value)}
                   placeholder="Why is a duplicate needed?"
                 />
@@ -782,6 +1077,8 @@ function ScopedPrintStudio({
                             disabled ||
                             busy ||
                             reprintUnknown ||
+                            !!marker ||
+                            !recoveryReady ||
                             reason.trim().length < 3
                           }
                           onClick={() => void reprint(job)}

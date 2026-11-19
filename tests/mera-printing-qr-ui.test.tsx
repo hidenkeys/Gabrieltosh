@@ -30,14 +30,41 @@ const base = "/organizations/org-a/branches/branch-a",
     },
     label: { width: 50, height: 40 },
   };
+test.beforeEach(() => window.sessionStorage.clear());
+test.afterEach(() => window.sessionStorage.clear());
 test("O7 receipt and sticker samples precede format editor and keep exact template payload", async () => {
   const original = globalThis.fetch;
   const writes: any[] = [];
-  globalThis.fetch = async (input) =>
-    Response.json(String(input).endsWith("/templates") ? format : []);
+  globalThis.fetch = async (input) => {
+    if (String(input).includes("/templates/save-attempts/")) {
+      const body = writes.at(-1)[2],
+        intent = { receipt: body.receipt, label: body.label };
+      return Response.json({
+        requestKey: body.requestKey,
+        actorId: "staff-one",
+        organizationId: "org-a",
+        branchId: "branch-a",
+        operation: "template_save",
+        targetId: null,
+        status: "recorded",
+        resultBasis: "recorded_operation_snapshot",
+        result: { id: "format-id", version: 2, ...intent },
+        operationRecord: {
+          id: "op",
+          requestKey: body.requestKey,
+          actorId: "staff-one",
+          operation: "template_save",
+          targetId: null,
+          intent,
+        },
+      });
+    }
+    return Response.json(String(input).endsWith("/templates") ? format : []);
+  };
   try {
     const { container } = render(
       <PrintStudio
+        actorId="staff-one"
         base={base}
         disabled={false}
         canViewJobs={false}
@@ -74,7 +101,8 @@ test("O7 receipt and sticker samples precede format editor and keep exact templa
     assert.equal(writes[0][0], base + "/templates");
     assert.equal(writes[0][1], "PUT");
     assert.equal(writes[0][2].receipt.businessName, "Updated venue");
-    assert.equal(writes[0][2].version, 1);
+    assert.equal(writes[0][2].version, undefined);
+    assert.equal(typeof writes[0][2].requestKey, "string");
     assert.equal(writes[0][2].label.width, 50);
   } finally {
     cleanup();
@@ -96,6 +124,7 @@ test("O7 format and queue failures retry independently without false queue empty
   try {
     render(
       <PrintStudio
+        actorId="staff-one"
         base={base}
         disabled={false}
         canViewJobs
@@ -139,6 +168,7 @@ test("O7 unknown format save freezes changed writes while reading a saved versio
   try {
     render(
       <PrintStudio
+        actorId="staff-one"
         base={base}
         disabled={false}
         canViewJobs={false}
@@ -337,6 +367,7 @@ test("O7 unknown reprint never resends on queue refresh and queue previews use s
   try {
     render(
       <PrintStudio
+        actorId="staff-one"
         base={base}
         disabled={false}
         canViewJobs
@@ -360,7 +391,11 @@ test("O7 unknown reprint never resends on queue refresh and queue previews use s
     fireEvent.click(screen.getByRole("button", { name: "Refresh print jobs" }));
     await screen.findByRole("heading", { name: "Receipt · A1" });
     assert.equal(writes.length, 1);
-    assert.deepEqual(writes[0][2], { reason: "Receipt damaged" });
+    assert.equal(typeof writes[0][2].requestKey, "string");
+    assert.deepEqual(
+      { ...writes[0][2], requestKey: undefined },
+      { requestKey: undefined, reason: "Receipt damaged" },
+    );
     assert(
       (
         screen.getByRole("button", {
@@ -380,6 +415,7 @@ test("O7 partially entered sticker dimensions show a recoverable preview error w
   try {
     render(
       <PrintStudio
+        actorId="staff-one"
         base={base}
         disabled={false}
         canViewJobs={false}

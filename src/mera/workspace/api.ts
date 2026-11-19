@@ -30,7 +30,7 @@ export async function workspaceApi<T = any>(
     rejectInterrupted(
       timedOut
         ? new WorkspaceError(
-            "Connection timed out. No submission has been confirmed. Check the canonical record before retrying the original request.",
+            "Connection timed out. No submission has been confirmed. Check the original request's outcome before making another change.",
           )
         : abortError(),
     );
@@ -89,7 +89,7 @@ export async function workspaceApi<T = any>(
     if (signal?.aborted) throw abortError();
     if (timedOut)
       throw new WorkspaceError(
-        "Connection timed out. No submission has been confirmed. Check the canonical record before retrying the original request.",
+        "Connection timed out. No submission has been confirmed. Check the original request's outcome before making another change.",
       );
     if (
       error instanceof WorkspaceError ||
@@ -97,7 +97,7 @@ export async function workspaceApi<T = any>(
     )
       throw error;
     throw new WorkspaceError(
-      "Connection lost. No submission has been confirmed. Refresh the canonical record before retrying.",
+      "Connection lost. No submission has been confirmed. Check the original request's outcome before making another change.",
     );
   } finally {
     clearTimeout(timer);

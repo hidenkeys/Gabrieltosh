@@ -95,6 +95,7 @@ import FloorMap from "./FloorMap";
 import HelpRequests from "./HelpRequests";
 import { hasHelpUpdateMarkers } from "./helpUpdateJournal";
 import { hasBillChangeMarkers } from "./billChangeJournal";
+import { hasPrintStudioMarkers } from "./printStudioJournal";
 import ModifierGroupsEditor from "./ModifierGroupsEditor";
 import WriteOff from "./WriteOff";
 import MinimumSpendPolicy from "./MinimumSpendPolicy";
@@ -410,11 +411,13 @@ export default function OrganizationWorkspace({
     window.addEventListener("mera:shift-recovery", changed);
     window.addEventListener("mera:help-recovery", changed);
     window.addEventListener("mera:bill-recovery", changed);
+    window.addEventListener("mera:print-recovery", changed);
     return () => {
       window.removeEventListener("mera:reservation-recovery", changed);
       window.removeEventListener("mera:shift-recovery", changed);
       window.removeEventListener("mera:help-recovery", changed);
       window.removeEventListener("mera:bill-recovery", changed);
+      window.removeEventListener("mera:print-recovery", changed);
     };
   }, []);
   const clearProtected = useCallback(() => {
@@ -741,7 +744,17 @@ export default function OrganizationWorkspace({
       /^\/organizations\/[^/]+\/branches\/[^/]+\/bills\/[^/]+\/(split|merge)$/.test(
         path,
       );
+    const originalTemplateSave =
+      method === "PUT" &&
+      /^\/organizations\/[^/]+\/branches\/[^/]+\/templates$/.test(path);
+    const originalReprint =
+      method === "POST" &&
+      /^\/organizations\/[^/]+\/branches\/[^/]+\/print-jobs\/[^/]+\/reprint$/.test(
+        path,
+      );
     const actorBoundIntent =
+      originalTemplateSave ||
+      originalReprint ||
       originalReservation ||
       originalShiftOperation ||
       originalHelpUpdate ||
@@ -757,11 +770,15 @@ export default function OrganizationWorkspace({
             ? path === branchBase + "/reservations"
             : path.startsWith(
                 branchBase +
-                  (originalHelpUpdate
-                    ? "/help-requests/"
-                    : originalBillChange
-                      ? "/bills/"
-                      : "/shifts"),
+                  (originalTemplateSave
+                    ? "/templates"
+                    : originalReprint
+                      ? "/print-jobs/"
+                      : originalHelpUpdate
+                        ? "/help-requests/"
+                        : originalBillChange
+                          ? "/bills/"
+                          : "/shifts"),
               )) ||
           scopeEpoch.current.generation !== scopeVersion)
       )
@@ -1430,7 +1447,8 @@ export default function OrganizationWorkspace({
                       hasStaffReservationJournals(principal || user.id) ||
                       hasShiftOperationJournals(principal || user.id) ||
                       hasHelpUpdateMarkers(principal || user.id) ||
-                      hasBillChangeMarkers(principal || user.id)
+                      hasBillChangeMarkers(principal || user.id) ||
+                      hasPrintStudioMarkers(principal || user.id)
                     )
                       setLogoutConfirm(true);
                     else void signOut();
@@ -1661,6 +1679,26 @@ export default function OrganizationWorkspace({
             )}
           </div>
         )}
+      {hasPrintStudioMarkers(principal || user.id) && (
+        <section
+          role="status"
+          className="mw-note"
+          aria-label="Print studio recovery"
+        >
+          <strong>A print request needs checking</strong>
+          <p>
+            Open Receipt studio in the original branch to check the format save
+            or duplicate request. No request is sent automatically.
+          </p>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => selectSection("printing")}
+          >
+            Review print requests
+          </button>
+        </section>
+      )}
       {hasBillChangeMarkers(principal || user.id) && (
         <section
           role="status"
@@ -2270,6 +2308,7 @@ export default function OrganizationWorkspace({
                 <PrintStudio
                   key={branchId}
                   base={branchBase}
+                  actorId={principal || user.id}
                   branchName={branch?.name}
                   timeZone={branch?.timezone}
                   disabled={busy || offline}

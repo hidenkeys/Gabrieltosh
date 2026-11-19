@@ -30,8 +30,11 @@ const base = "/organizations/org/branches/branch",
     label: { width: 50, height: 40 },
   };
 const original = globalThis.fetch;
+test.beforeEach(() => window.sessionStorage.clear());
+test.afterEach(() => window.sessionStorage.clear());
 const props = {
   base,
+  actorId: "staff-one",
   disabled: false,
   canViewJobs: true,
   canReprint: true,
@@ -261,7 +264,7 @@ test("format write denial clears private draft and ignores old-scope write compl
     view.rerender(
       <PrintStudio
         {...props}
-        base={base + "/new"}
+        base="/organizations/org/branches/new"
         save={async () => {
           throw Object.assign(Error("Forbidden"), { status: 403 });
         }}
