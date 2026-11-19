@@ -69,7 +69,9 @@ test("role writes lock synchronously and uncertain versioned save stays frozen a
     fireEvent.submit(form);
     fireEvent.submit(form);
     assert.equal(calls.length, 1);
-    assert.deepEqual(calls[0][2], {
+    assert.match(calls[0][2].requestKey, /^[a-f0-9-]{36}$/i);
+    const { requestKey, ...intent } = calls[0][2];
+    assert.deepEqual(intent, {
       name: "Local role draft",
       permissions: ["orders.view"],
       version: 4,
@@ -146,16 +148,25 @@ test("dirty editor blocks replacement until explicit discard; permission reducti
   }
 });
 test("development token starts concealed, reveals deliberately and vanishes immediately on authority loss", async () => {
-  fetchRows();
+  let invitationBody: any;
+  const token = "a".repeat(64);
+  globalThis.fetch = async (input) => {
+    if (String(input).includes("/create-attempts/")) {
+      const { requestKey, ...intent } = invitationBody;
+      return Response.json({ status: "recorded", requestKey, actorId: "current-session", organizationId: "org", operation: "invitation_create", targetId: null,
+        resultBasis: "recorded_operation_snapshot", operationRecord: { id: "op-inv", requestKey, actorId: "current-session", operation: "invitation_create", targetId: null, intent },
+        result: { id: "inv", ...intent, delivery: "not_sent", developmentTokenRecoverable: false } });
+    }
+    return Response.json(String(input).endsWith("/roles") ? roles : []);
+  };
   try {
     const view = render(
       <RoleManager
         {...props}
-        save={async () => ({
-          id: "inv",
-          delivery: "not_sent",
-          developmentToken: "PRIVATE_DEVELOPMENT_TOKEN",
-        })}
+        save={async (_path, _method, body) => {
+          invitationBody = body;
+          return { id: "inv", delivery: "not_sent", developmentToken: token };
+        }}
       />,
     );
     await screen.findByRole("button", { name: "Create branch invitation" });
@@ -170,14 +181,14 @@ test("development token starts concealed, reveals deliberately and vanishes imme
     await screen.findByRole("button", {
       name: "Show development invitation token",
     });
-    assert.equal(screen.queryByDisplayValue("PRIVATE_DEVELOPMENT_TOKEN"), null);
+    assert.equal(screen.queryByDisplayValue(token), null);
     assert.ok(screen.getByText("Delivery: Not sent"));
     fireEvent.click(
       screen.getByRole("button", { name: "Show development invitation token" }),
     );
-    assert.ok(screen.getByDisplayValue("PRIVATE_DEVELOPMENT_TOKEN"));
+    assert.ok(screen.getByDisplayValue(token));
     view.rerender(<RoleManager {...props} permissions={["orders.view"]} />);
-    assert.equal(screen.queryByDisplayValue("PRIVATE_DEVELOPMENT_TOKEN"), null);
+    assert.equal(screen.queryByDisplayValue(token), null);
     assert.ok(screen.getByText(/People access needs checking/));
   } finally {
     cleanup();
@@ -211,7 +222,8 @@ for (const status of [401, 403, 404])
       );
       await screen.findByText(/People access needs checking/);
       assert.equal(screen.queryByLabelText("Role name"), null);
-      assert.equal(screen.queryByRole("button"), null);
+      assert(!screen.queryByRole("button", { name: "Save custom role" }));
+      assert(!screen.queryByRole("button", { name: "Retry original access change" }));
     } finally {
       cleanup();
       window.sessionStorage.clear();
@@ -344,7 +356,7 @@ test("unknown access writes survive branch and navigation remounts, scoped only 
     assert.ok(!storage.includes("Local role draft"));
     assert.ok(!storage.includes("orders.view"));
     view.rerender(<RoleManager {...p} branchId="other-branch" />);
-    await screen.findByText(/paused across pages and branches/);
+    await screen.findByText(/paused across.*pages and branches/);
     await screen.findAllByRole("button", { name: "Edit role" });
     fireEvent.click(screen.getAllByRole("button", { name: "Edit role" })[0]);
     fireEvent.submit(
@@ -355,7 +367,7 @@ test("unknown access writes survive branch and navigation remounts, scoped only 
     assert.equal(writes, 1);
     view.unmount();
     render(<RoleManager {...p} />);
-    await screen.findByText(/paused across pages and branches/);
+    await screen.findByText(/paused across.*pages and branches/);
     assert.equal(writes, 1);
   } finally {
     cleanup();
@@ -363,7 +375,7 @@ test("unknown access writes survive branch and navigation remounts, scoped only 
     globalThis.fetch = original;
   }
 });
-test("late definitive acknowledgement clears journal after unmount while storage failure prevents dispatch", async () => {
+test("late acknowledgement without scoped proof retains recovery after unmount while storage failure prevents dispatch", async () => {
   fetchRows();
   let resolve: any;
   try {
@@ -381,7 +393,26 @@ test("late definitive acknowledgement clears journal after unmount while storage
     assert.ok(hasAccessWrite("late-actor", "org"));
     view.unmount();
     await act(async () => resolve(custom));
-    assert.equal(hasAccessWrite("late-actor", "org"), false);
+    assert.equal(hasAccessWrite("late-actor", "org"), true);
+    const marker = JSON.parse(window.sessionStorage.getItem("mera:access-operation:v1:late-actor:org")!);
+    let proofReads = 0;
+    globalThis.fetch = async (input) => {
+      if (String(input).includes("/update-attempts/")) {
+        proofReads++;
+        const intent = { name: "Local role draft", permissions: ["orders.view"], active: true, version: 4 };
+        return Response.json({ ...marker, status: "recorded", resultBasis: "recorded_operation_snapshot",
+          operationRecord: { id: "recorded-update", requestKey: marker.requestKey, actorId: marker.actorId, operation: marker.operation, targetId: marker.targetId, intent },
+          result: { ...custom, ...intent, version: 5 } });
+      }
+      return Response.json(String(input).endsWith("/roles") ? roles : []);
+    };
+    render(<RoleManager {...props} userId="late-actor" />);
+    await screen.findByRole("button", { name: "Check access change outcome" });
+    assert.equal(proofReads, 0, "restoring a reference must not automatically check or write");
+    assert.equal(hasAccessWrite("late-actor", "org"), true);
+    fireEvent.click(screen.getByRole("button", { name: "Check access change outcome" }));
+    await waitFor(() => assert.equal(hasAccessWrite("late-actor", "org"), false));
+    assert.equal(proofReads, 1, "only exact scoped recorded proof clears the marker");
     const descriptor = Object.getOwnPropertyDescriptor(
       window,
       "sessionStorage",

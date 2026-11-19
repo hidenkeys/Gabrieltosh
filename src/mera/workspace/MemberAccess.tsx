@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
 import { permissionLabel } from "./accessPresentation";
+import { hasAccessWrite } from "./accessWriteJournal";
 import {
-  beginAccessWrite,
-  finishAccessWrite,
-  hasAccessWrite,
-} from "./accessWriteJournal";
+  AccessOperationBoundary,
+  useAccessOperations,
+} from "./AccessOperationRecovery";
 import { DataRegion, Disclosure, ReadState } from "../ui/OperationalPrimitives";
 
 type Props = {
@@ -36,10 +36,22 @@ const roleNames: Record<string, string> = {
 };
 export default function MemberAccess(props: Props) {
   return (
-    <ScopedMembers
-      key={JSON.stringify([props.organizationId, props.branchId, props.userId])}
-      {...props}
-    />
+    <AccessOperationBoundary
+      actorId={props.userId}
+      organizationId={props.organizationId}
+      canManage={props.canManage}
+      disabled={props.disabled}
+      save={props.save}
+    >
+      <ScopedMembers
+        key={JSON.stringify([
+          props.organizationId,
+          props.branchId,
+          props.userId,
+        ])}
+        {...props}
+      />
+    </AccessOperationBoundary>
   );
 }
 function ScopedMembers({
@@ -51,6 +63,7 @@ function ScopedMembers({
   disabled,
   save,
 }: Props) {
+  const access = useAccessOperations();
   const base = `/organizations/${encodeURIComponent(organizationId)}/members`;
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true),
@@ -71,6 +84,7 @@ function ScopedMembers({
     unknownRef = useRef(false);
   const reviewTrigger = useRef<HTMLButtonElement | null>(null);
   const clearAccess = () => {
+    access.deny();
     deniedRef.current = true;
     generation.current++;
     setDenied(true);
@@ -147,7 +161,7 @@ function ScopedMembers({
       member.userId === userId
     )
       return;
-    if (!beginAccessWrite(userId, organizationId, "membership")) {
+    if (!access.canStart()) {
       unknownRef.current = true;
       setUnknown(true);
       return;
@@ -156,19 +170,16 @@ function ScopedMembers({
     setBusy(true);
     setError("");
     try {
-      await save(
+      await access.execute(
         `${base}/${encodeURIComponent(member.id)}`,
         "PATCH",
         { active: !member.active },
         member.active ? "Membership suspended." : "Membership restored.",
       );
-      finishAccessWrite(userId, organizationId);
       if (!alive.current || !authority.current || deniedRef.current) return;
       setReview(null);
       await read();
     } catch (failure: any) {
-      if (failure.status >= 400 && failure.status < 500)
-        finishAccessWrite(userId, organizationId);
       if (!alive.current) return;
       if ([401, 403, 404].includes(failure.status)) clearAccess();
       else {
@@ -177,9 +188,8 @@ function ScopedMembers({
           setUnknown(true);
         }
         setError(
-          failure.status === 409
-            ? "This access change is not allowed. The organization must retain an active owner."
-            : "Access change could not be confirmed. Review the current staff record before continuing.",
+          failure.message ||
+            "Access change could not be confirmed. Review the original request before continuing.",
         );
       }
     } finally {
@@ -187,7 +197,20 @@ function ScopedMembers({
       if (alive.current) setBusy(false);
     }
   };
-  const paused = unknown || hasAccessWrite(userId, organizationId);
+  useEffect(() => {
+    if (access.denied) clearAccess();
+  }, [access.denied]);
+  useEffect(() => {
+    if (!access.revision || !authority.current || deniedRef.current) return;
+    unknownRef.current = false;
+    setUnknown(false);
+    if (access.resolution?.operation === "membership_update") {
+      setReview(null);
+      void read();
+    }
+  }, [access.revision]);
+  const paused =
+    unknown || access.blocked || hasAccessWrite(userId, organizationId);
   if (!canManage || denied)
     return (
       <section className="mw-card">
@@ -237,16 +260,7 @@ function ScopedMembers({
           Refresh staff
         </button>
       </header>
-      {paused && (
-        <div className="mw-note" role="status">
-          <strong>Access change outcome unconfirmed</strong>
-          <p>
-            Do not repeat this change. Refresh staff records and ask an
-            administrator to reconcile the original request. Reading the list
-            does not unlock another attempt.
-          </p>
-        </div>
-      )}
+
       {loading && <ReadState kind="loading" title="Loading staff access…" />}
       {error && (
         <ReadState

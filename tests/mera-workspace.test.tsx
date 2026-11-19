@@ -825,8 +825,18 @@ test("custom roles expose only actor-grantable permissions and invite using a sc
     await import("../src/mera/workspace/RoleManager");
   const originalFetch = globalThis.fetch;
   const calls: any[] = [];
-  globalThis.fetch = (async (input: any) =>
-    Response.json(
+  globalThis.fetch = (async (input: any) => {
+    const path = String(input);
+    if (path.includes("-attempts/")) {
+      const call = calls.at(-1), { requestKey, ...intent } = call[2];
+      const invitation = path.includes("/invitations/");
+      const operation = invitation ? "invitation_create" : "role_update";
+      const targetId = invitation ? null : "custom-role";
+      return Response.json({ status: "recorded", requestKey, actorId: "current-session", organizationId: "org", operation, targetId,
+        resultBasis: "recorded_operation_snapshot", operationRecord: { id: "operation-" + calls.length, requestKey, actorId: "current-session", operation, targetId, intent },
+        result: invitation ? { id: "invitation", ...intent, delivery: "not_sent", developmentTokenRecoverable: false } : { id: targetId, ...intent, version: intent.version + 1 } });
+    }
+    return Response.json(
       String(input).endsWith("/roles")
         ? {
             templates: [
@@ -844,7 +854,7 @@ test("custom roles expose only actor-grantable permissions and invite using a sc
             ],
           }
         : [],
-    )) as any;
+    ); }) as any;
   try {
     render(
       React.createElement(RoleManager, {
@@ -875,7 +885,9 @@ test("custom roles expose only actor-grantable permissions and invite using a sc
         screen.getByRole("button", { name: "Create branch invitation" }),
       ),
     );
-    assert.deepEqual(calls[0][2], {
+    assert.match(calls[0][2].requestKey, /^[a-f0-9-]{36}$/i);
+    const { requestKey: invitationKey, ...invitationIntent } = calls[0][2];
+    assert.deepEqual(invitationIntent, {
       email: "staff@example.com",
       role: "custom-role",
       branchIds: ["branch"],
@@ -896,7 +908,10 @@ test("custom roles expose only actor-grantable permissions and invite using a sc
       fireEvent.click(screen.getByRole("button", { name: "Save custom role" })),
     );
     assert.equal(calls[1][0], "/organizations/org/roles/custom-role");
-    assert.deepEqual(calls[1][2], {
+    assert.match(calls[1][2].requestKey, /^[a-f0-9-]{36}$/i);
+    assert.notEqual(calls[1][2].requestKey, invitationKey);
+    const { requestKey: roleKey, ...roleIntent } = calls[1][2];
+    assert.deepEqual(roleIntent, {
       name: "Evening host",
       permissions: ["orders.view"],
       active: true,

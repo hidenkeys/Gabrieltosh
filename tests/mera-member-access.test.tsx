@@ -77,7 +77,9 @@ test("member access uses a reviewed exact target and freezes an unknown write ac
     );
     await screen.findByText("Access change outcome unconfirmed");
     assert.equal(calls.length, 1);
-    assert.deepEqual(calls[0].slice(0, 3), [
+    assert.match(calls[0][2].requestKey, /^[a-f0-9-]{36}$/i);
+    const { requestKey, ...intent } = calls[0][2];
+    assert.deepEqual([calls[0][0], calls[0][1], intent], [
       "/organizations/org-a/members/member-a",
       "PATCH",
       { active: false },

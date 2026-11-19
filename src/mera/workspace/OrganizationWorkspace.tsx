@@ -63,6 +63,8 @@ import ReportExplorer from "./ReportExplorer";
 import Tickets from "./Tickets";
 import RoleManager from "./RoleManager";
 import MemberAccess from "./MemberAccess";
+import { AccessOperationProvider } from "./AccessOperationRecovery";
+import { hasAnyAccessWrite } from "./accessWriteJournal";
 import TimeWindows from "./TimeWindows";
 import VariantsEditor from "./VariantsEditor";
 import SharedMenus from "./SharedMenus";
@@ -412,12 +414,14 @@ export default function OrganizationWorkspace({
     window.addEventListener("mera:help-recovery", changed);
     window.addEventListener("mera:bill-recovery", changed);
     window.addEventListener("mera:print-recovery", changed);
+    window.addEventListener("mera:access-operation", changed);
     return () => {
       window.removeEventListener("mera:reservation-recovery", changed);
       window.removeEventListener("mera:shift-recovery", changed);
       window.removeEventListener("mera:help-recovery", changed);
       window.removeEventListener("mera:bill-recovery", changed);
       window.removeEventListener("mera:print-recovery", changed);
+      window.removeEventListener("mera:access-operation", changed);
     };
   }, []);
   const clearProtected = useCallback(() => {
@@ -752,7 +756,13 @@ export default function OrganizationWorkspace({
       /^\/organizations\/[^/]+\/branches\/[^/]+\/print-jobs\/[^/]+\/reprint$/.test(
         path,
       );
+    const originalAccessWrite =
+      ["POST", "PATCH", "DELETE"].includes(method) &&
+      /^\/organizations\/[^/]+\/(members\/[^/]+|roles(?:\/[^/]+)?|invitations(?:\/[^/]+)?)$/.test(
+        path,
+      );
     const actorBoundIntent =
+      originalAccessWrite ||
       originalTemplateSave ||
       originalReprint ||
       originalReservation ||
@@ -768,18 +778,20 @@ export default function OrganizationWorkspace({
           requestedScope !== branchBase ||
           !(originalReservation
             ? path === branchBase + "/reservations"
-            : path.startsWith(
-                branchBase +
-                  (originalTemplateSave
-                    ? "/templates"
-                    : originalReprint
-                      ? "/print-jobs/"
-                      : originalHelpUpdate
-                        ? "/help-requests/"
-                        : originalBillChange
-                          ? "/bills/"
-                          : "/shifts"),
-              )) ||
+            : originalAccessWrite
+              ? path.startsWith("/organizations/" + organizationId + "/")
+              : path.startsWith(
+                  branchBase +
+                    (originalTemplateSave
+                      ? "/templates"
+                      : originalReprint
+                        ? "/print-jobs/"
+                        : originalHelpUpdate
+                          ? "/help-requests/"
+                          : originalBillChange
+                            ? "/bills/"
+                            : "/shifts"),
+                )) ||
           scopeEpoch.current.generation !== scopeVersion)
       )
         throw new WorkspaceError(
@@ -1448,7 +1460,8 @@ export default function OrganizationWorkspace({
                       hasShiftOperationJournals(principal || user.id) ||
                       hasHelpUpdateMarkers(principal || user.id) ||
                       hasBillChangeMarkers(principal || user.id) ||
-                      hasPrintStudioMarkers(principal || user.id)
+                      hasPrintStudioMarkers(principal || user.id) ||
+                      hasAnyAccessWrite(principal || user.id)
                     )
                       setLogoutConfirm(true);
                     else void signOut();
@@ -1679,6 +1692,33 @@ export default function OrganizationWorkspace({
             )}
           </div>
         )}
+      {hasAnyAccessWrite(principal || user.id) && (
+        <section
+          role="status"
+          className="mw-note"
+          aria-label="Organization access recovery"
+        >
+          <strong>An access change needs checking</strong>
+          <p>
+            Open People in the original organization to review the request. No
+            access change is sent automatically.
+          </p>
+          {allowed("members.manage") ? (
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => selectSection("team")}
+            >
+              Review access changes
+            </button>
+          ) : (
+            <p>
+              The original account needs organization staff-management access
+              restored to review it.
+            </p>
+          )}
+        </section>
+      )}
       {hasPrintStudioMarkers(principal || user.id) && (
         <section
           role="status"
@@ -4170,26 +4210,38 @@ export default function OrganizationWorkspace({
               )}
               {activeSection === "team" && (
                 <div className="mw-people">
-                  <MemberAccess
+                  <AccessOperationProvider
+                    actorId={user.id}
                     organizationId={organizationId}
-                    branchId={branchId}
-                    branches={branches}
-                    userId={user.id}
                     canManage={allowed("members.manage")}
+                    authorityKey={JSON.stringify([
+                      permissions.slice().sort(),
+                      organization?.role === "owner",
+                    ])}
                     disabled={busy || offline}
                     save={mutate}
-                  />
-                  <RoleManager
-                    key={branchBase}
-                    userId={user.id}
-                    organizationId={organizationId}
-                    branchId={branchId}
-                    permissions={permissions}
-                    canGrantOwner={organization?.role === "owner"}
-                    onAccessChanged={() => void loadContext(true)}
-                    disabled={busy || offline}
-                    save={mutate}
-                  />
+                  >
+                    <MemberAccess
+                      organizationId={organizationId}
+                      branchId={branchId}
+                      branches={branches}
+                      userId={user.id}
+                      canManage={allowed("members.manage")}
+                      disabled={busy || offline}
+                      save={mutate}
+                    />
+                    <RoleManager
+                      key={branchBase}
+                      userId={user.id}
+                      organizationId={organizationId}
+                      branchId={branchId}
+                      permissions={permissions}
+                      canGrantOwner={organization?.role === "owner"}
+                      onAccessChanged={() => void loadContext(true)}
+                      disabled={busy || offline}
+                      save={mutate}
+                    />
+                  </AccessOperationProvider>
                 </div>
               )}
             </main>

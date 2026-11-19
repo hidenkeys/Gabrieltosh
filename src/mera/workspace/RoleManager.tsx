@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
 import { permissionLabel } from "./accessPresentation";
+import { hasAccessWrite } from "./accessWriteJournal";
 import {
-  beginAccessWrite,
-  finishAccessWrite,
-  hasAccessWrite,
-} from "./accessWriteJournal";
+  AccessOperationBoundary,
+  useAccessOperations,
+} from "./AccessOperationRecovery";
 type Props = {
   organizationId: string;
   userId?: string;
@@ -35,14 +35,26 @@ const templateLabels: Record<string, string> = {
 };
 export default function RoleManager(props: Props) {
   return (
-    <ScopedRoleManager
-      key={JSON.stringify([
-        props.userId || "current-session",
-        props.organizationId,
-        props.branchId,
+    <AccessOperationBoundary
+      actorId={props.userId || "current-session"}
+      organizationId={props.organizationId}
+      canManage={props.permissions.includes("members.manage")}
+      authorityKey={JSON.stringify([
+        props.permissions.slice().sort(),
+        props.canGrantOwner === true,
       ])}
-      {...props}
-    />
+      disabled={props.disabled}
+      save={props.save}
+    >
+      <ScopedRoleManager
+        key={JSON.stringify([
+          props.userId || "current-session",
+          props.organizationId,
+          props.branchId,
+        ])}
+        {...props}
+      />
+    </AccessOperationBoundary>
   );
 }
 function ScopedRoleManager({
@@ -55,6 +67,7 @@ function ScopedRoleManager({
   canGrantOwner = false,
   save,
 }: Props) {
+  const access = useAccessOperations();
   const base = "/organizations/" + encodeURIComponent(organizationId);
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState("");
@@ -85,7 +98,6 @@ function ScopedRoleManager({
     permissions.slice().sort(),
     canGrantOwner,
   ]);
-  const initialManagement = useRef(permissions.includes("members.manage"));
   const authority = useRef({ permissions, canGrantOwner, key: authorityKey });
   authority.current = { permissions, canGrantOwner, key: authorityKey };
   const deniedRef = useRef(false),
@@ -95,9 +107,9 @@ function ScopedRoleManager({
     revokeFrozen = useRef<Record<string, boolean>>({}),
     dirtyRef = useRef(false),
     tokenAuthority = useRef(authorityKey);
-  const managementLost =
-    initialManagement.current && !permissions.includes("members.manage");
+  const managementLost = !permissions.includes("members.manage");
   function deny() {
+    access.deny();
     deniedRef.current = true;
     rolesGeneration.current++;
     invitesGeneration.current++;
@@ -122,20 +134,14 @@ function ScopedRoleManager({
     setEdit(value);
   }
   const journalBegin = (kind: string) => {
-    const ok = beginAccessWrite(userId, organizationId, kind);
+    const ok = access.canStart();
     if (!ok) setJournalPaused(true);
     return ok;
   };
-  const acknowledged = (failure?: any) => {
-    if (!failure || (failure.status >= 400 && failure.status < 500))
-      finishAccessWrite(userId, organizationId);
-  };
   const allowedNow = () =>
     !deniedRef.current &&
-    !(
-      initialManagement.current &&
-      !authority.current.permissions.includes("members.manage")
-    );
+    authority.current.permissions.includes("members.manage") &&
+    !access.denied;
   const deliveryLabel = (value: unknown) =>
     (
       ({
@@ -270,6 +276,48 @@ function ScopedRoleManager({
       controller.abort();
     };
   }, [base]);
+  useEffect(() => {
+    if (access.denied) deny();
+  }, [access.denied]);
+  useEffect(() => {
+    if (!access.revision || !allowedNow()) return;
+    inviteFrozen.current = false;
+    roleFrozen.current = false;
+    revokeFrozen.current = {};
+    setInvitationUnknown(false);
+    setRoleUnknown(false);
+    setRevokeUnknown({});
+    setJournalPaused(false);
+    setError("");
+    const outcome = access.resolution;
+    if (
+      outcome?.operation === "role_create" ||
+      outcome?.operation === "role_update"
+    ) {
+      if (outcome.status === "recorded") {
+        dirtyRef.current = false;
+        setDirty(false);
+        setEdit({ name: "", permissions: [], active: true });
+        onAccessChanged?.();
+      }
+      void readRoles();
+    }
+    if (
+      outcome?.operation === "invitation_create" ||
+      outcome?.operation === "invitation_revoke"
+    ) {
+      setTokenRevealed(false);
+      tokenAuthority.current = authority.current.key;
+      if (
+        outcome.operation === "invitation_create" &&
+        outcome.status === "recorded"
+      ) {
+        setInvitation(outcome.result);
+        setEmail("");
+      } else setInvitation(null);
+      void readInvitations();
+    }
+  }, [access.revision]);
   const eligible = [...(data?.templates || []), ...(data?.custom || [])].filter(
     (row) =>
       row.active !== false &&
@@ -294,13 +342,6 @@ function ScopedRoleManager({
         Invite someone to this branch, or review reusable roles and their
         access. Invitations created here apply only to the selected branch.
       </p>
-      {(journalPaused || (!busy && hasAccessWrite(userId, organizationId))) && (
-        <p role="status">
-          An access change is unconfirmed for this organization. Further access
-          changes are paused across pages and branches. Ask an administrator to
-          reconcile the original request; refreshing does not unlock it.
-        </p>
-      )}
       {error && <p role="alert">{error}</p>}
       {rolesError && (
         <div role="alert">
@@ -346,13 +387,12 @@ function ScopedRoleManager({
                 setBusy(true);
                 setError("");
                 try {
-                  const result = await save(
+                  const result = await access.execute(
                     base + "/invitations",
                     "POST",
                     { email, role, branchIds: [branchId] },
                     "Invitation created; check its delivery status.",
                   );
-                  acknowledged();
                   if (!active.current || !allowedNow()) return;
                   if (startedAuthority !== authority.current.key) return;
                   tokenAuthority.current = startedAuthority;
@@ -361,7 +401,6 @@ function ScopedRoleManager({
                   setEmail("");
                   await readInvitations();
                 } catch (e) {
-                  acknowledged(e);
                   if (active.current && allowedNow()) {
                     if ([401, 403, 404].includes((e as any).status)) deny();
                     else {
@@ -383,6 +422,7 @@ function ScopedRoleManager({
                   disabled ||
                   busy ||
                   invitationUnknown ||
+                  access.blocked ||
                   journalPaused ||
                   (!busy && hasAccessWrite(userId, organizationId)) ||
                   rolesLoading ||
@@ -459,6 +499,14 @@ function ScopedRoleManager({
                   {invitation.reason ||
                     "Creating an invitation is not evidence that an email was sent."}
                 </p>
+                {invitation.developmentTokenUnavailable && (
+                  <p>
+                    The one-time development invitation token is unavailable.
+                    This invitation was not emailed. If a new token is needed,
+                    explicitly revoke this invitation in history, then review
+                    and create a new one.
+                  </p>
+                )}
                 {invitation.developmentToken && (
                   <>
                     <p>
@@ -564,6 +612,7 @@ function ScopedRoleManager({
                     disabled={
                       disabled ||
                       busy ||
+                      access.blocked ||
                       journalPaused ||
                       (!busy && hasAccessWrite(userId, organizationId)) ||
                       !!revokeUnknown[invite.id]
@@ -582,18 +631,16 @@ function ScopedRoleManager({
                       setBusy(true);
                       setError("");
                       try {
-                        await save(
+                        await access.execute(
                           base + "/invitations/" + invite.id,
                           "DELETE",
                           undefined,
                           "Invitation revoked.",
                         );
-                        acknowledged();
                         if (!active.current || !allowedNow()) return;
                         await readInvitations();
                         if (active.current) setInvitation(null);
                       } catch (e) {
-                        acknowledged(e);
                         if (active.current && allowedNow()) {
                           if ([401, 403, 404].includes((e as any).status))
                             deny();
@@ -725,7 +772,7 @@ function ScopedRoleManager({
                 setBusy(true);
                 setError("");
                 try {
-                  await save(
+                  await access.execute(
                     base + "/roles" + (edit.id ? "/" + edit.id : ""),
                     edit.id ? "PATCH" : "POST",
                     {
@@ -737,7 +784,6 @@ function ScopedRoleManager({
                     },
                     "Custom role saved.",
                   );
-                  acknowledged();
                   if (!active.current || !allowedNow()) return;
                   onAccessChanged?.();
                   dirtyRef.current = false;
@@ -745,7 +791,6 @@ function ScopedRoleManager({
                   setEdit({ name: "", permissions: [], active: true });
                   await readRoles();
                 } catch (e) {
-                  acknowledged(e);
                   if (active.current && allowedNow()) {
                     if ([401, 403, 404].includes((e as any).status)) deny();
                     else {
@@ -767,6 +812,7 @@ function ScopedRoleManager({
                   disabled ||
                   busy ||
                   roleUnknown ||
+                  access.blocked ||
                   journalPaused ||
                   (!busy && hasAccessWrite(userId, organizationId)) ||
                   rolesLoading ||

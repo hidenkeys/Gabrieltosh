@@ -25,7 +25,8 @@ const roles = {
 const props = {
   organizationId: "org-a",
   branchId: "branch-a",
-  permissions: ["orders.view"],
+  userId: "owner-a",
+  permissions: ["orders.view", "members.manage"],
   disabled: false,
 };
 test("O5 roles and invitation read failures have independent retries, never false empty or endless loading", async () => {
@@ -143,7 +144,9 @@ test("O5 unknown invitation stays frozen after history refresh without resending
       ).disabled,
     );
     assert.equal(writes.length, 1);
-    assert.deepEqual(writes[0][2], {
+    assert.match(writes[0][2].requestKey, /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i);
+    const { requestKey, ...intent } = writes[0][2];
+    assert.deepEqual(intent, {
       email: "staff@example.test",
       role: "cashier",
       branchIds: ["branch-a"],
@@ -157,8 +160,14 @@ test("O5 unknown invitation stays frozen after history refresh without resending
 test("O5 role editor is disclosed and retains the existing versioned permission-limited save", async () => {
   const original = globalThis.fetch;
   const writes: any[] = [];
-  globalThis.fetch = async (input) =>
-    String(input).endsWith("/roles")
+  globalThis.fetch = async (input) => {
+    if (String(input).includes("/update-attempts/")) {
+      const { requestKey, ...intent } = writes[0][2];
+      return Response.json({ status: "recorded", requestKey, actorId: "owner-a", organizationId: "org-a", operation: "role_update", targetId: "r1",
+        resultBasis: "recorded_operation_snapshot", operationRecord: { id: "saved-role-update", requestKey, actorId: "owner-a", operation: "role_update", targetId: "r1", intent },
+        result: { id: "r1", ...intent, version: 4 } });
+    }
+    return String(input).endsWith("/roles")
       ? Response.json({
           ...roles,
           custom: [
@@ -172,6 +181,7 @@ test("O5 role editor is disclosed and retains the existing versioned permission-
           ],
         })
       : Response.json([]);
+  };
   try {
     const { container } = render(
       <RoleManager
@@ -199,9 +209,12 @@ test("O5 role editor is disclosed and retains the existing versioned permission-
       screen.getByRole("button", { name: "Save custom role" }).closest("form")!,
     );
     await waitFor(() => assert.equal(writes.length, 1));
+    await waitFor(() => assert(!screen.queryByText("Access change outcome unconfirmed")) );
     assert.equal(writes[0][0], "/organizations/org-a/roles/r1");
     assert.equal(writes[0][1], "PATCH");
-    assert.deepEqual(writes[0][2], {
+    assert.match(writes[0][2].requestKey, /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i);
+    const { requestKey, ...intent } = writes[0][2];
+    assert.deepEqual(intent, {
       name: "Updated service",
       permissions: ["orders.view"],
       version: 3,
