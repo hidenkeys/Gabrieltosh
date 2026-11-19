@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T10:24:38+01:00",
-  "revision": "942d77e",
+  "lastUpdated": "2026-11-19T10:39:08+01:00",
+  "revision": "10e1feb",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -468,7 +468,11 @@
         "docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
         "docs/mera/ui-audit/EOD-REPORTING-CHECKPOINT.md",
         "docs/mera/ui-audit/trading-day-report-comparison.html",
-        "docs/mera/ui-audit/screenshots/177-report-totals-tablet.jpg"
+        "docs/mera/ui-audit/screenshots/177-report-totals-tablet.jpg",
+        "docs/mera/ui-audit/SHIFT-RECOVERY-CHECKPOINT.md",
+        "docs/mera/ui-audit/shift-recovery-comparison.html",
+        "tests/mera-workspace-shift-recovery.test.tsx",
+        "docs/mera/ui-audit/SHIFT-QA-RESTORATION.json"
       ],
       "blockers": [
         "Chrome organization policy blocks browser file-download acceptance; actual worker and authenticated route/CSV verified in disposable PostgreSQL integration.",
@@ -489,6 +493,11 @@
           "at": "2026-11-19T08:28:23+01:00",
           "checkpoint": 60,
           "note": "Populated dated EOD totals/products/current order states and scoped activity verified in browser; CSVv2 worker/download route passed PG gate. Browser download blocked by managed Chrome policy; broader finance/print/role matrices remain."
+        },
+        {
+          "at": "2026-11-19T10:39:08+01:00",
+          "checkpoint": 60,
+          "note": "Shift opening/closing recovery and action-before-queue hierarchy verified at10e1feb. Exact actor/key/amount/target journal, immutable original acknowledgment+stopfence, fresh targetdraftreset, safe logout; actualPGpassed, fullsuite610pass/2skip, final18focused/build. Browser222\u2013227 desktop/tablet/phone plus zero open/rejectedclose reload/stop/zero close verified. All92baselineQAhashes/settings unchanged,5immutable testrecords retained guardpreserved. Broad finance/role/accessibility acceptance remains; no new weighted credit."
         }
       ]
     },
@@ -2157,6 +2166,13 @@
     {
       "at": "2026-11-19T10:24:38+01:00",
       "event": "Staff reservation recovery slice verified at942d77e; no checkpoint or scope-weight change",
+      "scopeWeight": 100,
+      "weightedPoints": 63.8,
+      "roundedCompletion": 63
+    },
+    {
+      "at": "2026-11-19T10:39:08+01:00",
+      "event": "Shift open/close recovery slice verified at10e1feb; checkpoints andscopeweightsunchanged",
       "scopeWeight": 100,
       "weightedPoints": 63.8,
       "roundedCompletion": 63

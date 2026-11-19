@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Staff reservation request recovery verified at942d77e: exact pre-dispatch intent/key, actor-bound requests, authoritative lookup/stop fence, safe sign-out redaction and native datetime input fix. Full suite597pass/2skip,12focused/4parent integration passes and build; actual desktop/tablet/phone comparisons plus synthetic booking/rejected-request reload/stop verified. Two immutable QA audit events retained with append-only protection preserved; all90baseline records/settings unchanged. No new checkpoint credit for this slice:63.8/100. Next: reservation status/arrival/seating and shift recovery, broader role/financial acceptance and remaining platform surfaces. Main3003 running; provider, protected-platform QA access and physical-printer gates remain explicit.",
+  "Shift opening/closing recovery verified at10e1feb: exact original cash/target/key, actor-bound dispatch, immutable acknowledgment and stop fence, safe sign-out and fresh target-draft reset. Full suite610pass/2skip, final18focused and build, actual PostgreSQL plus real zero-value browser open/rejected-close reload/stop/close, desktop/tablet/phone comparison. All92baseline QA records/settings unchanged;5immutable test records retained with guards active. No new checkpoint credit for this slice:63.8/100. Next: reservation status/arrival/seating recovery, broader role/financial and cross-screen accessibility acceptance, remaining platform surfaces. Main3003 running; provider, protected-platform QA access and physical-printer gates remain explicit.",
   "",
   "## Measurement",
   "",
