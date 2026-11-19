@@ -2493,6 +2493,16 @@ test(
         for(const row of immutableShiftRows){await assert.rejects(db.query("UPDATE mera_records SET data=data||'{\"tampered\":true}'::jsonb WHERE id=$1",[row.id]),/append-only/);await assert.rejects(db.query("DELETE FROM mera_records WHERE id=$1",[row.id]),/append-only/);}
 
       }
+      {
+        const previousServiceAccess=(await db.query("SELECT permissions FROM mera_memberships WHERE user_id=$1 AND organization_id=$2",[other,org])).rows[0].permissions;
+        await db.query("UPDATE mera_memberships SET permissions=$1 WHERE user_id=$2 AND organization_id=$3",[JSON.stringify(["orders.view","orders.fulfill"]),other,org]);
+        const serviceSnapshot=await call(B+"/workspace","GET",undefined,other);assert.equal(serviceSnapshot.status,200);assert.deepEqual(serviceSnapshot.data.tickets,[]);
+        const facts=serviceSnapshot.data.preparationFacts.find(f=>f.orderId===winner.order.id);assert.ok(facts);assert.equal(facts.items[0].preparedQuantity,winner.order.items[0].quantity);
+        assert.deepEqual(Object.keys(facts).sort(),["items","orderId"]);assert.deepEqual(Object.keys(facts.items[0]).sort(),["orderLineId","preparedQuantity"]);
+        assert.equal((await call(B+"/tickets/"+stationTicket.id+"/status","POST",{status:"ready",version:1},other)).status,403);
+        await db.query("UPDATE mera_memberships SET permissions=$1 WHERE user_id=$2 AND organization_id=$3",[JSON.stringify(["orders.view"]),other,org]);assert.deepEqual((await call(B+"/workspace","GET",undefined,other)).data.preparationFacts,[]);
+        await db.query("UPDATE mera_memberships SET permissions=$1 WHERE user_id=$2 AND organization_id=$3",[JSON.stringify(previousServiceAccess),other,org]);
+      }
       callBase = base;
       const membership = (
         await call("/organizations/" + org + "/members")

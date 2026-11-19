@@ -9,7 +9,7 @@ import { organizationSlugSchema,migrateMeraAliases,claimOrganizationSlug,resolve
 import { enqueuePaidDocuments,mountMeraPrinting } from "./printing.js";
 import { migrateMeraQueries,mountMeraQueries,loadWorkspaceSnapshot } from "./queries.js";
 import { mountMeraDepositOutcomes,depositView } from "./deposit-outcomes.js";
-import { projectStaffOrder } from "./projection.js";
+import { projectStaffOrder,projectPreparationFacts } from "./projection.js";
 import { mountMeraPlatformSupport } from "./platform-support.js";
 import { organizationFeatures,assertOrganizationFeature,mountMeraFeatureFlags } from "./feature-flags.js";
 import { mountMeraVisitAccess } from "./visit-access.js";
@@ -547,6 +547,7 @@ export function createMeraRouter(db) {
                 .map(billAmounts)
             : [],
         tickets: access.includes("orders.prepare") ? by("ticket") : [],
+        preparationFacts:projectPreparationFacts(by("order"),by("ticket"),access),
         categories:access.includes("menu.edit")?by("category"):(b.settings.publishedCategories||[]),
         lowStockAlerts:access.some(p=>["menu.edit","stock.adjust"].includes(p))?by("product").flatMap(p=>[
           ...(p.stockMode==="counted"&&p.stock<=(p.lowStockThreshold??5)?[{productId:p.id,variantId:null,name:p.name,size:p.size,stock:p.stock,threshold:p.lowStockThreshold??5}]:[]),
