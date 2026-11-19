@@ -1,0 +1,116 @@
+/* Existing Bing Chun surfaces, typography and controls; people-specific layout only. */
+.mw-people {
+  display: grid;
+  gap: 20px;
+}
+.mw-member-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+}
+.mw-member-heading h2 {
+  margin-top: 0;
+}
+.mw-member-heading p {
+  max-width: 70ch;
+}
+.mw-member-search {
+  display: grid;
+  gap: 8px;
+  max-width: 420px;
+  margin-block: 20px 12px;
+}
+.mw-member-count {
+  color: #626570;
+  font-size: 13px;
+}
+.mw-member-access table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 690px;
+  font-size: 13px;
+}
+.mw-member-access th,
+.mw-member-access td {
+  text-align: left;
+  vertical-align: top;
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--line, #e9e6e2);
+}
+.mw-member-access th small {
+  display: block;
+  margin-top: 6px;
+  font-weight: 400;
+  color: #626570;
+}
+.mw-member-access thead th {
+  font-size: 12px;
+  color: #626570;
+}
+.mw-member-review {
+  padding: 20px;
+  margin-top: 20px;
+  border: 1px solid var(--line, #e9e6e2);
+  border-radius: 11px;
+  background: #f8f7f4;
+}
+.mw-member-review > p {
+  max-width: 75ch;
+}
+.mw-member-review > button {
+  margin: 8px 12px 0 0;
+}
+.mw-member-review li {
+  padding: 4px;
+}
+.mw-member-access .mera-data-region {
+  max-width: 100%;
+  overflow: auto;
+}
+.mw-member-access .mw-note {
+  margin-block: 16px;
+}
+@media (max-width: 700px) {
+  .mw-member-heading {
+    display: block;
+  }
+  .mw-member-heading > button {
+    width: 100%;
+  }
+  .mw-member-search {
+    max-width: none;
+  }
+  .mw-member-review {
+    padding: 16px;
+  }
+  .mw-member-review > button {
+    width: 100%;
+    margin-right: 0;
+  }
+}
+.mw-member-access tbody th {
+  font-size: 13px;
+  font-weight: 600;
+}
+.mw-people {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+.mw-member-access {
+  min-width: 0;
+}
+.mw-member-access tbody th {
+  color: #111b2f;
+  background: #fffefa;
+}
+.mw-member-scroll-hint {
+  display: none;
+}
+@media (max-width: 800px) {
+  .mw-member-scroll-hint {
+    display: block;
+    font-size: 13px;
+    color: #626570;
+  }
+}

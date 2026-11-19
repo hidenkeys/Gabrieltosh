@@ -1,7 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
+import { permissionLabel } from "./accessPresentation";
+import {
+  beginAccessWrite,
+  finishAccessWrite,
+  hasAccessWrite,
+} from "./accessWriteJournal";
 type Props = {
   organizationId: string;
+  userId?: string;
   branchId: string;
   permissions: string[];
   disabled: boolean;
@@ -29,13 +36,18 @@ const templateLabels: Record<string, string> = {
 export default function RoleManager(props: Props) {
   return (
     <ScopedRoleManager
-      key={JSON.stringify([props.organizationId, props.branchId])}
+      key={JSON.stringify([
+        props.userId || "current-session",
+        props.organizationId,
+        props.branchId,
+      ])}
       {...props}
     />
   );
 }
 function ScopedRoleManager({
   organizationId,
+  userId = "current-session",
   branchId,
   permissions,
   disabled,
@@ -61,11 +73,91 @@ function ScopedRoleManager({
   const [invitationsLoading, setInvitationsLoading] = useState(true),
     [invitationsError, setInvitationsError] = useState("");
   const [invitationUnknown, setInvitationUnknown] = useState(false);
+  const [denied, setDenied] = useState(false),
+    [roleUnknown, setRoleUnknown] = useState(false),
+    [revokeUnknown, setRevokeUnknown] = useState<Record<string, boolean>>({}),
+    [tokenRevealed, setTokenRevealed] = useState(false),
+    [dirty, setDirty] = useState(false),
+    [journalPaused, setJournalPaused] = useState(() =>
+      hasAccessWrite(userId, organizationId),
+    );
+  const authorityKey = JSON.stringify([
+    permissions.slice().sort(),
+    canGrantOwner,
+  ]);
+  const initialManagement = useRef(permissions.includes("members.manage"));
+  const authority = useRef({ permissions, canGrantOwner, key: authorityKey });
+  authority.current = { permissions, canGrantOwner, key: authorityKey };
+  const deniedRef = useRef(false),
+    writeLock = useRef(false),
+    inviteFrozen = useRef(false),
+    roleFrozen = useRef(false),
+    revokeFrozen = useRef<Record<string, boolean>>({}),
+    dirtyRef = useRef(false),
+    tokenAuthority = useRef(authorityKey);
+  const managementLost =
+    initialManagement.current && !permissions.includes("members.manage");
+  function deny() {
+    deniedRef.current = true;
+    rolesGeneration.current++;
+    invitesGeneration.current++;
+    setDenied(true);
+    setData(null);
+    setInvitations([]);
+    setInvitation(null);
+    setTokenRevealed(false);
+    setEmail("");
+    setError("");
+    setEdit({ name: "", permissions: [], active: true });
+    dirtyRef.current = false;
+    setDirty(false);
+    setRolesError("");
+    setInvitationsError("");
+    setRolesLoading(false);
+    setInvitationsLoading(false);
+  }
+  function changedEdit(value: any) {
+    dirtyRef.current = true;
+    setDirty(true);
+    setEdit(value);
+  }
+  const journalBegin = (kind: string) => {
+    const ok = beginAccessWrite(userId, organizationId, kind);
+    if (!ok) setJournalPaused(true);
+    return ok;
+  };
+  const acknowledged = (failure?: any) => {
+    if (!failure || (failure.status >= 400 && failure.status < 500))
+      finishAccessWrite(userId, organizationId);
+  };
+  const allowedNow = () =>
+    !deniedRef.current &&
+    !(
+      initialManagement.current &&
+      !authority.current.permissions.includes("members.manage")
+    );
+  const deliveryLabel = (value: unknown) =>
+    (
+      ({
+        not_sent: "Not sent",
+        sent: "Sent",
+        delivered: "Delivered",
+        failed: "Delivery failed",
+        pending: "Awaiting delivery",
+      }) as Record<string, string>
+    )[String(value)] || "Delivery not confirmed";
+  useEffect(() => {
+    setInvitation(null);
+    setTokenRevealed(false);
+    tokenAuthority.current = authorityKey;
+    if (managementLost) deny();
+  }, [authorityKey]);
   const active = useRef(true),
     rolesGeneration = useRef(0),
     invitesGeneration = useRef(0),
     editor = useRef<HTMLDetailsElement>(null);
   const readRoles = async (signal?: AbortSignal) => {
+    if (!allowedNow()) return false;
     const version = ++rolesGeneration.current;
     setRolesLoading(true);
     setRolesError("");
@@ -78,6 +170,7 @@ function ScopedRoleManager({
       );
       if (
         !active.current ||
+        !allowedNow() ||
         signal?.aborted ||
         version !== rolesGeneration.current
       )
@@ -102,8 +195,10 @@ function ScopedRoleManager({
         !signal?.aborted &&
         version === rolesGeneration.current &&
         failure.name !== "AbortError"
-      )
-        setRolesError("Roles could not be loaded. Try again.");
+      ) {
+        if ([401, 403, 404].includes(failure.status)) deny();
+        else setRolesError("Roles could not be loaded. Try again.");
+      }
       return false;
     } finally {
       if (
@@ -115,6 +210,7 @@ function ScopedRoleManager({
     }
   };
   const readInvitations = async (signal?: AbortSignal) => {
+    if (!allowedNow()) return false;
     const version = ++invitesGeneration.current;
     setInvitationsLoading(true);
     setInvitationsError("");
@@ -127,6 +223,7 @@ function ScopedRoleManager({
       );
       if (
         !active.current ||
+        !allowedNow() ||
         signal?.aborted ||
         version !== invitesGeneration.current
       )
@@ -147,8 +244,10 @@ function ScopedRoleManager({
         !signal?.aborted &&
         version === invitesGeneration.current &&
         failure.name !== "AbortError"
-      )
-        setInvitationsError("Invitations could not be loaded. Try again.");
+      ) {
+        if ([401, 403, 404].includes(failure.status)) deny();
+        else setInvitationsError("Invitations could not be loaded. Try again.");
+      }
       return false;
     } finally {
       if (
@@ -179,6 +278,15 @@ function ScopedRoleManager({
         permissions.includes(permission),
       ),
   );
+  if (denied || managementLost)
+    return (
+      <section className="mw-card mw-staff-management">
+        <h2>Invite staff & manage roles</h2>
+        <p role="alert">
+          People access needs checking. Refresh the workspace or sign in again.
+        </p>
+      </section>
+    );
   return (
     <section className="mw-card mw-staff-management">
       <h2>Invite staff & manage roles</h2>
@@ -186,6 +294,13 @@ function ScopedRoleManager({
         Invite someone to this branch, or review reusable roles and their
         access. Invitations created here apply only to the selected branch.
       </p>
+      {(journalPaused || (!busy && hasAccessWrite(userId, organizationId))) && (
+        <p role="status">
+          An access change is unconfirmed for this organization. Further access
+          changes are paused across pages and branches. Ask an administrator to
+          reconcile the original request; refreshing does not unlock it.
+        </p>
+      )}
       {error && <p role="alert">{error}</p>}
       {rolesError && (
         <div role="alert">
@@ -216,14 +331,18 @@ function ScopedRoleManager({
               onSubmit={async (event) => {
                 event.preventDefault();
                 if (
-                  invitationUnknown ||
+                  inviteFrozen.current ||
+                  !allowedNow() ||
+                  writeLock.current ||
                   disabled ||
-                  busy ||
                   rolesLoading ||
                   rolesError ||
                   !eligible.some((row) => row.id === role)
                 )
                   return;
+                if (!journalBegin("invitation_create")) return;
+                writeLock.current = true;
+                const startedAuthority = authority.current.key;
                 setBusy(true);
                 setError("");
                 try {
@@ -233,17 +352,28 @@ function ScopedRoleManager({
                     { email, role, branchIds: [branchId] },
                     "Invitation created; check its delivery status.",
                   );
-                  if (!active.current) return;
+                  acknowledged();
+                  if (!active.current || !allowedNow()) return;
+                  if (startedAuthority !== authority.current.key) return;
+                  tokenAuthority.current = startedAuthority;
+                  setTokenRevealed(false);
                   setInvitation(result);
                   setEmail("");
                   await readInvitations();
                 } catch (e) {
-                  if (active.current) {
-                    setError((e as Error).message);
-                    if (!(e as any).status || (e as any).status >= 500)
-                      setInvitationUnknown(true);
+                  acknowledged(e);
+                  if (active.current && allowedNow()) {
+                    if ([401, 403, 404].includes((e as any).status)) deny();
+                    else {
+                      setError((e as Error).message);
+                      if (!(e as any).status || (e as any).status >= 500) {
+                        inviteFrozen.current = true;
+                        setInvitationUnknown(true);
+                      }
+                    }
                   }
                 } finally {
+                  writeLock.current = false;
                   if (active.current) setBusy(false);
                 }
               }}
@@ -253,6 +383,8 @@ function ScopedRoleManager({
                   disabled ||
                   busy ||
                   invitationUnknown ||
+                  journalPaused ||
+                  (!busy && hasAccessWrite(userId, organizationId)) ||
                   rolesLoading ||
                   !!rolesError
                 }
@@ -307,27 +439,49 @@ function ScopedRoleManager({
                 </div>
               </fieldset>
             </form>
-            {invitation && (
+            {eligible.some((row) => row.id === role) && (
+              <details>
+                <summary>Review selected role access</summary>
+                <p>This invitation grants the selected role for this branch.</p>
+                <ul>
+                  {eligible
+                    .find((row) => row.id === role)
+                    .permissions.map((permission: string) => (
+                      <li key={permission}>{permissionLabel(permission)}</li>
+                    ))}
+                </ul>
+              </details>
+            )}
+            {invitation && tokenAuthority.current === authorityKey && (
               <div className="mw-note">
-                <strong>
-                  Delivery: {invitation.delivery || "not confirmed"}
-                </strong>
+                <strong>Delivery: {deliveryLabel(invitation.delivery)}</strong>
                 <p>
                   {invitation.reason ||
                     "Creating an invitation is not evidence that an email was sent."}
                 </p>
                 {invitation.developmentToken && (
                   <>
-                    <label>
-                      Development invitation token
-                      <input
-                        readOnly
-                        value={invitation.developmentToken}
-                        onFocus={(e) => e.target.select()}
-                      />
-                    </label>
-                    <button type="button" onClick={() => setInvitation(null)}>
-                      Hide invitation token
+                    <p>
+                      Development-only invitation access. Share privately with
+                      the intended recipient.
+                    </p>
+                    {tokenRevealed && (
+                      <label>
+                        Development invitation token
+                        <input
+                          readOnly
+                          value={invitation.developmentToken}
+                          onFocus={(e) => e.target.select()}
+                        />
+                      </label>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setTokenRevealed((value) => !value)}
+                    >
+                      {tokenRevealed
+                        ? "Hide invitation token"
+                        : "Show development invitation token"}
                     </button>
                   </>
                 )}
@@ -353,6 +507,23 @@ function ScopedRoleManager({
             )}
           </section>
           <h3 className="mw-staff-section-title">Invitation history</h3>
+          {Object.values(revokeUnknown).some(Boolean) && (
+            <div className="mw-note" role="status">
+              <p>
+                An invitation revocation is unconfirmed. Review the current
+                invitations with an administrator before any further action on
+                that invitation. Reading the list does not retry or unlock the
+                request.
+              </p>
+              <button
+                type="button"
+                disabled={busy || invitationsLoading}
+                onClick={() => void readInvitations()}
+              >
+                Read current invitations
+              </button>
+            </div>
+          )}
           {invitationsLoading ? (
             <p role="status">Loading invitations…</p>
           ) : invitationsError ? (
@@ -379,17 +550,35 @@ function ScopedRoleManager({
                       ? "Accepted"
                       : invite.revoked
                         ? "Revoked"
-                        : new Date(invite.expiresAt).getTime() < Date.now()
-                          ? "Expired"
-                          : "Pending acceptance"}{" "}
-                    · Delivery: {invite.delivery || "not confirmed"}
+                        : typeof invite.expiresAt !== "string" ||
+                            !Number.isFinite(Date.parse(invite.expiresAt))
+                          ? "Expiry unavailable"
+                          : new Date(invite.expiresAt).getTime() < Date.now()
+                            ? "Expired"
+                            : "Pending acceptance"}{" "}
+                    · Delivery: {deliveryLabel(invite.delivery)}
                   </p>
                 </div>
                 {!invite.accepted && !invite.revoked && (
                   <button
-                    disabled={disabled || busy}
+                    disabled={
+                      disabled ||
+                      busy ||
+                      journalPaused ||
+                      (!busy && hasAccessWrite(userId, organizationId)) ||
+                      !!revokeUnknown[invite.id]
+                    }
                     type="button"
                     onClick={async () => {
+                      if (
+                        disabled ||
+                        writeLock.current ||
+                        !allowedNow() ||
+                        revokeFrozen.current[invite.id]
+                      )
+                        return;
+                      if (!journalBegin("invitation_revoke")) return;
+                      writeLock.current = true;
                       setBusy(true);
                       setError("");
                       try {
@@ -399,17 +588,38 @@ function ScopedRoleManager({
                           undefined,
                           "Invitation revoked.",
                         );
-                        if (!active.current) return;
+                        acknowledged();
+                        if (!active.current || !allowedNow()) return;
                         await readInvitations();
                         if (active.current) setInvitation(null);
                       } catch (e) {
-                        if (active.current) setError((e as Error).message);
+                        acknowledged(e);
+                        if (active.current && allowedNow()) {
+                          if ([401, 403, 404].includes((e as any).status))
+                            deny();
+                          else {
+                            setError((e as Error).message);
+                            if (
+                              !(e as any).status ||
+                              (e as any).status >= 500
+                            ) {
+                              revokeFrozen.current = {
+                                ...revokeFrozen.current,
+                                [invite.id]: true,
+                              };
+                              setRevokeUnknown(revokeFrozen.current);
+                            }
+                          }
+                        }
                       } finally {
+                        writeLock.current = false;
                         if (active.current) setBusy(false);
                       }
                     }}
                   >
-                    Revoke invitation
+                    {revokeUnknown[invite.id]
+                      ? "Revocation unconfirmed"
+                      : "Revoke invitation"}
                   </button>
                 )}
               </div>
@@ -441,6 +651,13 @@ function ScopedRoleManager({
                     )
                   }
                   onClick={() => {
+                    if (roleFrozen.current || writeLock.current) return;
+                    if (dirtyRef.current) {
+                      setError(
+                        "Keep or explicitly discard the current role draft before editing another role.",
+                      );
+                      return;
+                    }
                     setEdit({ ...row });
                     if (editor.current) editor.current.open = true;
                   }}
@@ -455,10 +672,56 @@ function ScopedRoleManager({
               {edit.id ? "Edit custom role" : "Create custom role"}
             </summary>{" "}
             <h3>{edit.id ? "Edit custom role" : "Create custom role"}</h3>
+            {roleUnknown && (
+              <div className="mw-note" role="status">
+                <strong>Role save unconfirmed</strong>
+                <p>
+                  The original role draft is retained. Further role changes are
+                  paused; ask an administrator to reconcile the saved roles.
+                  Refreshing does not retry or unlock this request.
+                </p>
+                <button
+                  type="button"
+                  disabled={busy || rolesLoading}
+                  onClick={() => void readRoles()}
+                >
+                  Read current roles
+                </button>
+              </div>
+            )}
+            {dirty && !roleUnknown && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  dirtyRef.current = false;
+                  setDirty(false);
+                  setEdit({ name: "", permissions: [], active: true });
+                  setError("");
+                }}
+              >
+                Discard role draft
+              </button>
+            )}
             <form
               onSubmit={async (event) => {
                 event.preventDefault();
-                if (disabled || busy || rolesLoading || rolesError) return;
+                if (
+                  disabled ||
+                  writeLock.current ||
+                  !allowedNow() ||
+                  roleFrozen.current ||
+                  rolesLoading ||
+                  rolesError ||
+                  edit.permissions.some(
+                    (permission: string) =>
+                      !authority.current.permissions.includes(permission),
+                  )
+                )
+                  return;
+                if (!journalBegin(edit.id ? "role_update" : "role_create"))
+                  return;
+                writeLock.current = true;
                 setBusy(true);
                 setError("");
                 try {
@@ -474,19 +737,44 @@ function ScopedRoleManager({
                     },
                     "Custom role saved.",
                   );
-                  if (!active.current) return;
+                  acknowledged();
+                  if (!active.current || !allowedNow()) return;
                   onAccessChanged?.();
-                  if (await readRoles())
-                    setEdit({ name: "", permissions: [], active: true });
+                  dirtyRef.current = false;
+                  setDirty(false);
+                  setEdit({ name: "", permissions: [], active: true });
+                  await readRoles();
                 } catch (e) {
-                  if (active.current) setError((e as Error).message);
+                  acknowledged(e);
+                  if (active.current && allowedNow()) {
+                    if ([401, 403, 404].includes((e as any).status)) deny();
+                    else {
+                      setError((e as Error).message);
+                      if (!(e as any).status || (e as any).status >= 500) {
+                        roleFrozen.current = true;
+                        setRoleUnknown(true);
+                      }
+                    }
+                  }
                 } finally {
+                  writeLock.current = false;
                   if (active.current) setBusy(false);
                 }
               }}
             >
               <fieldset
-                disabled={disabled || busy || rolesLoading || !!rolesError}
+                disabled={
+                  disabled ||
+                  busy ||
+                  roleUnknown ||
+                  journalPaused ||
+                  (!busy && hasAccessWrite(userId, organizationId)) ||
+                  rolesLoading ||
+                  !!rolesError ||
+                  edit.permissions.some(
+                    (permission: string) => !permissions.includes(permission),
+                  )
+                }
                 style={{ border: 0, padding: 0 }}
               >
                 <label>
@@ -496,7 +784,9 @@ function ScopedRoleManager({
                     minLength={2}
                     maxLength={70}
                     value={edit.name}
-                    onChange={(e) => setEdit({ ...edit, name: e.target.value })}
+                    onChange={(e) =>
+                      changedEdit({ ...edit, name: e.target.value })
+                    }
                   />
                 </label>
                 <fieldset>
@@ -504,16 +794,12 @@ function ScopedRoleManager({
                   <div className="mw-form">
                     {permissions.map((permission) => (
                       <label className="mw-row" key={permission}>
-                        <span>
-                          {permission
-                            .replaceAll(".", " · ")
-                            .replaceAll("_", " ")}
-                        </span>
+                        <span>{permissionLabel(permission)}</span>
                         <input
                           type="checkbox"
                           checked={edit.permissions.includes(permission)}
                           onChange={(e) =>
-                            setEdit({
+                            changedEdit({
                               ...edit,
                               permissions: e.target.checked
                                 ? [...edit.permissions, permission]
@@ -541,7 +827,7 @@ function ScopedRoleManager({
                       type="checkbox"
                       checked={edit.active}
                       onChange={(e) =>
-                        setEdit({ ...edit, active: e.target.checked })
+                        changedEdit({ ...edit, active: e.target.checked })
                       }
                     />
                   </label>
@@ -556,9 +842,11 @@ function ScopedRoleManager({
                   {edit.id && (
                     <button
                       type="button"
-                      onClick={() =>
-                        setEdit({ name: "", permissions: [], active: true })
-                      }
+                      onClick={() => {
+                        dirtyRef.current = false;
+                        setDirty(false);
+                        setEdit({ name: "", permissions: [], active: true });
+                      }}
                     >
                       Cancel editing
                     </button>

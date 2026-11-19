@@ -59,6 +59,7 @@ test("O5 roles and invitation read failures have independent retries, never fals
     assert.equal(inviteReads, 2);
   } finally {
     cleanup();
+    window.sessionStorage.clear();
     globalThis.fetch = original;
   }
 });
@@ -94,6 +95,7 @@ test("O5 old organization read cannot expose roles after scope switch", async ()
     assert.equal(screen.queryByText("Private old role"), null);
   } finally {
     cleanup();
+    window.sessionStorage.clear();
     globalThis.fetch = original;
   }
 });
@@ -148,6 +150,7 @@ test("O5 unknown invitation stays frozen after history refresh without resending
     });
   } finally {
     cleanup();
+    window.sessionStorage.clear();
     globalThis.fetch = original;
   }
 });
@@ -206,6 +209,7 @@ test("O5 role editor is disclosed and retains the existing versioned permission-
     });
   } finally {
     cleanup();
+    window.sessionStorage.clear();
     globalThis.fetch = original;
   }
 });

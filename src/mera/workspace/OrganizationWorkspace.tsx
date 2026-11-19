@@ -45,6 +45,7 @@ import ReportDetails from "./ReportDetails";
 import ReportExplorer from "./ReportExplorer";
 import Tickets from "./Tickets";
 import RoleManager from "./RoleManager";
+import MemberAccess from "./MemberAccess";
 import TimeWindows from "./TimeWindows";
 import VariantsEditor from "./VariantsEditor";
 import SharedMenus from "./SharedMenus";
@@ -156,7 +157,6 @@ export default function OrganizationWorkspace({
     date: string;
   } | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
-  const [members, setMembers] = useState<any[]>([]);
   const [orderFilters, setOrderFilters] = useState({
     query: "",
     status: "",
@@ -289,7 +289,6 @@ export default function OrganizationWorkspace({
     setPrivateAccess(null);
     setData(null);
     setCategories([]);
-    setMembers([]);
     setProductEdit(null);
     setTabForm({});
     setUncertainOrder(null);
@@ -465,7 +464,6 @@ export default function OrganizationWorkspace({
     setReadError("");
     setData(null);
     setCategories([]);
-    setMembers([]);
     setTabForm({});
     setOrderDraft({
       displayName: "",
@@ -535,7 +533,6 @@ export default function OrganizationWorkspace({
       unassigned: false,
       serviceQueue: "all",
     });
-    setMembers([]);
     setBusy(false);
     setOrderDraft({
       displayName: "",
@@ -566,40 +563,7 @@ export default function OrganizationWorkspace({
   }, [refresh]);
   useEffect(() => {
     setTabForm({});
-    if (
-      activeSection === "team" &&
-      organizationId &&
-      allowed("members.manage")
-    ) {
-      const requestedScope = branchBase;
-      const authorizationVersion = authorizationEpoch.current;
-      const controller = new AbortController();
-      workspaceApi(
-        `/organizations/${organizationId}/members`,
-        "GET",
-        undefined,
-        controller.signal,
-      )
-        .then((rows) => {
-          if (
-            !controller.signal.aborted &&
-            activeScope.current === requestedScope &&
-            scopeEpoch.current.generation === scopeVersion &&
-            authorizationEpoch.current === authorizationVersion
-          )
-            setMembers(list(rows.members ?? rows));
-        })
-        .catch((e) => {
-          if (
-            e.name !== "AbortError" &&
-            activeScope.current === requestedScope &&
-            scopeEpoch.current.generation === scopeVersion &&
-            authorizationEpoch.current === authorizationVersion
-          )
-            setReadError(e.message);
-        });
-      return () => controller.abort();
-    }
+
   }, [activeSection, organizationId, branchBase]);
   const mutate = async (
     path: string,
@@ -3911,56 +3875,19 @@ export default function OrganizationWorkspace({
                 </section>
               )}
               {activeSection === "team" && (
-                <section className="mw-card">
-                  <h2>The people behind the service</h2>
-                  {members.map((member: any) => (
-                    <div className="mw-row" key={member.id}>
-                      <div>
-                        <b>{member.name || member.userId}</b>
-                        <small>
-                          {sourceLabel(member.role)} ·{" "}
-                          {member.active ? "Active" : "Suspended"}
-                        </small>
-                      </div>
-                      <button
-                        type="button"
-                        className="secondary"
-                        disabled={busy || offline || member.userId === user.id}
-                        onClick={() => {
-                          const authorizationVersion =
-                            authorizationEpoch.current;
-                          void mutate(
-                            `/organizations/${organizationId}/members/${member.id}`,
-                            "PATCH",
-                            { active: !member.active },
-                            member.active
-                              ? "Membership suspended."
-                              : "Membership restored.",
-                          )
-                            .then(() =>
-                              workspaceApi(
-                                `/organizations/${organizationId}/members`,
-                              ),
-                            )
-                            .then((rows) => {
-                              if (
-                                activeScope.current === branchBase &&
-                                scopeEpoch.current.generation ===
-                                  scopeVersion &&
-                                authorizationEpoch.current ===
-                                  authorizationVersion
-                              )
-                                setMembers(list(rows.members ?? rows));
-                            })
-                            .catch(() => {});
-                        }}
-                      >
-                        {member.active ? "Suspend access" : "Restore access"}
-                      </button>
-                    </div>
-                  ))}
+                <div className="mw-people">
+                  <MemberAccess
+                    organizationId={organizationId}
+                    branchId={branchId}
+                    branches={branches}
+                    userId={user.id}
+                    canManage={allowed("members.manage")}
+                    disabled={busy || offline}
+                    save={mutate}
+                  />
                   <RoleManager
                     key={branchBase}
+                    userId={user.id}
                     organizationId={organizationId}
                     branchId={branchId}
                     permissions={permissions}
@@ -3969,7 +3896,7 @@ export default function OrganizationWorkspace({
                     disabled={busy || offline}
                     save={mutate}
                   />
-                </section>
+                </div>
               )}
             </main>
           )}

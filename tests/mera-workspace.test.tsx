@@ -860,7 +860,7 @@ test("custom roles expose only actor-grantable permissions and invite using a sc
     );
     await screen.findByRole("option", { name: "Host" });
     assert.equal(screen.queryByRole("option", { name: "Owner" }), null);
-    assert.equal(screen.queryByText("billing · manage"), null);
+    assert.equal(screen.queryByRole("checkbox", { name: "Manage subscription billing" }), null);
     fireEvent.change(screen.getByLabelText("Staff email"), {
       target: { value: "staff@example.com" },
     });
@@ -877,7 +877,7 @@ test("custom roles expose only actor-grantable permissions and invite using a sc
       role: "custom-role",
       branchIds: ["branch"],
     });
-    assert(screen.getByText("Delivery: not_sent"));
+    assert(screen.getByText("Delivery: Not sent"));
     fireEvent.click(screen.getByRole("button", { name: "Edit role" }));
     assert(
       (
@@ -4373,7 +4373,7 @@ test("write validation errors survive a successful background refresh while read
   }) as any;
   try {
     render(<Workspace user={user} notify={() => {}} />);
-    await screen.findByText("Surulere customer", { exact: false });
+    await screen.findByRole("tab", { name: "Transactions", exact: true });
     fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
     fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
       target: { value: "order-branch-1" },

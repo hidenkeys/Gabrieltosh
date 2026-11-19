@@ -69,3 +69,7 @@ Detailed limits and verified interactions: `docs/mera/ui-audit/FRONTDESK-PUBLIC-
 ## Trading-day reporting consumers
 
 `ReportDetails.tsx`, `ReportExplorer.tsx`, `reporting.css` and `ExportJobs.tsx` reuse source-grounded operational summaries/disclosures/tables. Keep reviewed trading date independent from live queues; native date submit reads the actual named field. Reporting bases distinguish current order cohorts, recognized sales, collections and order-history activity. Server domain/queries/operations supply expanded CSVv2; do not fabricate Mera fees or historical end-of-day states. Actual167–177 plus paired trading-day-report-comparison.html; EOD-REPORTING-CHECKPOINT.md records the actual Chrome organization download block and remaining acceptance. Browser download completion is not established by a ready job.
+
+## People and access consumers
+
+`MemberAccess.tsx`, `RoleManager.tsx`, `people.css` and `accessPresentation.ts` preserve the original operational surfaces and add members-first scope/status/search/review. Parent passes actual userId; `accessWriteJournal.ts` guards non-idempotent access changes across navigation/reload in the current tab/session. Never clear this marker on a read or infer failed writes from an empty list. Actual185–190 and paired people-comparison.html inspected; PEOPLE-CHECKPOINT.md distinguishes browser read/draft checks from focused write simulations. No real invitations/access changes or delivery verification were performed.
