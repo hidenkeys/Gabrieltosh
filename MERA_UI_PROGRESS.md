@@ -2,15 +2,15 @@
 
 Goal: Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.
 
-Scope **1.0** · revision `d56f410` · updated 2026-11-19T08:45:26+01:00
+Scope **1.0** · revision `90b8a50` · updated 2026-11-19T09:12:02+01:00
 
-**UI correction: 62% complete | 38% remaining.** Weighted evidence: 62.0/100. This is checklist completion, not a time estimate.
+**UI correction: 62% complete | 38% remaining.** Weighted evidence: 62.6/100. This is checklist completion, not a time estimate.
 
 Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.
 
 ## Current milestone
 
-Receipt/sticker studio partial milestone verified atd56f410: saved format editing/reload, draft preservation, immutable v1/v2 document details and responsive previews. Full suite545pass/2skip, build and actual PostgreSQL gates passed. Main preview3003 running. Next: populated queue/role/recovery and remaining platform acceptance; hardware, provider and platform QA credential gates remain explicit.
+People/access partial milestone verified at90b8a50: members-first scope/status/search/review, human grants and session/tab uncertain-write protection across navigation. Full suite560pass/2skip,19focused tests, build and actual responsive comparisons passed. Next: operational overview/order workflow acceptance, populated role/recovery matrix and remaining platform review. Main preview3003 running; provider, hardware and isolated-platform credential gates remain explicit.
 
 ## Measurement
 
@@ -21,7 +21,7 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | Workstream | Weight | Verified completion | Owner |
 | --- | ---: | ---: | --- |
 | References, design system and application shell | 15% | 86% | lead |
-| Organization management | 25% | 56% | workspace / lead overview |
+| Organization management | 25% | 59% | workspace / lead overview |
 | POS and operational roles | 20% | 61% | lead / rotating operational agent |
 | Customer experience | 20% | 66% | customer |
 | Marketing and platform administration | 10% | 64% | backend (presentation workstream A) |
@@ -41,7 +41,7 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | O2 | Overview actionable content and date context | 3% | 40% | IN_PROGRESS · lead | [OverviewAttention.tsx](src/mera/workspace/OverviewAttention.tsx), [mera-ui-pilot.test.tsx](tests/mera-ui-pilot.test.tsx), [PILOT-CHECKPOINT-2026-11-18.md](docs/mera/ui-audit/PILOT-CHECKPOINT-2026-11-18.md), [OverviewActivity.tsx](src/mera/workspace/OverviewActivity.tsx), [mera-overview-activity.test.tsx](tests/mera-overview-activity.test.tsx), [21-overview-selected-date.jpg](docs/mera/ui-audit/screenshots/21-overview-selected-date.jpg), [23-overview-activity-narrow.jpg](docs/mera/ui-audit/screenshots/23-overview-activity-narrow.jpg) |
 | O3 | Onboarding, branding and branch setup | 4% | 60% | IN_PROGRESS · workspace | [mera-management-ui.test.tsx](tests/mera-management-ui.test.tsx), [management.css](src/mera/workspace/management.css), [SetupChecklist.tsx](src/mera/workspace/SetupChecklist.tsx), [SETUP-MOUNT.md](docs/mera/ui-audit/SETUP-MOUNT.md), [35-setup-desktop.jpg](docs/mera/ui-audit/screenshots/35-setup-desktop.jpg), [36-setup-narrow.jpg](docs/mera/ui-audit/screenshots/36-setup-narrow.jpg), [37-setup-tablet.jpg](docs/mera/ui-audit/screenshots/37-setup-tablet.jpg), [BranchAdministration.tsx](src/mera/workspace/BranchAdministration.tsx), [BusinessDetails.tsx](src/mera/workspace/BusinessDetails.tsx), [mera-branch-administration.test.tsx](tests/mera-branch-administration.test.tsx), [mera-business-details.test.tsx](tests/mera-business-details.test.tsx), [MENU-BRANCH-CHECKPOINT.md](docs/mera/ui-audit/MENU-BRANCH-CHECKPOINT.md) |
 | O4 | Menu, categories, modifiers and stock management | 5% | 60% | IN_PROGRESS · workspace | [MenuManagement.tsx](src/mera/workspace/MenuManagement.tsx), [MenuPublication.tsx](src/mera/workspace/MenuPublication.tsx), [mera-menu-management.test.tsx](tests/mera-menu-management.test.tsx), [mera-menu-publication.test.tsx](tests/mera-menu-publication.test.tsx), [menu-management-comparison.jpg](docs/mera/ui-audit/menu-management-comparison.jpg), [MENU-BRANCH-CHECKPOINT.md](docs/mera/ui-audit/MENU-BRANCH-CHECKPOINT.md) |
-| O5 | Staff, invitations, scopes and custom roles | 3% | 40% | IN_PROGRESS · workspace | [STAFF-MANAGEMENT-MOUNT.md](docs/mera/ui-audit/STAFF-MANAGEMENT-MOUNT.md), [staff-management-comparison.html](docs/mera/ui-audit/staff-management-comparison.html), [64-people-narrow.jpg](docs/mera/ui-audit/screenshots/64-people-narrow.jpg), [mera-role-management-ui.test.tsx](tests/mera-role-management-ui.test.tsx) |
+| O5 | Staff, invitations, scopes and custom roles | 3% | 60% | IN_PROGRESS · workspace | [STAFF-MANAGEMENT-MOUNT.md](docs/mera/ui-audit/STAFF-MANAGEMENT-MOUNT.md), [staff-management-comparison.html](docs/mera/ui-audit/staff-management-comparison.html), [64-people-narrow.jpg](docs/mera/ui-audit/screenshots/64-people-narrow.jpg), [mera-role-management-ui.test.tsx](tests/mera-role-management-ui.test.tsx), [PEOPLE-CHECKPOINT.md](docs/mera/ui-audit/PEOPLE-CHECKPOINT.md) |
 | O6 | Transactions, shifts, reports and exports | 4% | 60% | IN_PROGRESS · workspace | [FINANCE-MANAGEMENT-CHECKPOINT.md](docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md), [EOD-REPORTING-CHECKPOINT.md](docs/mera/ui-audit/EOD-REPORTING-CHECKPOINT.md), [trading-day-report-comparison.html](docs/mera/ui-audit/trading-day-report-comparison.html), [177-report-totals-tablet.jpg](docs/mera/ui-audit/screenshots/177-report-totals-tablet.jpg) |
 | O7 | Subscriptions, printing, QR and customer/support care | 4% | 60% | IN_PROGRESS · workspace | [BILLING-MANAGEMENT-MOUNT.md](docs/mera/ui-audit/BILLING-MANAGEMENT-MOUNT.md), [subscription-comparison.html](docs/mera/ui-audit/subscription-comparison.html), [RECORDS-PRINT-HELP-CHECKPOINT.md](docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md), [FINANCE-MANAGEMENT-CHECKPOINT.md](docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md), [PRINTING-CHECKPOINT.md](docs/mera/ui-audit/PRINTING-CHECKPOINT.md) |
 | P1 | Original-style POS catalog and current order | 5% | 80% | IN_PROGRESS · lead | [06-mera-pos-after-empty.jpg](docs/mera/ui-audit/screenshots/06-mera-pos-after-empty.jpg), [07-mera-pos-tablet.jpg](docs/mera/ui-audit/screenshots/07-mera-pos-tablet.jpg), [09-mera-pos-narrow-basket.jpg](docs/mera/ui-audit/screenshots/09-mera-pos-narrow-basket.jpg), [mera-ui-pilot.test.tsx](tests/mera-ui-pilot.test.tsx), [counter-comparison-current.jpg](docs/mera/ui-audit/counter-comparison-current.jpg) |
@@ -78,7 +78,7 @@ Task acceptance criteria, dependency IDs, change history and blockers are in [ME
 | WS-reservations | /mera/workspace#reservations | Front desk | P5 | ReservationSettlement/DepositOutcomes/minimum spend | NOT_STARTED; Prior pilot evidence only for overview/counter; full scope pending |
 | WS-payments | /mera/workspace#payments | Cashier/manager | O6 | Transactions/refunds/writeoff/recovery | Actual before106–110/after111–115 and tablet/narrow116–121; comparison122 accepted. Partial acceptance only; see docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md; Prior pilot evidence only for overview/counter; full scope pending |
 | WS-shifts | /mera/workspace#shifts | Cashier/manager | O6 | CashMovement/ShiftActions | Actual before106–110/after111–115 and tablet/narrow116–121; comparison122 accepted. Partial acceptance only; see docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md; Prior pilot evidence only for overview/counter; full scope pending |
-| WS-team | /mera/workspace#team | Owner/admin | O5 | RoleManager/member list | Partial owner People desktop/narrow reviewed; captures61/62/64 and matched comparison. No role/grant/invitation browser mutation.; 1440×1000 and390×844 no overflow; tablet/long-data review pending |
+| WS-team | /mera/workspace#team | Owner/admin | O5 | RoleManager/member list | Actual185–190 and matched people comparison inspected; search/selfreview/focus and unsaved role disclosure retention/discard passed. PEOPLE-CHECKPOINT.md records limits.; Actual390px phone and834px tablet no document overflow; bounded staff table, keyboard reachable review; matched3091×1233 desktop captures. |
 | WS-billing | /mera/workspace#billing | Owner | O7 | Invoices/PolicyEditor/Reconciliation | Actual67/71 matched desktop comparison;72/73 tablet/narrow, disclosures retain unsaved draft; pricing proposals remain configurable; 1440×1000,834×1194,390×844; no document overflow |
 | WS-printing | /mera/workspace#printing | Manager | O7 | PrintStudio/PrintDocument | Actual corrected screens92–105; matched comparison101; partial state/size review, see docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md; Prior pilot evidence only for overview/counter; full scope pending |
 | WS-qr | /mera/workspace#qr | Manager | O7 | QrCodes | Actual corrected screens92–105; matched comparison101; partial state/size review, see docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md; Prior pilot evidence only for overview/counter; full scope pending |
@@ -146,5 +146,6 @@ Status: INVENTORY_DRAFT_REVIEW_PENDING. 208 requirement IDs inventoried in docs/
 - 2026-11-19T01:18:04+01:00: Finance/shift/export and remaining management partial milestone; browser-native date submission corrected and actual CSV download verified; scope unchanged; weight 100; 52.6 points / 52% rounded.
 - 2026-11-19T01:50:36+01:00: Front desk, customization and public information partial milestone; actual waitlist transitions, focus, signup density and pricing deep links verified; scope unchanged; weight 100; 56.6 points / 56% rounded.
 - 2026-11-19T08:45:26+01:00: Receipt/sticker studio integrated and exercised; source d56f410, scope unchanged; weight 100; 62 points / 62% rounded.
+- 2026-11-19T09:12:02+01:00: People/member/role partial milestone verified at90b8a50; scope unchanged; weight 100; 62.6 points / 62% rounded.
 
 Regenerate this report with `node scripts/mera-ui-progress.js`. The calculation validates weights, task IDs, mapped screens and local evidence paths; the lead still reviews whether evidence supports each checkpoint.

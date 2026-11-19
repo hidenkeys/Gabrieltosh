@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Receipt/sticker studio partial milestone verified atd56f410: saved format editing/reload, draft preservation, immutable v1/v2 document details and responsive previews. Full suite545pass/2skip, build and actual PostgreSQL gates passed. Main preview3003 running. Next: populated queue/role/recovery and remaining platform acceptance; hardware, provider and platform QA credential gates remain explicit.",
+  "People/access partial milestone verified at90b8a50: members-first scope/status/search/review, human grants and session/tab uncertain-write protection across navigation. Full suite560pass/2skip,19focused tests, build and actual responsive comparisons passed. Next: operational overview/order workflow acceptance, populated role/recovery matrix and remaining platform review. Main preview3003 running; provider, hardware and isolated-platform credential gates remain explicit.",
   "",
   "## Measurement",
   "",

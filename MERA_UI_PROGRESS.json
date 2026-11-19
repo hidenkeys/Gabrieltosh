@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T08:45:26+01:00",
-  "revision": "d56f410",
+  "lastUpdated": "2026-11-19T09:12:02+01:00",
+  "revision": "90b8a50",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -405,7 +405,7 @@
       "workstream": "O",
       "title": "Staff, invitations, scopes and custom roles",
       "weight": 3,
-      "checkpoint": 40,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "workspace",
       "dependencies": [
@@ -417,7 +417,8 @@
         "docs/mera/ui-audit/STAFF-MANAGEMENT-MOUNT.md",
         "docs/mera/ui-audit/staff-management-comparison.html",
         "docs/mera/ui-audit/screenshots/64-people-narrow.jpg",
-        "tests/mera-role-management-ui.test.tsx"
+        "tests/mera-role-management-ui.test.tsx",
+        "docs/mera/ui-audit/PEOPLE-CHECKPOINT.md"
       ],
       "blockers": [],
       "history": [
@@ -430,6 +431,11 @@
           "at": "2026-11-18T23:41:52+01:00",
           "checkpoint": 40,
           "note": "Partial source hierarchy/read-state correction integrated; actual owner read, keyboard disclosure and desktop/narrow checked. Full membership/scopes and safe durable mutation workflow remain incomplete."
+        },
+        {
+          "at": "2026-11-19T09:12:02+01:00",
+          "checkpoint": 60,
+          "note": "Members-first searchable scope/status/review, current grant controls and session/tab access-write journal integrated. Browser185\u2013190 and paired comparison inspected; full suite560pass/2skip, build and19focused tests passed. Populated roles/invitations and full role/device/recovery matrix remain; no actual security write or email delivery."
         }
       ]
     },
@@ -1403,7 +1409,7 @@
         "O5"
       ],
       "task": "RoleManager/member list",
-      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "functionalCoverage": "19focused member/role tests and560pass/2skip full suite; session/tab actor+organization journal survives navigation/remount; no real security writes/delivery performed.",
       "source": "src/mera/workspace/OrganizationWorkspace.tsx",
       "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
       "permissions": "members.manage",
@@ -1414,8 +1420,8 @@
         "permission": "UNVERIFIED for full correction",
         "recovery": "Unknown invitation local freeze/limited role update tests; durable creation recovery incomplete"
       },
-      "responsive": "1440\u00d71000 and390\u00d7844 no overflow; tablet/long-data review pending",
-      "visualReview": "Partial owner People desktop/narrow reviewed; captures61/62/64 and matched comparison. No role/grant/invitation browser mutation.",
+      "responsive": "Actual390px phone and834px tablet no document overflow; bounded staff table, keyboard reachable review; matched3091\u00d71233 desktop captures.",
+      "visualReview": "Actual185\u2013190 and matched people comparison inspected; search/selfreview/focus and unsaved role disclosure retention/discard passed. PEOPLE-CHECKPOINT.md records limits.",
       "blockers": []
     },
     {
@@ -2104,6 +2110,13 @@
       "event": "Receipt/sticker studio integrated and exercised; source d56f410, scope unchanged",
       "scopeWeight": 100,
       "weightedPoints": 62.0,
+      "roundedCompletion": 62
+    },
+    {
+      "at": "2026-11-19T09:12:02+01:00",
+      "event": "People/member/role partial milestone verified at90b8a50; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 62.6,
       "roundedCompletion": 62
     }
   ],
