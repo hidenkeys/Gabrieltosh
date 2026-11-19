@@ -5,10 +5,39 @@ import { randomUUID } from "node:crypto";
 import { report, fail,assertMoney } from "./domain.js";
 const now = () => new Date().toISOString();
 const cell = (value) => {
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
   let text = String(value ?? "");
   if (/^[\s]*[=+@\-]/.test(text)) text = "'" + text;
   return '"' + text.replaceAll('"', '""') + '"';
 };
+export function exportReportCSV(summary, branch, window = {}) {
+  const validAmount=value=>Number.isSafeInteger(value)&&value>=0;
+  const major=value=>validAmount(value)?Number((value/100).toFixed(2)):"Unavailable";
+  const readable=value=>String(value).replaceAll("_"," ").replace(/^./,c=>c.toUpperCase());
+  const rows=[["Mera EOD export format","v2"],["Branch",branch.name],["Trading date",summary.date],["Timezone",branch.timezone],["Trading cutoff minutes after midnight",branch.cutoff||0],["Window starts (inclusive)",window.from||"Unavailable"],["Window ends (exclusive)",window.to||"Unavailable"],["Currency",branch.currency||"NGN"],["Money representation","Major currency units; source amounts are integer kobo"],[],["Metric","Value","Unit"]];
+  const labels={grossOrderValue:"Order value (current non-cancelled orders placed this day)",grossSales:"Recognized bill totals including tax",salesReturns:"Recognized sales returns",netSales:"Net recognized bill totals including tax",netRevenueExTax:"Net revenue excluding tax",netTaxLiability:"Net tax liability",outstanding:"Current outstanding on orders placed this day",collections:"Payments and deposits received",refunds:"Refunds and deposit returns paid",writeOffs:"Receivable write-offs (not collections)",reservationLiability:"Reservation liability at trading-day end"};
+  const nonMoney=new Set(["orders"]);
+  for(const [key,value] of Object.entries(summary)) {
+    if((typeof value!=="number"&&value!==null)||key==="historicalTaxStatus") continue;
+    const label=labels[key]||key.replace(/([A-Z])/g," $1").replace(/^./,c=>c.toUpperCase());
+    rows.push([label,value===null?"Unavailable":nonMoney.has(key)?value:Number((value/100).toFixed(2)),nonMoney.has(key)?"count":branch.currency||"NGN"]);
+  }
+  rows.push(["Recognition basis",summary.recognitionBasis],["Tax breakdown",summary.taxBreakdownStatus],["Mera fees",summary.platformFees?.status==="unavailable"?"Unavailable":major(summary.platformFees?.amount)],["Mera fee explanation",summary.platformFees?.reason||""],[],["Current state of orders placed on this trading day","Count"]);
+  for(const [status,count] of Object.entries(summary.orderStates?.counts||{})) rows.push([readable(status),Number.isSafeInteger(count)&&count>=0?count:"Unavailable"]);
+  rows.push([],["Recognized products","Quantity","Recorded item value ("+(branch.currency||"NGN")+")"]);
+  const products=new Map();
+  for(const p of summary.products||[]){
+    const key=JSON.stringify([p.productId||p.id||null,p.name,p.variantId||null,p.size||null]);
+    const r=products.get(key)||{name:p.name||"Product name unavailable",size:p.size||"",quantity:0,total:0};
+    r.quantity=r.quantity!==null&&validAmount(p.quantity)&&Number.isSafeInteger(r.quantity+p.quantity)?r.quantity+p.quantity:null;
+    r.total=r.total!==null&&validAmount(p.total)&&Number.isSafeInteger(r.total+p.total)?r.total+p.total:null;
+    products.set(key,r);
+  }
+  for(const p of products.values())rows.push([p.size?`${p.name} — ${p.size}`:p.name,p.quantity===null?"Unavailable":p.quantity,major(p.total)]);
+  rows.push([],["Payment method","Receipts including deposits ("+(branch.currency||"NGN")+")"]);for(const [method,amount]of Object.entries(summary.paymentMethods||{}))rows.push([({cash:"Cash",external_pos:"External POS",external_transfer:"External transfer"})[method]||method,major(amount)]);
+  rows.push([],["Staff activity basis",summary.staffActivity?.basis||"Unavailable"],["Recorded actor name","Actor type","Order history events","Action","Action count"]);for(const e of summary.staffActivity?.entries||[])for(const [action,count]of Object.entries(e.actions))rows.push([e.name||"Identity unavailable",e.actorType,e.eventCount,action.replaceAll("_"," "),count]);
+  return rows.map(row=>row.map(cell).join(",")).join("\r\n");
+}
 export async function processMeraJobs(db) {
   await db.query(
     "UPDATE mera_records SET data=jsonb_set(jsonb_set(data,'{status}',to_jsonb(CASE WHEN (data->>'attempts')::int>=3 THEN 'failed'::text ELSE 'queued'::text END)),'{error}',to_jsonb('Recovered interrupted export'::text)) WHERE kind='job' AND data->>'status'='processing' AND (data->>'leaseAt')::timestamptz<CURRENT_TIMESTAMP-INTERVAL '2 minutes'",
@@ -57,12 +86,7 @@ export async function processMeraJobs(db) {
       ).rows[0];
       const reportData=await loadBranchReportRecords(db,{organizationId:job.organization_id,branchId:job.branch_id},branch,job.data.date);
       const summary={...report(reportData.reportRecords,branch,job.data.date),reservationLiability:reportData.reservationLiabilityAsOf};
-      const csv = [
-        "Metric,Amount or count",
-        ...Object.entries(summary)
-          .filter(([, v]) => typeof v === "number" || typeof v === "string" || v === null)
-          .map(([k, v]) => [k, v === null?"unknown":v].map(cell).join(",")),
-      ].join("\r\n");
+      const csv = exportReportCSV(summary,branch,reportData.window);
       artifact = {
         id: job.data.artifactId,
         jobId: job.id,

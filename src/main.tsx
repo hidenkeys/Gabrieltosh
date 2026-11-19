@@ -156,3 +156,5 @@ import "./mera/workspace/responsibility.css";
 import "./mera/workspace/item-fulfillment.css";
 
 import "./mera/customer/checkout.css";
+
+import "./mera/workspace/reporting.css";

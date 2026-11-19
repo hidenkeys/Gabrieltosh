@@ -151,6 +151,10 @@ export default function OrganizationWorkspace({
   const [data, setData] = useState<RecordData | null>(null);
   const [privateAccess, setPrivateAccess] = useState<any>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [reportExportSelection, setReportExportSelection] = useState<{
+    base: string;
+    date: string;
+  } | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [orderFilters, setOrderFilters] = useState({
@@ -456,6 +460,7 @@ export default function OrganizationWorkspace({
   }, [clearProtected, loadContext]);
   useEffect(() => {
     setPrivateAccess(null);
+    setReportExportSelection(null);
     setError("");
     setReadError("");
     setData(null);
@@ -1805,6 +1810,12 @@ export default function OrganizationWorkspace({
                 <ExportJobs
                   key={branchBase}
                   base={branchBase}
+                  timeZone={branch?.timezone}
+                  initialDate={
+                    reportExportSelection?.base === branchBase
+                      ? reportExportSelection.date
+                      : data.report?.date
+                  }
                   disabled={busy || offline}
                   save={mutate}
                 />
@@ -1970,6 +1981,14 @@ export default function OrganizationWorkspace({
                   canCreate={allowed("orders.create")}
                   canViewOrders={allowed("orders.view")}
                   onNavigate={selectSection}
+                  onExportDate={
+                    allowed("reports.export")
+                      ? (date: string) => {
+                          setReportExportSelection({ base: branchBase, date });
+                          selectSection("exports");
+                        }
+                      : undefined
+                  }
                 />
               )}
 

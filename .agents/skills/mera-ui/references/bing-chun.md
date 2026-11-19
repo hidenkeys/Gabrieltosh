@@ -65,3 +65,7 @@ Detailed limits and verified interactions: `docs/mera/ui-audit/FRONTDESK-PUBLIC-
 ## Customer checkout consumers
 
 `src/mera/customer/CustomerExperience.tsx` basket/checkout.css now groups native order entry, local recovery feedback and manual-payment review while retaining parent journals/quotes. `orderPresentation.ts` supplies customer labels/date formatting to tracking and SessionOrders; never interpret a successful submit as paid. `src/mera/workspace/BrandColorField.tsx` adds exact hex entry to existing BranchSettings branding. Actual155–166 and customer-checkout-comparison.html; limits and fixture restoration are documented in CUSTOMER-CHECKOUT-CHECKPOINT.md. Temporary QA theme values are test data, not design tokens.
+
+## Trading-day reporting consumers
+
+`ReportDetails.tsx`, `ReportExplorer.tsx`, `reporting.css` and `ExportJobs.tsx` reuse source-grounded operational summaries/disclosures/tables. Keep reviewed trading date independent from live queues; native date submit reads the actual named field. Reporting bases distinguish current order cohorts, recognized sales, collections and order-history activity. Server domain/queries/operations supply expanded CSVv2; do not fabricate Mera fees or historical end-of-day states. Actual167–177 plus paired trading-day-report-comparison.html; EOD-REPORTING-CHECKPOINT.md records the actual Chrome organization download block and remaining acceptance. Browser download completion is not established by a ready job.

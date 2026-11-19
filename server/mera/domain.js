@@ -233,7 +233,22 @@ export function report(records, branch, date) {
   const netRevenueExTax=salesRevenueExTax===null||nonProductIncomeExTax===null?null:salesRevenueExTax+nonProductIncomeExTax;
   const netTaxLiability=unresolvedHistoricalTax||unresolvedOtherTax?null:knownRecognizedTax-knownTaxReturns+knownOtherTax;
   const reservationLiability=records.filter(r=>r.kind==="ledger"&&r.data.createdAt&&day(r.data.createdAt)<=date).flatMap(r=>r.data.postings||[]).filter(p=>p.account==="reservation_liability").reduce((n,p)=>n+p.credit-p.debit,0);
+  const counts={}; for(const o of orders) counts[o.status||"unknown"]=(counts[o.status||"unknown"]||0)+1;
+  const staff=new Map(); let unattributedEvents=0;
+  for(const o of allOrders) for(const h of o.history||[]) {
+    if(!h.at||day(h.at)!==date) continue;
+    const actorType=h.actorType||"unknown", name=typeof h.actorName==="string"&&h.actorName.trim()?h.actorName.trim():null;
+    if(!name) unattributedEvents++;
+    // Identity is used only to avoid conflating distinct staff sharing a name; never projected.
+    const key=JSON.stringify([h.actorId||null,name,actorType]);
+    const entry=staff.get(key)||{name,actorType,eventCount:0,actions:{}};
+    entry.eventCount++; const action=h.action||"unknown";entry.actions[action]=(entry.actions[action]||0)+1;staff.set(key,entry);
+  }
   return {
+    metadata:{currency:branch.currency||"NGN",moneyUnit:"kobo",timezone:branch.timezone,cutoffMinutes:branch.cutoff||0},
+    orderStates:{basis:"current_state_of_orders_created_on_trading_day",counts,total:orders.length},
+    staffActivity:{basis:"recorded_order_history_events_on_trading_day",entries:[...staff.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([,entry])=>entry),unattributedEvents},
+    platformFees:{status:"unavailable",amount:null,reason:"No authoritative branch-scoped Mera fee assessment records are available in this report."},
     date,grossOrderValue:orders.filter(o=>!["cancelled","rejected"].includes(o.status)).reduce((n,o)=>n+o.total,0),
     recognitionBasis:[...new Set(recognized.map(o=>o.historicalReadOnly?o.historicalRecognitionBasis:"immutable_collected_at"))].sort().join("+")||"immutable_collected_at",
     historicalRecognitionBases:[...new Set(historical.map(o=>o.historicalRecognitionBasis))].sort(),

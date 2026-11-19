@@ -5,6 +5,8 @@ import { DataRegion, Disclosure } from "../ui/OperationalPrimitives";
 type Props = {
   base: string;
   disabled: boolean;
+  timeZone?: string;
+  initialDate?: string;
   save: (
     path: string,
     method: string,
@@ -12,6 +14,12 @@ type Props = {
     message: string,
   ) => Promise<any>;
 };
+const validBusinessDate = (value: unknown): value is string =>
+  typeof value === "string" &&
+  /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+  !value.startsWith("0000-") &&
+  Number.isFinite(Date.parse(value + "T00:00:00Z")) &&
+  new Date(value + "T00:00:00Z").toISOString().slice(0, 10) === value;
 const statuses: Record<string, string> = {
   queued: "Queued",
   processing: "Preparing report",
@@ -22,9 +30,11 @@ const statuses: Record<string, string> = {
 export default function ExportJobs(props: Props) {
   return <ScopedExports key={props.base} {...props} />;
 }
-function ScopedExports({ base, disabled, save }: Props) {
+function ScopedExports({ base, disabled, save, timeZone, initialDate }: Props) {
   const [jobs, setJobs] = useState<any[]>([]),
-    [date, setDate] = useState(""),
+    [date, setDate] = useState(() =>
+      validBusinessDate(initialDate) ? initialDate! : "",
+    ),
     [readError, setReadError] = useState(""),
     [writeError, setWriteError] = useState(""),
     [loading, setLoading] = useState(true),
@@ -34,9 +44,53 @@ function ScopedExports({ base, disabled, save }: Props) {
     [uncertainRetries, setUncertainRetries] = useState<Record<string, boolean>>(
       {},
     );
+  const [denied, setDenied] = useState(false);
   const active = useRef(true),
-    generation = useRef(0);
+    generation = useRef(0),
+    inFlight = useRef(false),
+    pendingRef = useRef<any>(null),
+    deniedRef = useRef(false),
+    uncertainRef = useRef<Record<string, boolean>>({});
+  function deny() {
+    deniedRef.current = true;
+    generation.current++;
+    setDenied(true);
+    setJobs([]);
+    setPending(null);
+    pendingRef.current = null;
+    setDate("");
+    setReasons({});
+    setUncertainRetries({});
+    uncertainRef.current = {};
+    setReadError("");
+    setWriteError("");
+    setLoading(false);
+  }
+  const requestTime = (value: string) => {
+    if (timeZone) {
+      try {
+        return (
+          new Intl.DateTimeFormat("en-GB", {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone,
+          }).format(new Date(value)) +
+          " · " +
+          timeZone
+        );
+      } catch {
+        /* Use an explicitly labelled device clock if configuration is invalid. */
+      }
+    }
+    return (
+      new Intl.DateTimeFormat("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(value)) + " · Device time"
+    );
+  };
   const read = async (signal?: AbortSignal, quiet = false) => {
+    if (deniedRef.current) return;
     const version = ++generation.current;
     if (!quiet) setLoading(true);
     try {
@@ -46,7 +100,12 @@ function ScopedExports({ base, disabled, save }: Props) {
         undefined,
         signal,
       );
-      if (!active.current || signal?.aborted || version !== generation.current)
+      if (
+        !active.current ||
+        deniedRef.current ||
+        signal?.aborted ||
+        version !== generation.current
+      )
         return;
       const rows = Array.isArray(result) ? result : result?.jobs;
       if (
@@ -62,8 +121,10 @@ function ScopedExports({ base, disabled, save }: Props) {
         !signal?.aborted &&
         version === generation.current &&
         failure.name !== "AbortError"
-      )
-        setReadError("Export jobs could not be loaded. Try again.");
+      ) {
+        if ([401, 403, 404].includes(failure.status)) deny();
+        else setReadError("Export jobs could not be loaded. Try again.");
+      }
     } finally {
       if (active.current && !signal?.aborted && version === generation.current)
         setLoading(false);
@@ -74,7 +135,8 @@ function ScopedExports({ base, disabled, save }: Props) {
     const controller = new AbortController();
     void read(controller.signal);
     const timer = setInterval(() => {
-      if (!document.hidden) void read(controller.signal, true);
+      if (!document.hidden && !deniedRef.current)
+        void read(controller.signal, true);
     }, 5000);
     return () => {
       active.current = false;
@@ -83,27 +145,45 @@ function ScopedExports({ base, disabled, save }: Props) {
       clearInterval(timer);
     };
   }, [base]);
-  const create = async (body: any) => {
-    if (disabled || working) return;
+  const create = async (requestedBody: any) => {
+    if (disabled || inFlight.current || deniedRef.current) return;
+    const body = pendingRef.current || requestedBody;
+    const retrying = !!pendingRef.current;
+    inFlight.current = true;
     setWorking(true);
     setWriteError("");
     try {
       await save(base + "/exports", "POST", body, "Report export queued.");
-      if (!active.current) return;
+      if (!active.current || deniedRef.current) return;
+      pendingRef.current = null;
       setPending(null);
       await read();
     } catch (failure: any) {
-      if (active.current) {
-        setWriteError(failure.message);
-        if (pending || !failure.status || failure.status >= 500)
-          setPending(body);
+      if (active.current && !deniedRef.current) {
+        if ([401, 403, 404].includes(failure.status)) deny();
+        else {
+          setWriteError(failure.message);
+          if (retrying || !failure.status || failure.status >= 500) {
+            pendingRef.current = body;
+            setPending(body);
+          }
+        }
       }
     } finally {
+      inFlight.current = false;
       if (active.current) setWorking(false);
     }
   };
   const retry = async (job: any) => {
-    if (disabled || working || uncertainRetries[job.id]) return;
+    if (
+      disabled ||
+      inFlight.current ||
+      deniedRef.current ||
+      uncertainRef.current[job.id] ||
+      pendingRef.current
+    )
+      return;
+    inFlight.current = true;
     setWorking(true);
     setWriteError("");
     try {
@@ -113,17 +193,36 @@ function ScopedExports({ base, disabled, save }: Props) {
         { reason: reasons[job.id] },
         "Job retry queued.",
       );
-      if (active.current) await read();
+      if (active.current && !deniedRef.current) await read();
     } catch (failure: any) {
-      if (active.current) {
-        setWriteError(failure.message);
-        if (!failure.status || failure.status >= 500)
-          setUncertainRetries((current) => ({ ...current, [job.id]: true }));
+      if (active.current && !deniedRef.current) {
+        if ([401, 403, 404].includes(failure.status)) deny();
+        else {
+          setWriteError(failure.message);
+          if (!failure.status || failure.status >= 500) {
+            uncertainRef.current = { ...uncertainRef.current, [job.id]: true };
+            setUncertainRetries(uncertainRef.current);
+          }
+        }
       }
     } finally {
+      inFlight.current = false;
       if (active.current) setWorking(false);
     }
   };
+  if (denied)
+    return (
+      <section
+        className="mw-card mw-management-utility"
+        aria-label="Branch report exports"
+      >
+        <h2>Report exports</h2>
+        <p role="alert">
+          Report export access needs checking. Refresh the workspace or sign in
+          again before continuing.
+        </p>
+      </section>
+    );
   return (
     <section
       className="mw-card mw-management-utility"
@@ -196,16 +295,19 @@ function ScopedExports({ base, disabled, save }: Props) {
                 )}
               </header>
               <p>
-                {Number.isFinite(Date.parse(job.createdAt)) ? (
+                {typeof job.createdAt === "string" &&
+                job.createdAt.trim() &&
+                Number.isFinite(Date.parse(job.createdAt)) ? (
                   <time dateTime={job.createdAt}>
-                    Requested {new Date(job.createdAt).toLocaleString()}
+                    Requested {requestTime(job.createdAt)}
                   </time>
                 ) : (
                   "Request time unavailable"
                 )}{" "}
                 ·{" "}
                 {Number.isSafeInteger(job.attempts) && job.attempts >= 0
-                  ? job.attempts + " attempts"
+                  ? job.attempts +
+                    (job.attempts === 1 ? " attempt" : " attempts")
                   : "Attempt count unavailable"}
               </p>
               {job.error && (
@@ -230,7 +332,12 @@ function ScopedExports({ base, disabled, save }: Props) {
                   }}
                 >
                   <fieldset
-                    disabled={disabled || working || !!uncertainRetries[job.id]}
+                    disabled={
+                      disabled ||
+                      working ||
+                      !!pending ||
+                      !!uncertainRetries[job.id]
+                    }
                     className="mw-utility-form"
                   >
                     <label>
@@ -282,16 +389,21 @@ function ScopedExports({ base, disabled, save }: Props) {
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            if (pending || readError || loading || disabled || working) return;
+            if (
+              pendingRef.current ||
+              deniedRef.current ||
+              inFlight.current ||
+              readError ||
+              loading ||
+              disabled
+            )
+              return;
             const form = event.currentTarget;
             const input = form.elements.namedItem(
               "businessDate",
             ) as HTMLInputElement | null;
             const businessDate = input?.value || "";
-            if (
-              !form.reportValidity() ||
-              !/^\d{4}-\d{2}-\d{2}$/.test(businessDate)
-            ) {
+            if (!form.reportValidity() || !validBusinessDate(businessDate)) {
               setWriteError(
                 "Choose a valid business date before requesting a report.",
               );

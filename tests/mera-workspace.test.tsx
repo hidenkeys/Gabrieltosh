@@ -10,6 +10,7 @@ for (const key of [
   "HTMLElement",
   "Event",
   "MouseEvent",
+  "FormData",
   "sessionStorage",
 ])
   Object.defineProperty(globalThis, key, {
@@ -3858,7 +3859,7 @@ test("date report reads canonical business date independently from the active or
       screen.getByRole("button", { name: "Load date report" }).closest("form")!,
     );
     await screen.findByRole("heading", {
-      name: "Trading day detail · 2026-11-17",
+      name: "Trading day detail · 17 Nov 2026",
     });
     assert(paths[0].endsWith("/workspace?date=2026-11-17"));
     assert(
@@ -4600,5 +4601,86 @@ test("service queues resolve the signed-in handler and ready orders without mixi
   } finally {
     cleanup();
     globalThis.fetch = oldFetch;
+  }
+});
+
+test("reviewed trading day carries its date to the permitted export form without changing today's report", async () => {
+  const previousFetch = globalThis.fetch;
+  const previousScroll = HTMLElement.prototype.scrollIntoView;
+  HTMLElement.prototype.scrollIntoView = () => {};
+  const calls: any[] = [];
+  const reportContext = {
+    ...context,
+    organizations: context.organizations.map((org) => ({
+      ...org,
+      permissions: ["reports.view", "reports.export"],
+    })),
+  };
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    const path = String(input);
+    if (path.endsWith("/context")) return Response.json(reportContext);
+    if (path.includes("/workspace")) {
+      const date = path.includes("?date=") ? "2026-11-18" : "2026-11-19";
+      return Response.json({
+        ...snapshot("branch-1"),
+        report: {
+          date,
+          orders: 0,
+          netSales: 0,
+          collections: 0,
+          outstanding: 0,
+          products: [],
+          paymentMethods: {},
+        },
+        reportWindow: {
+          from: date + "T00:00:00.000Z",
+          to:
+            date === "2026-11-18"
+              ? "2026-11-19T00:00:00.000Z"
+              : "2026-11-20T00:00:00.000Z",
+          timezone: "UTC",
+        },
+        branch: { timezone: "UTC" },
+      });
+    }
+    if (path.endsWith("/jobs")) return Response.json({ jobs: [] });
+    if (path.endsWith("/exports") && init.method === "POST") {
+      calls.push(JSON.parse(init.body));
+      return Response.json({ id: "local-job", status: "queued" });
+    }
+    return Response.json({});
+  }) as typeof fetch;
+  try {
+    render(<Workspace user={user} />);
+    await screen.findByRole("button", { name: "Reports by date", exact: true });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Reports by date", exact: true }),
+    );
+    const date = screen.getByLabelText("Business date");
+    fireEvent.input(date, { target: { value: "2026-11-18" } });
+    fireEvent.submit(
+      screen
+        .getByRole("button", { name: "Load date report", exact: true })
+        .closest("form")!,
+    );
+    const exportButton = await screen.findByRole("button", {
+      name: "Export this trading day",
+      exact: true,
+    });
+    fireEvent.click(exportButton);
+    const exportDate = await screen.findByLabelText("Business date");
+    assert.equal((exportDate as HTMLInputElement).value, "2026-11-18");
+    fireEvent.submit(
+      screen
+        .getByRole("button", { name: "Queue report export", exact: true })
+        .closest("form")!,
+    );
+    await waitFor(() => assert.equal(calls.length, 1));
+    assert.equal(calls[0].date, "2026-11-18");
+    assert.equal(typeof calls[0].requestKey, "string");
+  } finally {
+    cleanup();
+    globalThis.fetch = previousFetch;
+    HTMLElement.prototype.scrollIntoView = previousScroll;
   }
 });

@@ -927,7 +927,14 @@ test(
         { headers: { "x-test-user": owner } },
       );
       assert.equal(downloaded.status, 200);
-      assert.match(await downloaded.text(), /grossOrderValue/);
+      const eodCsv=await downloaded.text();
+      assert.match(eodCsv, /Order value \(current non-cancelled orders placed this day\)/);
+      assert.match(eodCsv, /Mera EOD export format.*v2/);
+      assert.match(eodCsv, /Africa\/Lagos/);
+      assert.match(eodCsv, /Recognized products/);
+      assert.match(eodCsv, /Brown Sugar Tea/);
+      assert.match(eodCsv, /External POS/);
+      assert.match(eodCsv, /Recorded actor name/);
       assert.equal(
         (
           await fetch(

@@ -182,7 +182,7 @@ export async function tradingDayWindow(db, b, date) {
 export async function loadBranchReportRecords(db, s, b, date) {
   const { from, to } = await tradingDayWindow(db, b, date),
     args = [s.organizationId, s.branchId, from, to];
-  const condition = `${scopeWhere} AND kind='order' AND (((${created}) >= $3 AND (${created}) < $4) OR ((${recognition}) >= $3 AND (${recognition}) < $4) OR id IN (SELECT data->>'orderId' FROM mera_records WHERE ${scopeWhere} AND kind='refund' AND (${created}) >= $3 AND (${created}) < $4))`;
+  const condition = `${scopeWhere} AND kind='order' AND (((${created}) >= $3 AND (${created}) < $4) OR ((${recognition}) >= $3 AND (${recognition}) < $4) OR EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(data->'history','[]'::jsonb)) h WHERE h->>'at'>=$3 AND h->>'at'<$4) OR id IN (SELECT data->>'orderId' FROM mera_records WHERE ${scopeWhere} AND kind='refund' AND (${created}) >= $3 AND (${created}) < $4))`;
   const budget = (
     await db.query(
       `SELECT COUNT(*)::int AS count,COALESCE(SUM(octet_length(data::text)),0)::text AS bytes FROM mera_records WHERE ${condition}`,

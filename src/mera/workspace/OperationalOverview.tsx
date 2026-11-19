@@ -22,6 +22,7 @@ export default function OperationalOverview({
   canViewAudit = false,
   canViewShifts = false,
   staff = [],
+  onExportDate,
 }: {
   data: any;
   orders: any[];
@@ -34,6 +35,7 @@ export default function OperationalOverview({
   canViewAudit?: boolean;
   canViewShifts?: boolean;
   staff?: { id: string; name: string }[];
+  onExportDate?: (date: string) => void;
 }) {
   const dateReports = useRef<HTMLDetailsElement>(null);
   const report = data.report || {},
@@ -254,6 +256,7 @@ export default function OperationalOverview({
           base={base}
           disabled={disabled}
           initialDate={report.date}
+          onExportDate={onExportDate}
         />
       </details>
       <details className="mw-card">

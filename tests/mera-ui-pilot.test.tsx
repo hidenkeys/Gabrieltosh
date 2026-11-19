@@ -4,7 +4,14 @@ import { JSDOM } from "jsdom";
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {
   url: "http://localhost:3003/mera/workspace",
 });
-for (const key of ["window", "document", "HTMLElement", "Event", "MouseEvent"])
+for (const key of [
+  "window",
+  "document",
+  "HTMLElement",
+  "Event",
+  "MouseEvent",
+  "FormData",
+])
   Object.defineProperty(globalThis, key, {
     value: (dom.window as any)[key],
     configurable: true,
@@ -298,7 +305,7 @@ test("date reports reject a different business date and recover without relabeli
     assert.match(error.textContent || "", /different trading day/);
     assert.equal(
       screen.queryByRole("heading", {
-        name: "Trading day detail · 2026-11-18",
+        name: "Trading day detail · 18 Nov 2026",
       }),
       null,
     );
@@ -306,7 +313,7 @@ test("date reports reject a different business date and recover without relabeli
       screen.getByRole("button", { name: "Load date report" }).closest("form")!,
     );
     await screen.findByRole("heading", {
-      name: "Trading day detail · 2026-11-17",
+      name: "Trading day detail · 17 Nov 2026",
     });
     assert.equal(screen.queryByRole("alert"), null);
   } finally {
