@@ -1,6 +1,10 @@
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
+import NonReplayForm, { type NonReplayState } from "./NonReplayForm";
 
-export default function FloorMap({
+export default function FloorMap(props: Parameters<typeof ScopedFloorMap>[0]) {
+  return <ScopedFloorMap key={props.base} {...props} />;
+}
+function ScopedFloorMap({
   tables,
   base,
   disabled,
@@ -18,22 +22,50 @@ export default function FloorMap({
 }) {
   const [zone, setZone] = useState(""),
     [selected, setSelected] = useState(""),
-    [point, setPoint] = useState({ x: 0, y: 0 }),
-    [error, setError] = useState("");
+    [point, setPoint] = useState({ x: 0, y: 0 });
+  const [formState, setFormState] = useState<NonReplayState>({
+    busy: false,
+    unknown: false,
+    denied: false,
+  });
+  const stateRef = useRef(formState);
+  const blocked =
+    disabled || formState.busy || formState.unknown || formState.denied;
+  function stateChanged(next: NonReplayState) {
+    stateRef.current = next;
+    setFormState((current) =>
+      current.busy === next.busy &&
+      current.unknown === next.unknown &&
+      current.denied === next.denied
+        ? current
+        : next,
+    );
+  }
   const zones = [...new Set<string>(tables.map((t) => t.zone || "Main floor"))],
     current = tables.find((t) => t.id === selected);
-  useEffect(() => {
-    setSelected("");
-    setError("");
-  }, [base]);
   const shown = tables.filter(
     (t) => !zone || (t.zone || "Main floor") === zone,
   );
   const select = (t: any) => {
+    if (
+      disabled ||
+      stateRef.current.busy ||
+      stateRef.current.unknown ||
+      stateRef.current.denied
+    )
+      return;
     setSelected(t.id);
     setPoint({ x: t.x || 0, y: t.y || 0 });
-    setError("");
   };
+  if (formState.denied)
+    return (
+      <section className="mera-panel">
+        <p role="alert">
+          Access to this floor is no longer available. Its previous update has
+          not been retried.
+        </p>
+      </section>
+    );
   return (
     <section
       className="mera-panel"
@@ -63,6 +95,7 @@ export default function FloorMap({
         Map zone
         <select
           value={zone}
+          disabled={blocked}
           onChange={(e) => {
             setZone(e.target.value);
             setSelected("");
@@ -78,6 +111,7 @@ export default function FloorMap({
         Map table
         <select
           value={selected}
+          disabled={blocked}
           onChange={(event) => {
             const table = shown.find((row) => row.id === event.target.value);
             if (table) select(table);
@@ -87,7 +121,7 @@ export default function FloorMap({
           <option value="">Choose table</option>
           {shown.map((table) => (
             <option key={table.id} value={table.id}>
-              {table.name} · {table.id.slice(0, 8)}
+              {table.name} · {table.zone || "Main floor"}
             </option>
           ))}
         </select>
@@ -127,12 +161,16 @@ export default function FloorMap({
                 <button
                   key={t.id}
                   type="button"
+                  disabled={blocked}
                   aria-pressed={selected === t.id}
                   aria-label={`${t.name}, ${t.status}, ${t.capacity} seats`}
                   onClick={() => select(t)}
                   onKeyDown={(e) => {
                     if (
                       disabled ||
+                      stateRef.current.busy ||
+                      stateRef.current.unknown ||
+                      stateRef.current.denied ||
                       selected !== t.id ||
                       ![
                         "ArrowLeft",
@@ -202,21 +240,24 @@ export default function FloorMap({
           </div>
         </div>
       )}
-      {current && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setError("");
-            void save(
+      <div hidden={!current}>
+        <NonReplayForm
+          disabled={disabled || !current}
+          label="Save floor position"
+          onStateChange={stateChanged}
+          onSubmit={async () => {
+            if (!current || stateRef.current.unknown || stateRef.current.denied)
+              return;
+            await save(
               base + "/tables/" + current.id,
               "PATCH",
-              point,
+              { ...point },
               "Floor position saved.",
-            ).catch((e) => setError(e.message));
+            );
           }}
         >
           <fieldset disabled={disabled} style={{ marginTop: 16 }}>
-            <legend>Position · {current.name}</legend>
+            <legend>Position · {current?.name || "Choose a table"}</legend>
             <p>
               Use the sliders or the arrow keys on the selected table. Hold
               Shift for larger steps. Save to share the layout with other staff.
@@ -243,14 +284,15 @@ export default function FloorMap({
             <button
               type="button"
               className="secondary"
-              onClick={() => select(current)}
+              onClick={() => {
+                if (current) select(current);
+              }}
             >
               Reset position draft
             </button>
           </fieldset>
-        </form>
-      )}
-      {error && <p role="alert">{error}</p>}
+        </NonReplayForm>
+      </div>
     </section>
   );
 }

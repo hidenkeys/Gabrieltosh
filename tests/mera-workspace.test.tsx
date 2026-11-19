@@ -206,7 +206,7 @@ test("refund payout method is explicitly chosen and sent rather than assumed cas
     render(React.createElement(Workspace, { user, notify: () => {} }));
     await screen.findByText("Surulere customer", { exact: false });
     fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
-    fireEvent.click(screen.getByText("Record money returned", {exact:true}));
+    fireEvent.click(screen.getByText("Record money returned", { exact: true }));
     const method = screen.getByLabelText(
       "Refund payout method",
     ) as HTMLSelectElement;
@@ -878,7 +878,13 @@ test("custom roles expose only actor-grantable permissions and invite using a sc
     });
     assert(screen.getByText("Delivery: not_sent"));
     fireEvent.click(screen.getByRole("button", { name: "Edit role" }));
-    assert((screen.getByRole("button", {name:"Save custom role"}).closest("details") as HTMLDetailsElement).open);
+    assert(
+      (
+        screen
+          .getByRole("button", { name: "Save custom role" })
+          .closest("details") as HTMLDetailsElement
+      ).open,
+    );
     fireEvent.change(screen.getByLabelText("Role name"), {
       target: { value: "Evening host" },
     });
@@ -1497,13 +1503,15 @@ test("visit table moves cannot select another party and preserve the canonical v
     );
     assert.equal(
       (
-        screen.getByLabelText(
-          "Occupied elsewhere · 4 seats · occupied",
-        ) as HTMLInputElement
+        screen.getByRole("checkbox", {
+          name: /Occupied elsewhere.*4 seats.*Another party/,
+        }) as HTMLInputElement
       ).disabled,
       true,
     );
-    fireEvent.click(screen.getByLabelText("Garden · 4 seats · available"));
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: /Garden.*4 seats.*Available/ }),
+    );
     fireEvent.change(screen.getByLabelText("Table change reason"), {
       target: { value: "Party needs more seats" },
     });

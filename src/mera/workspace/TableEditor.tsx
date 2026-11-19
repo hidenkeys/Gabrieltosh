@@ -1,5 +1,12 @@
-import { useState } from "react";
-export default function TableEditor({
+import { useEffect, useRef, useState } from "react";
+import { Disclosure } from "../ui/OperationalPrimitives";
+import NonReplayForm, { type NonReplayState } from "./NonReplayForm";
+export default function TableEditor(
+  props: Parameters<typeof ScopedTableEditor>[0],
+) {
+  return <ScopedTableEditor key={props.base + props.table.id} {...props} />;
+}
+function ScopedTableEditor({
   table,
   base,
   disabled,
@@ -24,27 +31,78 @@ export default function TableEditor({
     x: table.x || 0,
     y: table.y || 0,
   });
-  const [error, setError] = useState("");
+  const emptyState: NonReplayState = {
+    busy: false,
+    unknown: false,
+    denied: false,
+  };
+  const [states, setStates] = useState({
+    metadata: emptyState,
+    status: emptyState,
+  });
+  const stateRef = useRef(states),
+    mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  function stateChanged(key: "metadata" | "status", next: NonReplayState) {
+    if (!mounted.current) return;
+    const old = stateRef.current[key];
+    if (
+      old.busy === next.busy &&
+      old.unknown === next.unknown &&
+      old.denied === next.denied
+    )
+      return;
+    stateRef.current = { ...stateRef.current, [key]: next };
+    setStates(stateRef.current);
+  }
+  const denied = states.metadata.denied || states.status.denied;
+  const blocked =
+    disabled ||
+    Object.values(states).some(
+      (state) => state.busy || state.unknown || state.denied,
+    );
+  function maySubmit(other: "metadata" | "status") {
+    return (
+      !stateRef.current[other].busy &&
+      !Object.values(stateRef.current).some(
+        (state) => state.unknown || state.denied,
+      )
+    );
+  }
+
   const [status, setStatus] = useState(
     ["available", "cleaning", "unavailable"].includes(table.status)
       ? table.status
       : "cleaning",
   );
   const [reason, setReason] = useState("");
+  if (denied)
+    return (
+      <p role="alert">
+        Table editing is no longer available for this branch. Its previous
+        update has not been retried.
+      </p>
+    );
   return (
-    <details>
-      <summary>Edit table & service status</summary>
-      <form
+    <Disclosure summary="Edit table & service status">
+      <NonReplayForm
         className="mw-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setError("");
-          void save(
+        label="Edit table"
+        disabled={blocked}
+        onStateChange={(next) => stateChanged("metadata", next)}
+        onSubmit={async () => {
+          if (!maySubmit("status")) return;
+          await save(
             base + `/tables/${table.id}`,
             "PATCH",
-            draft,
+            { ...draft },
             "Table updated.",
-          ).catch((e) => setError(e.message));
+          );
         }}
       >
         {(["name", "zone"] as const).map((key) => (
@@ -77,19 +135,21 @@ export default function TableEditor({
             Save table
           </button>
         </div>
-      </form>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          setError("");
-          void save(
+      </NonReplayForm>
+      <NonReplayForm
+        label="Update table service status"
+        disabled={blocked || held || table.status === "occupied"}
+        onStateChange={(next) => stateChanged("status", next)}
+        onSubmit={async () => {
+          if (!maySubmit("metadata") || held || table.status === "occupied")
+            return;
+          await save(
             base + "/tables/" + table.id + "/status",
             "POST",
             { status, reason },
             "Table service status updated.",
-          )
-            .then(() => setReason(""))
-            .catch((e) => setError(e.message));
+          );
+          if (mounted.current) setReason("");
         }}
       >
         <fieldset
@@ -126,12 +186,7 @@ export default function TableEditor({
           </div>
           <button className="secondary">Update service status</button>
         </fieldset>
-      </form>
-      {error && (
-        <p role="alert" className="mw-note mw-error">
-          {error}
-        </p>
-      )}
-    </details>
+      </NonReplayForm>
+    </Disclosure>
   );
 }

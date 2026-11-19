@@ -1,0 +1,137 @@
+.mw-bills {
+  min-width: 0;
+}
+.mw-bills > p {
+  color: #51647d;
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 80ch;
+}
+.mw-bill-records {
+  max-height: 60vh;
+  margin: 20px 0;
+  border: 1px solid #e9e6e2;
+  border-radius: 8px;
+}
+.mw-bill-record {
+  padding: 18px;
+  border-bottom: 1px solid #e9e6e2;
+}
+.mw-bill-record:last-child {
+  border-bottom: 0;
+}
+.mw-bill-record header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+}
+.mw-bill-record h3 {
+  font-size: 16px;
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
+}
+.mw-bill-record p {
+  font-size: 13px;
+  color: #51647d;
+  margin: 0;
+}
+.mw-bill-record dl,
+.mw-bill-pending dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 0 0;
+}
+.mw-bills dt {
+  font-size: 12px;
+  color: #51647d;
+}
+.mw-bills dd {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 5px 0 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.mw-bill-tools {
+  border: 0;
+  padding: 0;
+  margin: 16px 0;
+  min-width: 0;
+}
+.mw-bill-detail,
+.mw-bill-tool {
+  border-top: 1px solid #e9e6e2;
+  padding: 8px 0;
+  margin-top: 12px;
+}
+.mw-bill-tool > summary,
+.mw-bill-detail > summary {
+  min-height: 44px;
+  padding: 12px 0;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.mw-bill-tool form {
+  margin-top: 14px !important;
+}
+.mw-bill-charge {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e9e6e2;
+  line-height: 1.6;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.mw-bill-pending {
+  padding: 16px;
+  background: #f8f7f4;
+  border: 1px solid #e9e6e2;
+  border-left: 3px solid #2f7df6;
+  border-radius: 8px;
+  margin-block: 18px;
+  line-height: 1.6;
+}
+.mw-bill-pending p {
+  font-size: 13px;
+  margin: 10px 0;
+}
+.mw-bill-pending dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+.mw-bills button,
+.mw-bills select,
+.mw-bills input {
+  min-height: 44px;
+}
+.mw-bills :is(button, select, input, summary):focus-visible {
+  outline: 3px solid #2f7df6;
+  outline-offset: 3px;
+}
+@media (max-width: 520px) {
+  .mw-bill-record dl,
+  .mw-bill-pending dl {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .mw-bill-record {
+    padding: 16px;
+  }
+  .mw-bill-record header {
+    flex-wrap: wrap;
+  }
+  .mw-bills .mw-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mw-bill-tool .mw-wide {
+    grid-column: 1;
+  }
+  .mw-bill-tool button {
+    width: 100%;
+  }
+}

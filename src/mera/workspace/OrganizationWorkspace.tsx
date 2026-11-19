@@ -53,6 +53,8 @@ import ReservationPolicy from "./ReservationPolicy";
 import ItemCancellation from "./ItemCancellation";
 import Reconciliation from "./Reconciliation";
 import ServiceAttention from "./ServiceAttention";
+import TableServiceView from "./TableServiceView";
+import NonReplayForm from "./NonReplayForm";
 import { PaymentRecords, ShiftRecord } from "./FinanceRecords";
 import VisitTables from "./VisitTables";
 import CashMovement from "./CashMovement";
@@ -3125,214 +3127,280 @@ export default function OrganizationWorkspace({
 
               {activeSection === "tables" && (
                 <>
-                  <FloorMap
+                  <TableServiceView
                     key={branchBase}
-                    tables={list(data.tables)}
-                    base={branchBase}
-                    disabled={busy || offline}
-                    save={mutate}
-                  />
-                  <section className="mw-card">
-                    <h2>The floor</h2>
-                    <div className="mw-grid">
-                      {list(data.tables).map((table: any) => (
-                        <div className="mw-card" key={table.id}>
-                          <div className="mw-eyebrow">
-                            {table.zone || "Main floor"}
-                          </div>
-                          <h3>{table.name}</h3>
-                          <p>{table.capacity} seats</p>
-                          <TableEditor
-                            table={table}
-                            held={list(data.visits).some(
-                              (visit: any) =>
-                                visit.status === "open" &&
-                                (visit.tableIds || [visit.tableId]).includes(
-                                  table.id,
-                                ),
-                            )}
+                    tables={data.tables}
+                    visits={data.visits}
+                    renderTableTools={(table, held) => (
+                      <TableEditor
+                        key={branchBase + table.id}
+                        table={table}
+                        held={held}
+                        base={branchBase}
+                        disabled={busy || offline}
+                        save={mutate}
+                      />
+                    )}
+                    renderPartyTools={(visit) => (
+                      <>
+                        {visit.minimumSpendPolicy?.enabled && (
+                          <VisitMinimumSpend
+                            key={branchBase + visit.id + "minimum"}
+                            base={branchBase}
+                            visitId={visit.id}
+                            updatedKey={
+                              String(visit.version || 1) +
+                              liveOrders
+                                .map(
+                                  (order: any) =>
+                                    order.id + ":" + order.version,
+                                )
+                                .join("|")
+                            }
+                            disabled={busy || offline}
+                            canWaive={allowed("refunds.approve")}
+                            save={mutate}
+                          />
+                        )}
+                        {visit.status === "open" && (
+                          <>
+                            <div className="mw-party-actions">
+                              {allowed("orders.create") && (
+                                <button
+                                  type="button"
+                                  className="primary"
+                                  disabled={
+                                    busy ||
+                                    offline ||
+                                    !!uncertainOrder ||
+                                    (orderDraft.items.length > 0 &&
+                                      orderDraft.visitId !== visit.id)
+                                  }
+                                  onClick={() => {
+                                    if (
+                                      uncertainOrder ||
+                                      (orderDraft.items.length > 0 &&
+                                        orderDraft.visitId !== visit.id)
+                                    )
+                                      return;
+                                    if (!orderDraft.items.length) {
+                                      requestKey.current = null;
+                                      setStaffQuote(null);
+                                      setOrderDraft({
+                                        ...orderDraft,
+                                        displayName: visit.displayName || "",
+                                        fulfillment: "table_service",
+                                        visitId: visit.id,
+                                      });
+                                    }
+                                    selectSection("counter");
+                                  }}
+                                >
+                                  Add a round for this party
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="secondary"
+                                disabled={busy}
+                                onClick={() =>
+                                  setPrivateAccess({
+                                    visit: {
+                                      ...visit,
+                                      tableName:
+                                        visit.tableName ||
+                                        list(data.tables)
+                                          .filter((table: any) =>
+                                            (
+                                              visit.tableIds || [visit.tableId]
+                                            ).includes(table.id),
+                                          )
+                                          .map((table: any) => table.name)
+                                          .join(" + "),
+                                    },
+                                    code: null,
+                                    uncertain: false,
+                                  })
+                                }
+                              >
+                                Private access for this party
+                              </button>
+                            </div>
+                            {allowed("orders.create") &&
+                              orderDraft.items.length > 0 &&
+                              orderDraft.visitId !== visit.id && (
+                                <p className="mw-table-guidance">
+                                  Finish the current counter draft before
+                                  starting a round for another party.
+                                </p>
+                              )}
+                            <VisitTables
+                              key={branchBase + visit.id}
+                              base={branchBase}
+                              visit={visit}
+                              tables={data.tables}
+                              visits={data.visits}
+                              disabled={busy || offline}
+                              save={mutate}
+                            />
+                            <Disclosure
+                              summary="Close this visit"
+                              className="mw-table-open"
+                            >
+                              <p>
+                                Close only when this party has finished and its
+                                balance is settled. The server checks the latest
+                                bill before closing.
+                              </p>
+                              <NonReplayForm
+                                key={branchBase + visit.id + "close"}
+                                disabled={busy || offline}
+                                label="Close table visit"
+                                onSubmit={() =>
+                                  mutate(
+                                    branchBase + `/visits/${visit.id}/close`,
+                                    "POST",
+                                    {},
+                                    "Visit closed.",
+                                  )
+                                }
+                              >
+                                <button className="secondary">
+                                  Close visit
+                                </button>
+                              </NonReplayForm>
+                            </Disclosure>
+                          </>
+                        )}
+                      </>
+                    )}
+                    openParty={
+                      <NonReplayForm
+                        key={branchBase + "open-visit"}
+                        className="mw-form"
+                        label="Open table visit"
+                        disabled={
+                          busy ||
+                          offline ||
+                          !Array.isArray(data.tables) ||
+                          !Array.isArray(data.visits) ||
+                          features?.flags?.new_table_visits === false
+                        }
+                        onSubmit={async () => {
+                          setPrivateAccess(null);
+                          const visit = await mutate(
+                            branchBase + "/visits",
+                            "POST",
+                            {
+                              tableId: tabForm.tableId,
+                              displayName: tabForm.visitName,
+                              ...minimumSpendAck,
+                            },
+                            "Visit opened.",
+                          );
+                          captureVisitAccess(visit);
+                        }}
+                      >
+                        <label>
+                          Table
+                          <select
+                            required
+                            value={tabForm.tableId || ""}
+                            onChange={(event) =>
+                              updateForm("tableId", event.target.value)
+                            }
+                          >
+                            <option value="">Choose a table</option>
+                            {list(data.tables)
+                              .filter(
+                                (table: any) =>
+                                  table.status === "available" &&
+                                  !list(data.visits).some(
+                                    (visit: any) =>
+                                      visit.status === "open" &&
+                                      (
+                                        visit.tableIds || [visit.tableId]
+                                      ).includes(table.id),
+                                  ),
+                              )
+                              .map((table: any) => (
+                                <option key={table.id} value={table.id}>
+                                  {table.name}
+                                </option>
+                              ))}
+                          </select>
+                        </label>
+                        {field("Guest display name", "visitName")}
+                        {minimumSpendField}
+                        <div className="mw-wide">
+                          <button
+                            className="primary"
+                            disabled={
+                              busy ||
+                              offline ||
+                              features?.flags?.new_table_visits === false
+                            }
+                          >
+                            Open visit
+                          </button>
+                        </div>
+                      </NonReplayForm>
+                    }
+                    setup={
+                      <>
+                        {Array.isArray(data.tables) && (
+                          <FloorMap
+                            key={branchBase}
+                            tables={data.tables}
                             base={branchBase}
                             disabled={busy || offline}
                             save={mutate}
                           />
-                          <span className="mw-pill">
-                            {table.status || "Available"}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    {!data.tables?.length &&
-                      empty("Create a table to begin table service.")}
-                    <form
-                      className="mw-form"
-                      onSubmit={submit(() =>
-                        mutate(
-                          branchBase + "/tables",
-                          "POST",
-                          {
-                            name: tabForm.tableName,
-                            capacity: Number(tabForm.capacity),
-                            zone: tabForm.zone || "Main floor",
-                            x: 0,
-                            y: 0,
-                          },
-                          "Table created.",
-                        ),
-                      )}
-                    >
-                      {field("Table label", "tableName")}
-                      {field("Seats", "capacity", "number")}
-                      {field("Zone", "zone", "text", false)}
-                      <div className="mw-wide">
-                        <button className="primary" disabled={busy || offline}>
-                          Create table
-                        </button>
-                      </div>
-                    </form>
-                  </section>
-                  <section className="mw-card">
-                    <h2>Current visits</h2>
-                    {list(data.visits).map((visit: any) => (
-                      <div className="mw-row" key={visit.id}>
-                        <div>
-                          <b>{visit.displayName || visit.id.slice(0, 8)}</b>
-                          <small>
-                            Table{" "}
-                            {list(data.tables).find(
-                              (table: any) => table.id === visit.tableId,
-                            )?.name || visit.tableId}{" "}
-                            · {visit.status}
-                          </small>
-                          {visit.minimumSpendPolicy?.enabled && (
-                            <VisitMinimumSpend
-                              key={branchBase + visit.id + "minimum"}
-                              base={branchBase}
-                              visitId={visit.id}
-                              updatedKey={
-                                String(visit.version || 1) +
-                                liveOrders
-                                  .map(
-                                    (order: any) =>
-                                      order.id + ":" + order.version,
-                                  )
-                                  .join("|")
-                              }
-                              disabled={busy || offline}
-                              canWaive={allowed("refunds.approve")}
-                              save={mutate}
-                            />
-                          )}
-                          {visit.status === "open" && (
-                            <button
-                              type="button"
-                              className="secondary"
-                              disabled={busy}
-                              onClick={() =>
-                                setPrivateAccess({
-                                  visit: {
-                                    ...visit,
-                                    tableName:
-                                      visit.tableName ||
-                                      list(data.tables).find(
-                                        (table: any) =>
-                                          table.id === visit.tableId,
-                                      )?.name,
-                                  },
-                                  code: null,
-                                  uncertain: false,
-                                })
-                              }
-                            >
-                              Private access for this party
-                            </button>
-                          )}
-                          {visit.status === "open" && (
-                            <VisitTables
-                              base={branchBase}
-                              visit={visit}
-                              tables={list(data.tables)}
-                              visits={list(data.visits)}
-                              disabled={busy || offline}
-                              save={mutate}
-                            />
-                          )}
-                        </div>
-                        {visit.status !== "closed" &&
-                          button("Close visit", () =>
-                            act(
-                              branchBase + `/visits/${visit.id}/close`,
-                              {},
-                              "Visit closed.",
-                            ),
-                          )}
-                      </div>
-                    ))}
-                    <form
-                      className="mw-form"
-                      onSubmit={submit(async () => {
-                        setPrivateAccess(null);
-                        const visit = await mutate(
-                          branchBase + "/visits",
-                          "POST",
-                          {
-                            tableId: tabForm.tableId,
-                            displayName: tabForm.visitName,
-                            ...minimumSpendAck,
-                          },
-                          "Visit opened.",
-                        );
-                        captureVisitAccess(visit);
-                      })}
-                    >
-                      <label>
-                        Table
-                        <select
-                          required
-                          value={tabForm.tableId || ""}
-                          onChange={(event) =>
-                            updateForm("tableId", event.target.value)
-                          }
-                        >
-                          <option value="">Choose a table</option>
-                          {list(data.tables).map((table: any) => (
-                            <option key={table.id} value={table.id}>
-                              {table.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      {field("Guest display name", "visitName")}
-                      {minimumSpendField}
-                      <div className="mw-wide">
-                        <button
-                          className="primary"
+                        )}
+                        <h3>Create a table</h3>
+                        <NonReplayForm
+                          key={branchBase + "table-create"}
+                          className="mw-form"
+                          label="Create branch table"
                           disabled={
-                            busy ||
-                            offline ||
-                            features?.flags?.new_table_visits === false
+                            busy || offline || !Array.isArray(data.tables)
+                          }
+                          onSubmit={() =>
+                            mutate(
+                              branchBase + "/tables",
+                              "POST",
+                              {
+                                name: tabForm.tableName,
+                                capacity: Number(tabForm.capacity),
+                                zone: tabForm.zone || "Main floor",
+                                x: 0,
+                                y: 0,
+                              },
+                              "Table created.",
+                            )
                           }
                         >
-                          Open visit
-                        </button>
-                      </div>
-                    </form>
-                    <p>
-                      Private visit access requires a controlled guest session;
-                      a table QR alone does not expose a bill. Unresolved
-                      balances prevent closure.
-                    </p>
-                  </section>
+                          {field("Table label", "tableName")}
+                          {field("Seats", "capacity", "number")}
+                          {field("Zone", "zone", "text", false)}
+                          <div className="mw-wide">
+                            <button className="primary">Create table</button>
+                          </div>
+                        </NonReplayForm>
+                      </>
+                    }
+                  />
+                  <Bills
+                    key={branchBase + financialRevision}
+                    bills={data.bills}
+                    visits={data.visits}
+                    tables={data.tables}
+                    base={branchBase}
+                    disabled={busy || offline}
+                    canPay={allowed("payments.record")}
+                    save={mutate}
+                  />
                 </>
-              )}
-              {activeSection === "tables" && (
-                <Bills
-                  key={branchBase + financialRevision}
-                  bills={list(data.bills)}
-                  base={branchBase}
-                  disabled={busy || offline}
-                  canPay={allowed("payments.record")}
-                  save={mutate}
-                />
               )}
               {activeSection === "reservations" && (
                 <section className="mw-card">

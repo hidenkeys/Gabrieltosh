@@ -146,3 +146,7 @@ import "./mera/workspace/waitlist.css";
 
 import "./mera/customer/customization-dialog.css";
 import "./mera/marketing/marketing-secondary.css";
+
+import "./mera/workspace/table-service.css";
+import "./mera/workspace/bills.css";
+import "./mera/workspace/visit-tools.css";
