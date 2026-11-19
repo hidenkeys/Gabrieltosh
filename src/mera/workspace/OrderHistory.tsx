@@ -83,7 +83,7 @@ const actorLabel = (entry: any) =>
       integration: "Integration",
     } as Record<string, string>
   )[entry.actorType] ||
-  (entry.actorId ? "Staff name unavailable" : "Identity unavailable");
+  "Identity unavailable";
 const historyDate = (value: unknown, timeZone?: string) => {
   if (
     typeof value !== "string" ||

@@ -209,7 +209,7 @@ test("P2 responsibility history labels only known identity and renders Customer 
       name: "Responsibility & transaction history",
     });
     assert.equal(screen.queryByText(new RegExp(unknownId)), null);
-    assert.ok(screen.getByText(/Submitted · Staff name unavailable/));
+    assert.ok(screen.getByText(/Submitted · Identity unavailable/));
     assert.ok(screen.getByText(/Joined · Guest/));
     assert.ok(screen.getByText(/Accepted · Staff name unavailable/));
     assert.ok(screen.getByText(/Prepared · Sam/));
@@ -281,7 +281,7 @@ test("shared order timeline keeps zero money, actual assignment names and explic
     assert.ok(
       screen.getByText("Staff name unavailable → Staff name unavailable"),
     );
-    assert.ok(screen.getByText(/Assigned · Staff name unavailable/));
+    assert.ok(screen.getByText(/Assigned · Identity unavailable/));
     assert.ok(!screen.queryByText(/private-staff-id|private-next-id/));
     assert.ok(screen.getByText(/Time unavailable/));
   } finally {
