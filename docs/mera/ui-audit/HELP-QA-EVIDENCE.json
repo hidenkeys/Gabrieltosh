@@ -1,0 +1,105 @@
+{
+  "environment": "isolated frontdesk QA app3007/database55444",
+  "syntheticFixtureRetained": true,
+  "reference": "H-E9680150",
+  "help": [
+    {
+      "id": "0bffc2f7-5e59-4e65-bd2e-1a70a0ed22b1",
+      "reference": "H-E9680150",
+      "status": "resolved",
+      "private_notes": 1
+    }
+  ],
+  "counts": [
+    {
+      "kind": "audit",
+      "count": 35
+    },
+    {
+      "kind": "bill",
+      "count": 4
+    },
+    {
+      "kind": "export",
+      "count": 1
+    },
+    {
+      "kind": "help_request",
+      "count": 1
+    },
+    {
+      "kind": "help_update_operation",
+      "count": 1
+    },
+    {
+      "kind": "item_fulfillment",
+      "count": 1
+    },
+    {
+      "kind": "job",
+      "count": 1
+    },
+    {
+      "kind": "ledger",
+      "count": 1
+    },
+    {
+      "kind": "menu_publication",
+      "count": 1
+    },
+    {
+      "kind": "order",
+      "count": 3
+    },
+    {
+      "kind": "order_quote",
+      "count": 2
+    },
+    {
+      "kind": "order_request_resolution",
+      "count": 1
+    },
+    {
+      "kind": "product",
+      "count": 35
+    },
+    {
+      "kind": "shift_operation",
+      "count": 2
+    },
+    {
+      "kind": "shift_request_resolution",
+      "count": 1
+    },
+    {
+      "kind": "stock_movement",
+      "count": 1
+    },
+    {
+      "kind": "table",
+      "count": 2
+    },
+    {
+      "kind": "template",
+      "count": 1
+    },
+    {
+      "kind": "ticket",
+      "count": 3
+    },
+    {
+      "kind": "visit",
+      "count": 1
+    },
+    {
+      "kind": "visit_table_change",
+      "count": 1
+    },
+    {
+      "kind": "waitlist",
+      "count": 2
+    }
+  ],
+  "noPaymentOrderOrStockActionPerformed": true,
+  "provenance": "One public synthetic general service request and one staff resolved reply/private note through normal UI. Original note predates actor-name snapshot addition; historical name remains unavailable. Immutable audit/operation records intentionally retained."
+}

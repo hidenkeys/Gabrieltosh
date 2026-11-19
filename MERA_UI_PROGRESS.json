@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T16:23:48+01:00",
-  "revision": "8149ed2",
+  "lastUpdated": "2026-11-19T16:37:52+01:00",
+  "revision": "af219bb",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -597,7 +597,7 @@
       "workstream": "P",
       "title": "Order lists, details, responsibility and help",
       "weight": 4,
-      "checkpoint": 40,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
@@ -607,11 +607,10 @@
       "acceptance": "Scan reference/time/customer/table/source/status/payment/amount/handler and next action; timeline/details; assignment/privacy preserved.",
       "evidence": [
         "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
-        "docs/mera/ui-audit/ORDER-MANAGEMENT-CHECKPOINT.md"
+        "docs/mera/ui-audit/ORDER-MANAGEMENT-CHECKPOINT.md",
+        "docs/mera/ui-audit/HELP-RECOVERY-CHECKPOINT.md"
       ],
-      "blockers": [
-        "Help request uncertain-write recovery and draft retention require implementation; not blocked on user input."
-      ],
+      "blockers": [],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
@@ -627,6 +626,11 @@
           "at": "2026-11-19T16:23:48+01:00",
           "checkpoint": 40,
           "note": "Order history/timezone/shared timeline and waiter preparation facts integrated at8149ed2; full637pass/2skip, focused23pass, build and actual Chrome comparison. No additional checkpoint: help uncertain-write/draft recovery and broader state acceptance remain unfinished."
+        },
+        {
+          "at": "2026-11-19T16:37:52+01:00",
+          "checkpoint": 60,
+          "note": "Orders/history/help integrated and exercised: actor-bound exact help replay/lookup/stop; nonsecret reload marker; draft retention; full645pass/2skip and final91focused/build. ActualQA reply/privacy/responsive plus matched desktop comparison. Broader role/state/accessibility acceptance remains, no80/100claim."
         }
       ]
     },

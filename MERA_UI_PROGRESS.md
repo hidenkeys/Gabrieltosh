@@ -2,15 +2,15 @@
 
 Goal: Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.
 
-Scope **1.0** · revision `8149ed2` · updated 2026-11-19T16:23:48+01:00
+Scope **1.0** · revision `af219bb` · updated 2026-11-19T16:37:52+01:00
 
-**UI correction: 65% complete | 35% remaining.** Weighted evidence: 65.0/100. This is checklist completion, not a time estimate.
+**UI correction: 65% complete | 35% remaining.** Weighted evidence: 65.8/100. This is checklist completion, not a time estimate.
 
 Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.
 
 ## Current milestone
 
-Order-management slice integrated at8149ed2: waiter preparation facts preserve kitchen permission boundaries; history/live timeline use explicit branch times and honest identity/zero/assignment facts. Fullsuite637pass/2skip, focused23pass/build and same-tab desktop plus responsive browser review. P2 remains40; scope1.0 and65.0/100 unchanged because help uncertain-write/draft recovery and full state acceptance remain unfinished. Main3003/QA3007 running; protected platform access, provider delivery and printing hardware gates remain explicit.
+Customer-help recovery integrated ataf219bb: draft retention, distinct read states, nonsecret recovery reference, exact actor-bound replay/lookup/stop and immutable note/audit evidence. Full645pass/2skip, final91focused/build, actual isolated QA staff/customer privacy loop and834/390 layouts, matched main desktop comparison. P2 advances40→60; scope1.0 frozen; weighted65.8/100. Wider role/state/accessibility matrices, protected platform access, provider delivery and printing hardware gates remain unfinished. Main3003/QA3007 run final source; one clearly synthetic resolved help fixture and immutable QA events retained, main data unchanged.
 
 ## Measurement
 
@@ -22,7 +22,7 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | --- | ---: | ---: | --- |
 | References, design system and application shell | 15% | 92% | lead |
 | Organization management | 25% | 64% | workspace / lead overview |
-| POS and operational roles | 20% | 61% | lead / rotating operational agent |
+| POS and operational roles | 20% | 65% | lead / rotating operational agent |
 | Customer experience | 20% | 66% | customer |
 | Marketing and platform administration | 10% | 68% | backend (presentation workstream A) |
 | Integration, accessibility and delivery | 10% | 30% | lead |
@@ -45,7 +45,7 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | O6 | Transactions, shifts, reports and exports | 4% | 60% | IN_PROGRESS · workspace | [FINANCE-MANAGEMENT-CHECKPOINT.md](docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md), [EOD-REPORTING-CHECKPOINT.md](docs/mera/ui-audit/EOD-REPORTING-CHECKPOINT.md), [trading-day-report-comparison.html](docs/mera/ui-audit/trading-day-report-comparison.html), [177-report-totals-tablet.jpg](docs/mera/ui-audit/screenshots/177-report-totals-tablet.jpg), [SHIFT-RECOVERY-CHECKPOINT.md](docs/mera/ui-audit/SHIFT-RECOVERY-CHECKPOINT.md), [shift-recovery-comparison.html](docs/mera/ui-audit/shift-recovery-comparison.html), [mera-workspace-shift-recovery.test.tsx](tests/mera-workspace-shift-recovery.test.tsx), [SHIFT-QA-RESTORATION.json](docs/mera/ui-audit/SHIFT-QA-RESTORATION.json) |
 | O7 | Subscriptions, printing, QR and customer/support care | 4% | 60% | IN_PROGRESS · workspace | [BILLING-MANAGEMENT-MOUNT.md](docs/mera/ui-audit/BILLING-MANAGEMENT-MOUNT.md), [subscription-comparison.html](docs/mera/ui-audit/subscription-comparison.html), [RECORDS-PRINT-HELP-CHECKPOINT.md](docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md), [FINANCE-MANAGEMENT-CHECKPOINT.md](docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md), [PRINTING-CHECKPOINT.md](docs/mera/ui-audit/PRINTING-CHECKPOINT.md) |
 | P1 | Original-style POS catalog and current order | 5% | 80% | IN_PROGRESS · lead | [06-mera-pos-after-empty.jpg](docs/mera/ui-audit/screenshots/06-mera-pos-after-empty.jpg), [07-mera-pos-tablet.jpg](docs/mera/ui-audit/screenshots/07-mera-pos-tablet.jpg), [09-mera-pos-narrow-basket.jpg](docs/mera/ui-audit/screenshots/09-mera-pos-narrow-basket.jpg), [mera-ui-pilot.test.tsx](tests/mera-ui-pilot.test.tsx), [counter-comparison-current.jpg](docs/mera/ui-audit/counter-comparison-current.jpg) |
-| P2 | Order lists, details, responsibility and help | 4% | 40% | IN_PROGRESS · lead | [RECORDS-PRINT-HELP-CHECKPOINT.md](docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md), [ORDER-MANAGEMENT-CHECKPOINT.md](docs/mera/ui-audit/ORDER-MANAGEMENT-CHECKPOINT.md) |
+| P2 | Order lists, details, responsibility and help | 4% | 60% | IN_PROGRESS · lead | [RECORDS-PRINT-HELP-CHECKPOINT.md](docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md), [ORDER-MANAGEMENT-CHECKPOINT.md](docs/mera/ui-audit/ORDER-MANAGEMENT-CHECKPOINT.md), [HELP-RECOVERY-CHECKPOINT.md](docs/mera/ui-audit/HELP-RECOVERY-CHECKPOINT.md) |
 | P3 | Waiter tables, rounds, bills and handoffs | 4% | 60% | IN_PROGRESS · lead | [TABLES-CHECKPOINT.md](docs/mera/ui-audit/TABLES-CHECKPOINT.md), [145-tables-after.jpg](docs/mera/ui-audit/screenshots/145-tables-after.jpg), [146-tables-phone.jpg](docs/mera/ui-audit/screenshots/146-tables-phone.jpg), [147-tables-tablet.jpg](docs/mera/ui-audit/screenshots/147-tables-tablet.jpg), [SERVICE-HANDOFF-CHECKPOINT.md](docs/mera/ui-audit/SERVICE-HANDOFF-CHECKPOINT.md), [service-responsibility-comparison.html](docs/mera/ui-audit/service-responsibility-comparison.html), [153-service-phone-final.jpg](docs/mera/ui-audit/screenshots/153-service-phone-final.jpg), [154-service-tablet.jpg](docs/mera/ui-audit/screenshots/154-service-tablet.jpg) |
 | P4 | Kitchen and bar preparation | 3% | 60% | IN_PROGRESS · lead | [PREPARATION-MOUNT.md](docs/mera/ui-audit/PREPARATION-MOUNT.md), [56-preparation-partial-desktop.jpg](docs/mera/ui-audit/screenshots/56-preparation-partial-desktop.jpg), [57-preparation-ready-tablet.jpg](docs/mera/ui-audit/screenshots/57-preparation-ready-tablet.jpg), [58-preparation-ready-narrow.jpg](docs/mera/ui-audit/screenshots/58-preparation-ready-narrow.jpg), [mera-preparation.test.tsx](tests/mera-preparation.test.tsx) |
 | P5 | Front desk reservations, arrivals and waitlist | 4% | 60% | IN_PROGRESS · lead | [FRONTDESK-PUBLIC-CHECKPOINT.md](docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md), [RESERVATION-RECOVERY-CHECKPOINT.md](docs/mera/ui-audit/RESERVATION-RECOVERY-CHECKPOINT.md), [reservation-recovery-comparison.html](docs/mera/ui-audit/reservation-recovery-comparison.html), [mera-workspace-reservation-recovery.test.tsx](tests/mera-workspace-reservation-recovery.test.tsx), [RESERVATION-QA-RESTORATION.json](docs/mera/ui-audit/RESERVATION-QA-RESTORATION.json) |

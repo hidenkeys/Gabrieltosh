@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Order-management slice integrated at8149ed2: waiter preparation facts preserve kitchen permission boundaries; history/live timeline use explicit branch times and honest identity/zero/assignment facts. Fullsuite637pass/2skip, focused23pass/build and same-tab desktop plus responsive browser review. P2 remains40; scope1.0 and65.0/100 unchanged because help uncertain-write/draft recovery and full state acceptance remain unfinished. Main3003/QA3007 running; protected platform access, provider delivery and printing hardware gates remain explicit.",
+  "Customer-help recovery integrated ataf219bb: draft retention, distinct read states, nonsecret recovery reference, exact actor-bound replay/lookup/stop and immutable note/audit evidence. Full645pass/2skip, final91focused/build, actual isolated QA staff/customer privacy loop and834/390 layouts, matched main desktop comparison. P2 advances40→60; scope1.0 frozen; weighted65.8/100. Wider role/state/accessibility matrices, protected platform access, provider delivery and printing hardware gates remain unfinished. Main3003/QA3007 run final source; one clearly synthetic resolved help fixture and immutable QA events retained, main data unchanged.",
   "",
   "## Measurement",
   "",
