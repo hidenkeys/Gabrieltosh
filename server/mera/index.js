@@ -1,3 +1,4 @@
+import {withAccessLock,authorizeAccessTarget,beginAccessOperation,recordAccessOperation,recordAccess,mountMeraAccessAttempts} from "./access-attempts.js";
 import {assertExpectedPrintActor,beginPrintStudioOperation,recordPrintStudioOperation,cleanReprintJob,mountMeraPrintStudioAttempts} from "./print-studio-attempts.js";
 import {assertExpectedBillActor,beginBillChange,recordBillChange,mountMeraBillAttempts} from "./bill-attempts.js";
 import {assertExpectedShiftActor,replayShiftOperation,assertShiftRequestActive,recordShiftOperation,mountMeraShiftAttempts} from "./shift-attempts.js";
@@ -1839,114 +1840,50 @@ export function createMeraRouter(db) {
       ),
   );
   router.get("/organizations/:organizationId/invitations",guard("members.manage"),async(req,res)=>res.json((await q('SELECT id,email,role,branch_ids AS "branchIds",expires_at AS "expiresAt",revoked,accepted FROM mera_invitations WHERE organization_id=$1 ORDER BY expires_at DESC',[req.params.organizationId])).rows.map(i=>({...i,delivery:"not_sent"}))));
-  router.post(
-    "/organizations/:organizationId/invitations",
-    guard("members.manage"),
-    async (req, res) => {
-      const input = z
-        .object({
-          email: z.string().email().max(200),
-          role: z.string().min(1).max(100),
-          branchIds: z.array(uuid).max(100),
-        })
-        .parse(req.body);
-      const requester = req.meraMembership;
-      const grants = (await resolveRole(db,req.params.organizationId,input.role)).permissions;
-      if (
-        grants.some((p) => !requester.permissions.includes(p)) ||
-        (input.role === "owner" && requester.role !== "owner")
-      )
-        throw fail("Cannot grant privileges beyond your authority.", 403);
-      const branches = (
-        await q("SELECT id FROM mera_branches WHERE organization_id=$1", [
-          req.params.organizationId,
-        ])
-      ).rows.map((b) => b.id);
-      if (
-        input.branchIds.some(
-          (id) =>
-            !branches.includes(id) ||
-            (!requester.organization_wide &&
-              !requester.branch_ids.includes(id)),
-        )
-      )
-        throw fail("Invalid branch scope.", 403);
-      const token = randomBytes(32).toString("hex"),
-        id = randomUUID(),
-        expiresAt = new Date(Date.now() + 48 * 3600000).toISOString();
-      await q(
-        "INSERT INTO mera_invitations(id,organization_id,token_hash,email,role,permissions,branch_ids,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
-        [
-          id,
-          req.params.organizationId,
-          hash(token),
-          input.email,
-          input.role,
-          JSON.stringify(grants),
-          JSON.stringify(input.branchIds),
-          expiresAt,
-        ],
-      );
-      res.status(201).json({
-        id,
-        email: input.email,
-        role: input.role,
-        expiresAt,
-        delivery: "not_sent",
-        reason: providers.email.reason,
-        ...(process.env.MERA_DEMO === "true" &&
-        process.env.NODE_ENV !== "production"
-          ? { developmentToken: token }
-          : {}),
-      });
-    },
-  );
-  router.delete(
-    "/organizations/:organizationId/invitations/:id",
-    guard("members.manage"),
-    async (req, res) => {
-      await q(
-        "UPDATE mera_invitations SET revoked=true WHERE id=$1 AND organization_id=$2",
-        [req.params.id, req.params.organizationId],
-      );
-      res.json({ revoked: true });
-    },
-  );
-  router.patch(
-    "/organizations/:organizationId/members/:id",
-    guard("members.manage"),
-    async (req, res) => {
-      const { active } = z.object({ active: z.boolean() }).parse(req.body);
-      await db.transaction(async (c) => {
-        await c.query(
-          "SELECT id FROM mera_organizations WHERE id=$1 FOR UPDATE",
-          [req.params.organizationId],
-        );
-        const target = (
-          await c.query(
-            "SELECT * FROM mera_memberships WHERE id=$1 AND organization_id=$2",
-            [req.params.id, req.params.organizationId],
-          )
-        ).rows[0];
-        if (!target) throw fail("Membership not found.", 404);
-        if (!active && target.role === "owner") {
-          const owners = (
-            await c.query(
-              "SELECT id FROM mera_memberships WHERE organization_id=$1 AND role='owner' AND active=true",
-              [req.params.organizationId],
-            )
-          ).rows;
-          if (owners.length <= 1)
-            throw fail("The last active owner cannot be removed.", 409);
-        }
-        await c.query(
-          "UPDATE mera_memberships SET active=$1 WHERE id=$2 AND organization_id=$3",
-          [active, target.id, req.params.organizationId],
-        );
-      });
-      res.json({ active });
-    },
-  );
+  router.post("/organizations/:organizationId/invitations",guard("members.manage"),async(req,res)=>{
+    const input=z.object({requestKey:uuid.optional(),email:z.string().email().max(200),role:z.string().min(1).max(100),branchIds:z.array(uuid).max(100).transform(v=>[...new Set(v)].sort())}).parse(req.body);
+    let immediateToken=null;
+    const result=await withAccessLock(db,req,async c=>{
+      const intent={email:input.email,role:input.role,branchIds:input.branchIds},attempt={requestKey:input.requestKey,operation:"invitation_create",targetId:null,intent};
+      await authorizeAccessTarget(c,req,attempt.operation,null,intent);
+      const prior=await beginAccessOperation(c,req,attempt);if(prior)return prior;
+      const grants=(await resolveRole(c,req.params.organizationId,input.role)).permissions;
+      const branches=(await c.query("SELECT id FROM mera_branches WHERE organization_id=$1",[req.params.organizationId])).rows.map(b=>b.id);
+      if(input.branchIds.some(id=>!branches.includes(id)))throw fail("Invalid branch scope.",403);
+      const token=randomBytes(32).toString("hex"),id=randomUUID(),expiresAt=new Date(Date.now()+48*3600000).toISOString();
+      await c.query("INSERT INTO mera_invitations(id,organization_id,token_hash,email,role,permissions,branch_ids,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",[id,req.params.organizationId,hash(token),input.email,input.role,JSON.stringify(grants),JSON.stringify(input.branchIds),expiresAt]);
+      const demo=process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production";
+      const safe={id,email:input.email,role:input.role,branchIds:input.branchIds,expiresAt,delivery:"not_sent",reason:providers.email.reason,developmentTokenRecoverable:false,developmentTokenUnavailable:true,needsExplicitRevokeAndReinvite:demo};
+      await recordAccessOperation(c,req,attempt,safe);
+      await recordAccess(c,req,"audit",{action:"invitation_created",actorId:req.user.id,details:{invitationId:id,role:input.role},createdAt:now()});
+      if(demo)immediateToken=token;
+      return safe;
+    });
+    res.status(201).json(immediateToken?{...result,developmentToken:immediateToken,developmentTokenUnavailable:false,needsExplicitRevokeAndReinvite:false}:result);
+  });
+  router.delete("/organizations/:organizationId/invitations/:id",guard("members.manage"),async(req,res)=>{
+    const input=z.object({requestKey:uuid.optional()}).parse(req.body||{});
+    res.json(await withAccessLock(db,req,async c=>{
+      const target=await authorizeAccessTarget(c,req,"invitation_revoke",req.params.id),attempt={requestKey:input.requestKey,operation:"invitation_revoke",targetId:req.params.id,intent:{}};
+      const prior=await beginAccessOperation(c,req,attempt);if(prior)return prior;
+      if(target.accepted)throw fail("This invitation was already accepted. Review the membership to manage access.",409,"INVITATION_ACCEPTED");
+      await c.query("UPDATE mera_invitations SET revoked=true WHERE id=$1 AND organization_id=$2",[req.params.id,req.params.organizationId]);
+      const result={revoked:true};await recordAccessOperation(c,req,attempt,result);await recordAccess(c,req,"audit",{action:"invitation_revoked",actorId:req.user.id,details:{invitationId:req.params.id},createdAt:now()});return result;
+    }));
+  });
+  router.patch("/organizations/:organizationId/members/:id",guard("members.manage"),async(req,res)=>{
+    const input=z.object({active:z.boolean(),requestKey:uuid.optional()}).parse(req.body);
+    res.json(await withAccessLock(db,req,async c=>{
+      const target=await authorizeAccessTarget(c,req,"membership_update",req.params.id,input),attempt={requestKey:input.requestKey,operation:"membership_update",targetId:req.params.id,intent:{active:input.active}};
+      const prior=await beginAccessOperation(c,req,attempt);if(prior)return prior;
+      if(!input.active&&target.role==="owner"){
+        const owners=(await c.query("SELECT id FROM mera_memberships WHERE organization_id=$1 AND role='owner' AND active=true",[req.params.organizationId])).rows;
+        if(owners.length<=1)throw fail("The last active owner cannot be removed.",409);
+      }
+      await c.query("UPDATE mera_memberships SET active=$1 WHERE id=$2 AND organization_id=$3",[input.active,target.id,req.params.organizationId]);
+      const result={active:input.active};await recordAccessOperation(c,req,attempt,result);await recordAccess(c,req,"audit",{action:"membership_access_updated",actorId:req.user.id,details:{membershipId:target.id,active:input.active},createdAt:now()});return result;
+    }));
+  });
   router.post("/invitations/accept", async (req, res) => {
     if (!req.user) throw fail("Sign in to accept an invitation.", 401);
     if (
@@ -3178,6 +3115,7 @@ export function createMeraRouter(db) {
   mountMeraShiftAttempts(router,{guard,scope,locked,record,event});
   mountMeraBillAttempts(router,{guard,scope,locked,find,record,event});
   mountMeraPrintStudioAttempts(router,{guard,scope,locked,find,record,event});
+  mountMeraAccessAttempts(router,{db,guard});
   mountMeraOrderAttempts(router,{guard,scope,locked,record,event,publicContext,guest,publicOrder});
   mountMeraPrinting(router,{db,guard,scope,locked,find,record,update,event});
   mountMeraQueries(router,{db,guard,scope});
