@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "EOD reporting partial milestone verified atb4a11fa: correct native selected date, recognized product quantities, money distinctions, scoped states/activity and date-to-export flow. CSVv2 worker/download route passed actual PostgreSQL integration; browser file download remains blocked by Chrome organization policy. Full suite518pass/2skip; final build/responsive checks passed. Next: finance/role/recovery/print acceptance and remaining platform surfaces. Main preview3003 remains running; provider, fee-source, platform QA credential and physical-printer gates remain explicit.",
+  "Receipt/sticker studio partial milestone verified atd56f410: saved format editing/reload, draft preservation, immutable v1/v2 document details and responsive previews. Full suite545pass/2skip, build and actual PostgreSQL gates passed. Main preview3003 running. Next: populated queue/role/recovery and remaining platform acceptance; hardware, provider and platform QA credential gates remain explicit.",
   "",
   "## Measurement",
   "",

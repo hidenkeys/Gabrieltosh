@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T08:28:23+01:00",
-  "revision": "b4a11fa",
+  "lastUpdated": "2026-11-19T08:45:26+01:00",
+  "revision": "d56f410",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -479,7 +479,7 @@
       "workstream": "O",
       "title": "Subscriptions, printing, QR and customer/support care",
       "weight": 4,
-      "checkpoint": 40,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "workspace",
       "dependencies": [
@@ -491,7 +491,8 @@
         "docs/mera/ui-audit/BILLING-MANAGEMENT-MOUNT.md",
         "docs/mera/ui-audit/subscription-comparison.html",
         "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
-        "docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md"
+        "docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
+        "docs/mera/ui-audit/PRINTING-CHECKPOINT.md"
       ],
       "blockers": [],
       "history": [
@@ -514,6 +515,11 @@
           "at": "2026-11-19T01:18:04+01:00",
           "checkpoint": 40,
           "note": "Finance/shift/export and integration/care partial correction. Actual zero-cash shift close and worker-completed CSV download passed; no real collections/refunds or full populated-care browser acceptance. See checkpoint."
+        },
+        {
+          "at": "2026-11-19T08:45:26+01:00",
+          "checkpoint": 60,
+          "note": "Printing format/save/reload/draft and responsive milestone verified with prior subscription/QR/care integration; full suite545pass/2skip, actual PG snapshot/version/default-brand gates. No physical output or full populated queue/role acceptance."
         }
       ]
     },
@@ -2092,6 +2098,13 @@
       "scopeWeight": 100,
       "weightedPoints": 56.6,
       "roundedCompletion": 56
+    },
+    {
+      "at": "2026-11-19T08:45:26+01:00",
+      "event": "Receipt/sticker studio integrated and exercised; source d56f410, scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 62.0,
+      "roundedCompletion": 62
     }
   ],
   "baselineRevision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd"
