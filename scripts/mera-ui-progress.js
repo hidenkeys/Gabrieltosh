@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Attention destinations milestone verified atf5b4452: focused stock/arrival/shift queues, source-derived reservation/shift wrappers, stock-only permission boundary, retained action drafts and explicit drilldown heading focus/scroll reset. Full suite584pass/2skip,25focused/6integrated tests, build and actual390/834comparisons passed; exact3QAfixture rows restored. Next: reservation/shift write recovery, broader role/financial acceptance and remaining platform surfaces. Main3003 running; provider, platform QA credential and physical-printer gates remain explicit.",
+  "Staff reservation request recovery verified at942d77e: exact pre-dispatch intent/key, actor-bound requests, authoritative lookup/stop fence, safe sign-out redaction and native datetime input fix. Full suite597pass/2skip,12focused/4parent integration passes and build; actual desktop/tablet/phone comparisons plus synthetic booking/rejected-request reload/stop verified. Two immutable QA audit events retained with append-only protection preserved; all90baseline records/settings unchanged. No new checkpoint credit for this slice:63.8/100. Next: reservation status/arrival/seating and shift recovery, broader role/financial acceptance and remaining platform surfaces. Main3003 running; provider, protected-platform QA access and physical-printer gates remain explicit.",
   "",
   "## Measurement",
   "",

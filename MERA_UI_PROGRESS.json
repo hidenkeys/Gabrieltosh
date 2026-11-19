@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T09:57:42+01:00",
-  "revision": "f5b4452",
+  "lastUpdated": "2026-11-19T10:24:38+01:00",
+  "revision": "942d77e",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -699,7 +699,11 @@
       ],
       "acceptance": "Readable timeline/list, capacity/table availability, arrivals/walk-ins/waitlist and seating conversion; preserve joining/deposit policies and error states.",
       "evidence": [
-        "docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md"
+        "docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
+        "docs/mera/ui-audit/RESERVATION-RECOVERY-CHECKPOINT.md",
+        "docs/mera/ui-audit/reservation-recovery-comparison.html",
+        "tests/mera-workspace-reservation-recovery.test.tsx",
+        "docs/mera/ui-audit/RESERVATION-QA-RESTORATION.json"
       ],
       "blockers": [],
       "history": [
@@ -712,6 +716,11 @@
           "at": "2026-11-19T01:50:36+01:00",
           "checkpoint": 60,
           "note": "Front-desk waitlist normal UI transitions and public/customization partial milestone. Actual paired/responsive captures, focus and lazy pricing navigation corrected; role/theme/production registration matrices remain partial."
+        },
+        {
+          "at": "2026-11-19T10:24:38+01:00",
+          "checkpoint": 60,
+          "note": "Staff request recovery slice verified at942d77e: original intent/key/actor-bound first POST, lookup/stop fence, sign-out privacy, native date fix, real synthetic QA booking and rejected-request reload/stop, responsive comparison. Full suite597pass/2skip, build,12focused/4parentintegration passes. No new weighted credit; broader front-desk/status/role acceptance remains. Two immutable synthetic QA audit events retained with guard preserved; all90existing hashes/settings unchanged."
         }
       ]
     },
@@ -2141,6 +2150,13 @@
     {
       "at": "2026-11-19T09:57:42+01:00",
       "event": "Attention destinations visual/focus/size milestone verified atf5b4452; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 63.8,
+      "roundedCompletion": 63
+    },
+    {
+      "at": "2026-11-19T10:24:38+01:00",
+      "event": "Staff reservation recovery slice verified at942d77e; no checkpoint or scope-weight change",
       "scopeWeight": 100,
       "weightedPoints": 63.8,
       "roundedCompletion": 63
