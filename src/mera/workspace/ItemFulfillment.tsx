@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useId } from "react";
 import { uuid } from "../../api";
 import { Disclosure } from "../ui/OperationalPrimitives";
 type Props = {
@@ -85,6 +85,7 @@ function ScopedItemFulfillment({
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [denied, setDenied] = useState(false);
+  const quantityHintId = useId();
   const mounted = useRef(true),
     inFlight = useRef(false),
     pendingRef = useRef<Pending | null>(null),
@@ -329,13 +330,10 @@ function ScopedItemFulfillment({
                     onChange={(event) =>
                       setQuantity(Number(event.target.value))
                     }
-                    aria-describedby="mw-item-handoff-quantity-hint"
+                    aria-describedby={quantityHintId}
                   />
                 </label>
-                <p
-                  id="mw-item-handoff-quantity-hint"
-                  className="mw-item-handoff-hint"
-                >
+                <p id={quantityHintId} className="mw-item-handoff-hint">
                   Include items already handed over. This is the new total, not
                   the quantity being added.
                 </p>

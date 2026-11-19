@@ -355,3 +355,61 @@ test("missing, invalid or duplicate projected preparation facts never fall back 
     cleanup();
   }
 });
+test("multiple mounted handoff cards keep unique local quantity hints even when a card is hidden by filters", () => {
+  const otherOrder = { ...order, id: "order-two" },
+    otherTickets = tickets.map((ticket) => ({
+      ...ticket,
+      orderId: "order-two",
+    }));
+  const { container, rerender } = render(
+    <>
+      <section data-card="first">
+        <ItemFulfillment {...props} />
+      </section>
+      <section data-card="second" hidden>
+        <ItemFulfillment {...props} order={otherOrder} tickets={otherTickets} />
+      </section>
+    </>,
+  );
+  const inputs = Array.from(
+    container.querySelectorAll<HTMLInputElement>('input[type="number"]'),
+  );
+  assert.equal(inputs.length, 2);
+  const hintIds = inputs.map((input) => input.getAttribute("aria-describedby"));
+  assert.equal(new Set(hintIds).size, 2);
+  for (const input of inputs) {
+    const hintId = input.getAttribute("aria-describedby")!;
+    const hint = document.getElementById(hintId);
+    assert.ok(hint);
+    assert.ok(input.closest("[data-card]")?.contains(hint));
+    assert.equal(
+      Array.from(container.querySelectorAll("[id]")).filter(
+        (element) => element.id === hintId,
+      ).length,
+      1,
+    );
+    assert.match(
+      hint.textContent || "",
+      /new total, not the quantity being added/,
+    );
+  }
+  rerender(
+    <>
+      <section data-card="first" hidden>
+        <ItemFulfillment {...props} />
+      </section>
+      <section data-card="second">
+        <ItemFulfillment {...props} order={otherOrder} tickets={otherTickets} />
+      </section>
+    </>,
+  );
+  const nextInputs = Array.from(
+    container.querySelectorAll<HTMLInputElement>('input[type="number"]'),
+  );
+  assert.ok(nextInputs[0] === inputs[0]);
+  assert.ok(nextInputs[1] === inputs[1]);
+  assert.deepEqual(
+    nextInputs.map((input) => input.getAttribute("aria-describedby")),
+    hintIds,
+  );
+});
