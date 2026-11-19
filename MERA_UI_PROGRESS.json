@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T18:08:09+01:00",
-  "revision": "ee6c4e8",
+  "lastUpdated": "2026-11-19T18:22:39+01:00",
+  "revision": "e238eff",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -355,7 +355,8 @@
         "src/mera/workspace/BusinessDetails.tsx",
         "tests/mera-branch-administration.test.tsx",
         "tests/mera-business-details.test.tsx",
-        "docs/mera/ui-audit/MENU-BRANCH-CHECKPOINT.md"
+        "docs/mera/ui-audit/MENU-BRANCH-CHECKPOINT.md",
+        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md"
       ],
       "blockers": [],
       "history": [
@@ -378,6 +379,11 @@
           "at": "2026-11-18T22:52:35+01:00",
           "checkpoint": 60,
           "note": "Verified27680f2 in isolated checkout:282 regression passes/2 skips, build and actual Mera PostgreSQL pass. Browser comparison and concrete scoped flows recorded. Full acceptance remains; staged next-phase source gets no extra credit."
+        },
+        {
+          "at": "2026-11-19T18:22:39+01:00",
+          "checkpoint": 60,
+          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
         }
       ]
     },
@@ -714,7 +720,8 @@
         "docs/mera/ui-audit/screenshots/56-preparation-partial-desktop.jpg",
         "docs/mera/ui-audit/screenshots/57-preparation-ready-tablet.jpg",
         "docs/mera/ui-audit/screenshots/58-preparation-ready-narrow.jpg",
-        "tests/mera-preparation.test.tsx"
+        "tests/mera-preparation.test.tsx",
+        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md"
       ],
       "blockers": [],
       "history": [
@@ -732,6 +739,11 @@
           "at": "2026-11-18T23:28:34+01:00",
           "checkpoint": 60,
           "note": "Integrated dedicated station view and verified local accepted\u2192preparing\u2192partial\u2192ready flow; restricted-role/live conflict and full accessibility checks pending."
+        },
+        {
+          "at": "2026-11-19T18:22:39+01:00",
+          "checkpoint": 60,
+          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
         }
       ]
     },
@@ -834,7 +846,8 @@
         "tests/mera-customer-quote-clock.test.js",
         "docs/mera/ui-audit/screenshots/39-customer-unpaid-tracking.jpg",
         "docs/mera/ui-audit/CUSTOMER-CHECKOUT-CHECKPOINT.md",
-        "docs/mera/ui-audit/customer-checkout-comparison.html"
+        "docs/mera/ui-audit/customer-checkout-comparison.html",
+        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md"
       ],
       "blockers": [],
       "history": [
@@ -857,6 +870,11 @@
           "at": "2026-11-19T03:51:33+01:00",
           "checkpoint": 60,
           "note": "Actual local native checkout, required/size/stock/custom-theme and unpaid tracking subset verified. Network/session/paid-print/full-theme matrix remains partial."
+        },
+        {
+          "at": "2026-11-19T18:22:39+01:00",
+          "checkpoint": 60,
+          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
         }
       ]
     },
@@ -1218,7 +1236,8 @@
         "docs/mera/ui-audit/PRINT-RECOVERY-CHECKPOINT.md",
         "docs/mera/ui-audit/ACCESS-RECOVERY-CHECKPOINT.md",
         "docs/mera/ui-audit/ACCESS-RECOVERY-WORKBOARD.md",
-        "docs/mera/ui-audit/access-recovery-comparison.jpg"
+        "docs/mera/ui-audit/access-recovery-comparison.jpg",
+        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md"
       ],
       "blockers": [],
       "history": [
@@ -1246,6 +1265,11 @@
           "at": "2026-11-19T18:08:09+01:00",
           "checkpoint": 40,
           "note": "Access recovery ee6c4e8/f1a1010: five shared actor/org keyed operations with exact proof/retry/fenced stop, no private payload/token persistence, current-authority delayed-response guards. Full686pass/2skip, build,8new/97existingfocused, disposablePG; matched People desktop and390/834 read-only screenshots. Wider acceptance gates remain; no percentage increase."
+        },
+        {
+          "at": "2026-11-19T18:22:39+01:00",
+          "checkpoint": 40,
+          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
         }
       ]
     },

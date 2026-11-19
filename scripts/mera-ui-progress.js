@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Organization access recovery at ee6c4e8/f1a1010: shared actor/organization references and exact original check/retry/fenced stop for memberships, roles and invitations; no private body or token persistence, current-authority response guards and safe token-loss handling. Full686pass/2skip, build,8new/97existingfocused and disposablePG; matched People desktop plus390/834 read-only captures. O5 remains60/Q3 remains40; scope1.0 and67.0/100 unchanged. Signup recovery, complete role/state/accessibility and protected platform/provider/silent bridge/hardware gates remain. Main3003/QA3007 running; no preview access mutation, production or money action.",
+  "UI workflow closure at e238eff/475ebe4: preparation ticket validation/filter draft preservation, setup lifecycle and customer history/focus fixes. Actual282–288 browser captures, matched preparation comparison and390/834 layouts. Build and704tests passed,2skipped. Fresh preparation mutations covered by tests; existing preview tickets expired/completed. No backend changes. Full role/state/accessibility matrix and signup/platform/provider/hardware gates remain; scope1.0 stays67.0/100.",
   "",
   "## Measurement",
   "",
