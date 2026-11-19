@@ -1,3 +1,4 @@
+import {assertExpectedPrintActor,beginPrintStudioOperation,recordPrintStudioOperation,cleanReprintJob,mountMeraPrintStudioAttempts} from "./print-studio-attempts.js";
 import {assertExpectedBillActor,beginBillChange,recordBillChange,mountMeraBillAttempts} from "./bill-attempts.js";
 import {assertExpectedShiftActor,replayShiftOperation,assertShiftRequestActive,recordShiftOperation,mountMeraShiftAttempts} from "./shift-attempts.js";
 import { assertReservationRequestActive, assertStaffReservationRequestActive, assertExpectedReservationActor, mountMeraReservationAttempts } from "./reservation-attempts.js";
@@ -3091,8 +3092,10 @@ export function createMeraRouter(db) {
     );
   });
   router.put(B + "/templates", guard("menu.edit"), async (req, res) => {
-    const input = z
+    assertExpectedPrintActor(req);
+    const parsed = z
       .object({
+        requestKey:uuid.optional(),
         receipt: z.object({
           businessName: z.string().min(1).max(100),
           footer: z.string().max(300),
@@ -3105,8 +3108,11 @@ export function createMeraRouter(db) {
         }),
       })
       .parse(req.body);
+    const input={receipt:parsed.receipt,label:parsed.label};
     res.json(
       await locked(scope(req), async (c) => {
+        const s=scope(req),attempt={requestKey:parsed.requestKey,actorId:req.user.id,operation:"template_save",targetId:null,intent:input};
+        const prior=await beginPrintStudioOperation(c,s,attempt);if(prior)return prior;
         const old = (
           await readRecords(
             c,
@@ -3123,6 +3129,7 @@ export function createMeraRouter(db) {
             })
           : await record(c, scope(req), "template", {...input,version:1});
         await event(c, scope(req), "print_template_updated", req.user, {});
+        await recordPrintStudioOperation(c,s,record,attempt,value);
         return value;
       }),
     );
@@ -3143,28 +3150,21 @@ export function createMeraRouter(db) {
     B + "/print-jobs/:id/reprint",
     guard("orders.fulfill"),
     async (req, res) => {
-      const { reason } = z
-        .object({ reason: z.string().trim().min(3).max(300) })
+      assertExpectedPrintActor(req);
+      const { reason,requestKey } = z
+        .object({ requestKey:uuid.optional(),reason: z.string().trim().min(3).max(300) })
         .parse(req.body);
       res.status(201).json(
         await locked(scope(req), async (c) => {
           const job = await find(c, scope(req), "print_job", req.params.id);
-          const duplicate = await record(c, scope(req), "print_job", {
-            ...job,
-            id: undefined,
-            originalJobId: job.id,
-            automaticPaid:false,
-            status: "queued",
-            duplicate: true,
-            reason,
-            requestedBy: req.user.id,
-            physicalConfirmed: false,
-            createdAt: now(),
-          });
+          const s=scope(req),attempt={requestKey,actorId:req.user.id,operation:"reprint",targetId:job.id,intent:{reason}};
+          const prior=await beginPrintStudioOperation(c,s,attempt);if(prior)return prior;
+          const duplicate=await record(c,s,"print_job",cleanReprintJob(job,{reason,actorId:req.user.id,createdAt:now()}));
           await event(c, scope(req), "reprint_requested", req.user, {
             jobId: duplicate.id,
             reason,
           });
+          await recordPrintStudioOperation(c,s,record,attempt,duplicate);
           return duplicate;
         }),
       );
@@ -3177,6 +3177,7 @@ export function createMeraRouter(db) {
   mountMeraReservationAttempts(router,{publicContext,guest,locked,record,event,guard,scope});
   mountMeraShiftAttempts(router,{guard,scope,locked,record,event});
   mountMeraBillAttempts(router,{guard,scope,locked,find,record,event});
+  mountMeraPrintStudioAttempts(router,{guard,scope,locked,find,record,event});
   mountMeraOrderAttempts(router,{guard,scope,locked,record,event,publicContext,guest,publicOrder});
   mountMeraPrinting(router,{db,guard,scope,locked,find,record,update,event});
   mountMeraQueries(router,{db,guard,scope});
