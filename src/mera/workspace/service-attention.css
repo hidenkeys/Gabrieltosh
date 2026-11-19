@@ -1,0 +1,50 @@
+.mw-service-attention {
+  padding: 14px 16px;
+  border: 1px solid #e9e6e2;
+  border-left: 3px solid #2f7df6;
+  border-radius: 8px;
+  background: #fffefa;
+  margin-block: 16px;
+  min-width: 0;
+}
+.mw-service-attention-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.mw-service-attention .mera-disclosure {
+  margin-top: 4px;
+}
+.mw-service-attention summary {
+  display: list-item;
+  width: fit-content;
+  min-height: 44px;
+  padding-block: 13px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #51647d;
+}
+.mw-service-attention p,
+.mw-service-attention li {
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.mw-service-attention summary:focus-visible {
+  outline: 3px solid #2f7df6;
+  outline-offset: 3px;
+}
+@media (max-width: 480px) {
+  .mw-service-attention-summary {
+    gap: 8px;
+  }
+  .mw-service-attention-summary .mera-action {
+    font-size: 12px;
+  }
+  .mw-service-attention {
+    padding: 12px 14px;
+  }
+}

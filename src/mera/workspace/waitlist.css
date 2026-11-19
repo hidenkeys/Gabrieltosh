@@ -1,0 +1,25 @@
+.mw-frontdesk-waitlist { color:#111b2f; min-width:0; }
+.mw-waitlist-heading { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:18px; }
+.mw-waitlist-heading h2 { font-size:20px; margin:0 0 7px; }
+.mw-waitlist-heading p,.mw-waitlist-note { font-size:13px; line-height:1.6; color:#526175; }
+.mw-waitlist-filter { max-width:280px; margin-bottom:18px; }
+.mw-waitlist-records { max-height:70vh; overflow:auto; }
+.mw-waitlist-party { border-top:1px solid #e9e6e2; padding:18px 0; }
+.mw-waitlist-party>header { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:14px; }
+.mw-waitlist-party-name { display:flex; align-items:flex-start; gap:12px; }
+.mw-waitlist-position { min-width:30px; min-height:30px; padding:5px 8px; border:1px solid #e9e6e2; border-radius:8px; text-align:center; font-size:13px; }
+.mw-waitlist-party h3 { font-size:16px; margin:0 0 5px; overflow-wrap:anywhere; }
+.mw-waitlist-party p { font-size:13px; line-height:1.6; color:#526175; }
+.mw-waitlist-status { border:1px solid #e9e6e2; border-radius:7px; padding:6px 9px; font-size:12px; }
+.mw-waitlist-time { margin:10px 0; }
+.mw-waitlist-private>summary,.mw-waitlist-add>summary { cursor:pointer; min-height:44px; padding:12px 0; font-weight:600; }
+.mw-waitlist-private p { overflow-wrap:anywhere; margin-bottom:8px; }
+.mw-waitlist-add { border-top:1px solid #e9e6e2; margin-top:20px; padding-top:6px; }
+.mw-waitlist-fields { border:0; margin:0; padding:12px 0 0; min-width:0; }
+.mw-waitlist-fields>.mw-form { align-items:end; margin-bottom:16px; }
+.mw-waitlist-note { margin-top:18px; }
+.mw-waitlist-empty { border:1px solid #e9e6e2; border-radius:10px; background:#f8f7f4; padding:18px; }
+.mw-waitlist-empty h3 { font-size:16px; margin:0 0 7px; }
+.mw-frontdesk-waitlist button,.mw-frontdesk-waitlist input,.mw-frontdesk-waitlist select { min-height:44px; }
+.mw-frontdesk-waitlist button:focus-visible,.mw-frontdesk-waitlist input:focus-visible,.mw-frontdesk-waitlist select:focus-visible,.mw-frontdesk-waitlist textarea:focus-visible { outline:3px solid #2f7df6; outline-offset:3px; }
+@media(max-width:640px){.mw-waitlist-fields>.mw-form{grid-template-columns:minmax(0,1fr)}.mw-waitlist-heading>button{width:100%}.mw-waitlist-party .mw-actions{align-items:stretch}.mw-waitlist-party .mw-actions>button{flex:1 1 140px}}

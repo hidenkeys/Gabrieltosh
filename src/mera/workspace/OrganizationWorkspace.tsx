@@ -52,6 +52,7 @@ import LaunchReadiness from "./LaunchReadiness";
 import ReservationPolicy from "./ReservationPolicy";
 import ItemCancellation from "./ItemCancellation";
 import Reconciliation from "./Reconciliation";
+import ServiceAttention from "./ServiceAttention";
 import { PaymentRecords, ShiftRecord } from "./FinanceRecords";
 import VisitTables from "./VisitTables";
 import CashMovement from "./CashMovement";
@@ -1403,46 +1404,20 @@ export default function OrganizationWorkspace({
           </p>
         </section>
       )}
-      {!!delayedOrders.length && (
-        <section role="status" className="mw-note">
-          <strong>
-            {delayedOrders.length} active{" "}
-            {delayedOrders.length === 1 ? "order needs" : "orders need"}{" "}
-            attention
-          </strong>
-          <p>
-            These orders have been waiting longer than the configured{" "}
-            {data?.delayedOrderThresholdMinutes || 15}-minute threshold. Review
-            the current handoffs with your branch team.
-          </p>
-          <ul>
-            {delayedOrders.slice(0, 10).map((order: any) => (
-              <li key={order.id}>
-                {order.reference || String(order.id).slice(0, 8)} ·{" "}
-                {order.ageMinutes} minutes
-              </li>
-            ))}
-          </ul>
-          {delayedOrders.length > 10 && (
-            <p>{delayedOrders.length - 10} more delayed orders.</p>
-          )}
-          <button
-            className="secondary"
-            onClick={() => {
-              setOrderFilters({
-                query: "",
-                status: "",
-                source: "",
-                payment: "",
-                unassigned: false,
-              });
-              selectSection("orders");
-            }}
-          >
-            Review branch orders
-          </button>
-        </section>
-      )}
+      <ServiceAttention
+        orders={delayedOrders}
+        threshold={data?.delayedOrderThresholdMinutes}
+        onReview={() => {
+          setOrderFilters({
+            query: "",
+            status: "",
+            source: "",
+            payment: "",
+            unassigned: false,
+          });
+          selectSection("orders");
+        }}
+      />
       {entitlements?.warning &&
         !(
           entitlements.warning ===
@@ -1812,6 +1787,7 @@ export default function OrganizationWorkspace({
                 <Waitlist
                   key={branchBase}
                   base={branchBase}
+                  timeZone={branch?.timezone}
                   disabled={busy || offline}
                   save={mutate}
                 />

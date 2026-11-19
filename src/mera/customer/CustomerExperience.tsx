@@ -28,6 +28,7 @@ import SessionOrders from "./SessionOrders";
 import HelpRequests from "./HelpRequests";
 import GuestActivity from "./GuestActivity";
 import VisitSummary from "./VisitSummary";
+import CustomizationDialog from "./CustomizationDialog";
 import {
   reservationStatusLabel,
   reservationDateLabel,
@@ -51,7 +52,13 @@ type Product = {
   available: boolean;
   stockMode: string;
   stock: number;
-  variants: { id: string; name: string; price: number }[];
+  variants: {
+    id: string;
+    name: string;
+    price: number;
+    stockMode?: string;
+    stock?: number;
+  }[];
   modifierGroups: {
     id: string;
     name: string;
@@ -165,7 +172,6 @@ export default function CustomerExperience({
   const [stopReason, setStopReason] = useState("");
   const checkoutLocked =
     busy || !!checkoutIntent || checkoutRecovery.phase !== "ready";
-  const modalRef = useRef<HTMLDivElement>(null);
   const modifierGroupRefs = useRef(new Map<string, HTMLFieldSetElement>());
   const [modifierError, setModifierError] = useState<string | null>(null);
   const [customizationError, setCustomizationError] = useState("");
@@ -443,44 +449,6 @@ export default function CustomerExperience({
     };
   }, [menu?.organization?.id, menu?.branch?.id, branch, prefix]);
   useEffect(() => {
-    if (!selected) return;
-    const prior = document.activeElement as HTMLElement;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    modalRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeCustomization();
-      if (event.key === "Tab" && modalRef.current) {
-        const controls = modalRef.current.querySelectorAll<HTMLElement>(
-          'button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]',
-        );
-        const first = controls[0],
-          last = controls[controls.length - 1];
-        if (
-          event.shiftKey &&
-          (document.activeElement === first ||
-            document.activeElement === modalRef.current)
-        ) {
-          event.preventDefault();
-          last?.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first?.focus();
-        } else if (!modalRef.current.contains(document.activeElement)) {
-          event.preventDefault();
-          (event.shiftKey ? last : first)?.focus();
-        }
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflow;
-      if (prior?.isConnected) prior.focus();
-      else searchRef.current?.focus();
-    };
-  }, [selected]);
-  useEffect(() => {
     if (!order?.id) return;
     let stopped = false;
     const refresh = async () => {
@@ -677,6 +645,25 @@ export default function CustomerExperience({
   function addProduct() {
     if (checkoutIntentRef.current || checkoutInFlight.current) return;
     if (!selected) return;
+    const selectedVariant = selected.variants?.find(
+      (choice) => choice.id === variant,
+    );
+    if (
+      selected.available === false ||
+      (selected.stockMode === "counted" &&
+        typeof selected.stock === "number" &&
+        selected.stock <= 0) ||
+      (selected.variants?.length && !selectedVariant) ||
+      (selectedVariant?.stockMode === "counted" &&
+        typeof selectedVariant.stock === "number" &&
+        selectedVariant.stock <= 0)
+    ) {
+      setModifierError(null);
+      setCustomizationError(
+        "This selection is unavailable. Choose another size or ask staff for help.",
+      );
+      return;
+    }
     for (const group of selected.modifierGroups || []) {
       const count = group.options.filter((option) =>
         modifiers.includes(option.id),
@@ -2533,146 +2520,46 @@ export default function CustomerExperience({
         </div>
       </footer>
       {selected && (
-        <div className="mc-modal-backdrop">
-          <div
-            className="mc-panel mc-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="mc-customize-title"
-            tabIndex={-1}
-            ref={modalRef}
-          >
-            <div className="mc-modal-header">
-              <h2 id="mc-customize-title">{selected.name}</h2>
-              <button
-                className="mc-close"
-                aria-label="Close customization"
-                onClick={closeCustomization}
-              >
-                ×
-              </button>
-            </div>
-            <div className="mc-modal-content">
-              <p>{selected.description}</p>
-              {selected.variants?.length > 0 && (
-                <label>
-                  Choose a size
-                  <select
-                    value={variant}
-                    onChange={(e) => setVariant(e.target.value)}
-                  >
-                    {selected.variants.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name} · {money(v.price)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              {selected.modifierGroups?.map((group) => (
-                <fieldset
-                  key={group.id}
-                  className="mc-option-group"
-                  tabIndex={-1}
-                  aria-invalid={modifierError === group.id || undefined}
-                  aria-describedby={`mc-option-hint-${group.id}${modifierError === group.id ? " mc-modifier-error" : ""}`}
-                  ref={(node) => {
-                    if (node) modifierGroupRefs.current.set(group.id, node);
-                    else modifierGroupRefs.current.delete(group.id);
-                  }}
-                >
-                  <legend>
-                    {group.name} ·{" "}
-                    {group.min === group.max
-                      ? `choose ${group.min}`
-                      : group.min === 0
-                        ? `choose up to ${group.max}`
-                        : `choose ${group.min}–${group.max}`}
-                  </legend>
-                  <p
-                    className="mc-option-hint"
-                    id={`mc-option-hint-${group.id}`}
-                  >
-                    {group.min > 0 ? "Required" : "Optional"} ·{" "}
-                    {
-                      group.options.filter((option) =>
-                        modifiers.includes(option.id),
-                      ).length
-                    }{" "}
-                    selected
-                  </p>
-                  {modifierError === group.id && customizationError && (
-                    <p
-                      className="mc-option-error"
-                      role="alert"
-                      id="mc-modifier-error"
-                    >
-                      {customizationError}
-                    </p>
-                  )}
-                  {group.options.map((option) => (
-                    <label className="mc-modifier" key={option.id}>
-                      <input
-                        type="checkbox"
-                        checked={modifiers.includes(option.id)}
-                        onChange={(e) => {
-                          setModifiers((old) =>
-                            e.target.checked
-                              ? [...old, option.id]
-                              : old.filter((value) => value !== option.id),
-                          );
-                          if (modifierError === group.id) {
-                            setModifierError(null);
-                            setCustomizationError("");
-                          }
-                        }}
-                      />
-                      <span>
-                        {option.name}{" "}
-                        {option.price > 0 && `+${money(option.price)}`}
-                      </span>
-                    </label>
-                  ))}
-                </fieldset>
-              ))}
-              {selected.dietary?.length > 0 && (
-                <p>Dietary: {selected.dietary.join(", ")}</p>
-              )}
-              {selected.allergens?.length > 0 && (
-                <p>
-                  Allergens: {selected.allergens.join(", ")}. Please ask staff
-                  about dietary requirements.
-                </p>
-              )}
-              {customizationError && !modifierError && (
-                <div className="mc-alert" role="alert" id="mc-modifier-error">
-                  {customizationError}
-                </div>
-              )}
-            </div>
-            <div className="mc-modal-actions">
-              <p>
-                Item estimate{" "}
-                {money(
-                  (selected.variants?.find((v) => v.id === variant)?.price ??
-                    selected.price) +
-                    (selected.modifierGroups || [])
-                      .flatMap((group) => group.options)
-                      .filter((option) => modifiers.includes(option.id))
-                      .reduce((sum, option) => sum + option.price, 0),
-                )}
-                . Any order-level charges are reviewed at checkout.
-              </p>
-              <button
-                className="mc-primary"
-                disabled={checkoutLocked}
-                onClick={addProduct}
-              >
-                Add to basket
-              </button>
-            </div>
-          </div>
-        </div>
+        <CustomizationDialog
+          product={selected}
+          variantId={variant}
+          modifierIds={modifiers}
+          estimate={
+            (selected.variants?.find((v) => v.id === variant)?.price ??
+              selected.price) +
+            (selected.modifierGroups || [])
+              .flatMap((group) => group.options)
+              .filter((option) => modifiers.includes(option.id))
+              .reduce((sum, option) => sum + option.price, 0)
+          }
+          disabled={checkoutLocked}
+          error={customizationError}
+          errorGroupId={modifierError}
+          onVariantChange={(id) => {
+            setVariant(id);
+            if (!modifierError) setCustomizationError("");
+          }}
+          onModifierToggle={(id, checked) => {
+            setModifiers((old) =>
+              checked ? [...old, id] : old.filter((value) => value !== id),
+            );
+            if (
+              selected.modifierGroups
+                ?.find((group) => group.id === modifierError)
+                ?.options.some((option) => option.id === id)
+            ) {
+              setModifierError(null);
+              setCustomizationError("");
+            }
+          }}
+          onClose={closeCustomization}
+          onAdd={addProduct}
+          registerGroup={(id, node) => {
+            if (node) modifierGroupRefs.current.set(id, node);
+            else modifierGroupRefs.current.delete(id);
+          }}
+          fallbackFocus={() => searchRef.current?.focus()}
+        />
       )}
     </div>
   );

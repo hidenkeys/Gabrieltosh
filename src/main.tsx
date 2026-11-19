@@ -140,3 +140,9 @@ import "./mera/workspace/finance-records.css";
 import "./mera/workspace/finance-operations.css";
 import "./mera/workspace/management-utilities.css";
 import "./mera/workspace/customer-care.css";
+
+import "./mera/workspace/service-attention.css";
+import "./mera/workspace/waitlist.css";
+
+import "./mera/customer/customization-dialog.css";
+import "./mera/marketing/marketing-secondary.css";

@@ -48,3 +48,11 @@ These are new Mera leaves that reuse the original style, not original Bing Chun 
 - `src/mera/Platform.tsx`, `platform.css`: selected ivory/green identity, normal password/MFA boundary, scoped directory/review and narrow labeled section chooser. Actual74–85, `docs/mera/ui-audit/platform-review-comparison.html`. Shared audit reason retains required native form association; closed action disclosures must keep state mounted; Escape honors pending intent fence and restores trigger focus. Synthetic approved QA proves these captures, not production enrollment/provider certification.
 
 Source/controller contracts and unfinished acceptance are in `docs/mera/ui-audit/SUBSCRIPTION-VISIT-PLATFORM-CHECKPOINT.md`. UI leaves consume authorized response data; retain real Date serialization and private-field redaction in backend responses. No new palette/token scale or business-policy permission is implied by these additions.
+
+## Front desk and customization consumers
+
+- `src/mera/workspace/Waitlist.tsx` / `waitlist.css`: derived operational list/disclosures, actual130–132 and comparison143. Parent mounts via the preserved `Operations.tsx` named export, with `branch?.timezone`. Keep non-idempotent write freezes, auth/read fences and terminal-state controls.
+- `src/mera/customer/CustomizationDialog.tsx` / `customization-dialog.css`: bounded controlled dialog, actual133/135/142. Parent remains `CustomerExperience.tsx`; preserve required-group refs and checkout intent. Enumerate focusables in DOM order, restore trigger after inert removal; do not reset focus on variant/option rerenders. Tests cover alternate brand tokens; actual alternate-brand browser verification is still pending.
+- `src/mera/marketing/MarketingSecondary.tsx` / `marketing-secondary.css`, `src/mera/Signup.tsx`: selected Mera identity for public information; actual134/136–141. Legal/commercial terms stay provisional. Lazy section fragments must reach their actual destination after mount.
+
+Detailed limits and verified interactions: `docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md`.

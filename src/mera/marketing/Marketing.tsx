@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { PricingAndSupport, LegalInformationPage } from "./MarketingSecondary";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   ChartNoAxesColumnIncreasing,
@@ -13,6 +14,21 @@ const preview = "/mera/bing-chun-counter-preview.jpg";
 export default function Marketing() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    // The page is lazy-loaded, so a fragment can arrive before its section exists.
+    const id = window.location.hash.slice(1);
+    if (
+      [
+        "experience",
+        "modes",
+        "reporting",
+        "pricing",
+        "support",
+        "mera-main",
+      ].includes(id)
+    )
+      document.getElementById(id)?.scrollIntoView({ block: "start" });
+  }, []);
   function closeMenu() {
     setMenuOpen(false);
   }
@@ -173,60 +189,7 @@ export default function Marketing() {
             </p>
           </article>
         </section>
-        <section id="pricing" className="mera-pricing">
-          <p className="eyebrow">TRANSPARENT BY DESIGN</p>
-          <h2>A plan that fits your operation.</h2>
-          <div className="mera-price-card">
-            <span>PROPOSED STARTING PLAN</span>
-            <strong>
-              ₦13,500<small> / organization / month</small>
-            </strong>
-            <p>
-              One branch included. Commercial terms are pending approval.
-              Additional-branch pricing is configurable and not yet approved;
-              unlimited branches are not included.
-            </p>
-          </div>
-          <p>
-            A proposed 0.1% fee applies only to confirmed Mera-integrated
-            collections. Cash, external POS and manually recorded external
-            transfers do not incur that collection fee under the proposed
-            policy.
-          </p>
-          <p>
-            Who pays the fee, its calculation basis, rounding, refund treatment,
-            trial and grace periods must be approved before live billing. No
-            recurring debit or live collection is enabled by this preview.
-          </p>
-          <a className="text-button" href="/mera/signup">
-            Review onboarding and readiness →
-          </a>
-        </section>
-        <section className="mera-pricing mera-contact" id="support">
-          <p className="eyebrow">LET’S GET YOU READY</p>
-          <h2>Build your venue’s next chapter.</h2>
-          <p>
-            Start with your organization, branch details and menu. Readiness
-            checks keep incomplete payment-provider approval and service
-            policies visible before launch.
-          </p>
-          <div className="mera-support-links">
-            <a className="primary" href="/mera/signup">
-              Explore onboarding →
-            </a>
-            <a className="secondary" href="/mera/legal">
-              Review policy preparation
-            </a>
-          </div>
-          <p>
-            Existing merchants can create and follow in-app support cases from
-            their organization workspace. Email, SMS and push delivery remain
-            unavailable.
-          </p>
-          <a className="text-button" href="/mera/workspace">
-            Open merchant support in your workspace →
-          </a>
-        </section>
+        <PricingAndSupport />
       </main>
       <footer>
         <a className="mera-wordmark" href="/mera">
@@ -241,61 +204,5 @@ export default function Marketing() {
   );
 }
 export function LegalInformation() {
-  return (
-    <div className="mera-marketing">
-      <header>
-        <a className="mera-wordmark" href="/mera">
-          mera<span>.</span>
-        </a>
-        <a href="/mera/workspace">Open workspace →</a>
-      </header>
-      <main className="mera-pricing">
-        <p className="eyebrow">PRE-LAUNCH POLICY WORK</p>
-        <h1>Privacy & terms preparation</h1>
-        <p>
-          Final terms, retention schedules, tax disclosures and service
-          agreements require business and legal approval before public launch.
-          No final legal text or customer consent is represented by this
-          development page.
-        </p>
-        <section>
-          <h2>Customer information</h2>
-          <p>
-            Browsing is anonymous. Order names identify the current interaction;
-            a name, table number or QR code must never unlock someone’s private
-            history. Operational activity stays organization-scoped.
-          </p>
-        </section>
-        <section>
-          <h2>Communication preferences</h2>
-          <p>
-            Marketing consent must be separate from transactional communication.
-            Notification-provider setup and authorization are required before
-            messages are sent.
-          </p>
-        </section>
-        <section>
-          <h2>Payments and service policies</h2>
-          <p>
-            Providers, settlement arrangements, subscription terms, collection
-            charges, cancellation policies and refund treatment need explicit
-            approval and disclosure before live charging. A client redirect or
-            customer payment claim is not payment verification.
-          </p>
-        </section>
-        <section>
-          <h2>Retention and support</h2>
-          <p>
-            Retention periods, account recovery, data access/export procedures
-            and support contact details remain launch decisions. These controls
-            must be reviewed against the actual operating jurisdiction and
-            business requirements.
-          </p>
-        </section>
-        <a className="secondary" href="/mera">
-          Return to Mera
-        </a>
-      </main>
-    </div>
-  );
+  return <LegalInformationPage />;
 }

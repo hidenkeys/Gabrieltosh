@@ -1,3 +1,4 @@
+import { Disclosure } from "./ui/OperationalPrimitives";
 import { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./workspace/api";
 export default function Signup() {
@@ -79,31 +80,40 @@ export default function Signup() {
   }
   return (
     <div className="mera-signup">
-      <header>
+      <header className="mera-signup-header">
         <a className="mera-wordmark" href="/mera">
           mera<span>.</span>
         </a>
         <a href="/mera/workspace">Staff sign-in →</a>
       </header>
       <main>
-        <section>
-          <p className="eyebrow">From the first menu to the last order</p>
-          <h1>A home for your hospitality.</h1>
+        <section className="mera-signup-introduction">
+          <p className="eyebrow">OWNER SETUP</p>
+          <h1>Set up your organization.</h1>
           <p>
-            Set up your organization, shape your menu and bring your team
-            together. Your branches, service policies and brand stay in your
-            control.
+            Start with an owner account. Then add your branches, menu and team.
           </p>
-          <ol>
-            <li>Create an owner account.</li>
-            <li>Configure your organization and branches.</li>
-            <li>Preview your menu and review readiness.</li>
-          </ol>
-          <p className="mera-signup-note">
-            Pricing and payment settings remain proposals until agreed. No
-            subscription charge or online collection happens during this
-            preview.
-          </p>
+          <Disclosure
+            className="mera-signup-explanation"
+            summary="Setup and pricing details"
+          >
+            <p>
+              Your branches, service policies and brand stay in your control.
+            </p>
+            <ol>
+              <li>Create an owner account.</li>
+              <li>Configure your organization and branches.</li>
+              <li>Preview your menu and review readiness.</li>
+            </ol>
+            <p className="mera-signup-note">
+              Pricing and payment settings remain proposals until agreed. No
+              subscription charge or online collection happens during this
+              preview.
+            </p>
+          </Disclosure>
+          <a className="mera-signup-price-link" href="/mera#pricing">
+            Review proposed pricing
+          </a>
         </section>
         <section
           className="mera-signup-card"
