@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Shift opening/closing recovery verified at10e1feb: exact original cash/target/key, actor-bound dispatch, immutable acknowledgment and stop fence, safe sign-out and fresh target-draft reset. Full suite610pass/2skip, final18focused and build, actual PostgreSQL plus real zero-value browser open/rejected-close reload/stop/close, desktop/tablet/phone comparison. All92baseline QA records/settings unchanged;5immutable test records retained with guards active. No new checkpoint credit for this slice:63.8/100. Next: reservation status/arrival/seating recovery, broader role/financial and cross-screen accessibility acceptance, remaining platform surfaces. Main3003 running; provider, protected-platform QA access and physical-printer gates remain explicit.",
+  "Shared dialog/primitive milestone verified at49ffed5: customer customization, publication, signout and platform review share safe focus/scroll/isolation while retaining design and business rules. Matched233/235 same-tab2782×1048/identicaldialog geometry, native/customer keyboard and narrow/tablet states reviewed. Fullsuite616pass/2skip, build andfocusedconsumer/shared checks passed. F4 advances40→80; scope1.0 unchanged,64.6/100. Q2/full protected-platform browser/role/state/assistive matrix remains unfinished. Main3003 andQA3007 retained, temporary read-only old-source preview stopped. Next: remaining platform/marketing and cross-screen acceptance plus operational recovery. Provider, QAcredentialartifact and physicalprinter gates remain explicit.",
   "",
   "## Measurement",
   "",

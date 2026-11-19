@@ -2,15 +2,15 @@
 
 Goal: Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.
 
-Scope **1.0** · revision `10e1feb` · updated 2026-11-19T10:39:08+01:00
+Scope **1.0** · revision `49ffed5` · updated 2026-11-19T15:16:12+01:00
 
-**UI correction: 63% complete | 37% remaining.** Weighted evidence: 63.8/100. This is checklist completion, not a time estimate.
+**UI correction: 64% complete | 36% remaining.** Weighted evidence: 64.6/100. This is checklist completion, not a time estimate.
 
 Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.
 
 ## Current milestone
 
-Shift opening/closing recovery verified at10e1feb: exact original cash/target/key, actor-bound dispatch, immutable acknowledgment and stop fence, safe sign-out and fresh target-draft reset. Full suite610pass/2skip, final18focused and build, actual PostgreSQL plus real zero-value browser open/rejected-close reload/stop/close, desktop/tablet/phone comparison. All92baseline QA records/settings unchanged;5immutable test records retained with guards active. No new checkpoint credit for this slice:63.8/100. Next: reservation status/arrival/seating recovery, broader role/financial and cross-screen accessibility acceptance, remaining platform surfaces. Main3003 running; provider, protected-platform QA access and physical-printer gates remain explicit.
+Shared dialog/primitive milestone verified at49ffed5: customer customization, publication, signout and platform review share safe focus/scroll/isolation while retaining design and business rules. Matched233/235 same-tab2782×1048/identicaldialog geometry, native/customer keyboard and narrow/tablet states reviewed. Fullsuite616pass/2skip, build andfocusedconsumer/shared checks passed. F4 advances40→80; scope1.0 unchanged,64.6/100. Q2/full protected-platform browser/role/state/assistive matrix remains unfinished. Main3003 andQA3007 retained, temporary read-only old-source preview stopped. Next: remaining platform/marketing and cross-screen acceptance plus operational recovery. Provider, QAcredentialartifact and physicalprinter gates remain explicit.
 
 ## Measurement
 
@@ -20,7 +20,7 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 
 | Workstream | Weight | Verified completion | Owner |
 | --- | ---: | ---: | --- |
-| References, design system and application shell | 15% | 86% | lead |
+| References, design system and application shell | 15% | 92% | lead |
 | Organization management | 25% | 64% | workspace / lead overview |
 | POS and operational roles | 20% | 61% | lead / rotating operational agent |
 | Customer experience | 20% | 66% | customer |
@@ -34,7 +34,7 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | F1 | Original Counter/Reports source and visual evidence | 3% | 100% | VERIFIED · lead | [01-bing-chun-counter.jpg](docs/mera/ui-audit/screenshots/01-bing-chun-counter.jpg), [02-bing-chun-overview.jpg](docs/mera/ui-audit/screenshots/02-bing-chun-overview.jpg), [App.tsx](src/App.tsx) |
 | F2 | New Mera visual direction and explicit selection | 2% | 100% | VERIFIED · lead | [MERA-VISUAL-SELECTION.md](docs/mera/ui-audit/MERA-VISUAL-SELECTION.md), [mera-selected-ivory-green.png](docs/mera/ui-audit/references/mera-selected-ivory-green.png), [marketing.md](.agents/skills/mera-ui/references/marketing.md) |
 | F3 | Project UI skill and verified source map | 2% | 100% | VERIFIED · lead | [SKILL.md](.agents/skills/mera-ui/SKILL.md), [bing-chun.md](.agents/skills/mera-ui/references/bing-chun.md) |
-| F4 | Shared primitives and preservation specification | 2% | 40% | IN_PROGRESS · lead | [PRIMITIVES.md](docs/mera/ui-audit/PRIMITIVES.md), [RECORDS-PRINT-HELP-CHECKPOINT.md](docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md) |
+| F4 | Shared primitives and preservation specification | 2% | 80% | IN_PROGRESS · lead | [PRIMITIVES.md](docs/mera/ui-audit/PRIMITIVES.md), [RECORDS-PRINT-HELP-CHECKPOINT.md](docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md), [useDialogFocus.ts](src/mera/ui/useDialogFocus.ts), [mera-dialog-focus.test.tsx](tests/mera-dialog-focus.test.tsx), [SHARED-DIALOG-CHECKPOINT.md](docs/mera/ui-audit/SHARED-DIALOG-CHECKPOINT.md), [shared-dialog-comparison.html](docs/mera/ui-audit/shared-dialog-comparison.html) |
 | F5 | Compact shared shell, account menu and role landing | 4% | 80% | IN_PROGRESS · lead | [WorkspaceAccount.tsx](src/mera/workspace/WorkspaceAccount.tsx), [mera-ui-pilot.test.tsx](tests/mera-ui-pilot.test.tsx), [presentation.ts](src/mera/workspace/presentation.ts), [mera-workspace.test.tsx](tests/mera-workspace.test.tsx), [SHELL-BROWSER-CHECK.json](docs/mera/ui-audit/SHELL-BROWSER-CHECK.json), [SHARED-SHELL-CHECKPOINT.md](docs/mera/ui-audit/SHARED-SHELL-CHECKPOINT.md) |
 | F6 | Durable progress and complete screen inventory | 2% | 100% | VERIFIED · lead | [MERA_UI_PROGRESS.json](MERA_UI_PROGRESS.json), [mera-ui-progress.js](scripts/mera-ui-progress.js) |
 | O1 | Overview layout pilot | 2% | 80% | IN_PROGRESS · lead | [05-mera-overview-after.jpg](docs/mera/ui-audit/screenshots/05-mera-overview-after.jpg), [10-mera-overview-narrow.jpg](docs/mera/ui-audit/screenshots/10-mera-overview-narrow.jpg), [design-qa.md](design-qa.md), [overview-comparison-current.jpg](docs/mera/ui-audit/overview-comparison-current.jpg) |
@@ -70,7 +70,7 @@ Task acceptance criteria, dependency IDs, change history and blockers are in [ME
 | --- | --- | --- | --- | --- | --- |
 | WS-overview | /mera/workspace#overview | Owner/manager | O1, O2, O6 | OperationalOverview | Actual191–197 and matched2782×1110 overview operations comparison inspected; synthetic4alerts/per-reference and branch filter exercised, exact fixture restoration verified. See OVERVIEW-OPERATIONS-CHECKPOINT.md. Actual198–211/attention-destinations comparison adds focused stock/arrival/shift presets and heading focus; fixture restoration verified.; Actual390px phone/834px tablet no document overflow; service rows81.5–82px, named960px bounded table, Tab/Enter review reachable; final restored tablet metric spacing verified. |
 | WS-onboarding | /mera/workspace#onboarding | Owner/admin | O3 | BranchSettings/LaunchReadiness/policies/MediaUpload | NOT_STARTED; Prior pilot evidence only for overview/counter; full scope pending |
-| WS-menu | /mera/workspace#menu | Manager/stock | O4 | Categories/SharedMenus/CatalogOperations/variants/modifiers/StockMovements | NOT_STARTED Actual198/203/204 stock preset and matched comparison verified; stock-only forbidden tool/read absence tested, owner-only browser.; Prior pilot evidence only for overview/counter; full scope pending |
+| WS-menu | /mera/workspace#menu | Manager/stock | O4, F4 | Categories/SharedMenus/CatalogOperations/variants/modifiers/StockMovements | Actual198/203/204 stock preset and matched comparison verified; stock-only forbidden tool/read absence tested, owner-only browser. Shared nativepublicationdialog233/235 matched/sourcepreserved, keyboardwrap/Escape/return verified; full menu CRUD/state acceptance remains.; Publication narrow CSS433 atChrome90%zoom, nooverflow; dialog233/235 matched2782×1048. Other menu/stock responsive acceptance remains partial. |
 | WS-orders | /mera/workspace#orders | Cashier/waiter/manager | P2 | OrderHistory/OrderInstructions/RefundRequests | NOT_STARTED; Prior pilot evidence only for overview/counter; full scope pending |
 | WS-counter | /mera/workspace#counter | Cashier | P1 | StaffPos/StaffOrderItems | Prior pilot reopened; Prior pilot evidence only for overview/counter; full scope pending |
 | WS-preparation | /mera/workspace#preparation | Kitchen/bar | P4 | Tickets/OrderInstructions/ItemFulfillment | Integrated partial-preparation and ready-state captures56–58; no original preparation-screen comparison claimed; Browser reviewed desktop,751×1075 and390×844; no document overflow at tablet/narrow |
@@ -96,14 +96,14 @@ Task acceptance criteria, dependency IDs, change history and blockers are in [ME
 | CU-help | /mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: help | Guest/customer | C3 | help | Actual corrected screens92–105; matched comparison101; partial state/size review, see docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md; Actual1440×1000/834×1194/390×844; final mobile reply shortcut preserves draft/focus, private staff note absent |
 | CU-reservations | /mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: reservations | Guest/customer | C4 | reservations | Actual form/request/reload/activity and canonical cancellation; captures59/60/63/65/66, source theme preserved; 1440×1000 and390×844 activity reviewed; no narrow overflow; complete form/state/tablet acceptance pending |
 | CU-activity-consent | /mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: activity-consent | Guest/customer | C4 | activity-consent | Actual form/request/reload/activity and canonical cancellation; captures59/60/63/65/66, source theme preserved; 1440×1000 and390×844 activity reviewed; no narrow overflow; complete form/state/tablet acceptance pending |
-| CU-customization-theme | /mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: customization-theme | Guest/customer | C5 | customization-theme | Actual inspected subset155–166; default paired checkout comparison inspected. No full-screen/state acceptance claimed.; Actual configured color/font theme desktop and390×844 phone dialog; full alternate identity/photo/tablet matrix pending. |
+| CU-customization-theme | /mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: customization-theme | Guest/customer | C5, F4 | customization-theme | Actual inspected subset155–166; default paired checkout comparison inspected. No full-screen/state acceptance claimed. Shared lifecycle migration inspected231/232; no visual wrapper/theme replacement.; Actual configured color/font theme desktop and390×844 phone dialog; full alternate identity/photo/tablet matrix pending. Shared dialog231/232 actual834/390CSS,560/362dialog widths, no documentoverflow; keyboardwrap/Escape/producttriggerreturn verified. |
 | PUB-homepage | /mera | Prospective business | M1 | homepage | Option1 selected; implementation comparison pending; NOT_VERIFIED |
 | PUB-features-pricing-modes-support | /mera#experience,#pricing,#modes,#support | Prospective business | M2 | features-pricing-modes-support | Actual123–143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md; Actual desktop and390×844/834×1194 subset; exact per-screen sizes/states and pending variants in checkpoint |
 | PUB-legal | /mera/legal | Public | M2 | legal | Actual123–143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md; Actual desktop and390×844/834×1194 subset; exact per-screen sizes/states and pending variants in checkpoint |
 | PUB-signup | /mera/signup | Owner | M2 | signup | Actual123–143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md; Actual desktop and390×844/834×1194 subset; exact per-screen sizes/states and pending variants in checkpoint |
 | PUB-staff-login | /mera/workspace (signed out) | Staff | F5 | staff-login | NOT_STARTED; NOT_VERIFIED |
 | PUB-platform-auth | /mera/platform (unverified) | Platform operator | M3 | platform-auth | Actual nonoperator denial74, required MFA75, genuine expired verification84 and fresh-TOTP recovery in isolated approved fixture; Desktop initial entry and390×844 expired state; full auth device/focus acceptance pending |
-| PUB-platform-directory-support-finance-health | /mera/platform (verified) | MFA-verified operator | M3 | platform-directory-support-finance-health | Actual authenticated76–85; paired review comparison, human states/shared audit reason/Escape fix and corrected narrow navigation; 1440×1000,834×1194,390×844; no document overflow; narrow dialog356px/354px client+scroll |
+| PUB-platform-directory-support-finance-health | /mera/platform (verified) | MFA-verified operator | M3, F4 | platform-directory-support-finance-health | Actual authenticated76–85; paired review comparison, human states/shared audit reason/Escape fix and corrected narrow navigation; 1440×1000,834×1194,390×844; no document overflow; narrow dialog356px/354px client+scroll |
 
 ## Separate PRD coverage
 
@@ -151,5 +151,6 @@ Status: INVENTORY_DRAFT_REVIEW_PENDING. 208 requirement IDs inventoried in docs/
 - 2026-11-19T09:57:42+01:00: Attention destinations visual/focus/size milestone verified atf5b4452; scope unchanged; weight 100; 63.8 points / 63% rounded.
 - 2026-11-19T10:24:38+01:00: Staff reservation recovery slice verified at942d77e; no checkpoint or scope-weight change; weight 100; 63.8 points / 63% rounded.
 - 2026-11-19T10:39:08+01:00: Shift open/close recovery slice verified at10e1feb; checkpoints andscopeweightsunchanged; weight 100; 63.8 points / 63% rounded.
+- 2026-11-19T15:16:12+01:00: Shared dialog/primitive source-and-browser milestone verified at49ffed5; F4 advances40→80, scopeunchanged; weight 100; 64.6 points / 64% rounded.
 
 Regenerate this report with `node scripts/mera-ui-progress.js`. The calculation validates weights, task IDs, mapped screens and local evidence paths; the lead still reviews whether evidence supports each checkpoint.

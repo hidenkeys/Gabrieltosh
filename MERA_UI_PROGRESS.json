@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T10:39:08+01:00",
-  "revision": "10e1feb",
+  "lastUpdated": "2026-11-19T15:16:12+01:00",
+  "revision": "49ffed5",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -143,7 +143,7 @@
       "workstream": "F",
       "title": "Shared primitives and preservation specification",
       "weight": 2,
-      "checkpoint": 40,
+      "checkpoint": 80,
       "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
@@ -152,7 +152,11 @@
       "acceptance": "Extract source-grounded controls/tables/disclosures/dialogs and document effective typography/spacing/status/branding rules without invented token scale.",
       "evidence": [
         "docs/mera/ui-audit/PRIMITIVES.md",
-        "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md"
+        "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
+        "src/mera/ui/useDialogFocus.ts",
+        "tests/mera-dialog-focus.test.tsx",
+        "docs/mera/ui-audit/SHARED-DIALOG-CHECKPOINT.md",
+        "docs/mera/ui-audit/shared-dialog-comparison.html"
       ],
       "blockers": [],
       "history": [
@@ -170,6 +174,11 @@
           "at": "2026-11-19T01:03:29+01:00",
           "checkpoint": 40,
           "note": "Records/printing/help integration: actual browser comparisons and help reply/privacy loop, regression suite391passed/2skipped. Partial acceptance only; remaining task scope documented."
+        },
+        {
+          "at": "2026-11-19T15:16:12+01:00",
+          "checkpoint": 80,
+          "note": "AllfourMera dialog consumers use shared source-grounded focus/scroll/isolation lifecycle. Matched actual233/235 same2782\u00d71048, unchanged720\u00d71015.77native layout, real nativekeyboard/narrow433CSS and customer834/390/errorfocus/return verified. Fullsuite616pass/2skip, build andfocusedconsumer/shared/integrated checks passed. Sharedprimitives80; fullcrossscreen/assistive/protectedplatformbrowser matrix incomplete, noQ2credit."
         }
       ]
     },
@@ -1243,7 +1252,8 @@
       "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
       "role": "Manager/stock",
       "taskIds": [
-        "O4"
+        "O4",
+        "F4"
       ],
       "task": "Categories/SharedMenus/CatalogOperations/variants/modifiers/StockMovements",
       "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
@@ -1257,8 +1267,8 @@
         "permission": "UNVERIFIED for full correction",
         "recovery": "UNVERIFIED for full correction"
       },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "NOT_STARTED Actual198/203/204 stock preset and matched comparison verified; stock-only forbidden tool/read absence tested, owner-only browser.",
+      "responsive": "Publication narrow CSS433 atChrome90%zoom, nooverflow; dialog233/235 matched2782\u00d71048. Other menu/stock responsive acceptance remains partial.",
+      "visualReview": "Actual198/203/204 stock preset and matched comparison verified; stock-only forbidden tool/read absence tested, owner-only browser. Shared nativepublicationdialog233/235 matched/sourcepreserved, keyboardwrap/Escape/return verified; full menu CRUD/state acceptance remains.",
       "blockers": []
     },
     {
@@ -1853,7 +1863,8 @@
       "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: customization-theme",
       "role": "Guest/customer",
       "taskIds": [
-        "C5"
+        "C5",
+        "F4"
       ],
       "task": "customization-theme",
       "source": "src/mera/customer/CustomerExperience.tsx",
@@ -1862,12 +1873,12 @@
       "states": {
         "loading": "UNVERIFIED",
         "empty": "UNVERIFIED",
-        "error": "UNVERIFIED",
+        "error": "Actual231 requiredmodifier error focuses invalid group; originalselection/estimate retained. Other full states pending.",
         "permission": "UNVERIFIED",
         "recovery": "Actual required missing/excess choices, size-to-basket summary and sold-out size disabled; long/many-group matrix pending."
       },
-      "responsive": "Actual configured color/font theme desktop and390\u00d7844 phone dialog; full alternate identity/photo/tablet matrix pending.",
-      "visualReview": "Actual inspected subset155\u2013166; default paired checkout comparison inspected. No full-screen/state acceptance claimed.",
+      "responsive": "Actual configured color/font theme desktop and390\u00d7844 phone dialog; full alternate identity/photo/tablet matrix pending. Shared dialog231/232 actual834/390CSS,560/362dialog widths, no documentoverflow; keyboardwrap/Escape/producttriggerreturn verified.",
+      "visualReview": "Actual inspected subset155\u2013166; default paired checkout comparison inspected. No full-screen/state acceptance claimed. Shared lifecycle migration inspected231/232; no visual wrapper/theme replacement.",
       "blockers": []
     },
     {
@@ -2007,7 +2018,8 @@
       "route": "/mera/platform (verified)",
       "role": "MFA-verified operator",
       "taskIds": [
-        "M3"
+        "M3",
+        "F4"
       ],
       "task": "platform-directory-support-finance-health",
       "source": "src/mera/Platform.tsx",
@@ -2018,11 +2030,13 @@
         "empty": "Actual filtered directory/support/backups empty; provider readiness blocked",
         "error": "UNVERIFIED",
         "permission": "UNVERIFIED",
-        "recovery": "Actual Escape/focus return and read-only filters; pending exact-write fences tested, real business changes not submitted"
+        "recovery": "Actual Escape/focus return and read-only filters; pending exact-write fences tested, real business changes not submitted Sharedfocusmigrationconsumer9tests pass includingpendingdismissalguard/return/isolationfallback; current protectedbrowser rerun pendingexistingQAcredentialartifact."
       },
       "responsive": "1440\u00d71000,834\u00d71194,390\u00d7844; no document overflow; narrow dialog356px/354px client+scroll",
       "visualReview": "Actual authenticated76\u201385; paired review comparison, human states/shared audit reason/Escape fix and corrected narrow navigation",
-      "blockers": []
+      "blockers": [
+        "Current protected-browser rerun needs existing isolated QA session/credential artifact; not recovered in designated temporary paths. No re-enrollment/reset performed."
+      ]
     }
   ],
   "overallPrdCoverage": {
@@ -2176,6 +2190,13 @@
       "scopeWeight": 100,
       "weightedPoints": 63.8,
       "roundedCompletion": 63
+    },
+    {
+      "at": "2026-11-19T15:16:12+01:00",
+      "event": "Shared dialog/primitive source-and-browser milestone verified at49ffed5; F4 advances40\u219280, scopeunchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 64.6,
+      "roundedCompletion": 64
     }
   ],
   "baselineRevision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd"
