@@ -4,6 +4,7 @@ import { Disclosure } from "../ui/OperationalPrimitives";
 type Props = {
   order: any;
   tickets: unknown;
+  preparationFacts?: unknown;
   base: string;
   disabled: boolean;
   save: (
@@ -50,12 +51,28 @@ function preparedCount(
   }
   return total;
 }
+function projectedPreparedCount(
+  facts: unknown,
+  orderId: string,
+  lineId: string,
+): number | null {
+  if (!Array.isArray(facts)) return null;
+  const matches = facts.filter((entry: any) => entry?.orderId === orderId);
+  if (matches.length !== 1 || !Array.isArray(matches[0].items)) return null;
+  const lines = matches[0].items.filter(
+    (entry: any) => entry?.orderLineId === lineId,
+  );
+  return lines.length === 1 && count(lines[0].preparedQuantity)
+    ? lines[0].preparedQuantity
+    : null;
+}
 export default function ItemFulfillment(props: Props) {
   return <ScopedItemFulfillment key={props.base + props.order.id} {...props} />;
 }
 function ScopedItemFulfillment({
   order,
   tickets,
+  preparationFacts,
   base,
   disabled,
   save,
@@ -90,7 +107,14 @@ function ScopedItemFulfillment({
           )
           .map((item: any) => {
             const served = item.fulfilledQuantity ?? 0,
-              prepared = preparedCount(tickets, order.id, item.orderLineId);
+              prepared =
+                preparationFacts === undefined
+                  ? preparedCount(tickets, order.id, item.orderLineId)
+                  : projectedPreparedCount(
+                      preparationFacts,
+                      order.id,
+                      item.orderLineId,
+                    );
             return {
               ...item,
               served: count(served) ? served : null,
@@ -106,7 +130,9 @@ function ScopedItemFulfillment({
     ),
     line = lines.find((item: any) => item.orderLineId === lineId);
   const preparationKnown =
-    Array.isArray(tickets) &&
+    (preparationFacts === undefined
+      ? Array.isArray(tickets)
+      : Array.isArray(preparationFacts)) &&
     lines.every((item: any) => item.prepared !== null);
   const active = ["accepted", "preparing", "ready"].includes(order.status),
     versionKnown = Number.isSafeInteger(order.version) && order.version > 0;

@@ -302,3 +302,56 @@ test("scope change resets view and ignores old write completion without auto sub
   assert(screen.getByText("New branch tea"));
   assert.equal(calls, 1);
 });
+
+test("fulfillment-only staff use projected preparation facts without kitchen tickets", () => {
+  render(
+    <ItemFulfillment
+      {...props}
+      tickets={[]}
+      preparationFacts={[
+        {
+          orderId: order.id,
+          items: [{ orderLineId: "line-one", preparedQuantity: 3 }],
+        },
+      ]}
+    />,
+  );
+  open();
+  select();
+  assert(screen.getByText("Ordered 4 · Prepared 3 · Handed over 1"));
+  assert.equal(
+    screen
+      .getByRole("spinbutton", { name: "Total handed over after this action" })
+      .getAttribute("max"),
+    "3",
+  );
+});
+
+test("missing, invalid or duplicate projected preparation facts never fall back to privileged tickets", () => {
+  for (const facts of [
+    null,
+    [],
+    [{ orderId: order.id, items: [] }],
+    [
+      {
+        orderId: order.id,
+        items: [{ orderLineId: "line-one", preparedQuantity: -1 }],
+      },
+    ],
+    [
+      {
+        orderId: order.id,
+        items: [
+          { orderLineId: "line-one", preparedQuantity: 3 },
+          { orderLineId: "line-one", preparedQuantity: 3 },
+        ],
+      },
+    ],
+  ]) {
+    render(<ItemFulfillment {...props} preparationFacts={facts} />);
+    open();
+    assert(screen.getByText(/Preparation details are unavailable/));
+    assert(!screen.queryByRole("button", { name: "Record item handoff" }));
+    cleanup();
+  }
+});

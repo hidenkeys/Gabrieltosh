@@ -100,7 +100,7 @@ import VisitMinimumSpend from "./VisitMinimumSpend";
 import PrivateVisitAccess from "./PrivateVisitAccess";
 import SupportCases from "./SupportCases";
 import DepositOutcomes from "./DepositOutcomes";
-import OrderHistory from "./OrderHistory";
+import OrderHistory, { OrderTimeline } from "./OrderHistory";
 import OrderInstructions from "./OrderInstructions";
 import { workspaceApi, formatMoney, WorkspaceError } from "./api";
 
@@ -2898,6 +2898,7 @@ export default function OrganizationWorkspace({
                             <OrderHistory
                               key={branchBase}
                               base={branchBase}
+                              timeZone={branch?.timezone}
                               disabled={busy}
                               staffChoices={Array.from(
                                 new Map(
@@ -3106,6 +3107,7 @@ export default function OrganizationWorkspace({
                               base={branchBase}
                               order={order}
                               tickets={data.tickets}
+                              preparationFacts={data.preparationFacts}
                               disabled={busy || offline}
                               save={mutate}
                             />
@@ -3178,21 +3180,10 @@ export default function OrganizationWorkspace({
                             )}
                           <details style={{ marginTop: 8 }}>
                             <summary>Responsibility & payment history</summary>
-                            {list(order.history).map(
-                              (entry: any, index: number) => (
-                                <small key={index}>
-                                  {sourceLabel(entry.action)} ·{" "}
-                                  {entry.actorName ||
-                                    (entry.actorId
-                                      ? "Staff name unavailable"
-                                      : "System")}{" "}
-                                  · {dateLabel(entry.at)}
-                                  {entry.amount
-                                    ? " · " + formatMoney(entry.amount)
-                                    : ""}
-                                </small>
-                              ),
-                            )}
+                            <OrderTimeline
+                              entries={order.history}
+                              timeZone={branch?.timezone}
+                            />
                           </details>
 
                           {!order.historicalReadOnly &&
