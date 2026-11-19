@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Bill recovery milestone at4eeb5e6: durable actor-bound split/merge replay/lookup/stop, nonsecret remount references and exact original body handling; payment allocations/conservation and counter splits preserved. Closed-visit new changes blocked. Legacy item-unit guidance/selection validation corrected after actual browser review. Final665pass/2skip, focused/build/disposablePG and matched desktop plus390/834 read-only forms. P3 remains60, Q3 remains40; scope1.0 and67.0/100 unchanged. Reprint/template/access/signup recovery, full role/state/accessibility acceptance and protected platform/provider/hardware gates remain. Main3003/QA3007 run migration; no preview bill/payment mutation or production change.",
+  "Receipt studio recovery at98e184d: shared actor-bound template/reprint replay/lookup/stop and nonsecret tab references, original payload handling/current authority, fresh queued duplicates preserving saved documents without old browser/completion metadata. Physical output remains unconfirmed. Full675pass/2skip, studio25/parent78/finalwrapper8/build/disposablePG and matched receipt plus390/834 sample previews/nativevalidation. O7 remains60/Q3 remains40; scope1.0 and67.0/100 unchanged. Access/signup recovery, complete role/state/accessibility and protected platform/provider/silent bridge/hardware gates remain. Main3003/QA3007 migrated; no preview write, browser print, production or money action.",
   "",
   "## Measurement",
   "",

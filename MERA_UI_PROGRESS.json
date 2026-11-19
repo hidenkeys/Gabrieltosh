@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T17:23:51+01:00",
-  "revision": "4eeb5e6",
+  "lastUpdated": "2026-11-19T17:44:41+01:00",
+  "revision": "98e184d",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -528,7 +528,8 @@
         "docs/mera/ui-audit/subscription-comparison.html",
         "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
         "docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
-        "docs/mera/ui-audit/PRINTING-CHECKPOINT.md"
+        "docs/mera/ui-audit/PRINTING-CHECKPOINT.md",
+        "docs/mera/ui-audit/PRINT-RECOVERY-CHECKPOINT.md"
       ],
       "blockers": [],
       "history": [
@@ -556,6 +557,11 @@
           "at": "2026-11-19T08:45:26+01:00",
           "checkpoint": 60,
           "note": "Printing format/save/reload/draft and responsive milestone verified with prior subscription/QR/care integration; full suite545pass/2skip, actual PG snapshot/version/default-brand gates. No physical output or full populated queue/role acceptance."
+        },
+        {
+          "at": "2026-11-19T17:44:41+01:00",
+          "checkpoint": 60,
+          "note": "Template/reprint original replay/lookup/stop, shared nonsecret tab recovery and fresh duplicate metadata integrated at98e184d. Full675pass/2skip, studio25/parent78/finalwrapper8/build/disposablePG and matched receipt plus390/834 previews/nativevalidation. No preview write or physical print. No extra credit: broader acceptance, access/signup and external gates remain."
         }
       ]
     },
@@ -1200,7 +1206,8 @@
       "acceptance": "Role/scope denial, order/stock/payment/table privacy and uncertainty regressions across corrected screens; provider/hardware separately gated.",
       "evidence": [
         "docs/mera/ui-audit/ACCESSIBILITY-CHECKPOINT.md",
-        "docs/mera/ui-audit/BILL-RECOVERY-CHECKPOINT.md"
+        "docs/mera/ui-audit/BILL-RECOVERY-CHECKPOINT.md",
+        "docs/mera/ui-audit/PRINT-RECOVERY-CHECKPOINT.md"
       ],
       "blockers": [],
       "history": [
@@ -1218,6 +1225,11 @@
           "at": "2026-11-19T17:23:51+01:00",
           "checkpoint": 40,
           "note": "Bill split/merge durable exact replay/lookup/stop and nonsecret remount recovery integrated at4eeb5e6. Payment path/conservation preserved, conditional open-visit gates/counter splits verified. Full665pass/2skip, focused/build/disposablePG and read-only Chrome comparison/390/834 forms. No additional checkpoint: broader acceptance and other recovery gates remain."
+        },
+        {
+          "at": "2026-11-19T17:44:41+01:00",
+          "checkpoint": 40,
+          "note": "Template/reprint original replay/lookup/stop, shared nonsecret tab recovery and fresh duplicate metadata integrated at98e184d. Full675pass/2skip, studio25/parent78/finalwrapper8/build/disposablePG and matched receipt plus390/834 previews/nativevalidation. No preview write or physical print. No extra credit: broader acceptance, access/signup and external gates remain."
         }
       ]
     },
