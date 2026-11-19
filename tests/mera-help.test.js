@@ -83,6 +83,7 @@ function fixture() {
         permissions = ["orders.fulfill"],
         id,
         requestKey,
+        actorName="Actual staff name",
       } = {},
     ) {
       let status = 200,
@@ -106,7 +107,7 @@ function fixture() {
           body,
           guestId,
           params: { organizationId: "org", branchId: branch, id,requestKey },
-          user: { id: "staff" },
+          user: { id: "staff",name:actorName },
           meraMembership: { permissions },
         },
         res,
@@ -216,11 +217,17 @@ test("staff category permissions filter requests and private notes never reach g
 });
 test('staff keyed help updates append note once and replay original ack after later changes',async()=>{
  const f=fixture(),created=await f.call('post',P,help()),id=created.value.id,key=randomUUID(),body={requestKey:key,status:'acknowledged',internalNote:'Original private note'};
- const first=await f.call('patch',B+'/:id',body,{id});assert.equal(first.value.internalNotes.length,1);
+ const first=await f.call('patch',B+'/:id',body,{id});assert.equal(first.value.internalNotes.length,1);assert.equal(first.value.internalNotes[0].actorName,'Actual staff name');
  await f.call('patch',B+'/:id',{status:'resolved',internalNote:'Later note'},{id});
  const repeat=await f.call('patch',B+'/:id',body,{id});assert.deepEqual(repeat.value,first.value);assert.equal(f.rows.find(r=>r.kind==='help_request').data.internalNotes.length,2);
  await assert.rejects(f.call('patch',B+'/:id',{...body,internalNote:'Different'},{id}),e=>e.code==='IDEMPOTENCY_CONFLICT');
  const proof=await f.call('get',B+'/:id/update-attempts/:requestKey',undefined,{id,requestKey:key});assert.equal(proof.value.status,'recorded');assert.equal(proof.value.requestKey,key);assert.deepEqual(proof.value.request,first.value);
  const stopKey=randomUUID(),stop=await f.call('post',B+'/:id/update-attempts/:requestKey/abandon',{reason:'Stop original unknown update'},{id,requestKey:stopKey});assert.equal(stop.value.status,'abandoned');
  await assert.rejects(f.call('patch',B+'/:id',{requestKey:stopKey,status:'resolved',internalNote:'Late note'},{id}),e=>e.code==='HELP_UPDATE_ABANDONED');assert.equal(f.rows.find(r=>r.kind==='help_request').data.internalNotes.length,2);
+});
+test('new note identity is a real name snapshot while unavailable identities stay unavailable',async()=>{
+ const f=fixture(),created=await f.call('post',P,help()),id=created.value.id;
+ const first=await f.call('patch',B+'/:id',{status:'acknowledged',internalNote:'Named note'},{id,actorName:'  Real Person  '});assert.equal(first.value.internalNotes[0].actorName,'Real Person');
+ const second=await f.call('patch',B+'/:id',{status:'resolved',internalNote:'Unavailable name note'},{id,actorName:'  '});assert.equal(second.value.internalNotes[1].actorName,null);assert.equal(second.value.internalNotes[0].actorName,'Real Person');
+ const own=await f.call('get',P);assert.equal(own.value.requests[0].internalNotes,undefined);
 });

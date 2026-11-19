@@ -218,6 +218,7 @@ export function mountMeraHelp(
                     {
                       text: input.internalNote,
                       actorId: req.user.id,
+                      actorName:typeof req.user.name==="string"&&req.user.name.trim()?req.user.name.trim():null,
                       at: new Date().toISOString(),
                     },
                   ]
