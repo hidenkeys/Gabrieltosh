@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useDialogFocus } from "../ui/useDialogFocus";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { uuid } from "../../api";
 import { workspaceApi } from "./api";
@@ -180,15 +181,15 @@ function ScopedPublication({
       abort.current.abort();
     };
   }, []);
-  useLayoutEffect(() => {
-    if (open && dialog.current && !dialog.current.open)
-      dialog.current.showModal();
-  }, [open]);
+  useDialogFocus({
+    dialogRef: dialog,
+    open,
+    onClose: close,
+    returnFocusRef: trigger,
+  });
   function close() {
-    dialog.current?.close();
     setOpen(false);
     setConfirmStop(false);
-    trigger.current?.focus();
   }
   async function request(path: string, method = "GET", body?: unknown) {
     return workspaceApi<any>(base + path, method, body, abort.current.signal);
@@ -340,21 +341,6 @@ function ScopedPublication({
         ref={dialog}
         className="mw-publication-dialog"
         aria-labelledby="mw-publication-title"
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            event.preventDefault();
-            event.stopPropagation();
-            close();
-          }
-        }}
-        onCancel={(event) => {
-          event.preventDefault();
-          close();
-        }}
-        onClose={() => {
-          setOpen(false);
-          trigger.current?.focus();
-        }}
       >
         <header>
           <div>

@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useRef } from "react";
+import { useDialogFocus } from "../ui/useDialogFocus";
 type Choice = { id: string; name: string; price: number };
 type Variant = Choice & { stockMode?: string; stock?: number };
 type Group = {
@@ -63,65 +64,15 @@ function SelectedCustomization({
   fallbackFocus,
 }: CustomizationDialogProps) {
   const dialog = useRef<HTMLDivElement>(null),
-    prior = useRef<HTMLElement | null>(null),
     callbacks = useRef({ onClose, fallbackFocus });
   callbacks.current = { onClose, fallbackFocus };
-  useLayoutEffect(() => {
-    if (!prior.current) prior.current = document.activeElement as HTMLElement;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    dialog.current?.focus();
-    const keydown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        callbacks.current.onClose();
-        return;
-      }
-      if (event.key !== "Tab" || !dialog.current) return;
-      // Enumerate source order before filtering. Some selector engines group
-      // comma-separated matches by element type instead of document order.
-      const controls = [
-        ...dialog.current.querySelectorAll<HTMLElement>("*"),
-      ].filter((element) =>
-        element.matches(
-          'button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]',
-        ),
-      );
-      const first = controls[0],
-        last = controls.at(-1),
-        active = document.activeElement;
-      if (!first) {
-        event.preventDefault();
-        dialog.current.focus();
-        return;
-      }
-      if (event.shiftKey && (active === first || active === dialog.current)) {
-        event.preventDefault();
-        last?.focus();
-      } else if (!event.shiftKey && active === last) {
-        event.preventDefault();
-        first.focus();
-      } else if (!dialog.current.contains(active)) {
-        event.preventDefault();
-        (event.shiftKey ? last : first)?.focus();
-      }
-    };
-    document.addEventListener("keydown", keydown);
-    return () => {
-      document.body.style.overflow = overflow;
-      document.removeEventListener("keydown", keydown);
-    };
-  }, []);
-  // Passive cleanup follows the parent's inert/aria-hidden DOM update. Restore
-  // the real initiating control, rather than a newly rendered variant control.
-  useEffect(
-    () => () => {
-      const element = prior.current;
-      if (element?.isConnected && element !== document.body) element.focus();
-      else callbacks.current.fallbackFocus?.();
-    },
-    [],
-  );
+  useDialogFocus({
+    dialogRef: dialog,
+    open: true,
+    onClose,
+    initialFocus: "dialog",
+    fallbackFocus,
+  });
   const selectedVariant = product.variants?.find(
     (item) => item.id === variantId,
   );

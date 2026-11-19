@@ -222,6 +222,15 @@ test("organization review opens a named dialog and returns keyboard focus when c
       name: "Review business",
     });
     assert.equal(dialog.contains(document.activeElement), true);
+    const close=screen.getByRole("button",{name:"Close organization"});
+    assert.equal(document.activeElement,close);
+    fireEvent.keyDown(close,{key:"Tab",shiftKey:true});
+    assert.equal(dialog.contains(document.activeElement),true);
+    assert.notEqual(document.activeElement,close);
+    fireEvent.keyDown(document.activeElement!,{key:"Tab"});
+    assert.equal(document.activeElement,close);
+    trigger.focus();
+    assert.equal(dialog.contains(document.activeElement),true);
     fireEvent.keyDown(dialog, { key: "Escape" });
     assert.equal(screen.queryByRole("dialog"), null);
     assert.equal(document.activeElement, trigger);

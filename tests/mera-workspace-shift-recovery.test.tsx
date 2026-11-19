@@ -126,7 +126,9 @@ test("shift opening preserves the exact persisted key and actor; global recovery
   try {
     const view = render(<Workspace user={user} notify={() => {}} />);
     await openPage();
-    fireEvent.click(await screen.findByText("Open a shift", { selector: "summary" }));
+    fireEvent.click(
+      await screen.findByText("Open a shift", { selector: "summary" }),
+    );
     fireEvent.change(screen.getByLabelText("Opening float (naira)"), {
       target: { value: "12.34" },
     });
@@ -223,6 +225,52 @@ test("failed shift private-data redaction prevents the logout callback", async (
     assert(saved && !saved.referenceOnly);
   } finally {
     proto.setItem = set;
+    cleanup();
+    sessionStorage.clear();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("sign-out review isolates workspace, traps keys and returns to the visible account trigger on safe dismissal", async () => {
+  sessionStorage.clear();
+  seed();
+  api();
+  let calls = 0;
+  try {
+    render(
+      <Workspace
+        user={user}
+        notify={() => {}}
+        onLogout={async () => {
+          calls++;
+        }}
+      />,
+    );
+    await screen.findByRole("status", { name: "Shift recovery" });
+    const account = screen.getByLabelText("Account for Teni");
+    account.focus();
+    fireEvent.click(account);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Sign out", exact: true }),
+    );
+    const review = await screen.findByRole("alertdialog");
+    const keep = screen.getByRole("button", { name: "Keep this session open" });
+    const leave = screen.getByRole("button", {
+      name: "Sign out and clear private details",
+    });
+    assert(document.activeElement === keep);
+    assert(account.closest("[inert]"));
+    fireEvent.keyDown(keep, { key: "Tab", shiftKey: true, cancelable: true });
+    assert(document.activeElement === leave);
+    fireEvent.keyDown(leave, { key: "Tab", cancelable: true });
+    assert(document.activeElement === keep);
+    fireEvent.keyDown(review, { key: "Escape", cancelable: true });
+    await waitFor(() => assert(!screen.queryByRole("alertdialog")));
+    assert(document.activeElement === account);
+    assert(!account.closest("[inert]"));
+    assert.equal(calls, 0);
+    assert(journal.readShiftOperationJournal(scope));
+  } finally {
     cleanup();
     sessionStorage.clear();
     globalThis.fetch = originalFetch;

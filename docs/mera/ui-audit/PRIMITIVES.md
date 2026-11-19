@@ -61,3 +61,9 @@ Each corrected task needs before/after captures of the same state/viewport, sour
 - **Responsive/data:** no page-wide horizontal overflow; readable totals and next action without excessive scrolling; meaningful table/list fallback; long names, amounts, notes, labels and empty/error states tested. Record exact viewport and role; Android hardware, printers, live providers and DNS remain separate gates.
 
 F4 remains source specification pending lead review; this document alone does not complete the shared-primitives implementation or Q1 visual gate.
+
+## Shared dialog review — 19 November 2026
+
+`src/mera/ui/useDialogFocus.ts` extracts original modal focus/return/scroll patterns into one lifecycle used by customer CustomizationDialog, MenuPublication, workspace sign-out and Platform review. Consumers retain their own visual classes, native versus ARIA markup, accessible names, product/pricing/controller state and safe dismissal rules. Native dialogs still use showModal; fallback and ARIA dialogs isolate outside siblings, contain keys/focus, skip hidden/disabled/closed-detail/inert controls, lock scroll with stack ownership, handle zero tabbables and restore the real connected opener after parent-owned inert updates. Signout explicitly returns to the visible account summary, not its closed menu item. Existing disclosures/actions/bounded regions remain source grounded.
+
+Actual233/235 matched layout,230publication narrow and231/232customer tablet/phone, shared/integrated/consumer tests and fullsuite/build recorded in SHARED-DIALOG-CHECKPOINT.md. The initial F4 assessment above is historical; this checkpoint advances shared primitives review while broad cross-screen/role/assistive-technology acceptance remains separate.

@@ -1,3 +1,4 @@
+import { useDialogFocus } from "../ui/useDialogFocus";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Building2,
@@ -154,7 +155,17 @@ export default function OrganizationWorkspace({
   const [principal, setPrincipal] = useState("");
   const confirmedPrincipal = useRef("");
   const [logoutConfirm, setLogoutConfirm] = useState(false);
+  const logoutDialog = useRef<HTMLElement>(null);
+  const accountTrigger = useRef<HTMLElement>(null);
+
   const [logoutBusy, setLogoutBusy] = useState(false);
+  useDialogFocus({
+    dialogRef: logoutDialog,
+    open: logoutConfirm,
+    onClose: () => setLogoutConfirm(false),
+    closeDisabled: logoutBusy,
+    returnFocusRef: accountTrigger,
+  });
   const [, setReservationRecoveryRevision] = useState(0);
   const [reservationPrivacyWarning, setReservationPrivacyWarning] =
     useState(false);
@@ -1358,6 +1369,7 @@ export default function OrganizationWorkspace({
             </select>
           </label>
           <WorkspaceAccount
+            triggerRef={accountTrigger}
             name={context?.user?.name || user?.name || "Staff member"}
             role={sourceLabel(organization?.role)}
             disabled={busy}
@@ -1410,25 +1422,8 @@ export default function OrganizationWorkspace({
             aria-labelledby="mw-signout-title"
             aria-describedby="mw-signout-detail"
             className="mw-card"
-            onKeyDown={(event) => {
-              if (event.key === "Escape" && !logoutBusy)
-                setLogoutConfirm(false);
-              if (event.key === "Tab") {
-                const buttons =
-                  event.currentTarget.querySelectorAll<HTMLButtonElement>(
-                    "button:not(:disabled)",
-                  );
-                const first = buttons[0],
-                  last = buttons[buttons.length - 1];
-                if (event.shiftKey && document.activeElement === first) {
-                  event.preventDefault();
-                  last?.focus();
-                } else if (!event.shiftKey && document.activeElement === last) {
-                  event.preventDefault();
-                  first?.focus();
-                }
-              }
-            }}
+            ref={logoutDialog}
+            tabIndex={-1}
           >
             <h2 id="mw-signout-title">
               An original submission still needs resolution
@@ -1443,7 +1438,6 @@ export default function OrganizationWorkspace({
             </p>
             <div className="mw-actions">
               <button
-                autoFocus
                 className="primary"
                 disabled={logoutBusy}
                 onClick={() => setLogoutConfirm(false)}

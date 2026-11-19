@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { workspaceApi, formatMoney, WorkspaceError } from "./workspace/api";
+import { useDialogFocus } from "./ui/useDialogFocus";
 
 const subscriptionLabels: Record<string, string> = {
   trialing: "Trial",
@@ -56,17 +57,14 @@ export default function Platform() {
     [supportCases, setSupportCases] = useState<any[]>([]),
     [caseDrafts, setCaseDrafts] = useState<Record<string, any>>({}),
     [caseError, setCaseError] = useState("");
-  useEffect(() => {
-    const dialog = reviewDialog.current;
-    if (!selected || !dialog) return;
-    if (typeof dialog.showModal === "function") dialog.showModal();
-    else dialog.setAttribute("open", "");
-    dialog.querySelector<HTMLElement>("button, input")?.focus();
-    return () => {
-      if (dialog.open && typeof dialog.close === "function") dialog.close();
-      reviewTrigger.current?.focus();
-    };
-  }, [selected]);
+  useDialogFocus({
+    dialogRef: reviewDialog,
+    open: !!selected,
+    onClose: () => setSelected(null),
+    closeDisabled: !!pendingChange,
+    initialFocus: "first",
+    returnFocusRef: reviewTrigger,
+  });
   useEffect(() => {
     if (selected) return;
     if (error) accessError.current?.focus();
@@ -755,16 +753,6 @@ export default function Platform() {
               ref={reviewDialog}
               className="mera-platform-review"
               aria-labelledby="mera-organization-title"
-              onKeyDown={(event) => {
-                if (event.key === "Escape") {
-                  event.preventDefault();
-                  if (!pendingChange) setSelected(null);
-                }
-              }}
-              onCancel={(event) => {
-                event.preventDefault();
-                if (!pendingChange) setSelected(null);
-              }}
             >
               <div className="mera-platform-review-heading">
                 <div>
