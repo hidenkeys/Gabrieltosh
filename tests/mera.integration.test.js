@@ -1675,6 +1675,28 @@ test(
       assert.equal(ownHelp.status,"resolved");
       assert.equal(ownHelp.internalNote,undefined);
       assert.equal(ownHelp.internalNotes,undefined);
+      {
+        const path=B+"/help-requests/"+guestHelp.data.id,key=randomUUID(),intent={requestKey:key,status:"resolved",customerReply:"Canonical help reply",internalNote:"Keyed private staff note"},attempt=path+"/update-attempts/"+key;
+        const wrong=await call(path,"PATCH",intent,owner,"",{"X-Mera-Actor-Id":other});assert.equal(wrong.status,403);assert.equal(wrong.data.code,"ACTOR_CHANGED");
+        assert.equal((await call(attempt)).data.status,"not_found");
+        const auditBeforeHelpUpdate=Number((await db.query("SELECT count(*) AS count FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='audit' AND data->>'action'='customer_help_updated' AND data->'details'->>'helpRequestId'=$3",[org,branch,guestHelp.data.id])).rows[0].count);
+        const first=await call(path,"PATCH",intent,owner,"",{"X-Mera-Actor-Id":owner});assert.equal(first.status,200,JSON.stringify(first.data));
+        assert.deepEqual((await call(path,"PATCH",intent)).data,first.data);assert.equal((await call(path,"PATCH",{...intent,internalNote:"Changed intent"})).data.code,"IDEMPOTENCY_CONFLICT");
+        assert.equal(Number((await db.query("SELECT count(*) AS count FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='audit' AND data->>'action'='customer_help_updated' AND data->'details'->>'helpRequestId'=$3",[org,branch,guestHelp.data.id])).rows[0].count),auditBeforeHelpUpdate+1);
+        const proof=await call(attempt);assert.equal(proof.cacheControl,"no-store");assert.equal(proof.data.status,"recorded");assert.equal(proof.data.requestKey,key);assert.equal(proof.data.actorId,owner);assert.equal(proof.data.helpRequestId,guestHelp.data.id);assert.equal(proof.data.organizationId,org);assert.equal(proof.data.branchId,branch);assert.deepEqual(proof.data.request,first.data);assert.deepEqual(proof.data.operationRecord.intent,{status:"resolved",customerReply:"Canonical help reply",internalNote:"Keyed private staff note"});
+        assert.deepEqual((await call(attempt+"/abandon","POST",{reason:"Check recorded help update"})).data,proof.data);
+        assert.equal((await call(attempt,"GET",undefined,other)).data.status,"not_found");assert.equal((await call(attempt,"GET",undefined,null)).status,401);
+        const previousHelpAccess=(await db.query("SELECT permissions FROM mera_memberships WHERE user_id=$1 AND organization_id=$2",[other,org])).rows[0].permissions;
+        await db.query("UPDATE mera_memberships SET permissions=$1 WHERE user_id=$2 AND organization_id=$3",[JSON.stringify(["orders.fulfill"]),other,org]);assert.equal((await call(attempt,"GET",undefined,other)).status,404);assert.equal((await call(path,"PATCH",intent,other)).status,404);await db.query("UPDATE mera_memberships SET permissions=$1 WHERE user_id=$2 AND organization_id=$3",[JSON.stringify(previousHelpAccess),other,org]);
+        await call(path,"PATCH",{status:"resolved",internalNote:"Later legitimate staff note"});
+        assert.deepEqual((await call(path,"PATCH",intent)).data,first.data);const current=(await db.query("SELECT data FROM mera_records WHERE id=$1",[guestHelp.data.id])).rows[0].data;assert.equal(current.internalNotes.filter(n=>n.text===intent.internalNote).length,1);assert.ok(current.internalNotes.some(n=>n.text==="Later legitimate staff note"));
+        const stopKey=randomUUID(),stopAttempt=path+"/update-attempts/"+stopKey,stop=await call(stopAttempt+"/abandon","POST",{reason:"Fence delayed help update"});assert.equal(stop.data.status,"abandoned");assert.deepEqual((await call(stopAttempt+"/abandon","POST",{reason:"Repeated explicit stop"})).data,stop.data);
+        assert.equal((await call(path,"PATCH",{...intent,requestKey:stopKey})).data.code,"HELP_UPDATE_ABANDONED");assert.equal((await call(stopAttempt,"GET",undefined,other)).data.status,"not_found");
+        const raceKey=randomUUID(),raceBody={requestKey:raceKey,status:"resolved",internalNote:"Race private note"};const [write,stopRace]=await Promise.all([call(path,"PATCH",raceBody),call(path+"/update-attempts/"+raceKey+"/abandon","POST",{reason:"Concurrent help update stop"})]);
+        if(write.status===200){assert.equal(stopRace.data.status,"recorded");assert.deepEqual(stopRace.data.request,write.data);}else{assert.equal(write.data.code,"HELP_UPDATE_ABANDONED");assert.equal(stopRace.data.status,"abandoned");}
+        const ownPublic=(await call(P+"/help-requests","GET",undefined,null,winner.cookie)).data.requests.find(r=>r.id===guestHelp.data.id);assert.equal(ownPublic.internalNotes,undefined);assert.equal(ownPublic.operationRecord,undefined);
+        const immutable=(await db.query("SELECT DISTINCT ON(kind) id FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind IN ('help_update_operation','help_update_resolution') ORDER BY kind,id",[org,branch])).rows;assert.equal(immutable.length,2);for(const r of immutable){await assert.rejects(db.query("UPDATE mera_records SET data=data||'{\"tampered\":true}'::jsonb WHERE id=$1",[r.id]),/append-only/);await assert.rejects(db.query("DELETE FROM mera_records WHERE id=$1",[r.id]),/append-only/);}
+      }
       const freeProduct=await call(B+"/products","POST",{name:"Complimentary fixture",code:"FREE1",category:"Tests",price:0});
       assert.equal(freeProduct.status,201,JSON.stringify(freeProduct.data));
       const freePublication=await call(B+"/menu/publish","POST",{});

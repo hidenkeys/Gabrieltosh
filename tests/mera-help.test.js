@@ -20,7 +20,7 @@ function fixture() {
     db: {},
     scope,
     guard: () => () => {},
-    locked: async (s, fn) => fn({}),
+    locked: async (s, fn) => fn({query:async(sql,args)=>({rows:rows.filter(r=>r.organizationId===args[0]&&r.branchId===args[1]&&r.kind===args[2]&&r.data.requestKey===args[3]&&r.data.actorId===args[4]).map(r=>({data:r.data}))})}),
     publicContext: async (req) => ({
       organization: { id: "org" },
       s: scope(req),
@@ -82,6 +82,7 @@ function fixture() {
         branch = "branch",
         permissions = ["orders.fulfill"],
         id,
+        requestKey,
       } = {},
     ) {
       let status = 200,
@@ -101,9 +102,10 @@ function fixture() {
       };
       await handlers.get(method + path)(
         {
+          get:()=>undefined,
           body,
           guestId,
-          params: { organizationId: "org", branchId: branch, id },
+          params: { organizationId: "org", branchId: branch, id,requestKey },
           user: { id: "staff" },
           meraMembership: { permissions },
         },
@@ -211,4 +213,14 @@ test("staff category permissions filter requests and private notes never reach g
   assert.equal("guestId" in own, false);
   assert.equal("actorId" in own, false);
   assert.equal(own.externalDelivery, false);
+});
+test('staff keyed help updates append note once and replay original ack after later changes',async()=>{
+ const f=fixture(),created=await f.call('post',P,help()),id=created.value.id,key=randomUUID(),body={requestKey:key,status:'acknowledged',internalNote:'Original private note'};
+ const first=await f.call('patch',B+'/:id',body,{id});assert.equal(first.value.internalNotes.length,1);
+ await f.call('patch',B+'/:id',{status:'resolved',internalNote:'Later note'},{id});
+ const repeat=await f.call('patch',B+'/:id',body,{id});assert.deepEqual(repeat.value,first.value);assert.equal(f.rows.find(r=>r.kind==='help_request').data.internalNotes.length,2);
+ await assert.rejects(f.call('patch',B+'/:id',{...body,internalNote:'Different'},{id}),e=>e.code==='IDEMPOTENCY_CONFLICT');
+ const proof=await f.call('get',B+'/:id/update-attempts/:requestKey',undefined,{id,requestKey:key});assert.equal(proof.value.status,'recorded');assert.equal(proof.value.requestKey,key);assert.deepEqual(proof.value.request,first.value);
+ const stopKey=randomUUID(),stop=await f.call('post',B+'/:id/update-attempts/:requestKey/abandon',{reason:'Stop original unknown update'},{id,requestKey:stopKey});assert.equal(stop.value.status,'abandoned');
+ await assert.rejects(f.call('patch',B+'/:id',{requestKey:stopKey,status:'resolved',internalNote:'Late note'},{id}),e=>e.code==='HELP_UPDATE_ABANDONED');assert.equal(f.rows.find(r=>r.kind==='help_request').data.internalNotes.length,2);
 });

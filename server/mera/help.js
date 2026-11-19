@@ -1,4 +1,5 @@
 import { z } from "zod";
+import {isDeepStrictEqual} from "node:util";
 import { randomUUID } from "node:crypto";
 const P = "/public/:slug/:branchId",
   B = "/organizations/:organizationId/branches/:branchId";
@@ -11,6 +12,9 @@ const categoryPermissions = {
 const allPermissions = [...new Set(Object.values(categoryPermissions).flat())];
 const fail = (message, status = 409) =>
   Object.assign(new Error(message), { status });
+const actorExpectation=req=>{const expected=req.get("X-Mera-Actor-Id");if(expected!==undefined&&expected!==req.user.id)throw Object.assign(new Error("Your signed-in account changed. Refresh the workspace before continuing."),{status:403,code:"ACTOR_CHANGED"});};
+const conflict=()=>Object.assign(new Error("This key belongs to a different help update."),{status:409,code:"IDEMPOTENCY_CONFLICT"});
+const attemptRow=async(c,s,kind,key,actorId)=>(await c.query("SELECT data FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind=$3 AND data->>'requestKey'=$4 AND data->>'actorId'=$5 LIMIT 1",[s.organizationId,s.branchId,kind,key,actorId])).rows[0]?.data;
 const inputSchema = z
   .object({
     requestKey: z.string().uuid(),
@@ -152,12 +156,31 @@ export function mountMeraHelp(
       externalDelivery: false,
     });
   });
+  async function resolveUpdate(req,res,abandon){
+    res.set("Cache-Control","no-store");actorExpectation(req);
+    const requestKey=z.string().uuid().parse(req.params.requestKey),helpRequestId=z.string().uuid().parse(req.params.id),s=scope(req),actorId=req.user.id;
+    const input=abandon?z.object({reason:z.string().trim().min(3).max(500)}).strict().parse(req.body):null;
+    const result=await locked(s,async c=>{
+      const row=await find(c,s,"help_request",helpRequestId);if(!permitted(req,row.category))throw fail("Help request not found.",404);
+      const operation=await attemptRow(c,s,"help_update_operation",requestKey,actorId);
+      if(operation){if(operation.helpRequestId!==helpRequestId)throw conflict();return{status:"recorded",request:operation.result,resultBasis:"recorded_operation_snapshot",operationRecord:{id:operation.id,requestKey,actorId,helpRequestId,intent:operation.intent,createdAt:operation.createdAt}};}
+      let resolution=await attemptRow(c,s,"help_update_resolution",requestKey,actorId);
+      if(resolution&&resolution.helpRequestId!==helpRequestId)throw conflict();
+      if(!resolution&&input){resolution=await record(c,s,"help_update_resolution",{requestKey,actorId,helpRequestId,status:"abandoned",reason:input.reason,createdAt:new Date().toISOString()});await event(c,s,"help_update_abandoned",req.user,{requestKey,helpRequestId,resolutionId:resolution.id,reason:input.reason});}
+      return resolution?{status:"abandoned",resolutionId:resolution.id}:{status:"not_found"};
+    });res.json({...result,requestKey,actorId,organizationId:s.organizationId,branchId:s.branchId,helpRequestId});
+  }
+  const A=B+"/help-requests/:id/update-attempts/:requestKey";
+  router.get(A,guard(allPermissions),(req,res)=>resolveUpdate(req,res,false));
+  router.post(A+"/abandon",guard(allPermissions),(req,res)=>resolveUpdate(req,res,true));
   router.patch(
     B + "/help-requests/:id",
     guard(allPermissions),
     async (req, res) => {
+      actorExpectation(req);
       const input = z
         .object({
+          requestKey:z.string().uuid().optional(),
           status: z.enum(["acknowledged", "resolved"]),
           customerReply: z.string().trim().max(1000).optional(),
           internalNote: z.string().trim().max(1000).optional(),
@@ -174,6 +197,13 @@ export function mountMeraHelp(
           );
           if (!permitted(req, row.category))
             throw fail("Help request not found.", 404);
+          const s=scope(req),actorId=req.user.id,intent={status:input.status,customerReply:input.customerReply??null,internalNote:input.internalNote||""};
+          if(input.requestKey){
+            const prior=await attemptRow(c,s,"help_update_operation",input.requestKey,actorId);
+            if(prior){if(prior.helpRequestId!==row.id||!isDeepStrictEqual(prior.intent,intent))throw conflict();return prior.result;}
+            const stopped=await attemptRow(c,s,"help_update_resolution",input.requestKey,actorId);
+            if(stopped){if(stopped.helpRequestId!==row.id)throw conflict();throw Object.assign(new Error("This help update was safely abandoned. Review a new update before submitting again."),{status:409,code:"HELP_UPDATE_ABANDONED"});}
+          }
           if (row.status === "resolved" && input.status !== "resolved")
             throw fail("A resolved help request cannot be reopened.");
           const next = {
@@ -199,7 +229,9 @@ export function mountMeraHelp(
             helpRequestId: row.id,
             status: next.status,
           });
-          return { ...ownView(next), internalNotes: next.internalNotes };
+          const result={...ownView(next),internalNotes:next.internalNotes};
+          if(input.requestKey)await record(c,s,"help_update_operation",{requestKey:input.requestKey,actorId,helpRequestId:row.id,intent,result:structuredClone(result),createdAt:new Date().toISOString()});
+          return result;
         }),
       );
     },
