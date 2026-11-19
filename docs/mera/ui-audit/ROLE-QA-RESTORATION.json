@@ -1,0 +1,56 @@
+{
+  "environment": "isolated operational QA app3007/database55444",
+  "preparationReferences": [
+    "PREP-ROLE-KITCHEN-0709E1",
+    "PREP-ROLE-BAR-0709E1"
+  ],
+  "preparation": {
+    "deletedMutableRows": 4,
+    "remainingFixtureRows": 0,
+    "protectedCountsUnchanged": true,
+    "retainedAppendOnlyAuditEvents": [
+      {
+        "id": "1b5ee058-27a1-4218-9b42-6162f34ca206",
+        "action": "station_ticket_updated"
+      },
+      {
+        "id": "55b1ad25-76f1-4b8e-a57e-95b19db7bf42",
+        "action": "station_ticket_updated"
+      },
+      {
+        "id": "6de4c7e6-2696-4a4f-b163-db5f01fc92e1",
+        "action": "station_ticket_updated"
+      },
+      {
+        "id": "9472c60f-3473-40ca-ac20-23ae324e9317",
+        "action": "station_ticket_updated"
+      },
+      {
+        "id": "ae68c0cd-b62d-4604-8c04-872c78a07ae1",
+        "action": "station_ticket_updated"
+      },
+      {
+        "id": "b907340b-09ca-4df0-8eac-a22cd5b30f67",
+        "action": "station_ticket_updated"
+      },
+      {
+        "id": "ec01fc9c-d608-4e22-975f-c557648a6895",
+        "action": "station_ticket_updated"
+      }
+    ],
+    "verifiedAt": "2026-11-19T20:07:10.736Z"
+  },
+  "syntheticRoleIdentities": {
+    "deletedSyntheticUsers": 7,
+    "deletedSyntheticMemberships": 7,
+    "deletedSyntheticSessions": 0,
+    "privateCredentialFileDeleted": true,
+    "existingIdentitiesRestored": true,
+    "immutableAuditsRetained": true,
+    "verifiedAt": "2026-11-19T20:07:21.807Z"
+  },
+  "mainDatabaseTouched": false,
+  "realMoneyMoved": false,
+  "existingSettingsChanged": false,
+  "credentialsIncluded": false
+}

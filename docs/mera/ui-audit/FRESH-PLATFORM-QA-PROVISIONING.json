@@ -1,0 +1,39 @@
+{
+  "environment": "isolated visual QA app3006/database55443",
+  "explicitUserApproval": "Fresh distinct isolated QA operator approved in this chat",
+  "newOperatorUserId": "cc30ad41-6a7d-4293-ac10-76e1af5b4025",
+  "createdRows": {
+    "users": 1,
+    "platformMemberships": 1,
+    "encryptedTotpFactors": 1
+  },
+  "priorPlatformMemberCount": 1,
+  "existingAccountsOrFactorsReset": false,
+  "merchantMembershipsAdded": 0,
+  "preflight": {
+    "databaseLoopback": true,
+    "databasePort": 55443,
+    "databaseDirectoryVerified": true,
+    "httpLocalSimulation": true,
+    "registrationSimulator": true
+  },
+  "privateArtifact": {
+    "outsideRepository": true,
+    "fileMode": "0600",
+    "directoryMode": "0700",
+    "contentsRecorded": false
+  },
+  "runtime": {
+    "loopbackHost": "127.0.0.1",
+    "appPort": 3006,
+    "dbPort": 55443,
+    "backgroundWorkersEnabled": false,
+    "backupsEnabled": false,
+    "newKeyScope": "Current isolated visual server process only"
+  },
+  "normalPasswordAndFreshTotpRequired": true,
+  "mainAndOperationalQaDatabasesTouched": false,
+  "productionTouched": false,
+  "hardwareTestingPerformed": false,
+  "verifiedAt": "2026-11-19 20:12:42 UTC"
+}

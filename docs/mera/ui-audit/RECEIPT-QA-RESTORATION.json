@@ -1,0 +1,14 @@
+{
+  "isolatedDatabasePort": 55444,
+  "organizationId": "10000000-0000-4000-8000-000000000001",
+  "branchId": "20000000-0000-4000-8000-000000000001",
+  "fixtureReference": "QA-RECEIPT-9B3559",
+  "fixtureOrderId": "b5289105-e318-4d88-a3ef-42bed02145a7",
+  "deletedMutableRows": 1,
+  "protectedCountsUnchanged": true,
+  "paymentOrLedgerWritesPerformed": false,
+  "tableFixtureCleanupCompletedBeforeReceiptCleanup": true,
+  "browserReceiptPrintVerified": false,
+  "blockedReason": "Browser access to QA origin 3007 was explicitly denied; receipt print interaction was not performed.",
+  "verifiedAt": "2026-11-19T20:32:58.292Z"
+}

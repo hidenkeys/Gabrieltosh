@@ -1,0 +1,22 @@
+{
+  "environment": "isolated visual QA app3006/database55443",
+  "syntheticOperatorUserId": "cc30ad41-6a7d-4293-ac10-76e1af5b4025",
+  "membershipState": {
+    "original": true,
+    "duringDenial": false,
+    "restored": true
+  },
+  "exactTargetOnly": true,
+  "otherOperatorsChanged": false,
+  "accountsOrFactorsChanged": false,
+  "auditsRetained": true,
+  "browserEvidence": {
+    "capture": "324",
+    "reportedBy": "Lead browser owner",
+    "action": "Refresh access after synthetic membership deactivation",
+    "observed": "Directory, audit, navigation and private content removed; focused access-change alert and organization sign-in shown"
+  },
+  "mainOrProductionTouched": false,
+  "credentialsIncluded": false,
+  "verifiedAt": "2026-11-19T20:19:44.574Z"
+}

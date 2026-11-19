@@ -1,0 +1,36 @@
+{
+  "environment": "Disposable frontdesk QA app3007/database55444 only",
+  "fixtureTableId": "6bde50ec-c083-4107-8a21-573fc037daed",
+  "fixtureLabel": "QA closure table",
+  "fixtureZone": "QA closure zone",
+  "deletedMutableRows": {
+    "table": 1
+  },
+  "deletedDescendantRows": 0,
+  "newAuditEvents": 0,
+  "guardedPlanPassed": true,
+  "guardedCleanupCommitted": true,
+  "preexistingRecordHashesUnchangedAtCleanup": true,
+  "preexistingRecordCount": 126,
+  "preexistingRecordFingerprint": "c63aef0f2fba65f6f10eebb97daaf6ae200638ea837e8626a00f48d538a0a17b",
+  "branchSettingsUnchangedAtCleanup": true,
+  "protectedCountsUnchangedAtCleanup": true,
+  "protectedCounts": [
+    {
+      "kind": "ledger",
+      "count": 1
+    },
+    {
+      "kind": "stock_movement",
+      "count": 1
+    }
+  ],
+  "joiningCredentialsCreatedOrLogged": false,
+  "floorSeatingOrJoiningBrowserActionsPerformed": false,
+  "browserGate": "Origin3007 explicitly denied by browser security policy; no workaround attempted",
+  "mainOrProductionDataTouched": false,
+  "realMoneyMoved": false,
+  "applicationSourceChanged": false,
+  "verifiedAt": "2026-11-19T20:33:01.968504+00:00",
+  "cleanupOrder": "Table cleanup committed before independently owned unused receipt fixture cleanup; hashes/counts refer to table cleanup transaction."
+}

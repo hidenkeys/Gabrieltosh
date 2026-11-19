@@ -1,0 +1,15 @@
+{
+  "scope": "Disposable QA loopback3008 to3007 only",
+  "requestBodiesCookiesCredentialsRecorded": false,
+  "methodAndUpstreamStatusCounts": {
+    "GET upstream_status_200": 240,
+    "POST upstream_status_200": 3,
+    "POST upstream_status_201": 1,
+    "GET upstream_status_304": 24
+  },
+  "completedCancellationPostCount": 2,
+  "injectedAcknowledgment502Count": 1,
+  "browserEvidence": "325 unknown;326 reload original pending despite canonical cancelled;327 explicit same-key retry clears original",
+  "moneyMovementOrRefundConfirmed": false,
+  "fixtureDisposition": "Cancelled synthetic reservation retained in QA history"
+}

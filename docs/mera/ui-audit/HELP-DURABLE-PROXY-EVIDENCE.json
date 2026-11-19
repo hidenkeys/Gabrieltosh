@@ -1,0 +1,14 @@
+{
+  "scope": "Disposable QA loopback3008 to3007 only",
+  "requestBodiesCookiesCredentialsRecorded": false,
+  "methodAndUpstreamStatusCounts": {
+    "GET upstream_status_200": 49,
+    "POST upstream_status_200": 1,
+    "POST upstream_status_201": 2,
+    "GET upstream_status_304": 26
+  },
+  "completedHelpPostCount": 2,
+  "injectedAcknowledgment502Count": 1,
+  "browserEvidence": "314 unknown;315 refresh GET only with original frozen;316 explicit retry same H-BFC1B133",
+  "physicalPrintingOrMoneyActions": false
+}

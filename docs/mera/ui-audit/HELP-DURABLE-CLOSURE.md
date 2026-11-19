@@ -1,0 +1,11 @@
+# Customer help durable recovery closure
+
+19 November2026. Customer C3 recovery slice; no overall checkpoint change inferred. Lead-reported actual browser evidence, combined with53 focused tests and integrated full suite731total/729pass/0fail/2skip.
+
+`HelpRequests.tsx` and `helpRecovery.ts` save a strict8KB exact request/body/key/branch/sessionRef journal before dispatch and verify readback. Restore proves the existing cookie-backed guest before exposing private details; it never creates a guest or automatically submits. Wrong/missing proof, malformed storage and refused writes fail closed. Matching list text is not resolution. Only explicit original POST success clears the pending journal. There is no invented help lookup/stop endpoint. Explicit guest ending verifies current sessionRef and redacts matching help journals across branches into opaque unresolved markers before its POST; storage-redaction failure prevents ending. Other guest refs remain untouched.
+
+Actual isolated QA browser via temporary loopback3008→3007: upstream accepted H-BFC1B133; one controlled gateway502 replaced its acknowledgment after completion.314 showed frozen unknown request. Reload315 performed GET-only (helpPOSTcount remained1), showed original details only after guest proof, and retained uncertainty even though own history already included the request. Explicit retry316 returned **the same H-BFC1B133**, unlocked the form and cleared the journal. No second logical request was created by retry.
+
+An earlier TCP-drop experiment created H-C3A46EF6 and Chromium transparently retried the HTTP transport. That experiment did not show the unknown UI and is not used as lost-ack UI evidence. Same-key server idempotency preserved it. Both clearly synthetic QA requests are retained honestly.
+
+The proxy was ephemeral, default-transparent/unarmed, exact-help-POST-only, loopback-only; its synthetic mock test covered success200/201, GET/other POST transparency and no body/cookie logging. Sanitized method/upstream-status and helpPOST/injection counts are in `HELP-DURABLE-PROXY-EVIDENCE.json`. Temporary proxy stopped after evidence capture. No production endpoint, external message, payment/refund, menu/stock change or physical print was involved. Viewports and final images remain lead-owned; this slice does not certify full accessibility or every C3 visit/bill state.

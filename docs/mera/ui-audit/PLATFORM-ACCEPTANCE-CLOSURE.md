@@ -1,0 +1,9 @@
+# Platform acceptance closure
+
+M3 closes at100 after lead review of current integrated evidence. M2 advances60→80; actual simulated registration/verification walkthrough remains before100. Scope1.0 and all other task checkpoints are unchanged by this note.
+
+Actual approved normal operator MFA:317directory,318reasoned scoped empty lookup/Escape focus return,319blocked provider health,320synthetic support S-CF222B18 resolved,321audit at834px,322organization dialog at390px with focus containment.323 rebuilt audit shows No reason recorded rather than invented Session verification;324 permission-loss view focuses the denial alert and removes protected data. Existing disabled/no-run backup state remains explicit. Earlier selected-identity comparison and directory/filter/subscription/proposal/read-error/security tests supply the rest of the defined task; no requirement to perform real billing/provider actions.
+
+Final integrated build passed;738tests total,736pass,0fail,2existing skips in52.05s. Platform focused10/10includes safe reason fallback; tests cover unknown status exact intent, denied late-response exclusion, loading/retry, disclosure/native reason validation and all five destinations. Role fixture restoration is recorded separately in ROLE-QA-RESTORATION.json. Platform MFA fixture restoration must follow its own guarded manifest; this note does not claim it happened.
+
+M2 service/pricing/signup/support/legal pages are implemented with selected identity, responsive/focus evidence and honest proposed prices/unapproved terms/blocked delivery. PUBLIC-JOURNEY-CHECKPOINT and signup recovery tests support80. Remaining finite check: one authorized simulated register→verify→existing-account handoff and reload, preserving truthful delivery/readiness. Live sender/legal/commercial approval remains a separate launch gate; no new recovery API is demanded to raise this checkpoint.
