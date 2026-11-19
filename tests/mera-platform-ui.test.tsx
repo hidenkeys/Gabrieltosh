@@ -120,7 +120,7 @@ test("operator denial clears private data and a late directory response cannot r
   }) as any;
   try {
     render(<Platform />);
-    await waitFor(() => assert.ok(resolveDirectory));
+    await waitFor(() => { if(typeof resolveDirectory!=="function") throw new Error("Directory request has not started yet."); });
     act(() =>
       window.dispatchEvent(new window.CustomEvent("mera:access-denied")),
     );
@@ -223,22 +223,22 @@ test("organization review opens a named dialog and returns keyboard focus when c
     });
     assert.equal(dialog.contains(document.activeElement), true);
     const close=screen.getByRole("button",{name:"Close organization"});
-    assert.equal(document.activeElement,close);
+    assert.ok(document.activeElement===close,"Focus should be on the enabled close control.");
     fireEvent.keyDown(close,{key:"Tab",shiftKey:true});
     assert.equal(dialog.contains(document.activeElement),true);
-    assert.notEqual(document.activeElement,close);
+    assert.ok(document.activeElement!==close,"Shift+Tab should wrap away from the first control.");
     fireEvent.keyDown(document.activeElement!,{key:"Tab"});
-    assert.equal(document.activeElement,close);
+    assert.ok(document.activeElement===close,"Focus should be on the enabled close control.");
     trigger.focus();
     assert.equal(dialog.contains(document.activeElement),true);
     fireEvent.keyDown(dialog, { key: "Escape" });
     assert.equal(screen.queryByRole("dialog"), null);
-    assert.equal(document.activeElement, trigger);
+    assert.ok(document.activeElement===trigger,"Focus should return to the organization review trigger.");
     fireEvent.click(trigger);
     await screen.findByRole("dialog", { name: "Review business" });
     fireEvent.click(screen.getByRole("button", { name: "Close organization" }));
     assert.equal(screen.queryByRole("dialog"), null);
-    assert.equal(document.activeElement, trigger);
+    assert.ok(document.activeElement===trigger,"Focus should return to the organization review trigger.");
   } finally {
     cleanup();
   }
@@ -270,7 +270,7 @@ test("support loading failure is recoverable and never masquerades as an empty i
     );
     assert.ok(await screen.findByText("Loading support cases…"));
     assert.equal(screen.queryByText("No support cases recorded."), null);
-    await waitFor(() => assert.ok(finish));
+    await waitFor(() => { if(typeof finish!=="function") throw new Error("Support request has not started yet."); });
     await act(async () => {
       finish!(Response.json({ cases: [] }));
     });
@@ -290,12 +290,12 @@ test("access failure and authenticator recovery move focus to the current state"
   try {
     render(<Platform />);
     const alert = await screen.findByRole("alert");
-    await waitFor(() => assert.equal(document.activeElement, alert));
+    await waitFor(() => { if(document.activeElement!==alert) throw new Error("Access error has not received focus yet."); });
     fireEvent.click(screen.getByRole("button", { name: "Refresh access" }));
     const heading = await screen.findByRole("heading", {
       name: "Verify your authenticator",
     });
-    await waitFor(() => assert.equal(document.activeElement, heading));
+    await waitFor(() => { if(document.activeElement!==heading) throw new Error("Verification heading has not received focus yet."); });
     assert.equal(
       screen.queryByRole("heading", { name: "Organization directory" }),
       null,
