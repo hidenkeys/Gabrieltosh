@@ -2,15 +2,15 @@
 
 Goal: Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.
 
-Scope **1.0** · revision `00eb99f` · updated 2026-11-19T02:06:13+01:00
+Scope **1.0** · revision `41e849b` · updated 2026-11-19T02:21:09+01:00
 
-**UI correction: 58% complete | 42% remaining.** Weighted evidence: 58.2/100. This is checklist completion, not a time estimate.
+**UI correction: 59% complete | 41% remaining.** Weighted evidence: 59.0/100. This is checklist completion, not a time estimate.
 
 Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.
 
 ## Current milestone
 
-Table service partial milestone verified at00eb99f: actual local party-to-POS round, bill split/merge, table combination and unpaid-close rejection; phone/tablet screenshots inspected. Next: assigned waiter work/handoff and broader permission/error/recovery acceptance. Main preview3003 remains running. Live providers, protected platform QA credential recovery and physical printing remain separate gates.
+Service responsibility and partial handoff milestone verified at41e849b: actual local assignment/history, queue retention, bar preparation and one-of-two item handoff without collection/payment; final phone/tablet and paired desktop review passed. Next: broader role/settlement/recovery acceptance and remaining themed customer/platform surfaces. Main preview3003 refreshed with existing database. Provider access, protected platform QA credential recovery and physical printing remain separate gates.
 
 ## Measurement
 
@@ -22,7 +22,7 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | --- | ---: | ---: | --- |
 | References, design system and application shell | 15% | 86% | lead |
 | Organization management | 25% | 50% | workspace / lead overview |
-| POS and operational roles | 20% | 57% | lead / rotating operational agent |
+| POS and operational roles | 20% | 61% | lead / rotating operational agent |
 | Customer experience | 20% | 59% | customer |
 | Marketing and platform administration | 10% | 64% | backend (presentation workstream A) |
 | Integration, accessibility and delivery | 10% | 30% | lead |
@@ -46,7 +46,7 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | O7 | Subscriptions, printing, QR and customer/support care | 4% | 40% | IN_PROGRESS · workspace | [BILLING-MANAGEMENT-MOUNT.md](docs/mera/ui-audit/BILLING-MANAGEMENT-MOUNT.md), [subscription-comparison.html](docs/mera/ui-audit/subscription-comparison.html), [RECORDS-PRINT-HELP-CHECKPOINT.md](docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md), [FINANCE-MANAGEMENT-CHECKPOINT.md](docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md) |
 | P1 | Original-style POS catalog and current order | 5% | 80% | IN_PROGRESS · lead | [06-mera-pos-after-empty.jpg](docs/mera/ui-audit/screenshots/06-mera-pos-after-empty.jpg), [07-mera-pos-tablet.jpg](docs/mera/ui-audit/screenshots/07-mera-pos-tablet.jpg), [09-mera-pos-narrow-basket.jpg](docs/mera/ui-audit/screenshots/09-mera-pos-narrow-basket.jpg), [mera-ui-pilot.test.tsx](tests/mera-ui-pilot.test.tsx), [counter-comparison-current.jpg](docs/mera/ui-audit/counter-comparison-current.jpg) |
 | P2 | Order lists, details, responsibility and help | 4% | 40% | IN_PROGRESS · lead | [RECORDS-PRINT-HELP-CHECKPOINT.md](docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md) |
-| P3 | Waiter tables, rounds, bills and handoffs | 4% | 40% | IN_PROGRESS · lead | [TABLES-CHECKPOINT.md](docs/mera/ui-audit/TABLES-CHECKPOINT.md), [145-tables-after.jpg](docs/mera/ui-audit/screenshots/145-tables-after.jpg), [146-tables-phone.jpg](docs/mera/ui-audit/screenshots/146-tables-phone.jpg), [147-tables-tablet.jpg](docs/mera/ui-audit/screenshots/147-tables-tablet.jpg) |
+| P3 | Waiter tables, rounds, bills and handoffs | 4% | 60% | IN_PROGRESS · lead | [TABLES-CHECKPOINT.md](docs/mera/ui-audit/TABLES-CHECKPOINT.md), [145-tables-after.jpg](docs/mera/ui-audit/screenshots/145-tables-after.jpg), [146-tables-phone.jpg](docs/mera/ui-audit/screenshots/146-tables-phone.jpg), [147-tables-tablet.jpg](docs/mera/ui-audit/screenshots/147-tables-tablet.jpg), [SERVICE-HANDOFF-CHECKPOINT.md](docs/mera/ui-audit/SERVICE-HANDOFF-CHECKPOINT.md), [service-responsibility-comparison.html](docs/mera/ui-audit/service-responsibility-comparison.html), [153-service-phone-final.jpg](docs/mera/ui-audit/screenshots/153-service-phone-final.jpg), [154-service-tablet.jpg](docs/mera/ui-audit/screenshots/154-service-tablet.jpg) |
 | P4 | Kitchen and bar preparation | 3% | 60% | IN_PROGRESS · lead | [PREPARATION-MOUNT.md](docs/mera/ui-audit/PREPARATION-MOUNT.md), [56-preparation-partial-desktop.jpg](docs/mera/ui-audit/screenshots/56-preparation-partial-desktop.jpg), [57-preparation-ready-tablet.jpg](docs/mera/ui-audit/screenshots/57-preparation-ready-tablet.jpg), [58-preparation-ready-narrow.jpg](docs/mera/ui-audit/screenshots/58-preparation-ready-narrow.jpg), [mera-preparation.test.tsx](tests/mera-preparation.test.tsx) |
 | P5 | Front desk reservations, arrivals and waitlist | 4% | 60% | IN_PROGRESS · lead | [FRONTDESK-PUBLIC-CHECKPOINT.md](docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md) |
 | C1 | Mobile menu and persistent cart pilot | 6% | 80% | IN_PROGRESS · customer | [CustomerExperience.tsx](src/mera/customer/CustomerExperience.tsx), [mera-customer-ui-correction.test.tsx](tests/mera-customer-ui-correction.test.tsx), [PILOT-CHECKPOINT-2026-11-18.md](docs/mera/ui-audit/PILOT-CHECKPOINT-2026-11-18.md), [13-customer-narrow-menu.jpg](docs/mera/ui-audit/screenshots/13-customer-narrow-menu.jpg), [14-customer-narrow-basket.jpg](docs/mera/ui-audit/screenshots/14-customer-narrow-basket.jpg), [15-customer-tablet.jpg](docs/mera/ui-audit/screenshots/15-customer-tablet.jpg), [customer-comparison-current.jpg](docs/mera/ui-audit/customer-comparison-current.jpg) |
