@@ -93,6 +93,7 @@ import CatalogOperations from "./CatalogOperations";
 import StockMovements from "./StockMovements";
 import FloorMap from "./FloorMap";
 import HelpRequests from "./HelpRequests";
+import { hasHelpUpdateMarkers } from "./helpUpdateJournal";
 import ModifierGroupsEditor from "./ModifierGroupsEditor";
 import WriteOff from "./WriteOff";
 import MinimumSpendPolicy from "./MinimumSpendPolicy";
@@ -398,9 +399,11 @@ export default function OrganizationWorkspace({
     const changed = () => setReservationRecoveryRevision((value) => value + 1);
     window.addEventListener("mera:reservation-recovery", changed);
     window.addEventListener("mera:shift-recovery", changed);
+    window.addEventListener("mera:help-recovery", changed);
     return () => {
       window.removeEventListener("mera:reservation-recovery", changed);
       window.removeEventListener("mera:shift-recovery", changed);
+      window.removeEventListener("mera:help-recovery", changed);
     };
   }, []);
   const clearProtected = useCallback(() => {
@@ -717,7 +720,13 @@ export default function OrganizationWorkspace({
       /^\/organizations\/[^/]+\/branches\/[^/]+\/shifts(?:\/[^/]+\/close)?$/.test(
         path,
       );
-    const actorBoundIntent = originalReservation || originalShiftOperation;
+    const originalHelpUpdate =
+      method === "PATCH" &&
+      /^\/organizations\/[^/]+\/branches\/[^/]+\/help-requests\/[^/]+$/.test(
+        path,
+      );
+    const actorBoundIntent =
+      originalReservation || originalShiftOperation || originalHelpUpdate;
     let attemptedBody: any;
     try {
       if (
@@ -727,7 +736,10 @@ export default function OrganizationWorkspace({
           requestedScope !== branchBase ||
           !(originalReservation
             ? path === branchBase + "/reservations"
-            : path.startsWith(branchBase + "/shifts")) ||
+            : path.startsWith(
+                branchBase +
+                  (originalHelpUpdate ? "/help-requests/" : "/shifts"),
+              )) ||
           scopeEpoch.current.generation !== scopeVersion)
       )
         throw new WorkspaceError(
@@ -1393,7 +1405,8 @@ export default function OrganizationWorkspace({
                       financialRequests.current.size ||
                       uncertainOrders.current.size ||
                       hasStaffReservationJournals(principal || user.id) ||
-                      hasShiftOperationJournals(principal || user.id)
+                      hasShiftOperationJournals(principal || user.id) ||
+                      hasHelpUpdateMarkers(principal || user.id)
                     )
                       setLogoutConfirm(true);
                     else void signOut();
@@ -1624,6 +1637,28 @@ export default function OrganizationWorkspace({
             )}
           </div>
         )}
+      {hasHelpUpdateMarkers(principal || user.id) && (
+        <section
+          role="status"
+          className="mw-note"
+          aria-label="Help response recovery"
+        >
+          <strong>A help response needs checking</strong>
+          <p>
+            Open Customer requests in the original branch to check the response
+            before writing another one. No update is sent automatically. This
+            tab keeps only a recovery reference, without the reply or private
+            note.
+          </p>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => selectSection("help")}
+          >
+            Review help responses
+          </button>
+        </section>
+      )}
       {shiftPrivacyWarning && (
         <div role="alert" className="mw-note">
           Private shift details could not be cleared from this tab. Keep this
@@ -1986,8 +2021,10 @@ export default function OrganizationWorkspace({
 
               {activeSection === "help" && (
                 <HelpRequests
-                  key={branchBase}
+                  key={branchBase + "|" + (principal || user.id)}
                   base={branchBase}
+                  actorId={principal || user.id}
+                  timeZone={branch?.timezone}
                   permissions={permissions}
                   disabled={busy || offline}
                   save={mutate}

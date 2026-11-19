@@ -20,6 +20,7 @@ import "./mera/workspace/billing-management.css";
 import "./mera/ui/operational-primitives.css";
 import "./mera/workspace/support-cases.css";
 import "./mera/workspace/order-history.css";
+import "./mera/workspace/help-requests.css";
 import "./mera/workspace/live-orders.css";
 import "./mera/workspace/printing-qr.css";
 import "./mera/workspace/reservation-request.css";

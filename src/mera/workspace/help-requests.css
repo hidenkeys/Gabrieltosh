@@ -1,0 +1,72 @@
+.mera-workspace .mw-help-toolbar {
+  display: flex;
+  align-items: end;
+  gap: 16px;
+  margin: 20px 0;
+}
+.mera-workspace .mw-help-toolbar label {
+  flex: 1;
+  max-width: 420px;
+  margin: 0;
+}
+.mera-workspace .mw-help-request {
+  border-top: 1px solid var(--line);
+  padding: 20px 0;
+}
+.mera-workspace .mw-help-request header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+.mera-workspace .mw-help-request h3 {
+  margin: 0;
+}
+.mera-workspace .mw-help-time,
+.mera-workspace .mw-help-request small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.mera-workspace .mw-help-fields {
+  border: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+  min-width: 0;
+}
+.mera-workspace .mw-help-fields label:first-child {
+  grid-column: 1/-1;
+  max-width: 320px;
+}
+.mera-workspace .mw-help-fields textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+.mera-workspace .mw-help-fields button {
+  justify-self: start;
+  grid-column: 1/-1;
+}
+.mera-workspace .mw-help-recovery {
+  border: 1px solid var(--line);
+  padding: 16px;
+  border-radius: 8px;
+  margin: 16px 0;
+}
+.mera-workspace .mw-help-recovery button {
+  margin: 4px 8px 4px 0;
+}
+@media (max-width: 650px) {
+  .mera-workspace .mw-help-toolbar,
+  .mera-workspace .mw-help-request header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .mera-workspace .mw-help-fields {
+    grid-template-columns: 1fr;
+  }
+  .mera-workspace .mw-help-toolbar label {
+    max-width: none;
+  }
+}

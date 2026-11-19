@@ -34,6 +34,9 @@ const service = {
   customerReply: "",
   internalNotes: [{ text: "Private service note" }],
 };
+test.beforeEach(() => {
+  window.sessionStorage.clear();
+});
 test("staff help filters by role and separates customer reply from private note", async (t) => {
   t.mock.method(globalThis, "fetch", async () =>
     Response.json({
@@ -52,6 +55,7 @@ test("staff help filters by role and separates customer reply from private note"
   render(
     React.createElement(HelpRequests, {
       base: "/organizations/org/branches/branch",
+      actorId: "staff-one",
       disabled: false,
       permissions: ["orders.fulfill"],
       save: async (...args: any[]) => {
@@ -73,15 +77,20 @@ test("staff help filters by role and separates customer reply from private note"
   fireEvent.click(screen.getByRole("button", { name: "Save help response" }));
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(calls.length, 1);
-  assert.deepEqual(calls[0].slice(0, 3), [
-    "/organizations/org/branches/branch/help-requests/help-one",
-    "PATCH",
-    {
-      status: "acknowledged",
-      customerReply: "A team member is coming",
-      internalNote: "Counter informed",
-    },
-  ]);
+  assert.equal(typeof calls[0][2].requestKey, "string");
+  assert.deepEqual(
+    [calls[0][0], calls[0][1], { ...calls[0][2], requestKey: undefined }],
+    [
+      "/organizations/org/branches/branch/help-requests/help-one",
+      "PATCH",
+      {
+        requestKey: undefined,
+        status: "acknowledged",
+        customerReply: "A team member is coming",
+        internalNote: "Counter informed",
+      },
+    ],
+  );
   assert(screen.getByText(/Email, SMS and push delivery are unavailable/));
   cleanup();
 });
@@ -94,6 +103,7 @@ test("a role with no help permission never fetches help records", async (t) => {
   render(
     React.createElement(HelpRequests, {
       base: "/organizations/org/branches/branch",
+      actorId: "staff-one",
       disabled: false,
       permissions: ["menu.edit"],
       save: async () => {},
