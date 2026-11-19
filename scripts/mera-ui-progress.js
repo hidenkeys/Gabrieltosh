@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Workspace keyboard/integration milestone at3642f55: mobile destination/dismissal/roving-tab containment and resize focus corrected; mounted handoff descriptions unique; normal test command now includes TypeScript journals. Final656pass/2skip, disposablePGpass, build, focusedchecks and actual mobile/tablet/desktop comparison. Q3 advances0→40; Q2 remains in progress at0 pending full cross-screen state/role/accessibility matrix. Scope1.0 frozen; weighted67.0/100. Bill/reprint/access/signup recovery gaps, protected platform access, provider and printing hardware gates remain unfinished. Main3003/QA3007 preserved; no business mutation, deployment or money.",
+  "Bill recovery milestone at4eeb5e6: durable actor-bound split/merge replay/lookup/stop, nonsecret remount references and exact original body handling; payment allocations/conservation and counter splits preserved. Closed-visit new changes blocked. Legacy item-unit guidance/selection validation corrected after actual browser review. Final665pass/2skip, focused/build/disposablePG and matched desktop plus390/834 read-only forms. P3 remains60, Q3 remains40; scope1.0 and67.0/100 unchanged. Reprint/template/access/signup recovery, full role/state/accessibility acceptance and protected platform/provider/hardware gates remain. Main3003/QA3007 run migration; no preview bill/payment mutation or production change.",
   "",
   "## Measurement",
   "",
