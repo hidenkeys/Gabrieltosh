@@ -52,6 +52,7 @@ import LaunchReadiness from "./LaunchReadiness";
 import ReservationPolicy from "./ReservationPolicy";
 import ItemCancellation from "./ItemCancellation";
 import Reconciliation from "./Reconciliation";
+import { PaymentRecords, ShiftRecord } from "./FinanceRecords";
 import VisitTables from "./VisitTables";
 import CashMovement from "./CashMovement";
 import ShiftActions from "./ShiftActions";
@@ -818,11 +819,14 @@ export default function OrganizationWorkspace({
     key: string,
     type = "text",
     required = true,
+    step?: number,
   ) => (
     <label>
       {label}
       <input
         type={type}
+        step={step}
+        min={step ? 0 : undefined}
         required={required}
         value={tabForm[key] ?? ""}
         onChange={(event) => updateForm(key, event.target.value)}
@@ -1798,7 +1802,8 @@ export default function OrganizationWorkspace({
                 <Complaints
                   key={branchBase}
                   base={branchBase}
-                  complaints={list(data.complaints)}
+                  complaints={data.complaints}
+                  timezone={branch?.timezone}
                   disabled={busy || offline}
                   save={mutate}
                 />
@@ -3530,185 +3535,200 @@ export default function OrganizationWorkspace({
                     Record only money already received. A customer payment claim
                     does not confirm a collection.
                   </p>
-                  <form
-                    className="mw-form"
-                    onSubmit={submit(() =>
-                      mutate(
-                        branchBase + `/orders/${tabForm.orderId}/payments`,
-                        "POST",
-                        {
-                          requestKey: uuid(),
-                          amount: Math.round(Number(tabForm.amount) * 100),
-                          method: tabForm.method || "cash",
-                          reference: tabForm.reference || "",
-                        },
-                        "Collection recorded.",
-                      ),
-                    )}
+                  <PaymentRecords
+                    payments={data.payments}
+                    refunds={data.refunds}
+                    orders={liveOrders}
+                    timeZone={branch?.timezone}
+                    canViewRefunds={allowed("refunds.approve")}
+                  />
+                  <Disclosure
+                    className="mw-finance-tools"
+                    summary="Record money received"
+                    defaultOpen
                   >
-                    <label>
-                      Order
-                      <select
-                        required
-                        value={tabForm.orderId || ""}
-                        onChange={(event) =>
-                          updateForm("orderId", event.target.value)
-                        }
-                      >
-                        <option value="">Choose an order</option>
-                        {liveOrders.map((order) => (
-                          <option key={order.id} value={order.id}>
-                            {order.reference || order.id.slice(0, 8)} ·{" "}
-                            {order.displayName} · {formatMoney(order.total)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    {field("Amount received (naira)", "amount", "number")}
-                    <label>
-                      Payment origin
-                      <select
-                        value={tabForm.method || "cash"}
-                        onChange={(event) =>
-                          updateForm("method", event.target.value)
-                        }
-                      >
-                        <option value="cash">Cash</option>
-                        <option value="external_pos">External POS</option>
-                        <option value="external_transfer">
-                          Verified external transfer
-                        </option>
-                      </select>
-                    </label>
-                    {field(
-                      "Receipt / transfer reference",
-                      "reference",
-                      "text",
-                      false,
-                    )}
-                    <div className="mw-wide">
-                      <button className="primary" disabled={busy || offline}>
-                        Record verified collection
-                      </button>
-                    </div>
-                  </form>
-                  <div className="mw-list">
-                    {list(data.payments).map((payment: any) => (
-                      <div className="mw-row" key={payment.id}>
-                        <div>
-                          <b>{formatMoney(payment.amount)}</b>
-                          <small>
-                            {sourceLabel(payment.method)} ·{" "}
-                            {payment.reference || "No reference"} ·{" "}
-                            {dateLabel(payment.createdAt)}
-                          </small>
-                        </div>
-                        <span className="mw-pill">
-                          {payment.status || "recorded"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  {allowed("refunds.approve") && (
                     <form
                       className="mw-form"
                       onSubmit={submit(() =>
                         mutate(
-                          branchBase + `/orders/${tabForm.refundOrder}/refunds`,
+                          branchBase + `/orders/${tabForm.orderId}/payments`,
                           "POST",
                           {
                             requestKey: uuid(),
-                            amount: Math.round(
-                              Number(tabForm.refundAmount) * 100,
-                            ),
-                            reason: tabForm.reason,
-                            method: tabForm.refundMethod,
+                            amount: Math.round(Number(tabForm.amount) * 100),
+                            method: tabForm.method || "cash",
+                            reference: tabForm.reference || "",
                           },
-                          "Refund recorded.",
+                          "Collection recorded.",
                         ),
                       )}
                     >
                       <label>
-                        Refund order
+                        Order
                         <select
                           required
-                          value={tabForm.refundOrder || ""}
+                          value={tabForm.orderId || ""}
                           onChange={(event) =>
-                            updateForm("refundOrder", event.target.value)
+                            updateForm("orderId", event.target.value)
                           }
                         >
-                          <option value="">Choose order</option>
+                          <option value="">Choose an order</option>
                           {liveOrders.map((order) => (
                             <option key={order.id} value={order.id}>
-                              {order.reference || order.id.slice(0, 8)}
+                              {order.reference || order.id.slice(0, 8)} ·{" "}
+                              {order.displayName} · {formatMoney(order.total)}
                             </option>
                           ))}
                         </select>
                       </label>
                       {field(
-                        "Amount returned (naira)",
-                        "refundAmount",
+                        "Amount received (naira)",
+                        "amount",
                         "number",
+                        true,
+                        0.01,
                       )}
                       <label>
-                        Refund payout method
+                        Payment origin
                         <select
-                          required
-                          value={tabForm.refundMethod || ""}
+                          value={tabForm.method || "cash"}
                           onChange={(event) =>
-                            updateForm("refundMethod", event.target.value)
+                            updateForm("method", event.target.value)
                           }
                         >
-                          <option value="">
-                            Choose how money was actually returned
-                          </option>
-                          <option value="cash">Cash returned</option>
-                          <option value="external_pos">
-                            External POS refund
-                          </option>
+                          <option value="cash">Cash</option>
+                          <option value="external_pos">External POS</option>
                           <option value="external_transfer">
-                            External transfer returned
+                            Verified external transfer
                           </option>
                         </select>
                       </label>
-                      {field("Refund reason", "reason")}
+                      {field(
+                        "Receipt / transfer reference",
+                        "reference",
+                        "text",
+                        false,
+                      )}
                       <div className="mw-wide">
-                        <button
-                          className="secondary"
-                          disabled={busy || offline}
-                        >
-                          Record authorized refund
+                        <button className="primary" disabled={busy || offline}>
+                          Record verified collection
                         </button>
                       </div>
                     </form>
+                  </Disclosure>
+                  {allowed("refunds.approve") && (
+                    <Disclosure
+                      className="mw-finance-tools"
+                      summary="Record money returned"
+                    >
+                      <p>
+                        Use this only after an authorized return has actually
+                        been completed.
+                      </p>
+                      <form
+                        className="mw-form"
+                        onSubmit={submit(() =>
+                          mutate(
+                            branchBase +
+                              `/orders/${tabForm.refundOrder}/refunds`,
+                            "POST",
+                            {
+                              requestKey: uuid(),
+                              amount: Math.round(
+                                Number(tabForm.refundAmount) * 100,
+                              ),
+                              reason: tabForm.reason,
+                              method: tabForm.refundMethod,
+                            },
+                            "Refund recorded.",
+                          ),
+                        )}
+                      >
+                        <label>
+                          Refund order
+                          <select
+                            required
+                            value={tabForm.refundOrder || ""}
+                            onChange={(event) =>
+                              updateForm("refundOrder", event.target.value)
+                            }
+                          >
+                            <option value="">Choose order</option>
+                            {liveOrders.map((order) => (
+                              <option key={order.id} value={order.id}>
+                                {order.reference || order.id.slice(0, 8)}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        {field(
+                          "Amount returned (naira)",
+                          "refundAmount",
+                          "number",
+                        )}
+                        <label>
+                          Refund payout method
+                          <select
+                            required
+                            value={tabForm.refundMethod || ""}
+                            onChange={(event) =>
+                              updateForm("refundMethod", event.target.value)
+                            }
+                          >
+                            <option value="">
+                              Choose how money was actually returned
+                            </option>
+                            <option value="cash">Cash returned</option>
+                            <option value="external_pos">
+                              External POS refund
+                            </option>
+                            <option value="external_transfer">
+                              External transfer returned
+                            </option>
+                          </select>
+                        </label>
+                        {field("Refund reason", "reason")}
+                        <div className="mw-wide">
+                          <button
+                            className="secondary"
+                            disabled={busy || offline}
+                          >
+                            Record authorized refund
+                          </button>
+                        </div>
+                      </form>
+                    </Disclosure>
                   )}
-                  <div className="mw-note">
-                    Rubies live collections and withdrawals remain disabled
-                    until credentials, contract capabilities and fee policies
-                    are verified.
-                  </div>
+                  <p className="mw-muted">
+                    Online collections and withdrawals are not enabled. These
+                    forms record payments handled outside the app.
+                  </p>
                 </section>
               )}
               {activeSection === "shifts" && (
                 <section className="mw-card">
                   <h2>Shifts & cash reconciliation</h2>
+                  <p>
+                    Review shift cash, handovers and counted balances for this
+                    branch.
+                  </p>
+                  {Array.isArray(data.shifts) && !data.shifts.length && (
+                    <p className="mw-note">
+                      No shifts recorded for this branch.
+                    </p>
+                  )}
+                  {!Array.isArray(data.shifts) && (
+                    <p role="alert">
+                      Shift records are unavailable. Refresh the workspace
+                      before continuing.
+                    </p>
+                  )}
                   {list(data.shifts).map((shift: any) => (
-                    <div className="mw-card" key={shift.id}>
-                      <h3>
-                        {shift.status} ·{" "}
-                        {dateLabel(shift.createdAt || shift.openedAt)}
-                      </h3>
-                      <p>
-                        Opening float {formatMoney(shift.openingFloat)} ·
-                        Expected{" "}
-                        {Number.isSafeInteger(shift.expectedCash)
-                          ? formatMoney(shift.expectedCash)
-                          : "calculated at close"}{" "}
-                        · Counted{" "}
-                        {Number.isSafeInteger(shift.countedCash)
-                          ? formatMoney(shift.countedCash)
-                          : "not counted"}
-                      </p>
+                    <ShiftRecord
+                      key={shift.id}
+                      shift={shift}
+                      timeZone={branch?.timezone}
+                    >
                       <ShiftActions
                         base={branchBase}
                         shift={shift}
@@ -3726,61 +3746,96 @@ export default function OrganizationWorkspace({
                         />
                       )}
                       {shift.status === "open" && (
+                        <Disclosure
+                          summary="Close and reconcile this shift"
+                          className="mw-finance-tools"
+                        >
+                          <form
+                            className="mw-form"
+                            onSubmit={submit(() =>
+                              mutate(
+                                branchBase + `/shifts/${shift.id}/close`,
+                                "POST",
+                                {
+                                  countedCash: Math.round(
+                                    Number(tabForm[`counted_${shift.id}`]) *
+                                      100,
+                                  ),
+                                  reason: tabForm[`variance_${shift.id}`] || "",
+                                },
+                                "Shift closed.",
+                              ),
+                            )}
+                          >
+                            {field(
+                              "Counted cash (naira)",
+                              `counted_${shift.id}`,
+                              "number",
+                              true,
+                              0.01,
+                            )}
+                            {field(
+                              "Variance explanation",
+                              `variance_${shift.id}`,
+                              "text",
+                              false,
+                            )}
+                            <div className="mw-wide">
+                              <button
+                                className="secondary"
+                                disabled={busy || offline}
+                              >
+                                Close & reconcile
+                              </button>
+                            </div>
+                          </form>
+                        </Disclosure>
+                      )}
+                    </ShiftRecord>
+                  ))}
+                  {Array.isArray(data.shifts) &&
+                    !data.shifts.some(
+                      (shift: any) => shift.status === "open",
+                    ) && (
+                      <div className="mw-shift-open">
+                        <h3>Open a shift</h3>
+                        <p>
+                          Record the cash float physically present at the start
+                          of service.
+                        </p>
                         <form
                           className="mw-form"
                           onSubmit={submit(() =>
                             mutate(
-                              branchBase + `/shifts/${shift.id}/close`,
+                              branchBase + "/shifts",
                               "POST",
                               {
-                                countedCash: Math.round(
-                                  Number(tabForm.counted) * 100,
+                                openingFloat: Math.round(
+                                  Number(tabForm.float) * 100,
                                 ),
-                                reason: tabForm.variance || "",
                               },
-                              "Shift closed.",
+                              "Shift opened.",
                             ),
                           )}
                         >
-                          {field("Counted cash (naira)", "counted", "number")}
                           {field(
-                            "Variance explanation",
-                            "variance",
-                            "text",
-                            false,
+                            "Opening float (naira)",
+                            "float",
+                            "number",
+                            true,
+                            0.01,
                           )}
                           <div className="mw-wide">
                             <button
-                              className="secondary"
+                              className="primary"
                               disabled={busy || offline}
                             >
-                              Close & reconcile
+                              Open shift
                             </button>
                           </div>
                         </form>
-                      )}
-                    </div>
-                  ))}
-                  <form
-                    className="mw-form"
-                    onSubmit={submit(() =>
-                      mutate(
-                        branchBase + "/shifts",
-                        "POST",
-                        {
-                          openingFloat: Math.round(Number(tabForm.float) * 100),
-                        },
-                        "Shift opened.",
-                      ),
+                      </div>
                     )}
-                  >
-                    {field("Opening float (naira)", "float", "number")}
-                    <div className="mw-wide">
-                      <button className="primary" disabled={busy || offline}>
-                        Open shift
-                      </button>
-                    </div>
-                  </form>
                 </section>
               )}
               {activeSection === "team" && (

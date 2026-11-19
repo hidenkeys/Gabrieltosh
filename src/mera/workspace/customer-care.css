@@ -1,0 +1,212 @@
+.mw-customer-care {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mw-care-heading {
+  max-width: 760px;
+  margin-bottom: 20px;
+}
+.mw-care-heading h2 {
+  margin-bottom: 8px;
+}
+.mw-care-heading p,
+.mw-care-timezone {
+  color: #51647d;
+  line-height: 1.5;
+}
+.mw-care-toolbar {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 14px;
+  border-block: 1px solid var(--line, #e9e6e2);
+  padding-block: 16px;
+  margin-bottom: 20px;
+}
+.mw-care-toolbar label {
+  display: grid;
+  gap: 7px;
+  min-width: 190px;
+}
+.mw-care-toolbar label:first-child {
+  flex: 1;
+}
+.mw-care-toolbar p {
+  font-size: 13px;
+  color: #51647d;
+}
+.mw-care-layout {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.8fr) minmax(0, 1.6fr);
+  gap: 22px;
+  align-items: start;
+}
+.mw-care-list {
+  display: grid;
+  gap: 8px;
+  max-height: 680px;
+  overflow: auto;
+  min-width: 0;
+  padding: 3px;
+}
+.mw-care-list button {
+  display: grid;
+  gap: 9px;
+  text-align: left;
+  white-space: normal;
+  background: var(--panel, #fffefa);
+  border: 1px solid var(--line, #e9e6e2);
+  border-radius: 8px;
+  padding: 14px;
+  color: var(--brand-ink, #111b2f);
+  min-height: 44px;
+  font: inherit;
+}
+.mw-care-list button[aria-pressed="true"] {
+  border-color: var(--brand, #2f7df6);
+  box-shadow: inset 3px 0 var(--brand, #2f7df6);
+}
+.mw-care-list button > span:nth-child(2) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.mw-care-row-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mw-care-row-heading > span,
+.mw-care-list small {
+  font-size: 12px;
+  color: #51647d;
+}
+.mw-care-record {
+  min-width: 0;
+  border: 1px solid var(--line, #e9e6e2);
+  padding: 20px;
+  border-radius: 10px;
+  background: var(--panel, #fffefa);
+}
+.mw-care-record h3 {
+  margin-top: 0;
+}
+.mw-care-feedback {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 16px;
+}
+.mw-care-metadata {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.mw-care-metadata > div {
+  min-width: 0;
+}
+.mw-care-metadata dt {
+  color: #51647d;
+  font-size: 12px;
+}
+.mw-care-metadata dd {
+  margin: 5px 0 0;
+  font-size: 13px;
+}
+.mw-care-timezone {
+  font-size: 12px;
+}
+.mw-care-record fieldset {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  border: 0;
+  border-top: 1px solid var(--line, #e9e6e2);
+  padding: 16px 0 0;
+  margin: 20px 0 0;
+}
+.mw-care-record legend {
+  font-weight: 600;
+  padding-right: 12px;
+}
+.mw-care-record fieldset > p {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #51647d;
+}
+.mw-care-record label {
+  display: grid;
+  gap: 8px;
+}
+.mw-care-record textarea {
+  min-height: 112px;
+  resize: vertical;
+  font: inherit;
+  line-height: 1.5;
+}
+.mw-customer-care input,
+.mw-customer-care select,
+.mw-customer-care button {
+  min-height: 44px;
+}
+.mw-customer-care button:focus-visible,
+.mw-customer-care input:focus-visible,
+.mw-customer-care textarea:focus-visible,
+.mw-customer-care select:focus-visible {
+  outline: 3px solid var(--brand, #2f7df6);
+  outline-offset: 3px;
+}
+.mw-care-empty,
+.mw-care-uncertain,
+.mw-care-notice {
+  padding: 18px;
+  border: 1px solid var(--line, #e9e6e2);
+  border-radius: 9px;
+  background: #f8f7f4;
+  line-height: 1.6;
+}
+.mw-care-empty h3,
+.mw-care-uncertain h3 {
+  margin-top: 0;
+}
+.mw-care-uncertain dd {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}
+.mw-care-uncertain dl > div {
+  margin-block: 12px;
+}
+.mw-care-error {
+  padding: 12px 14px;
+  border-left: 3px solid #a63e36;
+  color: #76302a;
+  background: #fff5f3;
+  line-height: 1.5;
+}
+@media (max-width: 1000px) {
+  .mw-care-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mw-care-list {
+    max-height: 340px;
+  }
+  .mw-care-record {
+    padding: 16px;
+  }
+}
+@media (max-width: 600px) {
+  .mw-care-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .mw-care-toolbar label {
+    min-width: 0;
+  }
+  .mw-care-record button {
+    width: 100%;
+  }
+}

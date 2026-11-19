@@ -206,6 +206,7 @@ test("refund payout method is explicitly chosen and sent rather than assumed cas
     render(React.createElement(Workspace, { user, notify: () => {} }));
     await screen.findByText("Surulere customer", { exact: false });
     fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
+    fireEvent.click(screen.getByText("Record money returned", {exact:true}));
     const method = screen.getByLabelText(
       "Refund payout method",
     ) as HTMLSelectElement;

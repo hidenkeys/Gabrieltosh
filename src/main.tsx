@@ -134,3 +134,9 @@ createRoot(document.getElementById("root")!).render(
 );
 if ("serviceWorker" in navigator && window.isSecureContext)
   navigator.serviceWorker.register("/sw.js").catch(() => {});
+
+import "./mera/workspace/finance-records.css";
+
+import "./mera/workspace/finance-operations.css";
+import "./mera/workspace/management-utilities.css";
+import "./mera/workspace/customer-care.css";

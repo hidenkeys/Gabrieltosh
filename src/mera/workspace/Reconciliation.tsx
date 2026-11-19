@@ -1,26 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
 import { formatMoney, workspaceApi, WorkspaceError } from "./api";
-async function readReconciliation(base: string, signal?: AbortSignal) {
-  const result = await workspaceApi(
-    base + "/reconciliation",
-    "GET",
-    undefined,
-    signal,
-  );
-  if (!Array.isArray(result?.transactions))
-    throw new Error(
-      "The reconciliation response is invalid. Refresh before continuing.",
-    );
-  return result;
-}
-export default function Reconciliation({
-  base,
-  orders,
-  demo,
-  disabled,
-  save,
-}: {
+import {
+  Action,
+  Disclosure,
+  DataRegion,
+  ReadState,
+} from "../ui/OperationalPrimitives";
+type Props = {
   base: string;
   orders: any[];
   demo: boolean;
@@ -31,11 +18,22 @@ export default function Reconciliation({
     body: any,
     message: string,
   ) => Promise<any>;
-}) {
-  const [data, setData] = useState<any>(null);
-  const [error, setError] = useState("");
-  const [working, setWorking] = useState(false);
-  const [pending, setPending] = useState<any>(null);
+};
+const human = (value: any) =>
+  String(value || "Not recorded").replaceAll("_", " ");
+const money = (value: any) =>
+  Number.isSafeInteger(value) ? formatMoney(value) : "Unresolved";
+export default function Reconciliation(props: Props) {
+  return <ScopedReconciliation key={props.base} {...props} />;
+}
+function ScopedReconciliation({ base, orders, demo, disabled, save }: Props) {
+  const [data, setData] = useState<any>(null),
+    [error, setError] = useState(""),
+    [readError, setReadError] = useState(""),
+    [loading, setLoading] = useState(true),
+    [working, setWorking] = useState(false),
+    [pending, setPending] = useState<any>(null),
+    [denied, setDenied] = useState(false);
   const [draft, setDraft] = useState({
     transactionId: "",
     orderId: "",
@@ -43,22 +41,64 @@ export default function Reconciliation({
     type: "collection_reported",
     amount: "",
   });
+  const active = useRef(true),
+    readId = useRef(0),
+    inFlight = useRef(false),
+    pendingRef = useRef<any>(null);
+  async function load(signal?: AbortSignal) {
+    const id = ++readId.current;
+    setLoading(true);
+    try {
+      const result = await workspaceApi(
+        base + "/reconciliation",
+        "GET",
+        undefined,
+        signal,
+      );
+      if (!active.current || signal?.aborted || id !== readId.current) return;
+      if (!Array.isArray(result?.transactions))
+        throw Error(
+          "Reconciliation records could not be confirmed. Refresh before continuing.",
+        );
+      setData(result);
+      setReadError("");
+    } catch (e) {
+      if (
+        active.current &&
+        id === readId.current &&
+        (e as Error).name !== "AbortError"
+      ) {
+        setReadError((e as Error).message);
+        if ([401, 403, 404].includes((e as any).status)) {
+          setDenied(true);
+          setData(null);
+        }
+      }
+    } finally {
+      if (active.current && !signal?.aborted && id === readId.current)
+        setLoading(false);
+    }
+  }
   useEffect(() => {
+    active.current = true;
     const controller = new AbortController();
-    readReconciliation(base, controller.signal)
-      .then(setData)
-      .catch((e) => {
-        if (e.name !== "AbortError") setError(e.message);
-      });
-    return () => controller.abort();
-  }, [base]);
-  const record = async () => {
-    const body = pending || {
-      ...draft,
-      eventId: uuid(),
-      amount: Math.round(Number(draft.amount) * 100),
-      occurredAt: new Date().toISOString(),
+    void load(controller.signal);
+    return () => {
+      active.current = false;
+      readId.current++;
+      controller.abort();
     };
+  }, [base]);
+  async function record() {
+    if (disabled || inFlight.current || denied || !demo) return;
+    const wasUnconfirmed = !!pendingRef.current,
+      body = pendingRef.current || {
+        ...draft,
+        eventId: uuid(),
+        amount: Math.round(Number(draft.amount) * 100),
+        occurredAt: new Date().toISOString(),
+      };
+    inFlight.current = true;
     setWorking(true);
     setError("");
     try {
@@ -68,185 +108,305 @@ export default function Reconciliation({
         body,
         "Simulator observation recorded. No funds moved and no order payment was confirmed.",
       );
+      if (!active.current) return;
+      pendingRef.current = null;
       setPending(null);
-      setData(await readReconciliation(base));
+      await load();
     } catch (e) {
-      if (e instanceof WorkspaceError && (!e.status || e.status >= 500))
+      if (!active.current) return;
+      if (
+        wasUnconfirmed ||
+        !(e instanceof WorkspaceError) ||
+        !e.status ||
+        e.status >= 500
+      ) {
+        pendingRef.current = body;
         setPending(body);
+      }
+      if ([401, 403, 404].includes((e as any).status)) {
+        setDenied(true);
+        setData(null);
+      }
       setError((e as Error).message);
     } finally {
-      setWorking(false);
+      inFlight.current = false;
+      if (active.current) setWorking(false);
     }
-  };
+  }
   return (
-    <section className="mw-card">
-      <h2>Payment reconciliation</h2>
-      <div className="mw-note">
-        <strong>Internal test adapter · no money movement</strong>
+    <section className="mw-card fo-reconciliation">
+      <header className="fo-heading">
+        <div>
+          <h2>Payment reconciliation</h2>
+          <p>
+            Compare reported observations with recorded collections and refunds.
+          </p>
+        </div>
+        <Action
+          disabled={disabled || working}
+          pending={loading}
+          onClick={() => void load()}
+        >
+          Refresh reconciliation
+        </Action>
+      </header>
+      <div className="fo-pending">
+        <strong>Test observations · no money movement</strong>
         <p>
-          Observed events never confirm an order or prove a settlement. Matching
-          requires the exact transaction ID on the internal payment/refund
-          reference. Live provider contracts remain unverified.
+          These records do not confirm an order payment or prove settlement.
+          Live provider access remains unverified.
         </p>
       </div>
-      {error && <p role="alert">{error}</p>}
-      {demo && (
-        <details>
-          <summary>Record a simulator observation</summary>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void record();
-            }}
-          >
-            <fieldset
-              disabled={disabled || working || !!pending}
-              style={{ border: 0, padding: 0 }}
-            >
-              <div className="mw-form">
-                <label>
-                  Simulator transaction ID
-                  <input
-                    required
-                    minLength={3}
-                    maxLength={120}
-                    value={draft.transactionId}
-                    onChange={(event) =>
-                      setDraft({ ...draft, transactionId: event.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  Simulator order
-                  <select
-                    required
-                    value={draft.orderId}
-                    onChange={(event) =>
-                      setDraft({ ...draft, orderId: event.target.value })
-                    }
-                  >
-                    <option value="">Choose an order</option>
-                    {orders.map((order) => (
-                      <option key={order.id} value={order.id}>
-                        {order.reference || order.id.slice(0, 8)} ·{" "}
-                        {order.displayName}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Event sequence
-                  <input
-                    required
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={draft.sequence}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        sequence: Number(event.target.value),
-                      })
-                    }
-                  />
-                </label>
-                <label>
-                  Observation type
-                  <select
-                    value={draft.type}
-                    onChange={(event) =>
-                      setDraft({ ...draft, type: event.target.value })
-                    }
-                  >
-                    {[
-                      "collection_reported",
-                      "refund_reported",
-                      "settlement_reported",
-                    ].map((type) => (
-                      <option key={type}>{type}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Observed amount (naira)
-                  <input
-                    required
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={draft.amount}
-                    onChange={(event) =>
-                      setDraft({ ...draft, amount: event.target.value })
-                    }
-                  />
-                </label>
-              </div>
-              <button className="secondary">Record test observation</button>
-            </fieldset>
-          </form>
-          {pending && (
-            <button
-              disabled={working || disabled}
-              onClick={() => void record()}
-            >
-              Retry original observation
-            </button>
-          )}
-        </details>
+      {error && (
+        <p className="fo-error" role="alert">
+          {error}
+        </p>
       )}
-      {!data ? (
-        error ? null : (
-          <p role="status">Loading reconciliation records…</p>
-        )
-      ) : !data.transactions.length ? (
-        <p>No provider observations recorded for this branch.</p>
+      {denied ? (
+        <ReadState
+          kind="unavailable"
+          title="Reconciliation access needs checking. Refresh your workspace or sign in again before continuing."
+        />
       ) : (
-        data.transactions.map((row: any) => (
-          <article className="mw-card" key={row.transactionId}>
-            <h3>
-              {row.reference || row.orderId} · {row.status}
-            </h3>
-            <p>
-              Transaction {row.transactionId} · Settlement{" "}
-              {row.settlementStatus}
+        <>
+          {loading && (
+            <ReadState kind="loading" title="Loading reconciliation records…" />
+          )}
+          {readError && (
+            <ReadState
+              kind="error"
+              title={readError}
+              retry={() => void load()}
+              retryLabel="Retry reconciliation"
+              pending={loading}
+            />
+          )}
+          {!loading && !readError && data && !data.transactions.length && (
+            <ReadState
+              kind="empty"
+              title="No provider observations recorded for this branch."
+            />
+          )}
+          {readError && data?.transactions?.length > 0 && (
+            <p className="fo-muted">
+              Showing previously loaded records. Refresh before relying on the
+              matching state.
             </p>
-            {row.missingSequences.length > 0 && (
-              <p>Missing event sequences: {row.missingSequences.join(", ")}</p>
-            )}
-            <div className="mw-grid">
-              {[
-                ["Reported collection", row.reportedCollection],
-                ["Internal collection", row.internalCollection],
-                ["Reported refund", row.reportedRefund],
-                ["Internal refund", row.internalRefund],
-                ["Reported settlement (unverified)", row.reportedSettlement],
-              ].map(([label, value]) => (
-                <div key={String(label)}>
-                  <span>{label}</span>
-                  <p>{formatMoney(Number(value))}</p>
+          )}
+          {data && data.transactions.length > 0 && (
+            <DataRegion
+              label="Reconciliation observations"
+              className="fo-table-scroll"
+            >
+              <table className="fo-table">
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Transaction</th>
+                    <th>Matching</th>
+                    <th>Reported collection</th>
+                    <th>Recorded collection</th>
+                    <th>Review</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.transactions.map((row: any) => (
+                    <tr key={row.transactionId}>
+                      <td>{row.reference || "Order reference unavailable"}</td>
+                      <td>{row.transactionId}</td>
+                      <td>{human(row.status)}</td>
+                      <td>{money(row.reportedCollection)}</td>
+                      <td>{money(row.internalCollection)}</td>
+                      <td>
+                        <Disclosure summary="Observation details">
+                          <dl className="fo-facts">
+                            <div>
+                              <dt>Order identity</dt>
+                              <dd>{row.reference || "Not recorded"}</dd>
+                            </div>
+                            <div>
+                              <dt>Settlement state</dt>
+                              <dd>
+                                {human(row.settlementStatus)} · unverified
+                              </dd>
+                            </div>
+                            {[
+                              ["Reported refund", row.reportedRefund],
+                              ["Recorded refund", row.internalRefund],
+                              [
+                                "Reported settlement (unverified)",
+                                row.reportedSettlement,
+                              ],
+                            ].map(([label, value]) => (
+                              <div key={String(label)}>
+                                <dt>{label}</dt>
+                                <dd>{money(value)}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                          {Array.isArray(row.missingSequences) &&
+                            row.missingSequences.length > 0 && (
+                              <p className="fo-error">
+                                Missing event sequences:{" "}
+                                {row.missingSequences.join(", ")}
+                              </p>
+                            )}
+                          <h4>Fee assessment</h4>
+                          <p>
+                            {human(row.fee?.status)}. Assessed and proposed
+                            values do not prove a collection.
+                          </p>
+                          <dl className="fo-facts">
+                            {[
+                              ["Assessed", row.fee?.assessed],
+                              ["Refunded", row.fee?.refunded],
+                              ["Collected", row.fee?.collected],
+                              ["Settled", row.fee?.settled],
+                              [
+                                "Proposed merchant entitlement",
+                                row.merchantEntitlement,
+                              ],
+                            ].map(([label, value]) => (
+                              <div key={String(label)}>
+                                <dt>{label}</dt>
+                                <dd>{money(value)}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </Disclosure>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </DataRegion>
+          )}
+          {demo && (
+            <Disclosure
+              summary="Record a simulator observation"
+              className="fo-simulator"
+            >
+              <p className="fo-muted">
+                For internal testing only. This does not record a payment or
+                move funds.
+              </p>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void record();
+                }}
+              >
+                <fieldset
+                  disabled={disabled || working || !!pending}
+                  className="fo-fieldset"
+                >
+                  <div className="fo-form-grid">
+                    <label>
+                      Simulator transaction ID
+                      <input
+                        required
+                        minLength={3}
+                        maxLength={120}
+                        value={draft.transactionId}
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            transactionId: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Simulator order
+                      <select
+                        required
+                        value={draft.orderId}
+                        onChange={(event) =>
+                          setDraft({ ...draft, orderId: event.target.value })
+                        }
+                      >
+                        <option value="">Choose an order</option>
+                        {orders.map((order) => (
+                          <option key={order.id} value={order.id}>
+                            {order.reference || "Reference unavailable"} ·{" "}
+                            {order.displayName}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Event sequence
+                      <input
+                        required
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={draft.sequence}
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            sequence: Number(event.target.value),
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Observation type
+                      <select
+                        value={draft.type}
+                        onChange={(event) =>
+                          setDraft({ ...draft, type: event.target.value })
+                        }
+                      >
+                        {[
+                          "collection_reported",
+                          "refund_reported",
+                          "settlement_reported",
+                        ].map((type) => (
+                          <option key={type} value={type}>
+                            {human(type)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Observed amount (naira)
+                      <input
+                        required
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={draft.amount}
+                        onChange={(event) =>
+                          setDraft({ ...draft, amount: event.target.value })
+                        }
+                      />
+                    </label>
+                  </div>
+                  <Action type="submit" pending={working}>
+                    Record test observation
+                  </Action>
+                </fieldset>
+              </form>
+              {pending && (
+                <div className="fo-pending">
+                  <p role="status">
+                    Observation not confirmed. Retry the original event; keep
+                    this page open until checked. Refreshing loses this direct
+                    retry, so check existing observations before starting again.
+                  </p>
+                  <Action
+                    disabled={disabled}
+                    pending={working}
+                    onClick={() => void record()}
+                  >
+                    Retry original observation
+                  </Action>
                 </div>
-              ))}
-            </div>
-            <p>
-              Fee policy: {row.fee.status} · Assessed{" "}
-              {Number.isSafeInteger(row.fee.assessed)
-                ? formatMoney(row.fee.assessed)
-                : "unresolved"}{" "}
-              · Refunded{" "}
-              {Number.isSafeInteger(row.fee.refunded)
-                ? formatMoney(row.fee.refunded)
-                : "unresolved"}{" "}
-              · Collected {formatMoney(row.fee.collected)} · Settled{" "}
-              {formatMoney(row.fee.settled)}
-            </p>
-            <p>
-              Proposed merchant entitlement:{" "}
-              {Number.isSafeInteger(row.merchantEntitlement)
-                ? formatMoney(row.merchantEntitlement)
-                : "unresolved"}
-            </p>
-          </article>
-        ))
+              )}
+            </Disclosure>
+          )}
+        </>
       )}
     </section>
   );
