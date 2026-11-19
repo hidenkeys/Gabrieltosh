@@ -220,6 +220,14 @@ export function redactMeraFinancialPolicy(value) {
     .map(([key,item])=>[key,redactMeraFinancialPolicy(item)]));
   return value;
 }
+// Station roles receive the same ticket scope enforced by preparation writes and UI.
+export function projectStationTickets(tickets, role, permissions) {
+  if (!permissions.includes("orders.prepare")) return [];
+  return ["kitchen", "bar"].includes(role)
+    ? tickets.filter((ticket) => ticket.station === role)
+    : tickets;
+}
+
 export function createMeraRouter(db) {
   const router = express.Router();
   const commercial=(access=[])=>access.includes("billing.manage")||access.includes("organization.manage");
@@ -549,7 +557,7 @@ export function createMeraRouter(db) {
                 .filter((b) => b.status !== "merged")
                 .map(billAmounts)
             : [],
-        tickets: access.includes("orders.prepare") ? by("ticket") : [],
+        tickets: projectStationTickets(by("ticket"),req.meraMembership.role,access),
         preparationFacts:projectPreparationFacts(by("order"),by("ticket"),access),
         categories:access.includes("menu.edit")?by("category"):(b.settings.publishedCategories||[]),
         lowStockAlerts:access.some(p=>["menu.edit","stock.adjust"].includes(p))?by("product").flatMap(p=>[

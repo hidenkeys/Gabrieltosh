@@ -232,3 +232,40 @@ test("O3 settings locks duplicate and cross-form submits synchronously without r
     cleanup();
   }
 });
+
+test("O3 disabled setup rejects programmatic submissions and explicit validation rejection remains editable", async () => {
+  let writes = 0;
+  const props = {
+    branch: { settings: {} },
+    organization: { id: "org-1" },
+    base,
+    save: async () => {
+      writes++;
+      throw Object.assign(new Error("Review the timezone"), { status: 400 });
+    },
+  };
+  try {
+    const view = render(<BranchSettings {...props} disabled />);
+    const form = screen
+      .getByRole("button", { name: "Save branch policies" })
+      .closest("form")!;
+    fireEvent.submit(form);
+    assert.equal(writes, 0);
+    view.rerender(<BranchSettings {...props} disabled={false} />);
+    fireEvent.submit(form);
+    await screen.findByRole("alert");
+    assert.equal(writes, 1);
+    assert(!screen.queryByText("Branch settings saved."));
+    fireEvent.change(screen.getByLabelText("Branch address"), {
+      target: { value: "Reviewed address" },
+    });
+    assert.equal(
+      (screen.getByLabelText("Branch address") as HTMLInputElement).value,
+      "Reviewed address",
+    );
+    fireEvent.submit(form);
+    await waitFor(() => assert.equal(writes, 2));
+  } finally {
+    cleanup();
+  }
+});

@@ -828,13 +828,36 @@ test("custom roles expose only actor-grantable permissions and invite using a sc
   globalThis.fetch = (async (input: any) => {
     const path = String(input);
     if (path.includes("-attempts/")) {
-      const call = calls.at(-1), { requestKey, ...intent } = call[2];
+      const call = calls.at(-1),
+        { requestKey, ...intent } = call[2];
       const invitation = path.includes("/invitations/");
       const operation = invitation ? "invitation_create" : "role_update";
       const targetId = invitation ? null : "custom-role";
-      return Response.json({ status: "recorded", requestKey, actorId: "current-session", organizationId: "org", operation, targetId,
-        resultBasis: "recorded_operation_snapshot", operationRecord: { id: "operation-" + calls.length, requestKey, actorId: "current-session", operation, targetId, intent },
-        result: invitation ? { id: "invitation", ...intent, delivery: "not_sent", developmentTokenRecoverable: false } : { id: targetId, ...intent, version: intent.version + 1 } });
+      return Response.json({
+        status: "recorded",
+        requestKey,
+        actorId: "current-session",
+        organizationId: "org",
+        operation,
+        targetId,
+        resultBasis: "recorded_operation_snapshot",
+        operationRecord: {
+          id: "operation-" + calls.length,
+          requestKey,
+          actorId: "current-session",
+          operation,
+          targetId,
+          intent,
+        },
+        result: invitation
+          ? {
+              id: "invitation",
+              ...intent,
+              delivery: "not_sent",
+              developmentTokenRecoverable: false,
+            }
+          : { id: targetId, ...intent, version: intent.version + 1 },
+      });
     }
     return Response.json(
       String(input).endsWith("/roles")
@@ -854,7 +877,8 @@ test("custom roles expose only actor-grantable permissions and invite using a sc
             ],
           }
         : [],
-    ); }) as any;
+    );
+  }) as any;
   try {
     render(
       React.createElement(RoleManager, {
@@ -3931,19 +3955,26 @@ test("refund-request financial recovery retains only a validated request referen
 
 test("F5 integrated first landing follows actual role grants and uses one navigation", async () => {
   const original = globalThis.fetch;
-  const cases: [string, string[], string][] = [
-    ["owner", ["reports.view", "orders.view"], "Overview"],
-    ["cashier", ["orders.view", "orders.create"], "Point of sale"],
-    ["kitchen", ["orders.view", "orders.prepare"], "Preparation"],
-    ["bar", ["orders.view", "orders.prepare"], "Preparation"],
-    ["waiter", ["orders.view", "tables.manage"], "Tables & visits"],
-    [
-      "front_desk",
-      ["orders.view", "tables.manage", "reservations.manage"],
-      "Reservations",
+  const { rolePermissions } = await import("../shared/mera-contracts.js");
+  const landings: Record<string, string> = {
+    owner: "Overview",
+    organization_admin: "Overview",
+    branch_manager: "Overview",
+    cashier: "Point of sale",
+    kitchen: "Preparation",
+    bar: "Preparation",
+    waiter: "Tables & visits",
+    front_desk: "Reservations",
+    stock_controller: "Menu & stock",
+    reports_only: "Overview",
+  };
+  const cases: [string, string[], string][] = Object.entries(landings).map(
+    ([role, landing]) => [
+      role,
+      [...rolePermissions[role as keyof typeof rolePermissions]],
+      landing,
     ],
-    ["stock_controller", ["stock.adjust", "menu.edit"], "Menu & stock"],
-  ];
+  );
   try {
     for (const [role, permissions, landing] of cases) {
       globalThis.fetch = (async (input: any, init: any) =>

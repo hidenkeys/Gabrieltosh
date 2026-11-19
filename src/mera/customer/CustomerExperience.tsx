@@ -1652,12 +1652,16 @@ export default function CustomerExperience({
                   <h2>
                     {products.length
                       ? "No items found"
-                      : "The menu is on its way"}
+                      : menu.version > 0
+                        ? "No menu items available"
+                        : "The menu is on its way"}
                   </h2>
                   <p>
                     {products.length
                       ? "Try another search or browse all categories."
-                      : "This venue has not published its menu yet. Please check with the team."}
+                      : menu.version > 0
+                        ? "There are no items to browse right now. Please check with the team."
+                        : "This venue has not published its menu yet. Please check with the team."}
                   </p>
                   {products.length > 0 && (
                     <button

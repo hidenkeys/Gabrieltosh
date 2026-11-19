@@ -230,3 +230,41 @@ test("reviewing a newer ticket preserves unsaved counts belonging to other ticke
   assert.equal((inputs[1] as HTMLInputElement).value, "3");
   assert.ok(inputs[1].isConnected);
 });
+for (const scope of ["kitchen", "bar"])
+  test(`${scope} role view never mounts the other station, and real read failure retry retains its own count`, async () => {
+    const own = { ...ticket, id: scope + "-ticket", station: scope },
+      other = {
+        ...ticket,
+        id: "other-ticket",
+        station: scope === "kitchen" ? "bar" : "kitchen",
+        items: [{ ...ticket.items[0], name: "OTHER STATION PRIVATE ITEM" }],
+      };
+    let reads = 0;
+    const p = {
+      ...props,
+      tickets: [own, other],
+      stationScope: scope,
+      onRefresh: async () => {
+        reads++;
+        throw Error("Offline read");
+      },
+    };
+    const view = render(<Tickets {...p} />);
+    const input = screen.getByLabelText(
+      `Prepared quantity for Tea on ${scope}`,
+    );
+    fireEvent.input(input, { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Refresh tickets" }));
+    await screen.findByText("Tickets could not be refreshed. Try again.");
+    assert.equal(reads, 1);
+    assert.equal((input as HTMLInputElement).value, "2");
+    assert.ok(!screen.queryByText(/OTHER STATION PRIVATE ITEM/));
+    assert.ok(!screen.queryByLabelText("Preparation station"));
+    view.rerender(<Tickets {...p} loadError="Branch read unavailable" />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry loading tickets" }),
+    );
+    await waitFor(() => assert.equal(reads, 2));
+    assert.equal((input as HTMLInputElement).value, "2");
+    assert.ok(input.isConnected);
+  });

@@ -177,7 +177,7 @@ test("C1 persistent basket access retains customization, quantities and keyboard
   cleanup();
 });
 test("C1 paused and unpublished menus explain availability without accepting an order", async (t) => {
-  mockMenu(t, { ...menu, orderingAvailable: false, products: [] });
+  mockMenu(t, { ...menu, version: 0, orderingAvailable: false, products: [] });
   render(React.createElement(CustomerExperience));
   await screen.findByText("Ordering is paused. You can still browse the menu.");
   await screen.findByRole("heading", { name: "Your basket" });
@@ -711,4 +711,97 @@ test("expired price review cannot submit and requires a deliberate fresh review"
   await screen.findByRole("button", { name: "Submit order" });
   assert.equal(quotes, 2);
   assert.equal(orders, 0);
+});
+
+test("C1 loading does not falsely show an empty menu or require guest details before browsing", async (t) => {
+  let resolve!: (response: Response) => void;
+  const writes: string[] = [];
+  mockGuestSessionFetch(t, async (input: any, init: any) => {
+    if (init?.method !== "GET") writes.push(String(input));
+    if (String(input).endsWith("/menu"))
+      return new Promise<Response>((done) => {
+        resolve = done;
+      });
+    if (String(input).endsWith("/branches"))
+      return Response.json({ branches: [] });
+    return Response.json({ error: "Guest required" }, { status: 401 });
+  });
+  render(<CustomerExperience />);
+  assert(screen.getByText("Opening the menu…"));
+  assert.equal(
+    screen.queryByRole("heading", { name: "The menu is on its way" }),
+    null,
+  );
+  assert.equal(screen.queryByRole("button", { name: "Submit order" }), null);
+  resolve(Response.json(menu));
+  await screen.findByText("Brown Sugar Boba");
+  assert.equal(screen.queryByText("Opening the menu…"), null);
+  assert.deepEqual(writes, []);
+});
+
+test("C1 a published empty menu never claims the venue has not published", async (t) => {
+  const writes = mockMenu(t, { ...menu, version: 3, products: [] });
+  render(<CustomerExperience />);
+  await screen.findByRole("heading", { name: "No menu items available" });
+  assert.equal(screen.queryByText(/has not published its menu/), null);
+  assert(
+    screen.getByText(
+      "There are no items to browse right now. Please check with the team.",
+    ),
+  );
+  assert.equal(
+    (await screen.findByRole("button", { name: "Submit order" })).disabled,
+    true,
+  );
+  assert.deepEqual(writes, []);
+});
+
+test("C1 paused published menu keeps browsing and photos available but blocks choosing", async (t) => {
+  const writes = mockMenu(t, { ...menu, orderingAvailable: false });
+  render(<CustomerExperience />);
+  await screen.findByText("Brown Sugar Boba");
+  assert(
+    screen.getByText("Ordering is paused. You can still browse the menu."),
+  );
+  assert.equal(
+    screen.getByRole("button", { name: "Choose: Brown Sugar Boba" }).disabled,
+    true,
+  );
+  assert.ok(
+    document.querySelector(".mc-product img"),
+    "existing catalog photography stays visible while paused",
+  );
+  fireEvent.change(screen.getByRole("textbox", { name: "Search menu" }), {
+    target: { value: "smoothie" },
+  });
+  assert.equal(screen.queryByText("Brown Sugar Boba"), null);
+  assert(screen.getByText("Seasonal smoothie"));
+  assert.deepEqual(writes, []);
+});
+
+test("C1 unrelated organization without a product photo gets a neutral placeholder, never Bing Chun imagery", async (t) => {
+  const originalPath = window.location.pathname;
+  window.history.replaceState(
+    {},
+    "",
+    "/mera/menu/independent-cafe/20000000-0000-4000-8000-000000000001",
+  );
+  t.after(() => window.history.replaceState({}, "", originalPath));
+  mockMenu(t, {
+    ...menu,
+    organization: {
+      ...menu.organization,
+      name: "Independent Cafe",
+      slug: "independent-cafe",
+    },
+    products: [{ ...product, code: "", imageCode: null, image: null }],
+  });
+  render(<CustomerExperience />);
+  await screen.findByText("Brown Sugar Boba");
+  assert(screen.getByText("Photo coming soon"));
+  assert.equal(document.querySelector(".mc-product img"), null);
+  assert.equal(
+    document.querySelector('img[src="/brand/brand-logo.png"]'),
+    null,
+  );
 });
