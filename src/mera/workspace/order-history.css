@@ -294,3 +294,11 @@
     margin: 5px 0 0;
   }
 }
+.oh-history .oh-assignment-change {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--muted, #51647d);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { formatMoney, workspaceApi } from "./api";
 import OrderInstructions from "./OrderInstructions";
+import { orderStatusLabel, paymentStatusLabel } from "./LiveOrderCard";
 import { Disclosure, DataRegion } from "../ui/OperationalPrimitives";
 type Historical = "only" | "exclude" | "all";
 type Filters = {
@@ -27,11 +28,50 @@ const defaults: Filters = {
   to: "",
   take: 50,
 };
-const human = (value: any) => {
-  if (value === "customer_qr") return "Customer QR";
-  const text = String(value || "Not recorded").replaceAll("_", " ");
-  return text.charAt(0).toUpperCase() + text.slice(1);
+const labels: Record<string, string> = {
+  customer_qr: "Customer QR",
+  staff: "Staff",
+  integration: "Integration",
+  zidi: "Zidi",
+  counter_pickup: "Counter pickup",
+  counter_takeaway: "Counter takeaway",
+  takeaway: "Takeaway",
+  table_service: "Table service",
+  submitted: "Submitted",
+  accepted: "Accepted",
+  preparing: "Preparing",
+  prepared: "Prepared",
+  ready: "Ready for service",
+  collected: "Collected",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  rejected: "Rejected",
+  unpaid: "Unpaid",
+  paid: "Paid",
+  pending: "Awaiting confirmation",
+  partially_paid: "Partly paid",
+  partially_refunded: "Partly refunded",
+  refunded: "Refunded",
+  failed: "Failed",
+  expired: "Expired",
+  assigned: "Assigned",
+  joined: "Joined",
+  payment_recorded: "Payment recorded",
+  refund_recorded: "Refund recorded",
+  items_handed_over: "Items handed over",
+  item_cancelled: "Item cancelled",
+  balance_written_off: "Balance written off",
+  legacy_order_imported: "Previous order imported",
+  legacy_source_audit: "Previous source history",
+  legacy_paid_basis: "Legacy paid basis",
+  fulfilled_only: "Fulfilled only",
+  immutable_collected_at: "Recorded collection time",
+  unresolved_source_tax_breakdown: "Source tax breakdown unresolved",
 };
+const human = (value: unknown) =>
+  typeof value === "string" && value.trim()
+    ? labels[value] || "Unavailable"
+    : "Not recorded";
 const actorLabel = (entry: any) =>
   entry.actorName ||
   (
@@ -43,11 +83,80 @@ const actorLabel = (entry: any) =>
       integration: "Integration",
     } as Record<string, string>
   )[entry.actorType] ||
-  "Identity unavailable";
-const date = (value: any) =>
-  value && Number.isFinite(new Date(value).getTime())
-    ? new Date(value).toLocaleString()
-    : "Not recorded";
+  (entry.actorId ? "Staff name unavailable" : "Identity unavailable");
+const historyDate = (value: unknown, timeZone?: string) => {
+  if (
+    typeof value !== "string" ||
+    !value.trim() ||
+    !Number.isFinite(Date.parse(value))
+  )
+    return "Time unavailable";
+  if (timeZone) {
+    try {
+      return (
+        new Intl.DateTimeFormat("en-GB", {
+          dateStyle: "medium",
+          timeStyle: "short",
+          timeZone,
+        }).format(new Date(value)) +
+        " · " +
+        timeZone
+      );
+    } catch {
+      /* Explicit fallback. */
+    }
+  }
+  return (
+    new Intl.DateTimeFormat("en-GB", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "UTC",
+    }).format(new Date(value)) + " · UTC (branch timezone unavailable)"
+  );
+};
+export function OrderTimeline({
+  entries,
+  timeZone,
+}: {
+  entries: unknown;
+  timeZone?: string;
+}) {
+  if (!Array.isArray(entries)) return <p>History unavailable.</p>;
+  if (!entries.length) return <p>No events recorded.</p>;
+  const valid = entries.filter(
+    (entry) => entry && typeof entry === "object" && !Array.isArray(entry),
+  );
+  const assignedName = (entry: any, field: "from" | "to") =>
+    typeof entry[field + "Name"] === "string" && entry[field + "Name"].trim()
+      ? entry[field + "Name"]
+      : entry[field] === null || entry[field] === ""
+        ? "Unassigned"
+        : "Staff name unavailable";
+  return (
+    <>
+      {valid.length !== entries.length && (
+        <p>Some history events are unavailable.</p>
+      )}
+      {valid.map((entry: any, index: number) => (
+        <p key={index}>
+          {human(entry.action)} · {actorLabel(entry)} ·{" "}
+          {historyDate(entry.at, timeZone)}
+          {Number.isSafeInteger(entry.amount)
+            ? " · " + formatMoney(entry.amount)
+            : ""}
+          {entry.action === "assigned" && (
+            <span className="oh-assignment-change">
+              {assignedName(entry, "from")} → {assignedName(entry, "to")}
+            </span>
+          )}
+          {typeof entry.reason === "string" && entry.reason.trim()
+            ? " · " + entry.reason
+            : ""}
+        </p>
+      ))}
+    </>
+  );
+}
 function query(filters: Filters, cursor: string | null) {
   const params = new URLSearchParams();
   params.set("take", String(filters.take));
@@ -82,12 +191,15 @@ function ScopedOrderHistory({
   disabled = false,
   initialHistorical = "exclude",
   staffChoices = [],
+  timeZone,
 }: {
   base: string;
   disabled?: boolean;
+  timeZone?: string;
   initialHistorical?: Historical;
   staffChoices?: { userId: string; name: string }[];
 }) {
+  const date = (value: unknown) => historyDate(value, timeZone);
   const detailHeading = useRef<HTMLHeadingElement>(null);
   const detailTrigger = useRef<HTMLButtonElement | null>(null);
   const detailId = React.useId();
@@ -479,7 +591,7 @@ function ScopedOrderHistory({
                 >
                   <td data-label="Order">
                     <b>
-                      {order.reference || String(order.id).slice(0, 8)} ·{" "}
+                      {order.reference || "Reference unavailable"} ·{" "}
                       {order.displayName}
                     </b>
                     <small>{human(order.source)}</small>
@@ -492,10 +604,12 @@ function ScopedOrderHistory({
                   <td data-label="Placed">{date(order.createdAt)}</td>
                   <td data-label="Order status">
                     <span className="oh-state-label">
-                      {human(order.status)}
+                      {orderStatusLabel(order.status)}
                     </span>
                   </td>
-                  <td data-label="Payment">{human(order.paymentStatus)}</td>
+                  <td data-label="Payment">
+                    {paymentStatusLabel(order.paymentStatus)}
+                  </td>
                   <td data-label="Total" className="oh-money">
                     {Number.isSafeInteger(order.total)
                       ? formatMoney(order.total)
@@ -519,7 +633,9 @@ function ScopedOrderHistory({
                         setDetailRevision((value) => value + 1);
                       }}
                     >
-                      View {order.reference || String(order.id).slice(0, 8)}
+                      {order.reference
+                        ? "View " + order.reference
+                        : "View order details"}
                     </button>
                   </td>
                 </tr>
@@ -594,7 +710,8 @@ function ScopedOrderHistory({
             detail && (
               <>
                 <h3>
-                  {detail.reference || detail.id} · {detail.displayName}
+                  {detail.reference || "Reference unavailable"} ·{" "}
+                  {detail.displayName}
                 </h3>
                 {detail.historicalReadOnly && (
                   <div className="mw-note oh-history-warning">
@@ -608,8 +725,16 @@ function ScopedOrderHistory({
                   </div>
                 )}
                 <p>
-                  {human(detail.status)} · {human(detail.paymentStatus)} ·{" "}
+                  {orderStatusLabel(detail.status)} ·{" "}
+                  {paymentStatusLabel(detail.paymentStatus)} ·{" "}
                   {human(detail.source)} · {date(detail.createdAt)}
+                </p>
+                <p>
+                  Service:{" "}
+                  {typeof detail.tableName === "string" &&
+                  detail.tableName.trim()
+                    ? detail.tableName
+                    : human(detail.fulfillment)}
                 </p>
                 <dl className="oh-detail-totals">
                   {[
@@ -677,17 +802,7 @@ function ScopedOrderHistory({
                     </article>
                   ))}
                 <h3>Responsibility & transaction history</h3>
-                {Array.isArray(detail.history) &&
-                  detail.history.map((entry: any, index: number) => (
-                    <p key={index}>
-                      {human(entry.action)} · {actorLabel(entry)} ·{" "}
-                      {date(entry.at)}
-                      {Number.isSafeInteger(entry.amount)
-                        ? " · " + formatMoney(entry.amount)
-                        : ""}
-                      {entry.reason ? " · " + entry.reason : ""}
-                    </p>
-                  ))}
+                <OrderTimeline entries={detail.history} timeZone={timeZone} />
               </>
             )
           )}

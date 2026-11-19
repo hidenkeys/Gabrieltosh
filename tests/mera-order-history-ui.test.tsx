@@ -209,10 +209,81 @@ test("P2 responsibility history labels only known identity and renders Customer 
       name: "Responsibility & transaction history",
     });
     assert.equal(screen.queryByText(new RegExp(unknownId)), null);
-    assert.ok(screen.getByText(/Submitted · Identity unavailable/));
+    assert.ok(screen.getByText(/Submitted · Staff name unavailable/));
     assert.ok(screen.getByText(/Joined · Guest/));
     assert.ok(screen.getByText(/Accepted · Staff name unavailable/));
     assert.ok(screen.getByText(/Prepared · Sam/));
+  } finally {
+    cleanup();
+  }
+});
+test("P2 history uses branch dates, honest missing references and allowlisted states without opaque identifiers", async () => {
+  const privateId = "private-opaque-order-id";
+  globalThis.fetch = (async () =>
+    Response.json(
+      page([
+        {
+          ...order,
+          id: privateId,
+          reference: null,
+          status: "internal_order_code",
+          paymentStatus: "internal_payment_code",
+          source: "internal_source_code",
+        },
+      ]),
+    )) as any;
+  try {
+    render(<OrderHistory base={base} timeZone="Africa/Lagos" />);
+    await screen.findByText(/Reference unavailable/);
+    assert.ok(screen.getByRole("button", { name: "View order details" }));
+    assert.ok(screen.getByText("19 Nov 2026, 11:00 · Africa/Lagos"));
+    assert.ok(screen.getByText("Status unavailable"));
+    assert.ok(screen.getByText("Payment status unavailable"));
+    assert.ok(!screen.queryByText(new RegExp(privateId)));
+    assert.ok(
+      !screen.queryByText(
+        /internal_order_code|internal_payment_code|internal_source_code/,
+      ),
+    );
+  } finally {
+    cleanup();
+  }
+});
+test("shared order timeline keeps zero money, actual assignment names and explicit missing history without inventing actors", async () => {
+  const { OrderTimeline } = await import("../src/mera/workspace/OrderHistory");
+  try {
+    const view = render(<OrderTimeline entries={undefined} />);
+    assert.ok(screen.getByText("History unavailable."));
+    view.rerender(<OrderTimeline entries={[]} />);
+    assert.ok(screen.getByText("No events recorded."));
+    view.rerender(
+      <OrderTimeline
+        timeZone="Africa/Lagos"
+        entries={[
+          { action: "payment_recorded", amount: 0, at: "2026-11-19T10:00:00Z" },
+          {
+            action: "assigned",
+            actorId: "private-staff-id",
+            from: null,
+            to: "private-next-id",
+            fromName: null,
+            toName: "Ada",
+            at: "2026-11-19T10:00:00Z",
+          },
+          { action: "assigned", actorName: "Manager", at: "bad-date" },
+        ]}
+      />,
+    );
+    assert.ok(
+      screen.getByText(/Payment recorded · Identity unavailable.*₦0.00/),
+    );
+    assert.ok(screen.getByText("Unassigned → Ada"));
+    assert.ok(
+      screen.getByText("Staff name unavailable → Staff name unavailable"),
+    );
+    assert.ok(screen.getByText(/Assigned · Staff name unavailable/));
+    assert.ok(!screen.queryByText(/private-staff-id|private-next-id/));
+    assert.ok(screen.getByText(/Time unavailable/));
   } finally {
     cleanup();
   }
