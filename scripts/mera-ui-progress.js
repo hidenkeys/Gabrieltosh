@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Shared dialog/primitive milestone verified at49ffed5: customer customization, publication, signout and platform review share safe focus/scroll/isolation while retaining design and business rules. Matched233/235 same-tab2782×1048/identicaldialog geometry, native/customer keyboard and narrow/tablet states reviewed. Fullsuite616pass/2skip, build andfocusedconsumer/shared checks passed. F4 advances40→80; scope1.0 unchanged,64.6/100. Q2/full protected-platform browser/role/state/assistive matrix remains unfinished. Main3003 andQA3007 retained, temporary read-only old-source preview stopped. Next: remaining platform/marketing and cross-screen acceptance plus operational recovery. Provider, QAcredentialartifact and physicalprinter gates remain explicit.",
+  "Public journey/onboarding milestone verified at5b5816f: selected ivory/green composition and proposed terms retained; reliable section/skip/lazy/history focus and mobilemenu destination, guarded signup acknowledgments/singleflight and reload-safe nonsecret uncertainty marker. Fullsuite630pass/2skip,25focused/build, actual same-tab2782×1110 comparisons and390/834normal browser checks. M2 advances40→60, scope1.0 unchanged;65.0/100. No browser account creation or real delivery claim. Authoritative signup recovery/resend, live mutation matrix, production email/legal/commercial readiness and other cross-screen/role/platform/operational acceptance remain unfinished. Main3003/QA3007 running; no production deploy/data/money/security grant.",
   "",
   "## Measurement",
   "",

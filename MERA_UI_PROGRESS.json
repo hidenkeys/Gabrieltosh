@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T15:16:12+01:00",
-  "revision": "49ffed5",
+  "lastUpdated": "2026-11-19T15:38:02+01:00",
+  "revision": "5b5816f",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -1013,7 +1013,7 @@
       "workstream": "M",
       "title": "Marketing features, pricing, legal and signup",
       "weight": 2,
-      "checkpoint": 40,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "backend",
       "dependencies": [
@@ -1023,9 +1023,16 @@
       "acceptance": "Complete service/pricing/signup/support pages with honest configurable terms; real states, no invented delivery or legal completion.",
       "evidence": [
         "tests/mera-signup-ui.test.tsx",
-        "docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md"
+        "docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
+        "docs/mera/ui-audit/PUBLIC-JOURNEY-CHECKPOINT.md",
+        "docs/mera/ui-audit/public-journey-comparison.html",
+        "tests/mera-public-navigation.test.tsx",
+        "tests/mera-signup-recovery.test.tsx"
       ],
-      "blockers": [],
+      "blockers": [
+        "Authoritative signup attempt recovery/token resend API remains missing; unknown creation/verification pauses for authorized account review.",
+        "Production owner registration needs authorized email delivery/sender setup and approved legal/commercial launch terms."
+      ],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
@@ -1041,6 +1048,11 @@
           "at": "2026-11-19T01:50:36+01:00",
           "checkpoint": 40,
           "note": "Front-desk waitlist normal UI transitions and public/customization partial milestone. Actual paired/responsive captures, focus and lazy pricing navigation corrected; role/theme/production registration matrices remain partial."
+        },
+        {
+          "at": "2026-11-19T15:38:02+01:00",
+          "checkpoint": 60,
+          "note": "Public journey integrated at5b5816f: known section/skip/deep-link/history focus, mobilemenuclose\u2192headingfocus, actual signup ack/singleflight/readiness/refresh-safe nonsecret marker. Real2782\u00d71110 comparisons+390/834normalbrowser checks, build,25focused andfull630pass/2skip. No live credentials/accountmutation or dropped-response browser claim. M2only60 due missing authoritative signup recovery/provider/legal/mutation acceptance; scopeunchanged."
         }
       ]
     },
@@ -1921,8 +1933,8 @@
         "permission": "UNVERIFIED",
         "recovery": "UNVERIFIED"
       },
-      "responsive": "Actual desktop and390\u00d7844/834\u00d71194 subset; exact per-screen sizes/states and pending variants in checkpoint",
-      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
+      "responsive": "Actual390CSSpx phone/834CSSpx tablet normal flow, no document horizontaloverflow; Pricingmobilemenu closes andH2focuses, policytopic/deeplink/reload/back and keyboardskip verified. Full state/accessibility acceptance remains partial.",
+      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md Actual236\u2013246 and same-tab2782\u00d71110 public-journey comparison inspected; PUBLIC-JOURNEY-CHECKPOINT.md records exact scope.",
       "blockers": []
     },
     {
@@ -1943,8 +1955,8 @@
         "permission": "UNVERIFIED",
         "recovery": "UNVERIFIED"
       },
-      "responsive": "Actual desktop and390\u00d7844/834\u00d71194 subset; exact per-screen sizes/states and pending variants in checkpoint",
-      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
+      "responsive": "Actual390CSSpx phone/834CSSpx tablet normal flow, no document horizontaloverflow; Pricingmobilemenu closes andH2focuses, policytopic/deeplink/reload/back and keyboardskip verified. Full state/accessibility acceptance remains partial.",
+      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md Actual236\u2013246 and same-tab2782\u00d71110 public-journey comparison inspected; PUBLIC-JOURNEY-CHECKPOINT.md records exact scope.",
       "blockers": []
     },
     {
@@ -1957,17 +1969,19 @@
       "task": "signup",
       "source": "src/mera/Signup.tsx",
       "api": "/api/mera/v1/identity",
-      "functionalCoverage": "Scoped implementation/focused regression plus actual browser subset; not complete acceptance. docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
+      "functionalCoverage": "Real simulated readiness, skip and blank nativevalidation browser verified; strict mutation acknowledgments/singleflight/unknown reload/nonsecret marker covered by25focusedpublic/signup checks. No browser account creation or real delivery claimed.",
       "states": {
         "loading": "UNVERIFIED",
         "empty": "UNVERIFIED",
         "error": "UNVERIFIED",
         "permission": "Actual truthful development/simulated form; blocked registration path tested, no production account or provider activation",
-        "recovery": "UNVERIFIED"
+        "recovery": "Unconfirmed registration/verification and corrupt/unavailable marker pause across remount with no PII/token/password storage; tests pass, live mutation matrix/authoritative recovery endpoint pending."
       },
-      "responsive": "Actual desktop and390\u00d7844/834\u00d71194 subset; exact per-screen sizes/states and pending variants in checkpoint",
-      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
-      "blockers": []
+      "responsive": "Actual390CSSpx phone/834CSSpx tablet normal flow, no document horizontaloverflow; Pricingmobilemenu closes andH2focuses, policytopic/deeplink/reload/back and keyboardskip verified. Full state/accessibility acceptance remains partial.",
+      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md Actual236\u2013246 and same-tab2782\u00d71110 public-journey comparison inspected; PUBLIC-JOURNEY-CHECKPOINT.md records exact scope.",
+      "blockers": [
+        "Authoritative account recovery/resend unavailable; real registration remains blocked pending email/sender setup."
+      ]
     },
     {
       "id": "PUB-staff-login",
@@ -2197,6 +2211,13 @@
       "scopeWeight": 100,
       "weightedPoints": 64.6,
       "roundedCompletion": 64
+    },
+    {
+      "at": "2026-11-19T15:38:02+01:00",
+      "event": "Public marketing/onboarding milestone verified at5b5816f; M2 advances40\u219260; scopeunchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 65.0,
+      "roundedCompletion": 65
     }
   ],
   "baselineRevision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd"
