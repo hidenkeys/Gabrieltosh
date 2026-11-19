@@ -298,8 +298,16 @@ export default function OrganizationWorkspace({
       scopeKey: navigationScope,
       selection: sectionSelection,
     }) || "";
-  const selectSection = (section: string) => {
+  const selectSection = (
+    section: string,
+    options?: { focusDestination: boolean },
+  ) => {
     if (visibleSections.some(([id]) => id === section)) {
+      if (options?.focusDestination)
+        pendingDestinationFocus.current = {
+          scopeKey: navigationScope,
+          section,
+        };
       setAttentionDestination(null);
       setSectionSelection({ section, scopeKey: navigationScope });
     }

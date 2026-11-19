@@ -77,7 +77,7 @@ export default function WorkspaceNavigation({
 }: {
   sections: string[][];
   active: string;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, options?: { focusDestination: boolean }) => void;
   organization: string;
   branch: string;
   logo?: string;
@@ -87,6 +87,30 @@ export default function WorkspaceNavigation({
   const [logoFailed, setLogoFailed] = useState(false);
   useEffect(() => setLogoFailed(false), [logo]);
   const navigation = useRef<HTMLElement>(null);
+  const toggle = useRef<HTMLButtonElement>(null);
+  const closeMenu = () => {
+    setOpen(false);
+    toggle.current?.focus();
+  };
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia("(max-width: 1000px)");
+    const changed = () => {
+      if (media.matches) return;
+      setOpen(false);
+      if (
+        document.activeElement ===
+        navigation.current?.querySelector(".mw-close-nav")
+      )
+        navigation.current
+          ?.querySelector<HTMLButtonElement>(
+            '[role="tab"][aria-selected="true"]',
+          )
+          ?.focus();
+    };
+    media.addEventListener("change", changed);
+    return () => media.removeEventListener("change", changed);
+  }, []);
   useEffect(() => {
     if (open)
       navigation.current
@@ -97,6 +121,7 @@ export default function WorkspaceNavigation({
     <>
       <button
         type="button"
+        ref={toggle}
         className="secondary mw-mobile-nav-toggle"
         aria-expanded={open}
         aria-controls="mw-operational-navigation"
@@ -109,7 +134,7 @@ export default function WorkspaceNavigation({
           type="button"
           className="mw-nav-backdrop"
           aria-label="Close workspace menu"
-          onClick={() => setOpen(false)}
+          onClick={closeMenu}
         />
       )}
       <nav
@@ -118,18 +143,16 @@ export default function WorkspaceNavigation({
         className={"mw-side-nav" + (open ? " is-open" : "")}
         aria-label="Organization workspace"
         onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            setOpen(false);
-            document
-              .querySelector<HTMLButtonElement>(".mw-mobile-nav-toggle")
-              ?.focus();
+          if (open && e.key === "Escape") {
+            e.preventDefault();
+            closeMenu();
           }
           if (open && e.key === "Tab") {
             const controls = Array.from(
               e.currentTarget.querySelectorAll<HTMLElement>(
                 "a,button:not(:disabled)",
               ),
-            ).filter((el) => el.tabIndex >= 0);
+            ).filter((el) => el.tabIndex >= 0 || el === document.activeElement);
             const first = controls[0],
               last = controls.at(-1);
             if (e.shiftKey && document.activeElement === first) {
@@ -156,7 +179,7 @@ export default function WorkspaceNavigation({
             type="button"
             className="secondary mw-close-nav"
             aria-label="Close workspace menu"
-            onClick={() => setOpen(false)}
+            onClick={closeMenu}
           >
             <X size={18} />
           </button>
@@ -224,8 +247,8 @@ export default function WorkspaceNavigation({
                       tabIndex={active === id ? 0 : -1}
                       className={"nav-item" + (active === id ? " active" : "")}
                       onClick={() => {
-                        onSelect(id);
-                        setOpen(false);
+                        if (open) closeMenu();
+                        onSelect(id, { focusDestination: open });
                       }}
                     >
                       {(() => {

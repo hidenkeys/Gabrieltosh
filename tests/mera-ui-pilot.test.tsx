@@ -416,3 +416,79 @@ test("account setup notice stays actionable and respects a busy workspace", asyn
     cleanup();
   }
 });
+
+test("mobile navigation selection requests destination focus and every dismissal restores its own toggle", () => {
+  const selected: any[] = [];
+  try {
+    render(
+      <WorkspaceNavigation
+        organization="Venue"
+        branch="Branch"
+        active="overview"
+        sections={[
+          ["overview", "Overview"],
+          ["orders", "Orders"],
+        ]}
+        onSelect={(...args) => selected.push(args)}
+      />,
+    );
+    const toggle = screen.getByRole("button", { name: "Workspace menu" });
+    const orders = screen.getByRole("tab", { name: "Orders", exact: true });
+    orders.focus();
+    fireEvent.click(orders);
+    assert.deepEqual(selected.at(-1), ["orders", { focusDestination: false }]);
+    assert(document.activeElement === orders);
+    fireEvent.click(toggle);
+    fireEvent.click(orders);
+    assert.deepEqual(selected.at(-1), ["orders", { focusDestination: true }]);
+    assert(document.activeElement === toggle);
+    assert.equal(toggle.getAttribute("aria-expanded"), "false");
+    for (const dismissal of ["close", "backdrop", "escape"]) {
+      fireEvent.click(toggle);
+      if (dismissal === "escape")
+        fireEvent.keyDown(screen.getByRole("navigation"), { key: "Escape" });
+      else {
+        const controls = screen.getAllByRole("button", {
+          name: "Close workspace menu",
+        });
+        fireEvent.click(controls[dismissal === "backdrop" ? 0 : 1]);
+      }
+      assert(document.activeElement === toggle);
+      assert.equal(toggle.getAttribute("aria-expanded"), "false");
+    }
+  } finally {
+    cleanup();
+  }
+});
+
+test("mobile drawer contains Tab after roving focus moves beyond the selected tab", () => {
+  try {
+    render(
+      <WorkspaceNavigation
+        organization="Venue"
+        branch="Branch"
+        active="counter"
+        sections={[
+          ["counter", "Counter"],
+          ["overview", "Overview"],
+          ["support", "Support"],
+        ]}
+        onSelect={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Workspace menu" }));
+    const firstTab = screen.getByRole("tab", { name: "Point of sale" });
+    fireEvent.keyDown(firstTab, { key: "End" });
+    const last = screen.getByRole("tab", { name: "Support" });
+    assert(document.activeElement === last);
+    fireEvent.keyDown(last, { key: "Tab" });
+    assert(
+      document.activeElement ===
+        screen.getByRole("navigation").querySelector(".mw-close-nav"),
+    );
+    fireEvent.keyDown(document.activeElement!, { key: "Tab", shiftKey: true });
+    assert(document.activeElement === firstTab);
+  } finally {
+    cleanup();
+  }
+});

@@ -5005,3 +5005,45 @@ test("overview arrival and shift links select the relevant records, and normal n
     window.sessionStorage.clear();
   }
 });
+
+test("mobile workspace selection focuses destination heading without changing desktop manual-tab focus", async () => {
+  try {
+    render(<Workspace user={user} />);
+    const orders = await screen.findByRole("tab", {
+      name: "Orders",
+      exact: true,
+    });
+    orders.focus();
+    fireEvent.click(orders);
+    assert(document.activeElement === orders);
+    const toggle = screen.getByRole("button", {
+      name: "Workspace menu",
+      exact: true,
+    });
+    fireEvent.click(toggle);
+    fireEvent.click(screen.getByRole("tab", { name: "Orders", exact: true }));
+    await waitFor(() =>
+      assert(
+        document.activeElement ===
+          screen.getByRole("heading", {
+            name: "Orders",
+            level: 1,
+            exact: true,
+          }),
+      ),
+    );
+    assert.equal(toggle.getAttribute("aria-expanded"), "false");
+    fireEvent.change(screen.getByRole("searchbox", { name: "Find orders" }), {
+      target: { value: "customer" },
+    });
+    const search = screen.getByRole("searchbox", { name: "Find orders" });
+    search.focus();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Refresh workspace", exact: true }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert(document.activeElement === search);
+  } finally {
+    cleanup();
+  }
+});

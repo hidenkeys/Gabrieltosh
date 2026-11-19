@@ -310,7 +310,8 @@
 .mera-workspace input:not([type="checkbox"]):not([type="radio"]) {
   min-height: 44px;
 }
-.mera-workspace :is(button, a, input, select, textarea, summary):focus-visible {
+.mera-workspace :is(button, a, input, select, textarea, summary):focus-visible,
+.mera-workspace .mw-heading h1:focus-visible {
   outline: 3px solid #2f7df6;
   outline-offset: 3px;
 }
