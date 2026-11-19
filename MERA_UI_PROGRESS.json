@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T01:18:04+01:00",
-  "revision": "df3ab4a",
+  "lastUpdated": "2026-11-19T01:50:36+01:00",
+  "revision": "1b029f9",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -636,21 +636,28 @@
       "workstream": "P",
       "title": "Front desk reservations, arrivals and waitlist",
       "weight": 4,
-      "checkpoint": 0,
-      "status": "NOT_STARTED",
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
         "F4",
         "F5"
       ],
       "acceptance": "Readable timeline/list, capacity/table availability, arrivals/walk-ins/waitlist and seating conversion; preserve joining/deposit policies and error states.",
-      "evidence": [],
+      "evidence": [
+        "docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md"
+      ],
       "blockers": [],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 0,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-19T01:50:36+01:00",
+          "checkpoint": 60,
+          "note": "Front-desk waitlist normal UI transitions and public/customization partial milestone. Actual paired/responsive captures, focus and lazy pricing navigation corrected; role/theme/production registration matrices remain partial."
         }
       ]
     },
@@ -830,7 +837,7 @@
       "workstream": "C",
       "title": "Customization dialogs and organization themes",
       "weight": 2,
-      "checkpoint": 0,
+      "checkpoint": 40,
       "status": "IN_PROGRESS",
       "owner": "customer",
       "dependencies": [
@@ -839,7 +846,8 @@
       "acceptance": "Required variants/modifiers/limits, keyboard focus/long-content/narrow dialogs, actual organization branding and photo fallback.",
       "evidence": [
         "tests/mera-customer-ui-correction.test.tsx",
-        "docs/mera/ui-audit/screenshots/22-customer-dialog-narrow.jpg"
+        "docs/mera/ui-audit/screenshots/22-customer-dialog-narrow.jpg",
+        "docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md"
       ],
       "blockers": [],
       "history": [
@@ -852,6 +860,11 @@
           "at": "2026-11-18T16:32:27+01:00",
           "checkpoint": 0,
           "note": "Menu/cart dialog accessibility slice exercised, but long-option browser states and full theme acceptance incomplete; no full-task credit."
+        },
+        {
+          "at": "2026-11-19T01:50:36+01:00",
+          "checkpoint": 40,
+          "note": "Front-desk waitlist normal UI transitions and public/customization partial milestone. Actual paired/responsive captures, focus and lazy pricing navigation corrected; role/theme/production registration matrices remain partial."
         }
       ]
     },
@@ -905,7 +918,7 @@
       "workstream": "M",
       "title": "Marketing features, pricing, legal and signup",
       "weight": 2,
-      "checkpoint": 0,
+      "checkpoint": 40,
       "status": "IN_PROGRESS",
       "owner": "backend",
       "dependencies": [
@@ -914,7 +927,8 @@
       ],
       "acceptance": "Complete service/pricing/signup/support pages with honest configurable terms; real states, no invented delivery or legal completion.",
       "evidence": [
-        "tests/mera-signup-ui.test.tsx"
+        "tests/mera-signup-ui.test.tsx",
+        "docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md"
       ],
       "blockers": [],
       "history": [
@@ -927,6 +941,11 @@
           "at": "2026-11-18T16:10:03+01:00",
           "checkpoint": 0,
           "note": "Signup readiness/focus hardening passes targeted batch; remaining marketing/legal/pricing correction pending selected direction."
+        },
+        {
+          "at": "2026-11-19T01:50:36+01:00",
+          "checkpoint": 40,
+          "note": "Front-desk waitlist normal UI transitions and public/customization partial milestone. Actual paired/responsive captures, focus and lazy pricing navigation corrected; role/theme/production registration matrices remain partial."
         }
       ]
     },
@@ -1476,19 +1495,19 @@
         "P5"
       ],
       "task": "Waitlist",
-      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "functionalCoverage": "Scoped implementation/focused regression plus actual browser subset; not complete acceptance. docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
       "source": "src/mera/workspace/OrganizationWorkspace.tsx",
       "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
       "permissions": "reservations.manage",
       "states": {
         "loading": "UNVERIFIED for full correction",
-        "empty": "UNVERIFIED for full correction",
+        "empty": "Actual empty main branch129; isolated3007 synthetic waiting\u2192notified\u2192seated/cancelled history130\u2013132",
         "error": "UNVERIFIED for full correction",
         "permission": "UNVERIFIED for full correction",
         "recovery": "UNVERIFIED for full correction"
       },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "NOT_STARTED",
+      "responsive": "Actual desktop and390\u00d7844/834\u00d71194 subset; exact per-screen sizes/states and pending variants in checkpoint",
+      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
       "blockers": []
     },
     {
@@ -1749,16 +1768,16 @@
       "task": "customization-theme",
       "source": "src/mera/customer/CustomerExperience.tsx",
       "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
-      "functionalCoverage": "Existing shared backend flows; UI correction unverified",
+      "functionalCoverage": "Scoped implementation/focused regression plus actual browser subset; not complete acceptance. docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
       "states": {
         "loading": "UNVERIFIED",
         "empty": "UNVERIFIED",
         "error": "UNVERIFIED",
         "permission": "UNVERIFIED",
-        "recovery": "UNVERIFIED"
+        "recovery": "Actual focus trap/Escape/trigger return and basket handoff; required-modifier, stock and theme variants covered by unit/parent integration, live alternate themes pending"
       },
-      "responsive": "NOT_VERIFIED",
-      "visualReview": "NOT_STARTED",
+      "responsive": "Actual desktop and390\u00d7844/834\u00d71194 subset; exact per-screen sizes/states and pending variants in checkpoint",
+      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
       "blockers": []
     },
     {
@@ -1793,7 +1812,7 @@
       "task": "features-pricing-modes-support",
       "source": "src/mera/marketing/Marketing.tsx",
       "api": "Configured disclosures",
-      "functionalCoverage": "Existing consumers; correction/complete workflow coverage pending",
+      "functionalCoverage": "Scoped implementation/focused regression plus actual browser subset; not complete acceptance. docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
       "states": {
         "loading": "UNVERIFIED",
         "empty": "UNVERIFIED",
@@ -1801,8 +1820,8 @@
         "permission": "UNVERIFIED",
         "recovery": "UNVERIFIED"
       },
-      "responsive": "NOT_VERIFIED",
-      "visualReview": "NOT_STARTED",
+      "responsive": "Actual desktop and390\u00d7844/834\u00d71194 subset; exact per-screen sizes/states and pending variants in checkpoint",
+      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
       "blockers": []
     },
     {
@@ -1815,7 +1834,7 @@
       "task": "legal",
       "source": "src/mera/marketing/Marketing.tsx",
       "api": "Policy preparation",
-      "functionalCoverage": "Existing consumers; correction/complete workflow coverage pending",
+      "functionalCoverage": "Scoped implementation/focused regression plus actual browser subset; not complete acceptance. docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
       "states": {
         "loading": "UNVERIFIED",
         "empty": "UNVERIFIED",
@@ -1823,8 +1842,8 @@
         "permission": "UNVERIFIED",
         "recovery": "UNVERIFIED"
       },
-      "responsive": "NOT_VERIFIED",
-      "visualReview": "NOT_STARTED",
+      "responsive": "Actual desktop and390\u00d7844/834\u00d71194 subset; exact per-screen sizes/states and pending variants in checkpoint",
+      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
       "blockers": []
     },
     {
@@ -1837,16 +1856,16 @@
       "task": "signup",
       "source": "src/mera/Signup.tsx",
       "api": "/api/mera/v1/identity",
-      "functionalCoverage": "Existing consumers; correction/complete workflow coverage pending",
+      "functionalCoverage": "Scoped implementation/focused regression plus actual browser subset; not complete acceptance. docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
       "states": {
         "loading": "UNVERIFIED",
         "empty": "UNVERIFIED",
         "error": "UNVERIFIED",
-        "permission": "UNVERIFIED",
+        "permission": "Actual truthful development/simulated form; blocked registration path tested, no production account or provider activation",
         "recovery": "UNVERIFIED"
       },
-      "responsive": "NOT_VERIFIED",
-      "visualReview": "NOT_STARTED",
+      "responsive": "Actual desktop and390\u00d7844/834\u00d71194 subset; exact per-screen sizes/states and pending variants in checkpoint",
+      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
       "blockers": []
     },
     {
@@ -2018,6 +2037,13 @@
       "scopeWeight": 100,
       "weightedPoints": 52.6,
       "roundedCompletion": 52
+    },
+    {
+      "at": "2026-11-19T01:50:36+01:00",
+      "event": "Front desk, customization and public information partial milestone; actual waitlist transitions, focus, signup density and pricing deep links verified; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 56.6,
+      "roundedCompletion": 56
     }
   ],
   "baselineRevision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd"

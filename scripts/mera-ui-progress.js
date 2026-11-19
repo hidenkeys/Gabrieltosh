@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Finance/shift/export and integration/customer-care partial milestone verified atdf3ab4a. Actual isolated zero-cash shift and worker-completed CSV download passed. Next: front-desk/waitlist, remaining customer/public flows, dialogs and full state/accessibility acceptance; populated finance/care cases and durable recovery remain partial. Live providers and physical printing remain separate launch gates.",
+  "Front desk/customization/public information partial milestone verified at1b029f9. Actual waitlist state transitions, keyboard focus/basket handoff, pricing deep links and responsive signup passed. Next: waiter tables/rounds/bills/handoffs, complex live themes/options and broad permission/error/recovery acceptance. Main preview restored on3003; separate frontdesk QA3007/database55444. Live providers and physical printing remain separate launch gates.",
   "",
   "## Measurement",
   "",
