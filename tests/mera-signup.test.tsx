@@ -42,11 +42,17 @@ test("development verification is explicit and does not claim email delivery", a
       return Response.json({ registration: "simulator" });
     if (String(input).endsWith("/register"))
       return Response.json({
+        status: "verification_required",
         simulation: true,
         emailSent: false,
-        verificationToken: "demo-token",
+        expiresInSeconds: 3600,
+        verificationToken: "a".repeat(64),
       });
-    return Response.json({ verifiedInDemo: true, realEmailVerified: false });
+    return Response.json({
+      verifiedInDemo: true,
+      realEmailVerified: false,
+      simulation: true,
+    });
   }) as any;
   try {
     render(<Signup />);

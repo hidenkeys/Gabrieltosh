@@ -1,3 +1,4 @@
+import { usePublicNavigation } from "./publicNavigation";
 import { Disclosure } from "../ui/OperationalPrimitives";
 
 export function PricingAndSupport() {
@@ -134,7 +135,15 @@ export function PricingAndSupport() {
     </>
   );
 }
+const policySections = [
+  "mera-policy-main",
+  "customer-information",
+  "communication-preferences",
+  "payments-policies",
+  "retention-support",
+] as const;
 export function LegalInformationPage() {
+  const navigate = usePublicNavigation(policySections);
   const topics = [
     ["customer-information", "Customer information"],
     ["communication-preferences", "Communication preferences"],
@@ -143,7 +152,11 @@ export function LegalInformationPage() {
   ];
   return (
     <div className="mera-marketing mera-secondary-page">
-      <a className="mera-marketing-skip" href="#mera-policy-main">
+      <a
+        className="mera-marketing-skip"
+        href="#mera-policy-main"
+        onClick={navigate}
+      >
         Skip to policy information
       </a>
       <header className="mera-secondary-header">
@@ -177,7 +190,7 @@ export function LegalInformationPage() {
           <nav aria-label="Policy topics">
             <span>On this page</span>
             {topics.map(([id, label]) => (
-              <a key={id} href={"#" + id}>
+              <a key={id} href={"#" + id} onClick={navigate}>
                 {label}
               </a>
             ))}
@@ -186,9 +199,9 @@ export function LegalInformationPage() {
             <section id="customer-information">
               <h2>Customer information</h2>
               <p>
-                Browsing is anonymous. Order names identify the current
-                interaction; a name, table number or QR code must never unlock
-                someone’s private history. Operational activity stays
+                You can browse without signing in. Order names identify the
+                current interaction; a name, table number or QR code must never
+                unlock someone’s private history. Operational activity stays
                 organization-scoped.
               </p>
             </section>

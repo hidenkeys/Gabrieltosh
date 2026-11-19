@@ -90,7 +90,7 @@
   padding-top: 20px;
 }
 .mera-signup :focus-visible {
-  outline: 3px solid #1558c9;
+  outline: 3px solid #10563e;
   outline-offset: 3px;
 }
 @media (max-width: 760px) {

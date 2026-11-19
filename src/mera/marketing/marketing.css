@@ -566,3 +566,8 @@
     scroll-behavior: auto;
   }
 }
+/* Programmatic section destinations remain visible to keyboard users. */
+.mera-marketing [tabindex="-1"]:focus-visible {
+  outline: 3px solid var(--mera-public-green);
+  outline-offset: 5px;
+}

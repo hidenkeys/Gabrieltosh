@@ -1,5 +1,6 @@
+import { usePublicNavigation } from "./publicNavigation";
 import { PricingAndSupport, LegalInformationPage } from "./MarketingSecondary";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   ArrowRight,
   ChartNoAxesColumnIncreasing,
@@ -10,25 +11,19 @@ import {
   X,
 } from "lucide-react";
 const demo = "/mera/menu/bing-chun/20000000-0000-4000-8000-000000000001";
+const publicSections = [
+  "experience",
+  "modes",
+  "reporting",
+  "pricing",
+  "support",
+  "mera-main",
+] as const;
 const preview = "/mera/bing-chun-counter-preview.jpg";
 export default function Marketing() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    // The page is lazy-loaded, so a fragment can arrive before its section exists.
-    const id = window.location.hash.slice(1);
-    if (
-      [
-        "experience",
-        "modes",
-        "reporting",
-        "pricing",
-        "support",
-        "mera-main",
-      ].includes(id)
-    )
-      document.getElementById(id)?.scrollIntoView({ block: "start" });
-  }, []);
+  const navigate = usePublicNavigation(publicSections);
   function closeMenu() {
     setMenuOpen(false);
   }
@@ -42,7 +37,7 @@ export default function Marketing() {
         }
       }}
     >
-      <a className="mera-marketing-skip" href="#mera-main">
+      <a className="mera-marketing-skip" href="#mera-main" onClick={navigate}>
         Skip to content
       </a>
       <header className="mera-marketing-header">
@@ -65,13 +60,28 @@ export default function Marketing() {
           aria-label="Mera navigation"
         >
           <div className="mera-nav-links">
-            <a href="#experience" onClick={closeMenu}>
+            <a
+              href="#experience"
+              onClick={(event) => {
+                if (navigate(event)) closeMenu();
+              }}
+            >
               Product
             </a>
-            <a href="#modes" onClick={closeMenu}>
+            <a
+              href="#modes"
+              onClick={(event) => {
+                if (navigate(event)) closeMenu();
+              }}
+            >
               Solutions
             </a>
-            <a href="#pricing" onClick={closeMenu}>
+            <a
+              href="#pricing"
+              onClick={(event) => {
+                if (navigate(event)) closeMenu();
+              }}
+            >
               Pricing
             </a>
           </div>
@@ -124,15 +134,15 @@ export default function Marketing() {
           className="mera-feature-strip"
           aria-label="The Mera experience"
         >
-          <a href="#modes">
+          <a href="#modes" onClick={navigate}>
             <ConciergeBell aria-hidden="true" />
             <span>Menu and ordering</span>
           </a>
-          <a href="#modes">
+          <a href="#modes" onClick={navigate}>
             <Layers aria-hidden="true" />
             <span>Service operations</span>
           </a>
-          <a href="#reporting">
+          <a href="#reporting" onClick={navigate}>
             <ChartNoAxesColumnIncreasing aria-hidden="true" />
             <span>Reporting</span>
           </a>
@@ -197,7 +207,9 @@ export default function Marketing() {
         </a>
         <span>Built around the way you serve.</span>
         <a href="/mera/legal">Privacy & terms preparation</a>
-        <a href="#support">Support</a>
+        <a href="#support" onClick={navigate}>
+          Support
+        </a>
         <a href="/">Bing Chun workspace</a>
       </footer>
     </div>
