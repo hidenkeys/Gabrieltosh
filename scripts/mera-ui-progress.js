@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Records, printing/QR and help partial milestones verified at645308d; shared operational primitives integrated. Next: finance/shift and remaining management screens, complete responsibility/recovery flows, dialog primitives and broad state/accessibility acceptance. Live providers and physical printing remain separate launch gates.",
+  "Finance/shift/export and integration/customer-care partial milestone verified atdf3ab4a. Actual isolated zero-cash shift and worker-completed CSV download passed. Next: front-desk/waitlist, remaining customer/public flows, dialogs and full state/accessibility acceptance; populated finance/care cases and durable recovery remain partial. Live providers and physical printing remain separate launch gates.",
   "",
   "## Measurement",
   "",

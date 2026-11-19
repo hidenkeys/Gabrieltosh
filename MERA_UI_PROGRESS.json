@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T01:03:29+01:00",
-  "revision": "645308d",
+  "lastUpdated": "2026-11-19T01:18:04+01:00",
+  "revision": "df3ab4a",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -438,21 +438,28 @@
       "workstream": "O",
       "title": "Transactions, shifts, reports and exports",
       "weight": 4,
-      "checkpoint": 0,
-      "status": "NOT_STARTED",
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
       "owner": "workspace",
       "dependencies": [
         "F4",
         "F5"
       ],
       "acceptance": "List/detail hierarchy, payment origins, reviewed refunds and noncash outcomes, business-date reports/download states; no financial or recovery regression.",
-      "evidence": [],
+      "evidence": [
+        "docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md"
+      ],
       "blockers": [],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 0,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-19T01:18:04+01:00",
+          "checkpoint": 40,
+          "note": "Finance/shift/export and integration/care partial correction. Actual zero-cash shift close and worker-completed CSV download passed; no real collections/refunds or full populated-care browser acceptance. See checkpoint."
         }
       ]
     },
@@ -472,7 +479,8 @@
       "evidence": [
         "docs/mera/ui-audit/BILLING-MANAGEMENT-MOUNT.md",
         "docs/mera/ui-audit/subscription-comparison.html",
-        "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md"
+        "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
+        "docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md"
       ],
       "blockers": [],
       "history": [
@@ -490,6 +498,11 @@
           "at": "2026-11-19T01:03:29+01:00",
           "checkpoint": 40,
           "note": "Records/printing/help integration: actual browser comparisons and help reply/privacy loop, regression suite391passed/2skipped. Partial acceptance only; remaining task scope documented."
+        },
+        {
+          "at": "2026-11-19T01:18:04+01:00",
+          "checkpoint": 40,
+          "note": "Finance/shift/export and integration/care partial correction. Actual zero-cash shift close and worker-completed CSV download passed; no real collections/refunds or full populated-care browser acceptance. See checkpoint."
         }
       ]
     },
@@ -1271,7 +1284,7 @@
         "O6"
       ],
       "task": "Transactions/refunds/writeoff/recovery",
-      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "functionalCoverage": "Focused regression and actual scoped review; shift0 close and export/download exercised. Other mutations/state matrix remain partial. docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
       "source": "src/mera/workspace/OrganizationWorkspace.tsx",
       "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
       "permissions": "payments.record/refunds.approve",
@@ -1283,7 +1296,7 @@
         "recovery": "UNVERIFIED for full correction"
       },
       "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "NOT_STARTED",
+      "visualReview": "Actual before106\u2013110/after111\u2013115 and tablet/narrow116\u2013121; comparison122 accepted. Partial acceptance only; see docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
       "blockers": []
     },
     {
@@ -1295,7 +1308,7 @@
         "O6"
       ],
       "task": "CashMovement/ShiftActions",
-      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "functionalCoverage": "Focused regression and actual scoped review; shift0 close and export/download exercised. Other mutations/state matrix remain partial. docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
       "source": "src/mera/workspace/OrganizationWorkspace.tsx",
       "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
       "permissions": "shifts.manage",
@@ -1307,7 +1320,7 @@
         "recovery": "UNVERIFIED for full correction"
       },
       "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "NOT_STARTED",
+      "visualReview": "Actual before106\u2013110/after111\u2013115 and tablet/narrow116\u2013121; comparison122 accepted. Partial acceptance only; see docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
       "blockers": []
     },
     {
@@ -1415,7 +1428,7 @@
         "O7"
       ],
       "task": "Integrations",
-      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "functionalCoverage": "Focused regression and actual scoped review; shift0 close and export/download exercised. Other mutations/state matrix remain partial. docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
       "source": "src/mera/workspace/OrganizationWorkspace.tsx",
       "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
       "permissions": "organization.manage",
@@ -1427,7 +1440,7 @@
         "recovery": "UNVERIFIED for full correction"
       },
       "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "NOT_STARTED",
+      "visualReview": "Actual before106\u2013110/after111\u2013115 and tablet/narrow116\u2013121; comparison122 accepted. Partial acceptance only; see docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
       "blockers": []
     },
     {
@@ -1439,19 +1452,19 @@
         "O7"
       ],
       "task": "Complaints",
-      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "functionalCoverage": "Focused regression and actual scoped review; shift0 close and export/download exercised. Other mutations/state matrix remain partial. docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
       "source": "src/mera/workspace/OrganizationWorkspace.tsx",
       "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
       "permissions": "organization.manage",
       "states": {
         "loading": "UNVERIFIED for full correction",
-        "empty": "UNVERIFIED for full correction",
+        "empty": "Actual empty branch; malformed/unavailable data separately tested; populated browser not verified",
         "error": "UNVERIFIED for full correction",
         "permission": "UNVERIFIED for full correction",
         "recovery": "UNVERIFIED for full correction"
       },
       "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "NOT_STARTED",
+      "visualReview": "Actual before106\u2013110/after111\u2013115 and tablet/narrow116\u2013121; comparison122 accepted. Partial acceptance only; see docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
       "blockers": []
     },
     {
@@ -1487,7 +1500,7 @@
         "O6"
       ],
       "task": "ExportJobs",
-      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "functionalCoverage": "Focused regression and actual scoped review; shift0 close and export/download exercised. Other mutations/state matrix remain partial. docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
       "source": "src/mera/workspace/OrganizationWorkspace.tsx",
       "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
       "permissions": "reports.export",
@@ -1496,10 +1509,10 @@
         "empty": "UNVERIFIED for full correction",
         "error": "UNVERIFIED for full correction",
         "permission": "UNVERIFIED for full correction",
-        "recovery": "UNVERIFIED for full correction"
+        "recovery": "Actual native-date failure found/fixed; selected date persisted through queue\u2192ready\u2192CSV download; unknown retries tested, full state matrix pending"
       },
       "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "NOT_STARTED",
+      "visualReview": "Actual before106\u2013110/after111\u2013115 and tablet/narrow116\u2013121; comparison122 accepted. Partial acceptance only; see docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
       "blockers": []
     },
     {
@@ -1998,6 +2011,13 @@
       "scopeWeight": 100,
       "weightedPoints": 51.0,
       "roundedCompletion": 51
+    },
+    {
+      "at": "2026-11-19T01:18:04+01:00",
+      "event": "Finance/shift/export and remaining management partial milestone; browser-native date submission corrected and actual CSV download verified; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 52.6,
+      "roundedCompletion": 52
     }
   ],
   "baselineRevision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd"
