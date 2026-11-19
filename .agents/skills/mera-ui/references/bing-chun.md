@@ -56,3 +56,8 @@ Source/controller contracts and unfinished acceptance are in `docs/mera/ui-audit
 - `src/mera/marketing/MarketingSecondary.tsx` / `marketing-secondary.css`, `src/mera/Signup.tsx`: selected Mera identity for public information; actual134/136–141. Legal/commercial terms stay provisional. Lazy section fragments must reach their actual destination after mount.
 
 Detailed limits and verified interactions: `docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md`.
+
+## Table service and responsibility consumers
+
+- `TableServiceView.tsx`, `table-service.css`, `NonReplayForm.tsx`, `Bills.tsx`, `bills.css`, `VisitTables.tsx`, `VisitMinimumSpend.tsx`, `PrivateVisitAccess.tsx`, `visit-tools.css`: source-derived table/party/setup hierarchy and guarded action panels; actual144–147. See TABLES-CHECKPOINT.md.
+- `OrderResponsibility.tsx`, `responsibility.css`, `ItemFulfillment.tsx`, `item-fulfillment.css`: order handler selection/history and separate cumulative prepared-item handoff; actual148–154 and service-responsibility-comparison.html. Scope current order handler accurately; do not invent persistent visit waiter assignment. Keep unknown attempts mounted across local filters. See SERVICE-HANDOFF-CHECKPOINT.md for actual QA and remaining acceptance.

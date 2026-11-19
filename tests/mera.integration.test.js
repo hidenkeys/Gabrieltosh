@@ -2358,6 +2358,23 @@ test(
       const counterPublicAfterPublish=(await call(P+"/menu","GET",undefined,null)).data.products.find(p=>p.id===counterFixtureProduct.data.id);assert.equal(counterPublicAfterPublish.variants[0].price,360000);
       await db.query("UPDATE mera_memberships SET permissions=$1 WHERE user_id=$2 AND organization_id=$3",[JSON.stringify(["menu.edit"]),publishingPeer,org]);
       const counterDeniedWorkspace=await call(B+"/workspace","GET",undefined,publishingPeer);assert.equal(counterDeniedWorkspace.status,200);assert.deepEqual(counterDeniedWorkspace.data.counterProducts,[]);
+      // Reassignment snapshots the actual new assignee name, never the previous handler label.
+      await db.query("UPDATE mera_records SET data=data||$1::jsonb WHERE id=$2",[JSON.stringify({handlerId:owner,handlerName:"Stale previous handler"}),counterStaffOrder.data.id]);
+      const namedReassignment=await call(B+"/orders/"+counterStaffOrder.data.id+"/assign","POST",{userId:other,version:counterStaffOrder.data.version});
+      assert.equal(namedReassignment.status,200,JSON.stringify(namedReassignment.data));assert.equal(namedReassignment.data.handlerId,other);assert.equal(namedReassignment.data.handlerName,"Other");
+      assert.equal(namedReassignment.data.history.at(-1).actorId,owner);assert.equal(namedReassignment.data.history.at(-1).from,owner);assert.equal(namedReassignment.data.history.at(-1).to,other);
+      assert.equal((await call(B+"/orders/"+counterStaffOrder.data.id+"/assign","POST",{userId:owner,version:counterStaffOrder.data.version})).status,409);
+      const unnamedAssignee=randomUUID();
+      await db.query("INSERT INTO users(id,name,username,password_hash,role) VALUES($1,'',$1,'fixture-not-login','cashier')",[unnamedAssignee]);
+      await db.query("INSERT INTO mera_memberships(id,user_id,organization_id,role,permissions,branch_ids) VALUES($1,$2,$3,'cashier','[]',$4)",[randomUUID(),unnamedAssignee,org,JSON.stringify([branch])]);
+      const unnamedReassignment=await call(B+"/orders/"+counterStaffOrder.data.id+"/assign","POST",{userId:unnamedAssignee,version:namedReassignment.data.version});
+      assert.equal(unnamedReassignment.status,200,JSON.stringify(unnamedReassignment.data));assert.equal(unnamedReassignment.data.handlerId,unnamedAssignee);assert.equal(unnamedReassignment.data.handlerName,null);
+      assert.equal((await call(B+"/orders/"+counterStaffOrder.data.id+"/assign","POST",{userId:owner,version:unnamedReassignment.data.version},other)).status,403);
+      assert.equal((await call(B+"/orders/"+historicalOrderId+"/assign","POST",{userId:owner,version:1})).status,409);
+      await db.query("UPDATE users SET active=false WHERE id=$1",[unnamedAssignee]);
+      const inactiveReassignment=await call(B+"/orders/"+counterStaffOrder.data.id+"/assign","POST",{userId:unnamedAssignee,version:unnamedReassignment.data.version});
+      assert.equal(inactiveReassignment.status,400);assert.equal(inactiveReassignment.data.error,"The assignee does not have branch access.");
+      const unchangedAssignee=(await db.query("SELECT data FROM mera_records WHERE id=$1",[counterStaffOrder.data.id])).rows[0].data;assert.equal(unchangedAssignee.version,unnamedReassignment.data.version);assert.equal(unchangedAssignee.handlerName,null);
       callBase = base;
       const membership = (
         await call("/organizations/" + org + "/members")

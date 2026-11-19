@@ -4514,3 +4514,91 @@ test("an uncertain original staff submission remains retryable after the publish
     globalThis.fetch = original;
   }
 });
+
+test("service queues resolve the signed-in handler and ready orders without mixing branch scope", async () => {
+  const oldFetch = globalThis.fetch;
+  globalThis.fetch = (async (input: any) => {
+    const path = String(input);
+    if (path.endsWith("/context")) return Response.json(context);
+    if (path.endsWith("/workspace"))
+      return Response.json({
+        ...snapshot("branch-1"),
+        orders: [
+          {
+            id: "mine",
+            reference: "MY-ROUND",
+            handlerId: user.id,
+            status: "preparing",
+            history: [],
+            items: [],
+            version: 1,
+          },
+          {
+            id: "other",
+            reference: "OTHER-ROUND",
+            handlerId: "other-user",
+            status: "ready",
+            history: [],
+            items: [],
+            version: 1,
+          },
+          {
+            id: "unassigned",
+            reference: "UNASSIGNED-ROUND",
+            status: "submitted",
+            history: [],
+            items: [],
+            version: 1,
+          },
+        ],
+      });
+    return Response.json({});
+  }) as typeof fetch;
+  try {
+    render(React.createElement(Workspace, { user }));
+    await waitFor(() =>
+      assert.ok(screen.getByRole("tab", { name: "Orders", exact: true })),
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "Orders", exact: true }));
+    await waitFor(() =>
+      assert.ok(screen.getByRole("article", { name: "Order MY-ROUND" })),
+    );
+    const originalCard = screen.getByRole("article", {
+      name: "Order MY-ROUND",
+    });
+    fireEvent.change(screen.getByLabelText("Service queue"), {
+      target: { value: "mine" },
+    });
+    assert.ok(screen.getByRole("article", { name: "Order MY-ROUND" }));
+    assert.equal(
+      screen.queryByRole("article", { name: "Order OTHER-ROUND" }),
+      null,
+    );
+    fireEvent.change(screen.getByLabelText("Service queue"), {
+      target: { value: "ready" },
+    });
+    assert.ok(screen.getByRole("article", { name: "Order OTHER-ROUND" }));
+    assert.equal(
+      screen.queryByRole("article", { name: "Order MY-ROUND" }),
+      null,
+    );
+    fireEvent.change(screen.getByLabelText("Service queue"), {
+      target: { value: "unassigned" },
+    });
+    assert.ok(screen.getByRole("article", { name: "Order UNASSIGNED-ROUND" }));
+    assert.equal(
+      screen.queryByRole("article", { name: "Order OTHER-ROUND" }),
+      null,
+    );
+    fireEvent.change(screen.getByLabelText("Service queue"), {
+      target: { value: "mine" },
+    });
+    assert.equal(
+      screen.getByRole("article", { name: "Order MY-ROUND" }),
+      originalCard,
+    );
+  } finally {
+    cleanup();
+    globalThis.fetch = oldFetch;
+  }
+});

@@ -1,0 +1,52 @@
+.mw-order-responsibility {
+  margin-top: 12px;
+  border-top: 1px solid #e9e6e2;
+  padding-block: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mw-order-responsibility summary {
+  min-height: 44px;
+  padding-block: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.mw-order-responsibility fieldset {
+  border: 0;
+  padding: 0;
+  margin-block: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+  min-width: 0;
+}
+.mw-order-responsibility label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+}
+.mw-order-responsibility select {
+  min-height: 44px;
+  width: 100%;
+  min-width: 0;
+}
+.mw-order-responsibility li {
+  margin-block: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.mw-order-responsibility li span {
+  display: block;
+  color: #51647d;
+}
+.mw-order-responsibility :is(summary, button, select):focus-visible {
+  outline: 3px solid #2f7df6;
+  outline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .mw-order-responsibility fieldset {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

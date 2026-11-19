@@ -69,6 +69,7 @@ import {
   clearFinancialJournals,
 } from "./financialJournal";
 import ItemFulfillment from "./ItemFulfillment";
+import OrderResponsibility from "./OrderResponsibility";
 import Categories, { categoryPath } from "./Categories";
 import CatalogOperations from "./CatalogOperations";
 import StockMovements from "./StockMovements";
@@ -158,6 +159,7 @@ export default function OrganizationWorkspace({
     source: "",
     payment: "",
     unassigned: false,
+    serviceQueue: "all",
   });
   const [writeError, setError] = useState("");
   const [readError, setReadError] = useState("");
@@ -526,6 +528,7 @@ export default function OrganizationWorkspace({
       source: "",
       payment: "",
       unassigned: false,
+      serviceQueue: "all",
     });
     setMembers([]);
     setBusy(false);
@@ -887,7 +890,10 @@ export default function OrganizationWorkspace({
       (!orderFilters.status || order.status === orderFilters.status) &&
       (!orderFilters.source || order.source === orderFilters.source) &&
       (!orderFilters.payment || order.paymentStatus === orderFilters.payment) &&
-      (!orderFilters.unassigned || !order.handlerId)
+      (!orderFilters.unassigned || !order.handlerId) &&
+      (orderFilters.serviceQueue !== "mine" || order.handlerId === user.id) &&
+      (orderFilters.serviceQueue !== "ready" || order.status === "ready") &&
+      (orderFilters.serviceQueue !== "unassigned" || !order.handlerId)
     );
   });
   const features = data?.features || organization?.features;
@@ -1416,6 +1422,7 @@ export default function OrganizationWorkspace({
             source: "",
             payment: "",
             unassigned: false,
+            serviceQueue: "all",
           });
           selectSection("orders");
         }}
@@ -2678,268 +2685,268 @@ export default function OrganizationWorkspace({
                         />
                       </label>
                       <label>
-                        Order status
+                        Service queue
                         <select
-                          value={orderFilters.status}
+                          value={orderFilters.serviceQueue}
                           onChange={(event) =>
                             setOrderFilters({
                               ...orderFilters,
-                              status: event.target.value,
+                              serviceQueue: event.target.value,
+                              unassigned: false,
                             })
                           }
                         >
-                          <option value="">All states</option>
-                          {[
-                            "submitted",
-                            "accepted",
-                            "preparing",
-                            "ready",
-                            "collected",
-                            "completed",
-                            "rejected",
-                            "cancelled",
-                          ].map((status) => (
-                            <option key={status} value={status}>
-                              {orderStatusLabel(status)}
-                            </option>
-                          ))}
+                          <option value="all">All recent orders</option>
+                          <option value="mine">Assigned to me</option>
+                          <option value="unassigned">Unassigned orders</option>
+                          <option value="ready">Ready for service</option>
                         </select>
-                      </label>
-                      <label>
-                        Order channel
-                        <select
-                          value={orderFilters.source}
-                          onChange={(event) =>
-                            setOrderFilters({
-                              ...orderFilters,
-                              source: event.target.value,
-                            })
-                          }
-                        >
-                          <option value="">All channels</option>
-                          {Array.from(
-                            new Set(
-                              orders
-                                .map((order: any) => order.source)
-                                .filter(Boolean),
-                            ),
-                          ).map((source) => (
-                            <option key={source} value={source}>
-                              {sourceLabel(source)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        Payment state
-                        <select
-                          value={orderFilters.payment}
-                          onChange={(event) =>
-                            setOrderFilters({
-                              ...orderFilters,
-                              payment: event.target.value,
-                            })
-                          }
-                        >
-                          <option value="">All payment states</option>
-                          {[
-                            "unpaid",
-                            "pending",
-                            "partially_paid",
-                            "paid",
-                            "partially_refunded",
-                            "refunded",
-                            "failed",
-                            "expired",
-                          ].map((state) => (
-                            <option key={state} value={state}>
-                              {paymentStatusLabel(state)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="mw-row">
-                        <span>Unassigned orders only</span>
-                        <input
-                          type="checkbox"
-                          checked={orderFilters.unassigned}
-                          onChange={(event) =>
-                            setOrderFilters({
-                              ...orderFilters,
-                              unassigned: event.target.checked,
-                            })
-                          }
-                        />
                       </label>
                     </div>
-                    {filteredOrders.length
-                      ? filteredOrders.map((order) => (
-                          <LiveOrderCard
-                            key={order.id}
-                            order={order}
-                            timeZone={branch?.timezone}
-                            actions={
-                              <div className="mw-actions">
-                                {!order.historicalReadOnly &&
-                                  nextState[order.status] &&
-                                  button(
-                                    "Mark " +
-                                      sourceLabel(nextState[order.status]),
-                                    () =>
-                                      act(
-                                        branchBase +
-                                          `/orders/${order.id}/status`,
-                                        {
-                                          status: nextState[order.status],
-                                          version: order.version,
-                                        },
-                                        "Order updated.",
-                                      ),
-                                    [
-                                      "submitted",
-                                      "accepted",
-                                      "preparing",
-                                    ].includes(order.status)
-                                      ? "orders.prepare"
-                                      : "orders.fulfill",
-                                  )}
-                                {!order.historicalReadOnly &&
-                                  button(
-                                    "Assign to me",
-                                    () =>
-                                      act(
-                                        branchBase +
-                                          `/orders/${order.id}/assign`,
-                                        {
-                                          userId: user.id,
-                                          version: order.version,
-                                        },
-                                        "Order assigned.",
-                                      ),
-                                    "orders.assign",
-                                  )}
-                              </div>
+                    <Disclosure summary="More order filters">
+                      <div className="mw-form">
+                        <label>
+                          Order status
+                          <select
+                            value={orderFilters.status}
+                            onChange={(event) =>
+                              setOrderFilters({
+                                ...orderFilters,
+                                status: event.target.value,
+                              })
                             }
                           >
-                            <Disclosure
-                              summary="Items, instructions and history"
-                              className="mw-live-order-items"
-                            >
-                              <OrderInstructions order={order} />
-                              {list(order.items).map(
-                                (line: any, index: number) => (
-                                  <div key={line.orderLineId || index}>
-                                    <small>
-                                      {line.quantity} ×{" "}
-                                      {line.name || line.productName}
-                                      {line.size ? " · " + line.size : ""}
-                                    </small>
-                                    <OrderInstructions item={line} />
-                                  </div>
-                                ),
-                              )}
-                              {order.historicalReadOnly && (
-                                <div className="mw-note">
-                                  <strong>
-                                    Imported source history · read only
-                                  </strong>
-                                  <p>
-                                    Original source status:{" "}
-                                    {sourceLabel(
-                                      order.legacyStatus || order.status,
-                                    )}
-                                    .{" "}
-                                    {(order.historicalRecognitionBasis ||
-                                      order.recognitionBasis) &&
-                                      "Recognition basis: " +
-                                        sourceLabel(
-                                          order.historicalRecognitionBasis ||
-                                            order.recognitionBasis,
-                                        ) +
-                                        "."}{" "}
-                                    {order.historicalTaxStatus &&
-                                      "Historical tax: " +
-                                        sourceLabel(order.historicalTaxStatus) +
-                                        "."}{" "}
-                                    This record does not create a live bill,
-                                    stock hold or preparation ticket.
-                                  </p>
-                                </div>
-                              )}
-                              {Number.isSafeInteger(order.writtenOff) &&
-                                order.writtenOff > 0 && (
-                                  <small>
-                                    Non-cash written-off debt:{" "}
-                                    {formatMoney(order.writtenOff)} ·
-                                    Outstanding:{" "}
-                                    {formatMoney(order.outstandingBalance)}
-                                  </small>
-                                )}
-                              {!order.historicalReadOnly &&
-                                allowed("refunds.approve") && (
-                                  <WriteOff
-                                    key={
-                                      branchBase +
-                                      order.id +
-                                      financialRevision +
-                                      "writeoff"
-                                    }
-                                    base={branchBase}
-                                    order={order}
-                                    disabled={busy || offline}
-                                    save={mutate}
-                                  />
-                                )}
-                              <details style={{ marginTop: 8 }}>
-                                <summary>
-                                  Responsibility & payment history
-                                </summary>
-                                {list(order.history).map(
-                                  (entry: any, index: number) => (
-                                    <small key={index}>
-                                      {sourceLabel(entry.action)} ·{" "}
-                                      {entry.actorName ||
-                                        (entry.actorId
-                                          ? "Staff name unavailable"
-                                          : "System")}{" "}
-                                      · {dateLabel(entry.at)}
-                                      {entry.amount
-                                        ? " · " + formatMoney(entry.amount)
-                                        : ""}
-                                    </small>
+                            <option value="">All states</option>
+                            {[
+                              "submitted",
+                              "accepted",
+                              "preparing",
+                              "ready",
+                              "collected",
+                              "completed",
+                              "rejected",
+                              "cancelled",
+                            ].map((status) => (
+                              <option key={status} value={status}>
+                                {orderStatusLabel(status)}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
+                          Order channel
+                          <select
+                            value={orderFilters.source}
+                            onChange={(event) =>
+                              setOrderFilters({
+                                ...orderFilters,
+                                source: event.target.value,
+                              })
+                            }
+                          >
+                            <option value="">All channels</option>
+                            {Array.from(
+                              new Set(
+                                orders
+                                  .map((order: any) => order.source)
+                                  .filter(Boolean),
+                              ),
+                            ).map((source) => (
+                              <option key={source} value={source}>
+                                {sourceLabel(source)}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
+                          Payment state
+                          <select
+                            value={orderFilters.payment}
+                            onChange={(event) =>
+                              setOrderFilters({
+                                ...orderFilters,
+                                payment: event.target.value,
+                              })
+                            }
+                          >
+                            <option value="">All payment states</option>
+                            {[
+                              "unpaid",
+                              "pending",
+                              "partially_paid",
+                              "paid",
+                              "partially_refunded",
+                              "refunded",
+                              "failed",
+                              "expired",
+                            ].map((state) => (
+                              <option key={state} value={state}>
+                                {paymentStatusLabel(state)}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                    </Disclosure>
+                    {liveOrders.map((order) => (
+                      <LiveOrderCard
+                        key={order.id}
+                        hidden={
+                          !filteredOrders.some((shown) => shown.id === order.id)
+                        }
+                        order={order}
+                        timeZone={branch?.timezone}
+                        actions={
+                          <div className="mw-actions">
+                            {!order.historicalReadOnly &&
+                              nextState[order.status] &&
+                              button(
+                                "Mark " + sourceLabel(nextState[order.status]),
+                                () =>
+                                  act(
+                                    branchBase + `/orders/${order.id}/status`,
+                                    {
+                                      status: nextState[order.status],
+                                      version: order.version,
+                                    },
+                                    "Order updated.",
                                   ),
+                                ["submitted", "accepted", "preparing"].includes(
+                                  order.status,
+                                )
+                                  ? "orders.prepare"
+                                  : "orders.fulfill",
+                              )}
+                          </div>
+                        }
+                      >
+                        <OrderResponsibility
+                          key={branchBase + order.id + "responsibility"}
+                          timeZone={branch?.timezone}
+                          base={branchBase}
+                          order={order}
+                          disabled={busy || offline}
+                          canAssign={
+                            allowed("orders.assign") &&
+                            !order.historicalReadOnly
+                          }
+                          save={mutate}
+                          onRefresh={refresh}
+                        />
+                        {!order.historicalReadOnly &&
+                          allowed("orders.fulfill") && (
+                            <ItemFulfillment
+                              key={branchBase + order.id}
+                              base={branchBase}
+                              order={order}
+                              tickets={data.tickets}
+                              disabled={busy || offline}
+                              save={mutate}
+                            />
+                          )}
+                        <Disclosure
+                          summary="Items, instructions and history"
+                          className="mw-live-order-items"
+                        >
+                          <OrderInstructions order={order} />
+                          {list(order.items).map((line: any, index: number) => (
+                            <div key={line.orderLineId || index}>
+                              <small>
+                                {line.quantity} ×{" "}
+                                {line.name || line.productName}
+                                {line.size ? " · " + line.size : ""}
+                              </small>
+                              <OrderInstructions item={line} />
+                            </div>
+                          ))}
+                          {order.historicalReadOnly && (
+                            <div className="mw-note">
+                              <strong>
+                                Imported source history · read only
+                              </strong>
+                              <p>
+                                Original source status:{" "}
+                                {sourceLabel(
+                                  order.legacyStatus || order.status,
                                 )}
-                              </details>
-                              {!order.historicalReadOnly &&
-                                allowed("orders.fulfill") && (
-                                  <ItemFulfillment
-                                    key={branchBase + order.id}
-                                    base={branchBase}
-                                    order={order}
-                                    tickets={list(data.tickets)}
-                                    disabled={busy || offline}
-                                    save={mutate}
-                                  />
-                                )}
-                              {!order.historicalReadOnly &&
-                                allowed("orders.fulfill") && (
-                                  <ItemCancellation
-                                    key={
-                                      branchBase + order.id + financialRevision
-                                    }
-                                    base={branchBase}
-                                    order={order}
-                                    refunds={list(data.refunds)}
-                                    canRefund={allowed("refunds.approve")}
-                                    tickets={list(data.tickets)}
-                                    disabled={busy || offline}
-                                    save={mutate}
-                                  />
-                                )}
-                            </Disclosure>
-                          </LiveOrderCard>
-                        ))
-                      : empty("No orders match the current filters.")}
+                                .{" "}
+                                {(order.historicalRecognitionBasis ||
+                                  order.recognitionBasis) &&
+                                  "Recognition basis: " +
+                                    sourceLabel(
+                                      order.historicalRecognitionBasis ||
+                                        order.recognitionBasis,
+                                    ) +
+                                    "."}{" "}
+                                {order.historicalTaxStatus &&
+                                  "Historical tax: " +
+                                    sourceLabel(order.historicalTaxStatus) +
+                                    "."}{" "}
+                                This record does not create a live bill, stock
+                                hold or preparation ticket.
+                              </p>
+                            </div>
+                          )}
+                          {Number.isSafeInteger(order.writtenOff) &&
+                            order.writtenOff > 0 && (
+                              <small>
+                                Non-cash written-off debt:{" "}
+                                {formatMoney(order.writtenOff)} · Outstanding:{" "}
+                                {formatMoney(order.outstandingBalance)}
+                              </small>
+                            )}
+                          {!order.historicalReadOnly &&
+                            allowed("refunds.approve") && (
+                              <WriteOff
+                                key={
+                                  branchBase +
+                                  order.id +
+                                  financialRevision +
+                                  "writeoff"
+                                }
+                                base={branchBase}
+                                order={order}
+                                disabled={busy || offline}
+                                save={mutate}
+                              />
+                            )}
+                          <details style={{ marginTop: 8 }}>
+                            <summary>Responsibility & payment history</summary>
+                            {list(order.history).map(
+                              (entry: any, index: number) => (
+                                <small key={index}>
+                                  {sourceLabel(entry.action)} ·{" "}
+                                  {entry.actorName ||
+                                    (entry.actorId
+                                      ? "Staff name unavailable"
+                                      : "System")}{" "}
+                                  · {dateLabel(entry.at)}
+                                  {entry.amount
+                                    ? " · " + formatMoney(entry.amount)
+                                    : ""}
+                                </small>
+                              ),
+                            )}
+                          </details>
+
+                          {!order.historicalReadOnly &&
+                            allowed("orders.fulfill") && (
+                              <ItemCancellation
+                                key={branchBase + order.id + financialRevision}
+                                base={branchBase}
+                                order={order}
+                                refunds={list(data.refunds)}
+                                canRefund={allowed("refunds.approve")}
+                                tickets={list(data.tickets)}
+                                disabled={busy || offline}
+                                save={mutate}
+                              />
+                            )}
+                        </Disclosure>
+                      </LiveOrderCard>
+                    ))}
+                    {!filteredOrders.length &&
+                      empty("No orders match the current filters.")}
                   </section>
                   {activeSection === "orders" &&
                     (allowed("refunds.request") ||

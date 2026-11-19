@@ -51,14 +51,17 @@ export default function LiveOrderCard({
   timeZone,
   children,
   actions,
+  hidden = false,
 }: {
   order: any;
   timeZone?: string;
   children: ReactNode;
   actions: ReactNode;
+  hidden?: boolean;
 }) {
   return (
     <article
+      hidden={hidden}
       className="mw-live-order"
       aria-label={`Order ${order.reference || "reference unavailable"}`}
     >

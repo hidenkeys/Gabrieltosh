@@ -1165,7 +1165,7 @@ export function createMeraRouter(db) {
         await locked(scope(req), async (c) => {
           const member = (
             await c.query(
-              "SELECT * FROM mera_memberships WHERE user_id=$1 AND organization_id=$2 AND active=true",
+              "SELECT m.*,u.name AS assignee_name FROM mera_memberships m JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND m.organization_id=$2 AND m.active=true AND u.active=true",
               [input.userId, req.params.organizationId],
             )
           ).rows[0];
@@ -1186,6 +1186,7 @@ export function createMeraRouter(db) {
             at: now(),
           });
           o.handlerId = input.userId;
+          o.handlerName = member.assignee_name?.trim() || null;
           o.version++;
           return update(c, scope(req), "order", o.id, o);
         }),

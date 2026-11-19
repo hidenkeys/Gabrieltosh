@@ -68,3 +68,5 @@
     flex-wrap: wrap;
   }
 }
+
+.mw-live-order[hidden] { display: none; }

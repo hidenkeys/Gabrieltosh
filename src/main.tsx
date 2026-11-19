@@ -150,3 +150,7 @@ import "./mera/marketing/marketing-secondary.css";
 import "./mera/workspace/table-service.css";
 import "./mera/workspace/bills.css";
 import "./mera/workspace/visit-tools.css";
+
+import "./mera/workspace/responsibility.css";
+
+import "./mera/workspace/item-fulfillment.css";
