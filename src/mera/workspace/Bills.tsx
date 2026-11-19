@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
-import { formatMoney } from "./api";
+import { formatMoney, workspaceApi } from "./api";
+import {
+  readBillChangeMarker,
+  saveBillChangeMarker,
+  clearBillChangeMarker,
+  type BillChangeMarker,
+} from "./billChangeJournal";
 import {
   Action,
   DataRegion,
@@ -9,6 +15,7 @@ import {
 } from "../ui/OperationalPrimitives";
 type Props = {
   bills: unknown;
+  actorId: string;
   visits?: unknown;
   tables?: unknown;
   base: string;
@@ -41,10 +48,11 @@ type Pending = {
   kind: "payment" | "change";
 };
 export default function Bills(props: Props) {
-  return <ScopedBills key={props.base} {...props} />;
+  return <ScopedBills key={props.base + "|" + props.actorId} {...props} />;
 }
 function ScopedBills({
   bills,
+  actorId,
   visits = [],
   tables = [],
   base,
@@ -60,7 +68,11 @@ function ScopedBills({
     [error, setError] = useState(""),
     [working, setWorking] = useState(false),
     [pending, setPending] = useState<Pending | null>(null),
-    [denied, setDenied] = useState(false);
+    [denied, setDenied] = useState(false),
+    [changeMarker, setChangeMarker] = useState<BillChangeMarker | null>(null),
+    [changeReady, setChangeReady] = useState(false),
+    [notice, setNotice] = useState("");
+  const markerRef = useRef<BillChangeMarker | null>(null);
   const active = useRef(true),
     inFlight = useRef(false),
     pendingRef = useRef<Pending | null>(null),
@@ -69,6 +81,16 @@ function ScopedBills({
   permission.current = canPay;
   useEffect(() => {
     active.current = true;
+    try {
+      const marker = readBillChangeMarker(actorId, base);
+      markerRef.current = marker;
+      setChangeMarker(marker);
+      setChangeReady(true);
+    } catch {
+      setError(
+        "Saved bill-change references could not be read. Keep this tab open and ask a supervisor to review them.",
+      );
+    }
     return () => {
       active.current = false;
     };
@@ -77,19 +99,147 @@ function ScopedBills({
     if (previousPermission.current && !canPay) {
       setForm({});
       setItems({});
-      if (inFlight.current || pendingRef.current) setDenied(true);
+      if (inFlight.current || pendingRef.current || markerRef.current)
+        setDenied(true);
+      if (pendingRef.current?.kind === "change") remember(null);
     }
     previousPermission.current = canPay;
   }, [canPay]);
   const current = rows.find((b) => b.id === form.billId && b.status === "open");
+  const selectedUnits = Object.entries(items).filter(
+    ([, quantity]) => quantity > 0,
+  );
+  const itemSplitValid =
+    selectedUnits.length > 0 &&
+    selectedUnits.every(([id, quantity]) => {
+      const charge = Array.isArray(current?.charges)
+        ? current.charges.find((value: any) => value.id === id)
+        : null;
+      return (
+        Number.isSafeInteger(quantity) &&
+        quantity > 0 &&
+        charge &&
+        Number.isSafeInteger(charge.quantity) &&
+        quantity <= charge.quantity
+      );
+    });
   const update = (key: string, value: any) => {
-    if (!inFlight.current && !pendingRef.current && !denied)
+    if (
+      !inFlight.current &&
+      !pendingRef.current &&
+      !markerRef.current &&
+      !denied
+    )
       setForm((old: any) => ({ ...old, [key]: value }));
   };
-  const locked = disabled || working || !!pending || !canPay;
+  const locked =
+    disabled ||
+    working ||
+    !!pending ||
+    !!changeMarker ||
+    !changeReady ||
+    !canPay;
   function remember(value: Pending | null) {
     pendingRef.current = value;
     setPending(value);
+  }
+  const attemptPath = (marker: BillChangeMarker) =>
+    base +
+    `/bills/${encodeURIComponent(marker.billId)}/change-attempts/${marker.operation}/${marker.requestKey}`;
+  const validBill = (value: any) =>
+    value &&
+    typeof value.id === "string" &&
+    value.id.trim().length > 0 &&
+    Array.isArray(value.charges) &&
+    Array.isArray(value.allocations) &&
+    Number.isSafeInteger(value.total) &&
+    Number.isSafeInteger(value.paid) &&
+    Number.isSafeInteger(value.balance);
+  const normalizedIntent = (operation: string, body: any) =>
+    operation === "split"
+      ? {
+          name: typeof body?.name === "string" ? body.name.trim() : body?.name,
+          amount: body?.amount ?? null,
+          items: body?.items ?? null,
+        }
+      : { sourceBillIds: body?.sourceBillIds };
+  function validateProof(result: any, marker: BillChangeMarker) {
+    const parts = base.split("/");
+    if (
+      !result ||
+      result.requestKey !== marker.requestKey ||
+      result.actorId !== actorId ||
+      result.organizationId !== parts[2] ||
+      result.branchId !== parts[4] ||
+      result.billId !== marker.billId ||
+      result.operation !== marker.operation ||
+      !["recorded", "not_found", "abandoned"].includes(result.status)
+    )
+      throw Error(
+        "The bill-change outcome could not be verified. Keep the saved reference and check again.",
+      );
+    if (result.status === "recorded") {
+      const op = result.operationRecord,
+        value = result.result;
+      if (
+        result.resultBasis !== "recorded_operation_snapshot" ||
+        !op ||
+        typeof op.id !== "string" ||
+        !op.id.trim() ||
+        op.requestKey !== marker.requestKey ||
+        op.actorId !== actorId ||
+        op.billId !== marker.billId ||
+        op.operation !== marker.operation ||
+        (marker.operation === "split"
+          ? !validBill(value?.source) ||
+            value.source.id !== marker.billId ||
+            !validBill(value?.bill) ||
+            value.bill.id === marker.billId
+          : !validBill(value) || value.id !== marker.billId)
+      )
+        throw Error("The recorded bill change could not be verified.");
+      const original = pendingRef.current;
+      if (
+        original?.kind === "change" &&
+        JSON.stringify(normalizedIntent(marker.operation, original.body)) !==
+          JSON.stringify(normalizedIntent(marker.operation, op.intent))
+      )
+        throw Error(
+          "The recorded bill change differs from the original request. Ask a supervisor to review it.",
+        );
+    }
+    if (
+      result.status === "abandoned" &&
+      (typeof result.resolutionId !== "string" || !result.resolutionId)
+    )
+      throw Error("The stopped bill change could not be verified.");
+    return result;
+  }
+  async function inspectChange(marker: BillChangeMarker) {
+    const proof = validateProof(
+      await workspaceApi(attemptPath(marker), "GET", undefined, undefined, {
+        expectedActorId: actorId,
+      }),
+      marker,
+    );
+    if (!active.current || !permission.current) return;
+    if (proof.status === "not_found") {
+      setNotice(
+        "No completed bill change was found. This does not confirm that an in-flight request has stopped. Retry the original change or stop it before making a new one.",
+      );
+      return;
+    }
+    clearBillChangeMarker(marker);
+    markerRef.current = null;
+    setChangeMarker(null);
+    remember(null);
+    setItems({});
+    setForm({ billId: marker.billId });
+    setNotice(
+      proof.status === "recorded"
+        ? "The original bill change was recorded. Refresh the workspace to review the latest bills."
+        : "The original bill change is stopped. It cannot be applied later. Review the latest bills before making a new change.",
+    );
   }
   const perform = async (
     path: string,
@@ -102,41 +252,80 @@ function ScopedBills({
       !permission.current ||
       denied ||
       inFlight.current ||
-      (!retry && pendingRef.current)
+      !changeReady ||
+      (!retry && (pendingRef.current || markerRef.current))
     )
       return;
-    const attempt = retry
+    const attempt: Pending | null = retry
       ? pendingRef.current
       : {
           path,
           body: JSON.parse(JSON.stringify(body)),
           message,
-          kind: body.requestKey ? ("payment" as const) : ("change" as const),
+          kind: path.endsWith("/payments") ? "payment" : "change",
         };
-    if (!attempt || (retry && attempt.kind !== "payment")) return;
+    if (!attempt) return;
     const wasUnknown = !!pendingRef.current;
     inFlight.current = true;
     setWorking(true);
     setError("");
+    setNotice("");
     try {
-      await save(base + attempt.path, "POST", attempt.body, attempt.message);
+      if (attempt.kind === "change" && !retry) {
+        const match = attempt.path.match(/^\/bills\/([^/]+)\/(split|merge)$/);
+        if (!match) throw Error("This bill action is unavailable.");
+        attempt.body.requestKey = uuid();
+        let marker: BillChangeMarker;
+        try {
+          marker = saveBillChangeMarker({
+            version: 1,
+            actorId,
+            base,
+            billId: match[1],
+            operation: match[2] as "split" | "merge",
+            requestKey: attempt.body.requestKey,
+          });
+        } catch {
+          setChangeReady(false);
+          throw Error(
+            "This tab could not save a recovery reference. No bill change was sent. Reload and review saved references before continuing.",
+          );
+        }
+        markerRef.current = marker;
+        setChangeMarker(marker);
+        remember(attempt);
+      }
+      await save(
+        base + attempt.path,
+        "POST",
+        attempt.body,
+        attempt.kind === "change"
+          ? "Bill change received; checking its recorded outcome."
+          : attempt.message,
+      );
       if (!active.current || !permission.current) return;
+      if (attempt.kind === "change") {
+        if (markerRef.current) await inspectChange(markerRef.current);
+        return;
+      }
       remember(null);
       setItems({});
       setForm({ billId: form.billId });
     } catch (failure: any) {
       if (!active.current) return;
       if (
-        wasUnknown ||
-        !failure.status ||
-        failure.status >= 500 ||
-        failure.name === "AbortError"
+        attempt.kind === "payment" &&
+        (wasUnknown ||
+          !failure.status ||
+          failure.status >= 500 ||
+          failure.name === "AbortError")
       )
         remember(attempt);
       if ([401, 403, 404].includes(failure.status)) {
         setDenied(true);
         setForm({});
         setItems({});
+        if (attempt.kind === "change") remember(null);
       }
       setError(failure.message || "The bill update could not be confirmed.");
     } finally {
@@ -144,7 +333,51 @@ function ScopedBills({
       if (active.current) setWorking(false);
     }
   };
+  async function recoverChange(stop = false) {
+    const marker = markerRef.current;
+    if (
+      !marker ||
+      disabled ||
+      !permission.current ||
+      denied ||
+      inFlight.current ||
+      !changeReady
+    )
+      return;
+    inFlight.current = true;
+    setWorking(true);
+    setError("");
+    setNotice("");
+    try {
+      if (stop) {
+        validateProof(
+          await workspaceApi(
+            attemptPath(marker) + "/abandon",
+            "POST",
+            { reason: "Staff explicitly stopped the unresolved bill change." },
+            undefined,
+            { expectedActorId: actorId },
+          ),
+          marker,
+        );
+      }
+      if (active.current && permission.current) await inspectChange(marker);
+    } catch (failure: any) {
+      if (!active.current) return;
+      if ([401, 403, 404].includes(failure.status)) {
+        setDenied(true);
+        setForm({});
+        setItems({});
+        remember(null);
+      }
+      setError(failure.message || "The bill change could not be checked.");
+    } finally {
+      inFlight.current = false;
+      if (active.current) setWorking(false);
+    }
+  }
   const party = (bill: any) => {
+    if (bill.visitId === null) return "Counter bill";
     if (!bill.visitId) return "Visit not recorded";
     const visit = (Array.isArray(visits) ? visits : []).find(
       (v) => v && v.id === bill.visitId,
@@ -232,17 +465,55 @@ function ScopedBills({
           {error}
         </p>
       )}
-      {pending && canPay && (
-        <div role="status" className="mw-bill-pending">
-          <strong>
-            {pending.kind === "payment"
-              ? "Collection not confirmed"
-              : "Bill change not confirmed"}
-          </strong>
+      {notice && (
+        <p role="status" className="mw-note">
+          {notice}
+        </p>
+      )}
+      {changeMarker && canPay && (
+        <section className="mw-bill-pending" aria-label="Bill change recovery">
+          <h3>Bill change not confirmed</h3>
           <p>
-            {pending.kind === "payment"
-              ? "The original amount and reference are locked. Check the original financial record in this workspace or retry only this same collection."
-              : "This split or merge may already have been saved. Other bill changes are paused. Ask an administrator to review the latest bills before making another change; this screen cannot safely retry or discard it."}
+            A split or merge is waiting for a verified outcome. Refreshing bill
+            records does not resolve it. This tab keeps only a recovery
+            reference, without the bill name or change details.
+          </p>
+          <p>
+            After leaving this screen, check the outcome or stop the original
+            change. No request is sent automatically.
+          </p>
+          <Action
+            disabled={disabled}
+            pending={working}
+            onClick={() => void recoverChange()}
+          >
+            Check bill change outcome
+          </Action>
+          {pending?.kind === "change" && (
+            <Action
+              disabled={disabled}
+              pending={working}
+              onClick={() => void perform("", {}, "", true)}
+            >
+              Retry original bill change
+            </Action>
+          )}
+          <Action
+            disabled={disabled}
+            pending={working}
+            onClick={() => void recoverChange(true)}
+          >
+            Stop original bill change
+          </Action>
+        </section>
+      )}
+      {pending?.kind === "payment" && canPay && (
+        <div role="status" className="mw-bill-pending">
+          <strong>Collection not confirmed</strong>
+          <p>
+            The original amount and reference are locked. Check the original
+            financial record in this workspace or retry only this same
+            collection.
           </p>
           <p>
             Refreshing or leaving this view does not cancel the original
@@ -274,10 +545,11 @@ function ScopedBills({
       <label className="mw-form">
         Bill to manage
         <select
-          disabled={!available || working || !!pending}
+          disabled={!available || working || !!pending || !!changeMarker}
           value={form.billId || ""}
           onChange={(e) => {
-            if (inFlight.current || pendingRef.current) return;
+            if (inFlight.current || pendingRef.current || markerRef.current)
+              return;
             setForm({ billId: e.target.value });
             setItems({});
           }}
@@ -376,6 +648,18 @@ function ScopedBills({
                 {form.splitMode === "items" ? (
                   <fieldset className="mw-wide">
                     <legend>Items to move</legend>
+                    <p className="mw-note">
+                      {(Array.isArray(current.charges)
+                        ? current.charges
+                        : []
+                      ).some(
+                        (charge: any) =>
+                          Number.isSafeInteger(charge.quantity) &&
+                          charge.quantity > 0,
+                      )
+                        ? "Choose at least one whole item unit to move."
+                        : "Item quantities are unavailable for this bill. Split by outstanding amount instead."}
+                    </p>
                     {(Array.isArray(current.charges)
                       ? current.charges
                       : []
@@ -396,7 +680,12 @@ function ScopedBills({
                           }
                           value={items[charge.id] || 0}
                           onChange={(e) => {
-                            if (inFlight.current || pendingRef.current) return;
+                            if (
+                              inFlight.current ||
+                              pendingRef.current ||
+                              markerRef.current
+                            )
+                              return;
                             setItems({
                               ...items,
                               [charge.id]: Number(e.target.value),
@@ -430,7 +719,8 @@ function ScopedBills({
                     disabled={
                       locked ||
                       !Number.isSafeInteger(current.balance) ||
-                      current.balance <= 0
+                      current.balance <= 0 ||
+                      (form.splitMode === "items" && !itemSplitValid)
                     }
                   >
                     Split bill

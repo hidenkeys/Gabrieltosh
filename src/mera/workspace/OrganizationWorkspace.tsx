@@ -94,6 +94,7 @@ import StockMovements from "./StockMovements";
 import FloorMap from "./FloorMap";
 import HelpRequests from "./HelpRequests";
 import { hasHelpUpdateMarkers } from "./helpUpdateJournal";
+import { hasBillChangeMarkers } from "./billChangeJournal";
 import ModifierGroupsEditor from "./ModifierGroupsEditor";
 import WriteOff from "./WriteOff";
 import MinimumSpendPolicy from "./MinimumSpendPolicy";
@@ -408,10 +409,12 @@ export default function OrganizationWorkspace({
     window.addEventListener("mera:reservation-recovery", changed);
     window.addEventListener("mera:shift-recovery", changed);
     window.addEventListener("mera:help-recovery", changed);
+    window.addEventListener("mera:bill-recovery", changed);
     return () => {
       window.removeEventListener("mera:reservation-recovery", changed);
       window.removeEventListener("mera:shift-recovery", changed);
       window.removeEventListener("mera:help-recovery", changed);
+      window.removeEventListener("mera:bill-recovery", changed);
     };
   }, []);
   const clearProtected = useCallback(() => {
@@ -733,8 +736,16 @@ export default function OrganizationWorkspace({
       /^\/organizations\/[^/]+\/branches\/[^/]+\/help-requests\/[^/]+$/.test(
         path,
       );
+    const originalBillChange =
+      method === "POST" &&
+      /^\/organizations\/[^/]+\/branches\/[^/]+\/bills\/[^/]+\/(split|merge)$/.test(
+        path,
+      );
     const actorBoundIntent =
-      originalReservation || originalShiftOperation || originalHelpUpdate;
+      originalReservation ||
+      originalShiftOperation ||
+      originalHelpUpdate ||
+      originalBillChange;
     let attemptedBody: any;
     try {
       if (
@@ -746,7 +757,11 @@ export default function OrganizationWorkspace({
             ? path === branchBase + "/reservations"
             : path.startsWith(
                 branchBase +
-                  (originalHelpUpdate ? "/help-requests/" : "/shifts"),
+                  (originalHelpUpdate
+                    ? "/help-requests/"
+                    : originalBillChange
+                      ? "/bills/"
+                      : "/shifts"),
               )) ||
           scopeEpoch.current.generation !== scopeVersion)
       )
@@ -1414,7 +1429,8 @@ export default function OrganizationWorkspace({
                       uncertainOrders.current.size ||
                       hasStaffReservationJournals(principal || user.id) ||
                       hasShiftOperationJournals(principal || user.id) ||
-                      hasHelpUpdateMarkers(principal || user.id)
+                      hasHelpUpdateMarkers(principal || user.id) ||
+                      hasBillChangeMarkers(principal || user.id)
                     )
                       setLogoutConfirm(true);
                     else void signOut();
@@ -1645,6 +1661,27 @@ export default function OrganizationWorkspace({
             )}
           </div>
         )}
+      {hasBillChangeMarkers(principal || user.id) && (
+        <section
+          role="status"
+          className="mw-note"
+          aria-label="Shared bill recovery"
+        >
+          <strong>A bill change needs checking</strong>
+          <p>
+            Open Tables &amp; visits in the original branch to check the split
+            or merge before making another bill change. No request is sent
+            automatically.
+          </p>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => selectSection("tables")}
+          >
+            Review bill changes
+          </button>
+        </section>
+      )}
       {hasHelpUpdateMarkers(principal || user.id) && (
         <section
           role="status"
@@ -3702,6 +3739,7 @@ export default function OrganizationWorkspace({
                   <Bills
                     key={branchBase + financialRevision}
                     bills={data.bills}
+                    actorId={principal || user.id}
                     visits={data.visits}
                     tables={data.tables}
                     base={branchBase}

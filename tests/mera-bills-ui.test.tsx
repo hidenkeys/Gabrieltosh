@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 import { formatMoney } from "../src/mera/workspace/api";
-const dom = new JSDOM("<!doctype html><html><body></body></html>");
+const dom = new JSDOM("<!doctype html><html><body></body></html>", {
+  url: "http://localhost:3003",
+});
 for (const key of ["window", "document", "HTMLElement", "Event", "MouseEvent"])
   Object.defineProperty(globalThis, key, {
     value: (dom.window as any)[key],
@@ -38,6 +40,7 @@ const bill = {
 };
 const props = {
   bills: [bill],
+  actorId: "staff-one",
   base,
   disabled: false,
   canPay: true,
@@ -51,7 +54,10 @@ const open = (summary: string) =>
   fireEvent.click(screen.getByText(summary, { exact: true }));
 const input = (label: string, value: string) =>
   fireEvent.change(screen.getByLabelText(label), { target: { value } });
-test.afterEach(cleanup);
+test.afterEach(() => {
+  cleanup();
+  window.sessionStorage.clear();
+});
 test("bill records distinguish unavailable/empty/zero and held credit without exposing private IDs or payment tools to read-only staff", () => {
   const view = render(<Bills {...props} bills={undefined} canPay={false} />);
   assert(screen.getByText(/Bill records are unavailable/));
@@ -79,8 +85,42 @@ test("bill records distinguish unavailable/empty/zero and held credit without ex
     null,
   );
 });
-test("split preserves whole-item API body and merges only another open bill from the same party", async () => {
+test("split preserves whole-item API body and merges only another open bill from the same party", async (t) => {
   const calls: any[] = [];
+  t.mock.method(globalThis, "fetch", async () => {
+    const call = calls.at(-1),
+      body = call[2],
+      operation = call[0].endsWith("/split") ? "split" : "merge";
+    return Response.json({
+      requestKey: body.requestKey,
+      actorId: "staff-one",
+      organizationId: "org",
+      branchId: "branch",
+      billId: bill.id,
+      operation,
+      status: "recorded",
+      resultBasis: "recorded_operation_snapshot",
+      result:
+        operation === "split"
+          ? { source: bill, bill: { ...bill, id: "new-bill" } }
+          : bill,
+      operationRecord: {
+        id: "op",
+        requestKey: body.requestKey,
+        actorId: "staff-one",
+        billId: bill.id,
+        operation,
+        intent:
+          operation === "split"
+            ? {
+                name: body.name,
+                amount: body.amount ?? null,
+                items: body.items ?? null,
+              }
+            : { sourceBillIds: body.sourceBillIds },
+      },
+    });
+  });
   render(
     <Bills
       {...props}
@@ -105,10 +145,15 @@ test("split preserves whole-item API body and merges only another open bill from
   fireEvent.click(screen.getByRole("button", { name: "Split bill" }));
   await waitFor(() => assert.equal(calls.length, 1));
   assert.equal(calls[0][0], base + "/bills/bill-1/split");
-  assert.deepEqual(calls[0][2], {
-    items: [{ chargeId: "charge-1", quantity: 1 }],
-    name: "One guest",
-  });
+  assert.equal(typeof calls[0][2].requestKey, "string");
+  assert.deepEqual(
+    { ...calls[0][2], requestKey: undefined },
+    {
+      requestKey: undefined,
+      items: [{ chargeId: "charge-1", quantity: 1 }],
+      name: "One guest",
+    },
+  );
   await waitFor(() =>
     assert(!screen.getByLabelText("Bill to manage").hasAttribute("disabled")),
   );
@@ -122,9 +167,12 @@ test("split preserves whole-item API body and merges only another open bill from
     screen.getByRole("button", { name: "Merge into selected bill" }),
   );
   await waitFor(() => assert.equal(calls.length, 2));
-  assert.deepEqual(calls[1][2], { sourceBillIds: ["same"] });
+  assert.deepEqual(
+    { ...calls[1][2], requestKey: undefined },
+    { requestKey: undefined, sourceBillIds: ["same"] },
+  );
 });
-test("unknown non-idempotent split freezes all bill changes and cannot be unlocked by updated props", async () => {
+test("unknown split freezes all bill changes and cannot be unlocked by updated props", async () => {
   const calls: any[] = [];
   const save = async (...args: any[]) => {
     calls.push(args);
@@ -138,7 +186,7 @@ test("unknown non-idempotent split freezes all bill changes and cannot be unlock
   fireEvent.click(screen.getByRole("button", { name: "Split bill" }));
   await screen.findByText("Bill change not confirmed");
   assert.equal(calls.length, 1);
-  assert.equal(screen.queryByRole("button", { name: /Retry/ }), null);
+  assert(screen.getByRole("button", { name: "Retry original bill change" }));
   view.rerender(
     <Bills {...props} bills={[{ ...bill, balance: 299000 }]} save={save} />,
   );
@@ -244,4 +292,39 @@ test("authorization denial hides bill rows and retained private collection inten
   assert(!document.body.textContent?.includes("PRIVATE_REFERENCE"));
   view.rerender(<Bills {...props} />);
   assert.equal(screen.queryByLabelText("Bill to manage"), null);
+});
+
+test("item splitting requires a selected whole unit and explains unavailable legacy unit counts", () => {
+  const view = render(<Bills {...props} />);
+  choose();
+  open("Split this bill");
+  fireEvent.change(screen.getByLabelText("Split by"), {
+    target: { value: "items" },
+  });
+  assert(
+    (screen.getByRole("button", { name: "Split bill" }) as HTMLButtonElement)
+      .disabled,
+  );
+  input("Move quantity of Lemonade", "1");
+  assert(
+    !(screen.getByRole("button", { name: "Split bill" }) as HTMLButtonElement)
+      .disabled,
+  );
+  view.rerender(
+    <Bills
+      {...props}
+      bills={[
+        { ...bill, charges: [{ ...bill.charges[0], quantity: undefined }] },
+      ]}
+    />,
+  );
+  assert(
+    screen.getByText(
+      "Item quantities are unavailable for this bill. Split by outstanding amount instead.",
+    ),
+  );
+  assert(
+    (screen.getByRole("button", { name: "Split bill" }) as HTMLButtonElement)
+      .disabled,
+  );
 });
