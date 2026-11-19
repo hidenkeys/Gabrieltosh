@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T03:51:33+01:00",
-  "revision": "15257c2",
+  "lastUpdated": "2026-11-19T08:28:23+01:00",
+  "revision": "b4a11fa",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -438,7 +438,7 @@
       "workstream": "O",
       "title": "Transactions, shifts, reports and exports",
       "weight": 4,
-      "checkpoint": 40,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "workspace",
       "dependencies": [
@@ -447,9 +447,15 @@
       ],
       "acceptance": "List/detail hierarchy, payment origins, reviewed refunds and noncash outcomes, business-date reports/download states; no financial or recovery regression.",
       "evidence": [
-        "docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md"
+        "docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
+        "docs/mera/ui-audit/EOD-REPORTING-CHECKPOINT.md",
+        "docs/mera/ui-audit/trading-day-report-comparison.html",
+        "docs/mera/ui-audit/screenshots/177-report-totals-tablet.jpg"
       ],
-      "blockers": [],
+      "blockers": [
+        "Chrome organization policy blocks browser file-download acceptance; actual worker and authenticated route/CSV verified in disposable PostgreSQL integration.",
+        "Authoritative branch Mera-fee assessment source is unavailable; report explicitly does not invent zero fees."
+      ],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
@@ -460,6 +466,11 @@
           "at": "2026-11-19T01:18:04+01:00",
           "checkpoint": 40,
           "note": "Finance/shift/export and integration/care partial correction. Actual zero-cash shift close and worker-completed CSV download passed; no real collections/refunds or full populated-care browser acceptance. See checkpoint."
+        },
+        {
+          "at": "2026-11-19T08:28:23+01:00",
+          "checkpoint": 60,
+          "note": "Populated dated EOD totals/products/current order states and scoped activity verified in browser; CSVv2 worker/download route passed PG gate. Browser download blocked by managed Chrome policy; broader finance/print/role matrices remain."
         }
       ]
     },
@@ -1141,10 +1152,11 @@
       "role": "Owner/manager",
       "taskIds": [
         "O1",
-        "O2"
+        "O2",
+        "O6"
       ],
       "task": "OperationalOverview",
-      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
+      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained. Dated report subset now verified: correct18Nov selection, populated19Nov quantities/money distinctions, reviewed-date export. See EOD-REPORTING-CHECKPOINT.md.",
       "source": "src/mera/workspace/OrganizationWorkspace.tsx",
       "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
       "permissions": "reports.view",
@@ -1553,7 +1565,7 @@
         "O6"
       ],
       "task": "ExportJobs",
-      "functionalCoverage": "Focused regression and actual scoped review; shift0 close and export/download exercised. Other mutations/state matrix remain partial. docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
+      "functionalCoverage": "Expanded CSVv2 + exact reviewed-date handoff, worker completion and authorized download route verified in actual disposable PG integration. Actual UI job ready; Chrome organization policy blocked file download. docs/mera/ui-audit/EOD-REPORTING-CHECKPOINT.md",
       "source": "src/mera/workspace/OrganizationWorkspace.tsx",
       "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
       "permissions": "reports.export",
@@ -1564,9 +1576,11 @@
         "permission": "UNVERIFIED for full correction",
         "recovery": "Actual native-date failure found/fixed; selected date persisted through queue\u2192ready\u2192CSV download; unknown retries tested, full state matrix pending"
       },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "Actual before106\u2013110/after111\u2013115 and tablet/narrow116\u2013121; comparison122 accepted. Partial acceptance only; see docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
-      "blockers": []
+      "responsive": "Actual390px export reflow; focused export permission/late/unknown guards passed.",
+      "visualReview": "Actual169before/174phoneafter inspected; paired report167/172 comparison inspected.",
+      "blockers": [
+        "Chrome organization download policy"
+      ]
     },
     {
       "id": "WS-help",
