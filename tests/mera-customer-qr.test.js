@@ -317,7 +317,10 @@ test("help request uncertainty retries original intent without claiming external
       return Response.json({
         sessionRef: "40000000-0000-4000-8000-000000000001",
       });
-    assert.equal(String(input), "/api/mera/v1/public/org/branch/help-requests");
+    assert.equal(
+      String(input),
+      "/api/mera/v1/public/org/20000000-0000-4000-8000-000000000001/help-requests",
+    );
     if (init.method === "POST") {
       attempts.push(JSON.parse(init.body));
       if (attempts.length === 2)
@@ -331,7 +334,7 @@ test("help request uncertainty retries original intent without claiming external
   });
   render(
     React.createElement(HelpRequests, {
-      prefix: "/public/org/branch",
+      prefix: "/public/org/20000000-0000-4000-8000-000000000001",
       ensureGuest: async () => {
         guestCreations++;
       },

@@ -5093,3 +5093,92 @@ test("mobile workspace selection focuses destination heading without changing de
     cleanup();
   }
 });
+
+for (const role of ["stock_controller", "branch_manager"])
+  test(`branch-scoped ${role} catalog never mounts forbidden organization menu reads or loses its filter on refresh`, async () => {
+    const previous = globalThis.fetch;
+    const reads: string[] = [];
+    const scopedUser = { ...user, id: "10000000-0000-4000-8000-000000000001" };
+    const organizationId = "20000000-0000-4000-8000-000000000001";
+    const branchId = "30000000-0000-4000-8000-000000000001";
+    const { rolePermissions } = await import("../shared/mera-contracts.js");
+    globalThis.fetch = (async (input: any) => {
+      const path = String(input);
+      reads.push(path);
+      if (path.endsWith("/context"))
+        return Response.json({
+          ...context,
+          user: scopedUser,
+          organizations: [
+            {
+              ...context.organizations[0],
+              id: organizationId,
+              branches: [{ id: branchId, name: "Surulere" }],
+              branchIds: [branchId],
+              role,
+              organizationWide: false,
+              permissions: rolePermissions[
+                role as keyof typeof rolePermissions
+              ].filter((permission) => permission !== "reports.view"),
+            },
+          ],
+        });
+      if (path.endsWith("/workspace"))
+        return Response.json({
+          ...snapshot("branch-1"),
+          products: [
+            {
+              id: "tea",
+              name: "Fresh Lemonade",
+              code: "TEA",
+              category: "Tea",
+              price: 150000,
+            },
+          ],
+          orders: [],
+          tickets: [],
+        });
+      if (path.endsWith("/menus"))
+        return Response.json(
+          { error: "Organization scope denied" },
+          { status: 403 },
+        );
+      if (path.endsWith("/categories"))
+        return Response.json({ categories: [] });
+      return Response.json({ movements: [] });
+    }) as any;
+    try {
+      render(<Workspace user={scopedUser} notify={() => {}} />);
+
+      const input = await screen.findByRole("searchbox", {
+        name: "Find a product",
+      });
+      fireEvent.change(input, { target: { value: "Fresh Lemonade" } });
+      assert(!screen.queryByRole("tab", { name: "Shared menus" }));
+      await act(async () =>
+        fireEvent.click(
+          screen.getByRole("button", { name: "Refresh workspace" }),
+        ),
+      );
+      await waitFor(() =>
+        assert(!screen.queryByText("Loading branch records…")),
+      );
+      assert.equal(
+        (
+          screen.getByRole("searchbox", {
+            name: "Find a product",
+          }) as HTMLInputElement
+        ).value,
+        "Fresh Lemonade",
+      );
+      assert(
+        !reads.some((path) => path.endsWith("/menus")),
+        "hidden organization menu tools must not send forbidden reads",
+      );
+      assert(!screen.queryByRole("alert"));
+    } finally {
+      cleanup();
+      globalThis.fetch = previous;
+      window.sessionStorage.clear();
+    }
+  });

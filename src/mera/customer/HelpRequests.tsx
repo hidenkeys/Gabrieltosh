@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { customerRequest, requestId } from "./client";
+import {
+  readHelpJournal,
+  saveHelpJournal,
+  clearHelpJournal,
+} from "./helpRecovery";
 const sessionSchema = z.object({ sessionRef: z.string().uuid() });
 const ownRequestSchema = z.object({
   id: z.string().uuid(),
@@ -70,10 +75,12 @@ function ScopedHelpRequests({
     [context, setContext] = useState(""),
     [pending, setPending] = useState<Pending | null>(null),
     [privateBlocked, setPrivateBlocked] = useState(false),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [journalReady, setJournalReady] = useState(false);
   const mounted = useRef(true),
     readGeneration = useRef(0),
     sendInFlight = useRef(false),
+    recoveryBlocked = useRef(false),
     pendingRef = useRef<Pending | null>(null);
   function remember(value: Pending | null) {
     pendingRef.current = value;
@@ -108,6 +115,7 @@ function ScopedHelpRequests({
     );
   }
   async function load() {
+    if (recoveryBlocked.current) return;
     const generation = ++readGeneration.current;
     setLoading(true);
     setReadError("");
@@ -136,6 +144,33 @@ function ScopedHelpRequests({
   }
   useEffect(() => {
     mounted.current = true;
+    try {
+      const saved = readHelpJournal(prefix);
+      if (saved && !("body" in saved)) {
+        throw Error(
+          "Private help details were cleared when this session ended.",
+        );
+      }
+      if (saved) {
+        remember({
+          body: saved.body,
+          sessionRef: saved.sessionRef,
+          postStarted: true,
+        });
+        setPrivateBlocked(true);
+        setNotice(
+          "An earlier help request needs checking. It has not been sent again automatically.",
+        );
+        void load();
+      }
+      setJournalReady(true);
+    } catch {
+      recoveryBlocked.current = true;
+      setPrivateBlocked(true);
+      setWriteError(
+        "Saved help request details could not be verified. No replacement request will be sent. Ask staff to check the earlier request.",
+      );
+    }
     return () => {
       mounted.current = false;
       readGeneration.current++;
@@ -152,7 +187,7 @@ function ScopedHelpRequests({
     }
   }, [hasGuest]);
   async function send() {
-    if (sendInFlight.current) return;
+    if (sendInFlight.current || !journalReady) return;
     sendInFlight.current = true;
     setBusy(true);
     setWriteError("");
@@ -183,6 +218,12 @@ function ScopedHelpRequests({
       if (!mounted.current) return;
       const sessionRef = await proveGuest();
       if (!mounted.current) return;
+      saveHelpJournal({
+        version: 1,
+        prefix,
+        sessionRef,
+        body: attempt.body as any,
+      });
       attempt = { ...attempt, sessionRef, postStarted: true };
       remember(attempt);
       setPrivateBlocked(false);
@@ -190,6 +231,7 @@ function ScopedHelpRequests({
         await customerRequest(prefix + "/help-requests", "POST", attempt.body),
       );
       if (!mounted.current) return;
+      clearHelpJournal(prefix, attempt.body.requestKey);
       remember(null);
       setMessage("");
       setContext("");
@@ -209,7 +251,7 @@ function ScopedHelpRequests({
           ? (error as Error).message
           : attempt?.postStarted
             ? "We could not confirm the team received your request. Check your connection, then retry the same request."
-            : "Your guest session could not be verified, so no help request was sent. Check your connection, then retry the same details.",
+            : "This tab could not safely save and verify your request, so no help request was sent. Check your connection and browser storage, then retry the same details.",
       );
     } finally {
       sendInFlight.current = false;
@@ -264,9 +306,10 @@ function ScopedHelpRequests({
                   : "Your request has not been sent. Verify this guest session to continue with the same details."}
               </p>
               <p>
-                Keep this page open. Leaving it or refreshing does not save
-                these retry details. For an urgent request or lost session, ask
-                staff to check it.
+                {pending.postStarted
+                  ? "The original details are saved in this tab. After a refresh, this same guest session must be verified before you can retry."
+                  : "No request was sent. This tab must save and verify the original details before sending."}{" "}
+                For urgent help or a lost session, ask staff to check it.
               </p>
               {!privateBlocked && (
                 <dl>
@@ -294,7 +337,7 @@ function ScopedHelpRequests({
                 void send();
               }}
             >
-              <fieldset disabled={busy || !!pending}>
+              <fieldset disabled={busy || !!pending || !journalReady}>
                 <label>
                   Your name
                   <input

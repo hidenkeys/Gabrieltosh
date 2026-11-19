@@ -981,6 +981,10 @@
 .mw-attention-grid button {
   min-height: 44px;
   margin-top: 4px;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 @media (max-width: 1200px) {
   .mw-attention-grid {

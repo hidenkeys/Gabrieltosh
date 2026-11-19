@@ -36,6 +36,7 @@ const props = {
   onName: () => {},
   ensureGuest: async () => {},
 };
+test.beforeEach(() => window.sessionStorage.clear());
 test.afterEach(cleanup);
 function fill() {
   fireEvent.change(
@@ -241,13 +242,21 @@ test("scope switch immediately discards old private request view and ignores its
     return Response.json({ requests: [] });
   });
   const view = render(
-    <HelpRequests {...props} prefix="/public/old/branch" hasGuest={true} />,
+    <HelpRequests
+      {...props}
+      prefix="/public/old/20000000-0000-4000-8000-000000000001"
+      hasGuest={true}
+    />,
   );
   await screen.findByText("H-ORIGINAL");
   fireEvent.click(screen.getByRole("button", { name: "Refresh help status" }));
   await act(async () => {});
   view.rerender(
-    <HelpRequests {...props} prefix="/public/new/branch" hasGuest={true} />,
+    <HelpRequests
+      {...props}
+      prefix="/public/new/20000000-0000-4000-8000-000000000002"
+      hasGuest={true}
+    />,
   );
   assert.equal(screen.queryByText("H-ORIGINAL"), null);
   await screen.findByText("No help requests in this guest session yet.");
@@ -369,4 +378,225 @@ test("requests shortcut focuses real history without unmounting the compose draf
     screen.queryByRole("link", { name: "View requests and replies" }),
     null,
   );
+});
+
+test("refresh restores the original help intent without a POST or guest recreation and explicit retry keeps its exact key/body", async (t) => {
+  const bodies: any[] = [];
+  let creates = 0;
+  t.mock.method(globalThis, "fetch", async (input: any, init: any) => {
+    if (String(input).endsWith("/guest"))
+      return Response.json({ sessionRef: ref });
+    if (init.method === "GET") return Response.json({ requests: [] });
+    bodies.push(JSON.parse(init.body));
+    if (bodies.length === 1) throw Error("lost acknowledgement");
+    return Response.json(own);
+  });
+  const first = render(
+    <HelpRequests
+      {...props}
+      ensureGuest={async () => {
+        creates++;
+      }}
+      orderId={orderId}
+    />,
+  );
+  fill();
+  fireEvent.change(screen.getByRole("combobox", { name: "Related to" }), {
+    target: { value: "order" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Send help request" }));
+  await screen.findByRole("alert");
+  assert.equal(bodies.length, 1);
+  first.unmount();
+  render(
+    <HelpRequests
+      {...props}
+      ensureGuest={async () => {
+        creates++;
+      }}
+      orderId="50000000-0000-4000-8000-000000000099"
+    />,
+  );
+  await screen.findByRole("button", { name: "Retry original help request" });
+  await act(async () => {});
+  assert.equal(bodies.length, 1, "restore never posts automatically");
+  assert.equal(creates, 1, "restore never creates another guest");
+  fireEvent.click(
+    screen.getByRole("button", { name: "Retry original help request" }),
+  );
+  await screen.findByText(/Request H-ORIGINAL was sent/);
+  assert.equal(bodies.length, 2);
+  assert.deepEqual(bodies[1], bodies[0]);
+  assert.equal(
+    window.sessionStorage.length,
+    0,
+    "only confirmed exact retry clears recovery storage",
+  );
+});
+
+test("a different guest after refresh cannot read or replay saved private help", async (t) => {
+  let session = ref;
+  let posts = 0;
+  let creates = 0;
+  t.mock.method(globalThis, "fetch", async (input: any, init: any) => {
+    if (String(input).endsWith("/guest"))
+      return Response.json({ sessionRef: session });
+    if (init.method === "GET") return Response.json({ requests: [] });
+    posts++;
+    throw Error("unknown outcome");
+  });
+  const first = render(
+    <HelpRequests
+      {...props}
+      ensureGuest={async () => {
+        creates++;
+      }}
+    />,
+  );
+  fill();
+  fireEvent.click(screen.getByRole("button", { name: "Send help request" }));
+  await screen.findByRole("alert");
+  first.unmount();
+  session = "40000000-0000-4000-8000-000000000099";
+  render(
+    <HelpRequests
+      {...props}
+      hasGuest={true}
+      ensureGuest={async () => {
+        creates++;
+      }}
+    />,
+  );
+  await screen.findByText(/Your guest session changed/);
+  assert.equal(screen.queryByText("Please bring water"), null);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Retry original help request" }),
+  );
+  await act(async () => {});
+  assert.equal(posts, 1);
+  assert.equal(creates, 1);
+  assert.ok(window.sessionStorage.length > 0);
+});
+
+test("storage refusal prevents any help POST and retains the original unsent intent", async (t) => {
+  let posts = 0;
+  t.mock.method(window.Storage.prototype, "setItem", () => {
+    throw Error("storage unavailable");
+  });
+  t.mock.method(globalThis, "fetch", async (input: any, init: any) => {
+    if (String(input).endsWith("/guest"))
+      return Response.json({ sessionRef: ref });
+    if (init.method === "POST") posts++;
+    return Response.json({ requests: [] });
+  });
+  render(<HelpRequests {...props} />);
+  fill();
+  fireEvent.click(screen.getByRole("button", { name: "Send help request" }));
+  await screen.findByRole("alert");
+  assert.equal(posts, 0);
+  assert(screen.getByRole("button", { name: "Retry original help request" }));
+});
+
+test("explicit session ending redacts only matching guest journals and leaves an opaque unresolved marker", async (t) => {
+  const { saveHelpJournal, prepareHelpSessionEnd, readHelpJournal } =
+    await import("../src/mera/customer/helpRecovery");
+  const body = {
+    requestKey: "70000000-0000-4000-8000-000000000001",
+    category: "service" as const,
+    message: "Private original message",
+    orderId,
+  };
+  saveHelpJournal({ version: 1, prefix: props.prefix, sessionRef: ref, body });
+  const otherPrefix =
+    "/public/other-venue/20000000-0000-4000-8000-000000000002";
+  saveHelpJournal({
+    version: 1,
+    prefix: otherPrefix,
+    sessionRef: "40000000-0000-4000-8000-000000000099",
+    body,
+  });
+  t.mock.method(globalThis, "fetch", async () =>
+    Response.json({ sessionRef: ref }),
+  );
+  await prepareHelpSessionEnd(props.prefix);
+  const marker = readHelpJournal(props.prefix)!;
+  assert.ok(!("body" in marker));
+  assert.equal((marker as any).requestKey, body.requestKey);
+  assert.ok("body" in readHelpJournal(otherPrefix)!);
+  render(<HelpRequests {...props} hasGuest={true} />);
+  await screen.findByText(/Saved help request details could not be verified/);
+  assert.equal(screen.queryByText("Private original message"), null);
+  assert.equal(
+    screen.queryByRole("button", { name: "Retry original help request" }),
+    null,
+  );
+  assert.equal(
+    screen.queryByRole("button", { name: "Send help request" }),
+    null,
+  );
+});
+
+test("malformed stored help is preserved and blocks replacement writes", async (t) => {
+  window.sessionStorage.setItem(
+    "mera:customer-help:v1:" + props.prefix,
+    JSON.stringify({ version: 1, body: { message: "untrusted private" } }),
+  );
+  let posts = 0;
+  t.mock.method(globalThis, "fetch", async (_input: any, init: any) => {
+    if (init.method === "POST") posts++;
+    return Response.json({ sessionRef: ref, requests: [] });
+  });
+  render(<HelpRequests {...props} hasGuest={true} />);
+  await screen.findByText(/Saved help request details could not be verified/);
+  assert.equal(screen.queryByText("untrusted private"), null);
+  assert.equal(
+    screen.queryByRole("button", { name: "Send help request" }),
+    null,
+  );
+  assert.equal(posts, 0);
+  assert.equal(window.sessionStorage.length, 1);
+});
+
+test("explicit session end is blocked before its POST if pending-help privacy redaction fails", async (t) => {
+  const { saveHelpJournal } = await import("../src/mera/customer/helpRecovery");
+  const { default: SessionOrders } =
+    await import("../src/mera/customer/SessionOrders");
+  saveHelpJournal({
+    version: 1,
+    prefix: props.prefix,
+    sessionRef: ref,
+    body: {
+      requestKey: "70000000-0000-4000-8000-000000000001",
+      category: "service",
+      message: "Private pending",
+    },
+  });
+  let posts = 0;
+  t.mock.method(globalThis, "fetch", async (input: any, init: any) => {
+    if (init.method === "POST") posts++;
+    return Response.json(
+      String(input).endsWith("/guest")
+        ? { sessionRef: ref }
+        : { orders: [], nextCursor: null },
+    );
+  });
+  render(
+    <SessionOrders
+      prefix={props.prefix}
+      onSelect={() => {}}
+      onClear={() => {
+        throw Error("Session must not end");
+      }}
+    />,
+  );
+  await screen.findByText("No orders in this guest session.");
+  t.mock.method(window.Storage.prototype, "setItem", () => {
+    throw Error("Storage unavailable");
+  });
+  fireEvent.click(screen.getByRole("button", { name: "End guest session…" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "End this guest session", exact: true }),
+  );
+  await screen.findByRole("alert");
+  assert.equal(posts, 0, "failed redaction must prevent the guest/end POST");
 });

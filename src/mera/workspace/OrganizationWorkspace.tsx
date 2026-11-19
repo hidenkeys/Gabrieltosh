@@ -2400,7 +2400,13 @@ export default function OrganizationWorkspace({
                       ? "stock"
                       : "products"
                   }
-                  allowedViews={allowed("menu.edit") ? undefined : ["stock"]}
+                  allowedViews={
+                    !allowed("menu.edit")
+                      ? ["stock"]
+                      : organization?.organizationWide === true
+                        ? undefined
+                        : ["products", "categories", "stock"]
+                  }
                   header={
                     <div className="mw-heading">
                       <div>
@@ -2996,16 +3002,18 @@ export default function OrganizationWorkspace({
                     </>
                   }
                   shared={
-                    <SharedMenus
-                      key={branchBase}
-                      organizationId={organizationId}
-                      base={branchBase}
-                      products={products}
-                      categories={categories}
-                      disabled={busy || offline}
-                      canPublish={allowed("menu.publish")}
-                      save={mutate}
-                    />
+                    organization?.organizationWide === true ? (
+                      <SharedMenus
+                        key={branchBase}
+                        organizationId={organizationId}
+                        base={branchBase}
+                        products={products}
+                        categories={categories}
+                        disabled={busy || offline}
+                        canPublish={allowed("menu.publish")}
+                        save={mutate}
+                      />
+                    ) : null
                   }
                 />
               )}
