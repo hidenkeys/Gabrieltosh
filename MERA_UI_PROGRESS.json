@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T17:44:41+01:00",
-  "revision": "98e184d",
+  "lastUpdated": "2026-11-19T18:08:09+01:00",
+  "revision": "ee6c4e8",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -439,7 +439,10 @@
         "docs/mera/ui-audit/staff-management-comparison.html",
         "docs/mera/ui-audit/screenshots/64-people-narrow.jpg",
         "tests/mera-role-management-ui.test.tsx",
-        "docs/mera/ui-audit/PEOPLE-CHECKPOINT.md"
+        "docs/mera/ui-audit/PEOPLE-CHECKPOINT.md",
+        "docs/mera/ui-audit/ACCESS-RECOVERY-CHECKPOINT.md",
+        "docs/mera/ui-audit/ACCESS-RECOVERY-WORKBOARD.md",
+        "docs/mera/ui-audit/access-recovery-comparison.jpg"
       ],
       "blockers": [],
       "history": [
@@ -457,6 +460,11 @@
           "at": "2026-11-19T09:12:02+01:00",
           "checkpoint": 60,
           "note": "Members-first searchable scope/status/review, current grant controls and session/tab access-write journal integrated. Browser185\u2013190 and paired comparison inspected; full suite560pass/2skip, build and19focused tests passed. Populated roles/invitations and full role/device/recovery matrix remain; no actual security write or email delivery."
+        },
+        {
+          "at": "2026-11-19T18:08:09+01:00",
+          "checkpoint": 60,
+          "note": "Access recovery ee6c4e8/f1a1010: five shared actor/org keyed operations with exact proof/retry/fenced stop, no private payload/token persistence, current-authority delayed-response guards. Full686pass/2skip, build,8new/97existingfocused, disposablePG; matched People desktop and390/834 read-only screenshots. Wider acceptance gates remain; no percentage increase."
         }
       ]
     },
@@ -1207,7 +1215,10 @@
       "evidence": [
         "docs/mera/ui-audit/ACCESSIBILITY-CHECKPOINT.md",
         "docs/mera/ui-audit/BILL-RECOVERY-CHECKPOINT.md",
-        "docs/mera/ui-audit/PRINT-RECOVERY-CHECKPOINT.md"
+        "docs/mera/ui-audit/PRINT-RECOVERY-CHECKPOINT.md",
+        "docs/mera/ui-audit/ACCESS-RECOVERY-CHECKPOINT.md",
+        "docs/mera/ui-audit/ACCESS-RECOVERY-WORKBOARD.md",
+        "docs/mera/ui-audit/access-recovery-comparison.jpg"
       ],
       "blockers": [],
       "history": [
@@ -1230,6 +1241,11 @@
           "at": "2026-11-19T17:44:41+01:00",
           "checkpoint": 40,
           "note": "Template/reprint original replay/lookup/stop, shared nonsecret tab recovery and fresh duplicate metadata integrated at98e184d. Full675pass/2skip, studio25/parent78/finalwrapper8/build/disposablePG and matched receipt plus390/834 previews/nativevalidation. No preview write or physical print. No extra credit: broader acceptance, access/signup and external gates remain."
+        },
+        {
+          "at": "2026-11-19T18:08:09+01:00",
+          "checkpoint": 40,
+          "note": "Access recovery ee6c4e8/f1a1010: five shared actor/org keyed operations with exact proof/retry/fenced stop, no private payload/token persistence, current-authority delayed-response guards. Full686pass/2skip, build,8new/97existingfocused, disposablePG; matched People desktop and390/834 read-only screenshots. Wider acceptance gates remain; no percentage increase."
         }
       ]
     },
