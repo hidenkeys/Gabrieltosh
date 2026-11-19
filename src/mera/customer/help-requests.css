@@ -1,0 +1,183 @@
+.mera-customer .mc-help {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mera-customer .mc-help-heading {
+  max-width: 720px;
+  margin-bottom: 22px;
+}
+.mera-customer .mc-help-heading h2 {
+  margin-bottom: 8px;
+}
+.mera-customer .mc-help-heading p {
+  color: #51647d;
+  line-height: 1.6;
+}
+.mera-customer .mc-help-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+.mera-customer .mc-help-compose,
+.mera-customer .mc-help-history {
+  min-width: 0;
+}
+.mera-customer .mc-help h3 {
+  margin-top: 0;
+  font-size: 18px;
+}
+.mera-customer .mc-help fieldset {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.mera-customer .mc-help-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.mera-customer .mc-help textarea {
+  min-height: 128px;
+  resize: vertical;
+  line-height: 1.5;
+}
+.mera-customer .mc-help-hint {
+  font-size: 13px;
+  color: #51647d;
+  margin-block: 0;
+  line-height: 1.5;
+}
+.mera-customer .mc-help button,
+.mera-customer .mc-help select,
+.mera-customer .mc-help input {
+  min-height: 44px;
+}
+.mera-customer .mc-help button:focus-visible {
+  outline: 3px solid var(--mc-link, #2f7df6);
+  outline-offset: 3px;
+}
+.mera-customer .mc-help-history > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.mera-customer .mc-help-history > header p {
+  font-size: 13px;
+  color: #51647d;
+  line-height: 1.5;
+}
+.mera-customer .mc-help-history article {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid #e9e6e2;
+  border-radius: 10px;
+  background: #fffefa;
+}
+.mera-customer .mc-help-history article header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.mera-customer .mc-help-history h4 {
+  margin: 0;
+  font-size: 15px;
+}
+.mera-customer .mc-help-status {
+  padding: 5px 8px;
+  border: 1px solid #e9e6e2;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #111b2f;
+  background: #f8f7f4;
+}
+.mera-customer .mc-help-topic {
+  font-size: 13px;
+  color: #51647d;
+}
+.mera-customer .mc-help-reply {
+  border-left: 3px solid var(--mc-link, #2f7df6);
+  padding-left: 12px;
+  margin-top: 14px;
+}
+.mera-customer .mc-help-reply h5 {
+  font-size: 13px;
+  margin: 0;
+}
+.mera-customer .mc-help-reply p {
+  margin-bottom: 0;
+  white-space: pre-wrap;
+}
+.mera-customer .mc-help-pending,
+.mera-customer .mc-help-notice,
+.mera-customer .mc-help-privacy,
+.mera-customer .mc-help-empty {
+  padding: 14px;
+  background: #f8f7f4;
+  border: 1px solid #e9e6e2;
+  border-radius: 8px;
+  line-height: 1.6;
+}
+.mera-customer .mc-help-pending dl > div {
+  margin-block: 12px;
+}
+.mera-customer .mc-help-pending dt {
+  font-size: 13px;
+  color: #51647d;
+}
+.mera-customer .mc-help-pending dd {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}
+.mera-customer .mc-help-error {
+  padding: 12px 14px;
+  border-left: 3px solid #a63e36;
+  background: #fff5f3;
+  color: #76302a;
+  line-height: 1.5;
+}
+@media (max-width: 800px) {
+  .mera-customer .mc-help-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mera-customer .mc-help-history {
+    border-top: 1px solid #e9e6e2;
+    padding-top: 22px;
+  }
+}
+@media (max-width: 480px) {
+  .mera-customer .mc-help-form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mera-customer .mc-help-history > header {
+    flex-direction: column;
+  }
+  .mera-customer .mc-help-compose > button,
+  .mera-customer .mc-help-history > header button {
+    width: 100%;
+  }
+}
+.mera-customer .mc-help-replies-link {
+  display: none;
+}
+@media (max-width: 800px) {
+  .mera-customer .mc-help-replies-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--mc-link, #1558c9);
+    font-weight: 600;
+  }
+  .mera-customer .mc-help-replies-link:focus-visible,
+  .mera-customer #mc-help-requests-heading:focus-visible {
+    outline: 3px solid var(--mc-link, #2f7df6);
+    outline-offset: 3px;
+  }
+}

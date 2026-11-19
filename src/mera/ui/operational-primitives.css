@@ -1,0 +1,33 @@
+/* Geometry and focus aliases of the verified original Bing Chun controls; no new palette. */
+.mera-data-region {
+  min-width: 0;
+  max-width: 100%;
+  overflow: auto;
+}
+.mera-data-region:focus-visible {
+  outline: 3px solid var(--mera-focus-color, #2f7df6);
+  outline-offset: 3px;
+}
+.mera-action {
+  min-height: 44px;
+  font: inherit;
+}
+.mera-action:focus-visible {
+  outline: 3px solid var(--mera-focus-color, #2f7df6);
+  outline-offset: 3px;
+}
+.mera-read-state {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mera-read-state > p {
+  line-height: 1.5;
+}
+.mera-disclosure > summary {
+  min-height: 44px;
+  cursor: pointer;
+}
+.mera-disclosure > summary:focus-visible {
+  outline: 3px solid var(--mera-focus-color, #2f7df6);
+  outline-offset: 3px;
+}

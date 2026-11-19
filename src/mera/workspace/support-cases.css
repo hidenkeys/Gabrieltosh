@@ -1,0 +1,64 @@
+.mw-support-cases {
+  min-width: 0;
+}
+.mw-support-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.mw-support-heading h2 {
+  margin: 0 0 8px;
+}
+.mw-support-heading p {
+  max-width: 75ch;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #526175;
+}
+.mw-support-cases article {
+  padding: 18px;
+  border: 1px solid #e9e6e2;
+  border-radius: 11px;
+  margin-block: 14px;
+  background: #fffefa;
+  overflow-wrap: anywhere;
+}
+.mw-support-cases article h4 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+.mw-support-cases article p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.mw-support-create {
+  margin-top: 24px;
+  border-top: 1px solid #e9e6e2;
+}
+.mw-support-create > summary {
+  padding: 14px 0;
+  font-weight: 650;
+}
+.mw-support-create form {
+  max-width: 780px;
+  padding-top: 12px;
+}
+.mw-support-create textarea {
+  min-height: 120px;
+}
+.mw-support-cases .mera-action {
+  color: #111b2f;
+}
+.mw-support-cases .mera-action.primary {
+  color: #fff;
+}
+@media (max-width: 640px) {
+  .mw-support-heading {
+    flex-direction: column;
+  }
+  .mw-support-heading > .mera-action {
+    width: 100%;
+  }
+}

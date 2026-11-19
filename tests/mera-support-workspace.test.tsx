@@ -42,7 +42,10 @@ test("merchant support exact uncertain retry preserves actor request and avoids 
       },
     }),
   );
-  await screen.findByText("No support cases shown for this organization.");
+  await screen.findByText("No support cases yet.");
+  fireEvent.click(
+    screen.getByText("New support request", { selector: "summary" }),
+  );
   fireEvent.change(screen.getByRole("textbox", { name: "Support subject" }), {
     target: { value: "Printer integration" },
   });
@@ -51,7 +54,7 @@ test("merchant support exact uncertain retry preserves actor request and avoids 
   });
   fireEvent.click(screen.getByRole("button", { name: "Create support case" }));
   await screen.findByRole("alert");
-  assert(screen.getByText(/original request key and details are preserved/));
+  assert(screen.getByText(/original details\s+are locked/));
   assert(
     screen
       .getByRole("textbox", { name: "Support subject" })
@@ -65,7 +68,7 @@ test("merchant support exact uncertain retry preserves actor request and avoids 
   assert.deepEqual(calls[0], calls[1]);
   assert.equal(calls[0][0], "/organizations/org/support-cases");
   assert.equal(calls[0][1], "POST");
-  assert(screen.getByText(/No email, SMS or push notification is sent/));
+  assert(screen.getByText(/Messages and replies stay in this app/));
   cleanup();
 });
 test("support leaf displays only merchant reply and clears previous organization on scope change", async (t) => {
@@ -93,12 +96,18 @@ test("support leaf displays only merchant reply and clears previous organization
     save: async () => {},
   };
   const view = render(React.createElement(SupportCases, props));
+  fireEvent.click(
+    await screen.findByText("View request and replies", {
+      selector: "summary",
+    }),
+  );
   await screen.findByText("Mera reply: We are reviewing it");
   assert.equal(screen.queryByText("Never render this operator note"), null);
   view.rerender(
     React.createElement(SupportCases, { ...props, organizationId: "orgB" }),
   );
-  await screen.findByText("No support cases shown for this organization.");
+  assert.equal(screen.queryByText("Mera reply: We are reviewing it"), null);
+  await screen.findByText("No support cases yet.");
   assert.equal(screen.queryByText("Original case"), null);
   cleanup();
 });

@@ -311,7 +311,12 @@ test("help request uncertainty retries original intent without claiming external
   const { default: HelpRequests } =
     await import("../src/mera/customer/HelpRequests.tsx");
   const attempts = [];
+  let guestCreations = 0;
   mockGuestSessionFetch(t, async (input, init) => {
+    if (String(input).endsWith("/guest"))
+      return Response.json({
+        sessionRef: "40000000-0000-4000-8000-000000000001",
+      });
     assert.equal(String(input), "/api/mera/v1/public/org/branch/help-requests");
     if (init.method === "POST") {
       attempts.push(JSON.parse(init.body));
@@ -327,7 +332,9 @@ test("help request uncertainty retries original intent without claiming external
   render(
     React.createElement(HelpRequests, {
       prefix: "/public/org/branch",
-      ensureGuest: async () => {},
+      ensureGuest: async () => {
+        guestCreations++;
+      },
       hasGuest: false,
       displayName: "Ada",
       onName: () => {},
@@ -358,6 +365,7 @@ test("help request uncertainty retries original intent without claiming external
   assert.equal(attempts.length, 3);
   assert.deepEqual(attempts[0], attempts[2]);
   assert.equal("visitId" in attempts[0], false);
+  assert.equal(guestCreations, 1);
   cleanup();
 });
 

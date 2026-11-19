@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { formatMoney, workspaceApi } from "./api";
 import OrderInstructions from "./OrderInstructions";
+import { Disclosure, DataRegion } from "../ui/OperationalPrimitives";
 type Historical = "only" | "exclude" | "all";
 type Filters = {
   q: string;
@@ -26,10 +27,27 @@ const defaults: Filters = {
   to: "",
   take: 50,
 };
-const human = (value: any) =>
-  String(value || "Not recorded").replaceAll("_", " ");
+const human = (value: any) => {
+  if (value === "customer_qr") return "Customer QR";
+  const text = String(value || "Not recorded").replaceAll("_", " ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+const actorLabel = (entry: any) =>
+  entry.actorName ||
+  (
+    {
+      guest: "Guest",
+      customer: "Customer",
+      staff: "Staff name unavailable",
+      system: "System",
+      integration: "Integration",
+    } as Record<string, string>
+  )[entry.actorType] ||
+  "Identity unavailable";
 const date = (value: any) =>
-  value ? new Date(value).toLocaleString() : "Not recorded";
+  value && Number.isFinite(new Date(value).getTime())
+    ? new Date(value).toLocaleString()
+    : "Not recorded";
 function query(filters: Filters, cursor: string | null) {
   const params = new URLSearchParams();
   params.set("take", String(filters.take));
@@ -70,6 +88,9 @@ function ScopedOrderHistory({
   initialHistorical?: Historical;
   staffChoices?: { userId: string; name: string }[];
 }) {
+  const detailHeading = useRef<HTMLHeadingElement>(null);
+  const detailTrigger = useRef<HTMLButtonElement | null>(null);
+  const detailId = React.useId();
   const [draft, setDraft] = useState<Filters>({
     ...defaults,
     historical: initialHistorical,
@@ -183,7 +204,9 @@ function ScopedOrderHistory({
         )
           return;
         if (order?.id !== selected)
-          throw new Error("The canonical order response is invalid.");
+          throw new Error(
+            "Order details could not be verified. Reload before continuing.",
+          );
         setDetail(order);
       })
       .catch((error) => {
@@ -206,6 +229,9 @@ function ScopedOrderHistory({
       });
     return () => controller.abort();
   }, [base, selected, detailRevision, identity]);
+  useEffect(() => {
+    if (detail?.id) detailHeading.current?.focus();
+  }, [detail?.id]);
   const update = (key: keyof Filters, value: any) =>
     setDraft((current) => ({ ...current, [key]: value }));
   const restart = () => {
@@ -218,13 +244,18 @@ function ScopedOrderHistory({
     setRevision((value) => value + 1);
   };
   return (
-    <section className="mw-card" role="region" aria-label="Order history">
-      <h2>Order history</h2>
-      <p>
-        The live workflow is an operational snapshot. This archive loads bounded
-        pages separately, including older and imported records. History details
-        are read only; current actions remain in the live workflow.
-      </p>
+    <section
+      className="mw-card oh-history"
+      role="region"
+      aria-label="Order history"
+    >
+      <div className="oh-heading">
+        <div>
+          <h2>Order history</h2>
+          <p>Find previous orders and review their recorded details.</p>
+        </div>
+        <span className="oh-readonly">Read only</span>
+      </div>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -242,7 +273,7 @@ function ScopedOrderHistory({
           disabled={disabled || loading}
           style={{ border: 0, padding: 0 }}
         >
-          <div className="mw-form">
+          <div className="oh-primary-filters">
             <label>
               Search order history
               <input
@@ -264,172 +295,240 @@ function ScopedOrderHistory({
                 <option value="all">Current and imported history</option>
               </select>
             </label>
-            <label>
-              History order status
-              <select
-                value={draft.status}
-                onChange={(event) => update("status", event.target.value)}
-              >
-                <option value="">All statuses</option>
-                {[
-                  "submitted",
-                  "accepted",
-                  "preparing",
-                  "ready",
-                  "collected",
-                  "completed",
-                  "rejected",
-                  "cancelled",
-                ].map((value) => (
-                  <option key={value}>{value}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              History source
-              <input
-                list="mw-history-sources"
-                pattern="[a-z_]{1,40}"
-                maxLength={40}
-                value={draft.source}
-                onChange={(event) => update("source", event.target.value)}
-              />
-              <datalist id="mw-history-sources">
-                {["staff", "customer_qr", "zidi", "legacy_import"].map(
-                  (value) => (
-                    <option key={value} value={value} />
-                  ),
-                )}
-              </datalist>
-            </label>
-            <label>
-              History payment status
-              <select
-                value={draft.paymentStatus}
-                onChange={(event) =>
-                  update("paymentStatus", event.target.value)
-                }
-              >
-                <option value="">All payment states</option>
-                {[
-                  "unpaid",
-                  "pending",
-                  "partially_paid",
-                  "paid",
-                  "partially_refunded",
-                  "refunded",
-                  "failed",
-                  "expired",
-                ].map((value) => (
-                  <option key={value}>{value}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              History staff identity
-              <input
-                list="mw-history-staff"
-                placeholder="Optional staff ID"
-                pattern="[a-fA-F0-9-]{36}"
-                maxLength={36}
-                value={draft.staffId}
-                onChange={(event) => update("staffId", event.target.value)}
-              />
-              <datalist id="mw-history-staff">
-                {staffChoices.map((person) => (
-                  <option key={person.userId} value={person.userId}>
-                    {person.name}
-                  </option>
-                ))}
-              </datalist>
-            </label>
-            <label>
-              History from (device local time)
-              <input
-                type="datetime-local"
-                value={draft.from}
-                onChange={(event) => update("from", event.target.value)}
-              />
-            </label>
-            <label>
-              History until (exclusive, device local time)
-              <input
-                type="datetime-local"
-                value={draft.to}
-                onChange={(event) => update("to", event.target.value)}
-              />
-            </label>
-            <label>
-              Orders per page
-              <select
-                value={draft.take}
-                onChange={(event) => update("take", Number(event.target.value))}
-              >
-                {[25, 50, 100].map((value) => (
-                  <option key={value}>{value}</option>
-                ))}
-              </select>
-            </label>
-            <label className="mw-row">
-              <span>History unassigned orders only</span>
-              <input
-                type="checkbox"
-                checked={draft.unassigned}
-                onChange={(event) => update("unassigned", event.target.checked)}
-              />
-            </label>
           </div>
-          <button className="secondary">Apply history filters</button>
+          <Disclosure
+            className="oh-more-filters"
+            summary={
+              <>
+                More filters <span>Status, staff and dates</span>
+              </>
+            }
+          >
+            <div className="oh-filter-grid">
+              <label>
+                History order status
+                <select
+                  value={draft.status}
+                  onChange={(event) => update("status", event.target.value)}
+                >
+                  <option value="">All statuses</option>
+                  {[
+                    "submitted",
+                    "accepted",
+                    "preparing",
+                    "ready",
+                    "collected",
+                    "completed",
+                    "rejected",
+                    "cancelled",
+                  ].map((value) => (
+                    <option key={value} value={value}>
+                      {human(value)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                History source
+                <input
+                  list="mw-history-sources"
+                  pattern="[a-z_]{1,40}"
+                  maxLength={40}
+                  value={draft.source}
+                  onChange={(event) => update("source", event.target.value)}
+                />
+                <datalist id="mw-history-sources">
+                  {["staff", "customer_qr", "zidi", "legacy_import"].map(
+                    (value) => (
+                      <option key={value} value={value} />
+                    ),
+                  )}
+                </datalist>
+              </label>
+              <label>
+                History payment status
+                <select
+                  value={draft.paymentStatus}
+                  onChange={(event) =>
+                    update("paymentStatus", event.target.value)
+                  }
+                >
+                  <option value="">All payment states</option>
+                  {[
+                    "unpaid",
+                    "pending",
+                    "partially_paid",
+                    "paid",
+                    "partially_refunded",
+                    "refunded",
+                    "failed",
+                    "expired",
+                  ].map((value) => (
+                    <option key={value} value={value}>
+                      {human(value)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                History staff identity
+                <input
+                  list="mw-history-staff"
+                  placeholder="Optional staff ID"
+                  pattern="[a-fA-F0-9-]{36}"
+                  maxLength={36}
+                  value={draft.staffId}
+                  onChange={(event) => update("staffId", event.target.value)}
+                />
+                <datalist id="mw-history-staff">
+                  {staffChoices.map((person) => (
+                    <option key={person.userId} value={person.userId}>
+                      {person.name}
+                    </option>
+                  ))}
+                </datalist>
+              </label>
+              <label>
+                History from (device local time)
+                <input
+                  type="datetime-local"
+                  value={draft.from}
+                  onChange={(event) => update("from", event.target.value)}
+                />
+              </label>
+              <label>
+                History until (exclusive, device local time)
+                <input
+                  type="datetime-local"
+                  value={draft.to}
+                  onChange={(event) => update("to", event.target.value)}
+                />
+              </label>
+              <label>
+                Orders per page
+                <select
+                  value={draft.take}
+                  onChange={(event) =>
+                    update("take", Number(event.target.value))
+                  }
+                >
+                  {[25, 50, 100].map((value) => (
+                    <option key={value}>{value}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="mw-row">
+                <span>History unassigned orders only</span>
+                <input
+                  type="checkbox"
+                  checked={draft.unassigned}
+                  onChange={(event) =>
+                    update("unassigned", event.target.checked)
+                  }
+                />
+              </label>
+            </div>
+          </Disclosure>
+          <button className="secondary oh-apply">Apply history filters</button>
         </fieldset>
       </form>
-      {error && <p role="alert">{error}</p>}
-      <div className="mw-actions">
+      {error && (
+        <p className="oh-error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="mw-actions oh-list-toolbar">
         <button disabled={disabled || loading} onClick={restart}>
           Reload history from first page
         </button>
         <span>
-          Page {page + 1} · {rows.length} records
+          Page {page + 1} · {rows.length} orders shown
         </span>
       </div>
       {loading ? (
-        <p role="status">Loading canonical order history…</p>
+        <p className="oh-state" role="status">
+          Loading order history…
+        </p>
       ) : !error && !rows.length ? (
-        <p>No orders match the applied history filters.</p>
-      ) : (
-        rows.map((order) => (
-          <article className="mw-row" key={order.id}>
-            <div>
-              <b>
-                {order.reference || String(order.id).slice(0, 8)} ·{" "}
-                {order.displayName}
-              </b>
-              <small>
-                {date(order.createdAt)} · {human(order.status)} ·{" "}
-                {human(order.paymentStatus)} ·{" "}
-                {Number.isSafeInteger(order.total)
-                  ? formatMoney(order.total)
-                  : "Amount not recorded"}
-              </small>
-              {order.historicalReadOnly && (
-                <span className="mw-pill">
-                  Imported source history · read only
-                </span>
-              )}
-            </div>
-            <button
-              className="secondary"
-              disabled={disabled}
-              onClick={() => {
-                setSelected(order.id);
-                setDetailRevision((value) => value + 1);
-              }}
-            >
-              View {order.reference || String(order.id).slice(0, 8)}
-            </button>
-          </article>
-        ))
-      )}
-      <div className="mw-actions">
+        <div className="oh-state">
+          <h3>No matching orders</h3>
+          <p>
+            No orders match the applied history filters. Change the search or
+            filters to try again.
+          </p>
+        </div>
+      ) : rows.length > 0 ? (
+        <DataRegion className="oh-table-scroll" label="History results">
+          <table className="oh-table">
+            <thead>
+              <tr>
+                <th scope="col">Order</th>
+                <th scope="col">Placed</th>
+                <th scope="col">Order status</th>
+                <th scope="col">Payment</th>
+                <th scope="col">Total</th>
+                <th scope="col">Handler</th>
+                <th scope="col">Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((order) => (
+                <tr
+                  key={order.id}
+                  className={selected === order.id ? "is-selected" : ""}
+                >
+                  <td data-label="Order">
+                    <b>
+                      {order.reference || String(order.id).slice(0, 8)} ·{" "}
+                      {order.displayName}
+                    </b>
+                    <small>{human(order.source)}</small>
+                    {order.historicalReadOnly && (
+                      <span className="oh-imported">
+                        Imported source history · read only
+                      </span>
+                    )}
+                  </td>
+                  <td data-label="Placed">{date(order.createdAt)}</td>
+                  <td data-label="Order status">
+                    <span className="oh-state-label">
+                      {human(order.status)}
+                    </span>
+                  </td>
+                  <td data-label="Payment">{human(order.paymentStatus)}</td>
+                  <td data-label="Total" className="oh-money">
+                    {Number.isSafeInteger(order.total)
+                      ? formatMoney(order.total)
+                      : "Amount not recorded"}
+                  </td>
+                  <td data-label="Handler">
+                    {order.handlerName ||
+                      (order.handlerId ? "Assigned staff" : "Unassigned")}
+                  </td>
+                  <td data-label="Details">
+                    <button
+                      className="secondary"
+                      disabled={disabled}
+                      aria-expanded={selected === order.id}
+                      aria-controls={
+                        selected === order.id ? detailId : undefined
+                      }
+                      onClick={(event) => {
+                        detailTrigger.current = event.currentTarget;
+                        setSelected(order.id);
+                        setDetailRevision((value) => value + 1);
+                      }}
+                    >
+                      View {order.reference || String(order.id).slice(0, 8)}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </DataRegion>
+      ) : null}
+      <div className="mw-actions oh-pagination">
         <button
           disabled={disabled || loading || page === 0}
           onClick={() => {
@@ -457,9 +556,16 @@ function ScopedOrderHistory({
         </button>
       </div>
       {selected && (
-        <section className="mw-card" aria-label="Canonical order detail">
-          <div className="mw-actions">
-            <h3>Canonical order detail</h3>
+        <section
+          className="oh-detail"
+          id={detailId}
+          aria-label="Order detail"
+          aria-busy={detailLoading}
+        >
+          <div className="mw-actions oh-detail-toolbar">
+            <h3 ref={detailHeading} tabIndex={-1}>
+              Order detail
+            </h3>
             <button
               disabled={disabled || detailLoading}
               onClick={() => setDetailRevision((value) => value + 1)}
@@ -470,22 +576,28 @@ function ScopedOrderHistory({
               onClick={() => {
                 setSelected("");
                 setDetail(null);
+                detailTrigger.current?.focus();
               }}
             >
               Close order detail
             </button>
           </div>
-          {detailError && <p role="alert">{detailError}</p>}
+          {detailError && (
+            <p className="oh-error" role="alert">
+              {detailError}
+            </p>
+          )}
           {detailLoading ? (
             <p role="status">Loading permitted order detail…</p>
           ) : (
+            !detailError &&
             detail && (
               <>
                 <h3>
                   {detail.reference || detail.id} · {detail.displayName}
                 </h3>
                 {detail.historicalReadOnly && (
-                  <div className="mw-note">
+                  <div className="mw-note oh-history-warning">
                     <strong>Imported source history · read only</strong>
                     <p>
                       Source status:{" "}
@@ -499,10 +611,10 @@ function ScopedOrderHistory({
                   {human(detail.status)} · {human(detail.paymentStatus)} ·{" "}
                   {human(detail.source)} · {date(detail.createdAt)}
                 </p>
-                <dl>
+                <dl className="oh-detail-totals">
                   {[
                     ["Order total", detail.total],
-                    ["Effective paid", detail.effectivePaid ?? detail.paid],
+                    ["Applied payments", detail.effectivePaid ?? detail.paid],
                     ["Written-off debt", detail.writtenOff ?? 0],
                     ["Outstanding", detail.outstandingBalance],
                   ].map(([name, amount]) => (
@@ -520,10 +632,12 @@ function ScopedOrderHistory({
                   Created by{" "}
                   {detail.staffCreatorName ||
                     detail.actorName ||
-                    detail.staffCreatorId ||
-                    "Not recorded"}{" "}
+                    (detail.staffCreatorId
+                      ? "Staff name unavailable"
+                      : "Not recorded")}{" "}
                   · Current handler{" "}
-                  {detail.handlerName || detail.handlerId || "Unassigned"}
+                  {detail.handlerName ||
+                    (detail.handlerId ? "Assigned staff" : "Unassigned")}
                 </p>
                 <OrderInstructions order={detail} />
                 {detail.pricing && (
@@ -545,7 +659,10 @@ function ScopedOrderHistory({
                 )}
                 {Array.isArray(detail.items) &&
                   detail.items.map((item: any, index: number) => (
-                    <article key={item.orderLineId || index}>
+                    <article
+                      className="oh-detail-item"
+                      key={item.orderLineId || index}
+                    >
                       <p>
                         {item.quantity} × {item.name}
                         {item.size ? " · " + item.size : ""} ·{" "}
@@ -563,8 +680,7 @@ function ScopedOrderHistory({
                 {Array.isArray(detail.history) &&
                   detail.history.map((entry: any, index: number) => (
                     <p key={index}>
-                      {human(entry.action)} ·{" "}
-                      {entry.actorName || entry.actorId || "System"} ·{" "}
+                      {human(entry.action)} · {actorLabel(entry)} ·{" "}
                       {date(entry.at)}
                       {Number.isSafeInteger(entry.amount)
                         ? " · " + formatMoney(entry.amount)

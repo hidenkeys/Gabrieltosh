@@ -1,7 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
 import { workspaceApi, WorkspaceError } from "./api";
-export default function SupportCases({
+import { Action, Disclosure, ReadState } from "../ui/OperationalPrimitives";
+const supportStatus = (status: unknown) =>
+  (
+    ({
+      open: "Awaiting reply",
+      acknowledged: "Acknowledged",
+      in_progress: "Being reviewed",
+      resolved: "Resolved",
+    }) as Record<string, string>
+  )[String(status)] || "Status unavailable";
+const supportTime = (value: unknown) => {
+  const date = new Date(String(value || ""));
+  return Number.isFinite(date.getTime())
+    ? date.toLocaleString()
+    : "Time unavailable";
+};
+type SupportProps = Parameters<typeof ScopedSupportCases>[0];
+export default function SupportCases(props: SupportProps) {
+  return <ScopedSupportCases key={props.organizationId} {...props} />;
+}
+function ScopedSupportCases({
   organizationId,
   branches = [],
   disabled,
@@ -22,35 +42,59 @@ export default function SupportCases({
   const [cases, setCases] = useState<any[]>([]),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [pending, setPending] = useState<any>(null);
+    [pending, setPending] = useState<any>(null),
+    [loading, setLoading] = useState(true),
+    [readError, setReadError] = useState(""),
+    [accessDenied, setAccessDenied] = useState(false);
+  const readGeneration = useRef(0),
+    active = useRef(true),
+    inFlight = useRef(false),
+    pendingRef = useRef<any>(null);
   const generation = useRef(0),
     form = useRef<HTMLFormElement>(null);
   async function load() {
-    const current = generation.current;
+    const current = ++readGeneration.current;
+    setLoading(true);
     try {
       const result = await workspaceApi<any>(base);
-      if (current === generation.current) {
-        setCases(result.cases);
-        setError("");
-      }
+      if (!active.current || current !== readGeneration.current) return;
+      if (!Array.isArray(result?.cases))
+        throw new Error(
+          "Support records could not be confirmed. Refresh to try again.",
+        );
+      setCases(result.cases);
+      setReadError("");
     } catch (e) {
-      if (current !== generation.current) return;
-      setCases([]);
-      setError((e as Error).message);
+      if (!active.current || current !== readGeneration.current) return;
+      if ([401, 403, 404].includes((e as any).status)) {
+        setAccessDenied(true);
+        setCases([]);
+      }
+      setReadError((e as Error).message);
+    } finally {
+      if (active.current && current === readGeneration.current)
+        setLoading(false);
     }
   }
   useEffect(() => {
+    active.current = true;
     setCases([]);
     setPending(null);
     setBusy(false);
     setError("");
     void load();
     return () => {
+      active.current = false;
       generation.current++;
+      readGeneration.current++;
     };
   }, [base]);
   async function perform(body: any) {
+    if (disabled || inFlight.current || accessDenied) return;
     const current = generation.current;
+    const wasUnconfirmed = !!pendingRef.current;
+    body = pendingRef.current || body;
+    inFlight.current = true;
     setBusy(true);
     setError("");
     try {
@@ -60,88 +104,76 @@ export default function SupportCases({
         body,
         "Support case recorded inside Mera. No external message was sent.",
       );
-      if (current !== generation.current) return;
+      if (!active.current || current !== generation.current) return;
+      pendingRef.current = null;
       setPending(null);
       form.current?.reset();
       await load();
     } catch (e) {
-      if (current !== generation.current) return;
-      if (!(e instanceof WorkspaceError) || !e.status || e.status >= 500)
+      if (!active.current || current !== generation.current) return;
+      if (
+        wasUnconfirmed ||
+        !(e instanceof WorkspaceError) ||
+        !e.status ||
+        e.status >= 500
+      ) {
+        pendingRef.current = body;
         setPending(body);
-      else setPending(null);
+      } else {
+        pendingRef.current = null;
+        setPending(null);
+      }
+      if ([401, 403, 404].includes((e as any).status)) {
+        readGeneration.current++;
+        setLoading(false);
+        setAccessDenied(true);
+        setCases([]);
+      }
       setError((e as Error).message);
     } finally {
-      if (current === generation.current) setBusy(false);
+      inFlight.current = false;
+      if (active.current && current === generation.current) setBusy(false);
     }
   }
   return (
-    <section className="mw-card">
-      <h2>Contact Mera support</h2>
-      <p>
-        Create an in-app support case for your organization. No email, SMS or
-        push notification is sent.
-      </p>
-      {error && <p role="alert">{error}</p>}
-      <form
-        ref={form}
-        key={organizationId}
-        onSubmit={(event) => {
-          event.preventDefault();
-          const values = new FormData(event.currentTarget),
-            branchId = String(values.get("branchId") || "");
-          void perform(
-            pending || {
-              requestKey: uuid(),
-              subject: String(values.get("subject")),
-              topic: String(values.get("topic")),
-              message: String(values.get("message")),
-              ...(branchId ? { branchId } : {}),
-            },
-          );
-        }}
-      >
-        <fieldset
-          disabled={disabled || busy || !!pending}
-          style={{ border: 0, padding: 0 }}
+    <section className="mw-card mw-support-cases">
+      <header className="mw-support-heading">
+        <div>
+          <h2>Contact Mera support</h2>
+          <p>
+            Read replies and send support requests for your organization.
+            Messages and replies stay in this app.
+          </p>
+        </div>
+        <Action
+          pending={loading}
+          disabled={busy || accessDenied}
+          onClick={() => void load()}
         >
-          <label>
-            Support subject
-            <input name="subject" required minLength={3} maxLength={140} />
-          </label>
-          <label>
-            Support topic
-            <select name="topic">
-              <option value="operations">Operations</option>
-              <option value="billing">Billing</option>
-              <option value="integration">Integration</option>
-              <option value="account">Account</option>
-            </select>
-          </label>
-          <label>
-            Related branch
-            <select name="branchId">
-              <option value="">Organization-wide question</option>
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Support message
-            <textarea name="message" required maxLength={4000} />
-          </label>
-          <button>Create support case</button>
-        </fieldset>
-      </form>
-      {pending && (
+          Refresh support cases
+        </Action>
+      </header>
+      {error && <p role="alert">{error}</p>}
+      {pending && !accessDenied && (
         <>
           <p role="status">
-            The case creation outcome is unknown. Its original request key and
-            details are preserved. Retry the same request to avoid creating a
-            duplicate.
+            This support request has not been confirmed. Its original details
+            are locked; retry sends the same request. Keep this page open until
+            it is checked. Leaving or reloading this page loses the direct retry
+            details; ask staff to check your cases before creating another.
           </p>
+          <Disclosure summary="Original support request">
+            <p>
+              <strong>{pending.subject}</strong>
+            </p>
+            <p>{pending.message}</p>
+            <p>
+              {pending.branchId
+                ? branches.find((branch) => branch.id === pending.branchId)
+                    ?.name || "Previously selected branch"
+                : "Organization-wide request"}
+            </p>
+          </Disclosure>
           <button
             disabled={disabled || busy}
             onClick={() => void perform(pending)}
@@ -150,37 +182,104 @@ export default function SupportCases({
           </button>
         </>
       )}
-      <button disabled={disabled || busy} onClick={() => void load()}>
-        Refresh support cases
-      </button>
+      {accessDenied && (
+        <ReadState
+          kind="error"
+          title="Organization access needs checking. Refresh your workspace or sign in again before sending another support request."
+        />
+      )}
+      {loading && <ReadState kind="loading" title="Loading support cases…" />}
+      {readError && <ReadState kind="error" title={readError} />}
       <h3>Your organization’s cases</h3>
-      {!cases.length ? (
-        <p>No support cases shown for this organization.</p>
-      ) : (
+      {!loading && !readError && !accessDenied && !cases.length && (
+        <ReadState kind="empty" title="No support cases yet." />
+      )}
+      {!accessDenied &&
         cases.map((item) => (
           <article key={item.id}>
             <h4>
               {item.reference} · {item.subject}
             </h4>
             <p>
-              {item.topic} · Status: {item.status}
+              {String(item.topic || "Support").replaceAll("_", " ")} ·{" "}
+              {supportStatus(item.status)}
             </p>
-            <p>{item.message}</p>
-            {item.customerReply && <p>Mera reply: {item.customerReply}</p>}
-            <p>In-app case only; external delivery unavailable.</p>
-            {item.history?.length > 0 && (
-              <details>
-                <summary>Case history</summary>
-                {item.history.map((entry: any, index: number) => (
-                  <p key={index}>
-                    {entry.status} · {new Date(entry.at).toLocaleString()}
-                    {entry.customerReply ? " · " + entry.customerReply : ""}
-                  </p>
-                ))}
-              </details>
-            )}
+            <Disclosure summary="View request and replies">
+              <p>{item.message}</p>
+              {item.customerReply && <p>Mera reply: {item.customerReply}</p>}
+              <p>In-app case only; external delivery unavailable.</p>
+              {item.history?.length > 0 && (
+                <Disclosure summary="Case history">
+                  {item.history.map((entry: any, index: number) => (
+                    <p key={index}>
+                      {supportStatus(entry.status)} · {supportTime(entry.at)}
+                      {entry.customerReply ? " · " + entry.customerReply : ""}
+                    </p>
+                  ))}
+                </Disclosure>
+              )}
+            </Disclosure>
           </article>
-        ))
+        ))}
+      {!accessDenied && (
+        <Disclosure summary="New support request" className="mw-support-create">
+          {" "}
+          <form
+            ref={form}
+            key={organizationId}
+            onSubmit={(event) => {
+              event.preventDefault();
+              const values = new FormData(event.currentTarget),
+                branchId = String(values.get("branchId") || "");
+              void perform(
+                pending || {
+                  requestKey: uuid(),
+                  subject: String(values.get("subject")),
+                  topic: String(values.get("topic")),
+                  message: String(values.get("message")),
+                  ...(branchId ? { branchId } : {}),
+                },
+              );
+            }}
+          >
+            <fieldset
+              disabled={disabled || busy || !!pending}
+              style={{ border: 0, padding: 0 }}
+            >
+              <label>
+                Support subject
+                <input name="subject" required minLength={3} maxLength={140} />
+              </label>
+              <label>
+                Support topic
+                <select name="topic">
+                  <option value="operations">Operations</option>
+                  <option value="billing">Billing</option>
+                  <option value="integration">Integration</option>
+                  <option value="account">Account</option>
+                </select>
+              </label>
+              <label>
+                Related branch
+                <select name="branchId">
+                  <option value="">Organization-wide question</option>
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Support message
+                <textarea name="message" required maxLength={4000} />
+              </label>
+              <Action type="submit" variant="primary">
+                Create support case
+              </Action>
+            </fieldset>
+          </form>
+        </Disclosure>
       )}
     </section>
   );

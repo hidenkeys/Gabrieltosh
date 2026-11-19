@@ -1,8 +1,52 @@
 import { useEffect, useRef, useState } from "react";
+import { z } from "zod";
 import { customerRequest, requestId } from "./client";
-export default function HelpRequests(
-  props: Parameters<typeof ScopedHelpRequests>[0],
-) {
+const sessionSchema = z.object({ sessionRef: z.string().uuid() });
+const ownRequestSchema = z.object({
+  id: z.string().uuid(),
+  reference: z.string().min(1).max(100),
+  category: z.enum(["service", "payment", "reservation", "other"]),
+  message: z.string().max(500),
+  status: z.enum(["open", "acknowledged", "resolved"]),
+  customerReply: z.string().max(1000).optional(),
+  createdAt: z.string().datetime().optional(),
+});
+type OwnRequest = z.infer<typeof ownRequestSchema>;
+type Intent = {
+  requestKey: string;
+  category: string;
+  message: string;
+  orderId?: string;
+  visitId?: string;
+};
+type Pending = {
+  body: Intent;
+  sessionRef: string | null;
+  postStarted: boolean;
+};
+type Props = {
+  prefix: string;
+  ensureGuest: () => Promise<any>;
+  hasGuest: boolean;
+  displayName: string;
+  onName: (value: string) => void;
+  orderId?: string;
+  visitId?: string;
+  nameLocked?: boolean;
+};
+const topics: Record<string, string> = {
+  service: "Service",
+  payment: "Payment",
+  reservation: "Reservation",
+  other: "Other",
+};
+const statuses: Record<string, string> = {
+  open: "Sent to the team",
+  acknowledged: "Being reviewed",
+  resolved: "Resolved",
+};
+class GuestProofError extends Error {}
+export default function HelpRequests(props: Props) {
   return <ScopedHelpRequests key={props.prefix} {...props} />;
 }
 function ScopedHelpRequests({
@@ -14,57 +58,79 @@ function ScopedHelpRequests({
   orderId,
   visitId,
   nameLocked = false,
-}: {
-  prefix: string;
-  ensureGuest: () => Promise<any>;
-  hasGuest: boolean;
-  displayName: string;
-  onName: (value: string) => void;
-  orderId?: string;
-  visitId?: string;
-  nameLocked?: boolean;
-}) {
-  const [requests, setRequests] = useState<any[]>([]),
-    [error, setError] = useState(""),
+}: Props) {
+  const [requests, setRequests] = useState<OwnRequest[]>([]),
+    [readError, setReadError] = useState(""),
+    [writeError, setWriteError] = useState(""),
     [busy, setBusy] = useState(false),
+    [loading, setLoading] = useState(false),
+    [loaded, setLoaded] = useState(false),
     [category, setCategory] = useState("service"),
     [message, setMessage] = useState(""),
     [context, setContext] = useState(""),
-    [pending, setPending] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const mounted = useRef(true);
-  const readGeneration = useRef(0);
-  const currentScope = useRef(prefix);
-  currentScope.current = prefix;
+    [pending, setPending] = useState<Pending | null>(null),
+    [privateBlocked, setPrivateBlocked] = useState(false),
+    [notice, setNotice] = useState("");
+  const mounted = useRef(true),
+    readGeneration = useRef(0),
+    sendInFlight = useRef(false),
+    pendingRef = useRef<Pending | null>(null);
+  function remember(value: Pending | null) {
+    pendingRef.current = value;
+    setPending(value);
+  }
+  function hidePrivate() {
+    readGeneration.current++;
+    setLoading(false);
+    setRequests([]);
+    setLoaded(false);
+    setPrivateBlocked(true);
+    setNotice("");
+  }
+  async function proveGuest() {
+    const raw = await customerRequest(prefix + "/guest");
+    const parsed = sessionSchema.safeParse(raw);
+    if (!parsed.success)
+      throw new GuestProofError(
+        "This guest session could not be verified. The original request has not been retried. Please ask staff to check it.",
+      );
+    const original = pendingRef.current;
+    if (original?.sessionRef && original.sessionRef !== parsed.data.sessionRef)
+      throw new GuestProofError(
+        "Your guest session changed. The original request has not been retried. Please ask staff to check it before sending another.",
+      );
+    return parsed.data.sessionRef;
+  }
+  function proofFailure(error: unknown) {
+    return (
+      error instanceof GuestProofError ||
+      [401, 403, 404].includes((error as any)?.status)
+    );
+  }
   async function load() {
-    const scope = prefix;
     const generation = ++readGeneration.current;
     setLoading(true);
+    setReadError("");
     try {
-      const result = await customerRequest(prefix + "/help-requests");
-      if (
-        mounted.current &&
-        currentScope.current === scope &&
-        generation === readGeneration.current
-      ) {
-        setRequests(result.requests);
-        setError("");
-      }
-    } catch (e) {
-      if (
-        !mounted.current ||
-        currentScope.current !== scope ||
-        generation !== readGeneration.current
-      )
-        return;
-      if ([401, 403, 404].includes((e as any).status)) setRequests([]);
-      setError((e as Error).message);
+      await proveGuest();
+      if (!mounted.current || generation !== readGeneration.current) return;
+      const result = z
+        .object({ requests: z.array(ownRequestSchema) })
+        .parse(await customerRequest(prefix + "/help-requests"));
+      if (!mounted.current || generation !== readGeneration.current) return;
+      setRequests(result.requests);
+      setLoaded(true);
+      setPrivateBlocked(false);
+    } catch (error) {
+      if (!mounted.current || generation !== readGeneration.current) return;
+      if (proofFailure(error)) hidePrivate();
+      setReadError(
+        proofFailure(error)
+          ? (error as Error).message
+          : "Your requests could not be refreshed. Check your connection and try again.",
+      );
     } finally {
-      if (
-        mounted.current &&
-        currentScope.current === scope &&
-        generation === readGeneration.current
-      )
+      if (mounted.current && generation === readGeneration.current)
         setLoading(false);
     }
   }
@@ -76,166 +142,295 @@ function ScopedHelpRequests({
     };
   }, []);
   useEffect(() => {
-    setRequests([]);
-    setPending(null);
-    setError("");
-  }, [prefix]);
-  useEffect(() => {
     if (hasGuest) void load();
     else {
       readGeneration.current++;
       setRequests([]);
+      setLoaded(false);
       setLoading(false);
+      if (pendingRef.current?.postStarted) setPrivateBlocked(true);
     }
-  }, [prefix, hasGuest]);
+  }, [hasGuest]);
   async function send() {
+    if (sendInFlight.current) return;
+    sendInFlight.current = true;
     setBusy(true);
-    setError("");
-    const attempt = pending || {
-      requestKey: requestId(),
-      category,
-      message,
-      ...(context === "order" && orderId
-        ? { orderId }
-        : context === "visit" && visitId
-          ? { visitId }
-          : {}),
-    };
+    setWriteError("");
+    setNotice("");
+    let attempt = pendingRef.current;
+    const fresh = !attempt;
+    if (!attempt) {
+      attempt = {
+        body: {
+          requestKey: requestId(),
+          category,
+          message: message.trim(),
+          ...(context === "order" && orderId
+            ? { orderId }
+            : context === "visit" && visitId
+              ? { visitId }
+              : {}),
+        },
+        sessionRef: null,
+        postStarted: false,
+      };
+      remember(attempt);
+    }
     try {
-      await ensureGuest();
-      if (!mounted.current || currentScope.current !== prefix) return;
-      await customerRequest(prefix + "/help-requests", "POST", attempt);
-      if (!mounted.current || currentScope.current !== prefix) return;
-      setPending(null);
+      // Creating/updating a guest is allowed only for a fresh help request.
+      // A retry always proves the existing cookie and never creates an identity.
+      if (fresh) await ensureGuest();
+      if (!mounted.current) return;
+      const sessionRef = await proveGuest();
+      if (!mounted.current) return;
+      attempt = { ...attempt, sessionRef, postStarted: true };
+      remember(attempt);
+      setPrivateBlocked(false);
+      const result = ownRequestSchema.parse(
+        await customerRequest(prefix + "/help-requests", "POST", attempt.body),
+      );
+      if (!mounted.current) return;
+      remember(null);
       setMessage("");
+      setContext("");
+      setWriteError("");
+      setNotice(
+        `Request ${result.reference} was sent to the team. Check its status and reply below.`,
+      );
       await load();
-    } catch (e) {
-      if (!mounted.current || currentScope.current !== prefix) return;
-      if (
-        pending ||
-        !(e as any).status ||
-        (e as any).status >= 500 ||
-        [401, 403, 404, 408, 429].includes((e as any).status)
-      )
-        setPending(attempt);
-      else setPending(null);
-      setError((e as Error).message);
+    } catch (error) {
+      if (!mounted.current) return;
+      // Every retry retains the original intent, including after auth, rate or
+      // domain errors. A list entry with similar text is never correlation proof.
+      if (attempt) remember(attempt);
+      if (proofFailure(error)) hidePrivate();
+      setWriteError(
+        error instanceof GuestProofError || (error as any)?.status
+          ? (error as Error).message
+          : attempt?.postStarted
+            ? "We could not confirm the team received your request. Check your connection, then retry the same request."
+            : "Your guest session could not be verified, so no help request was sent. Check your connection, then retry the same details.",
+      );
     } finally {
-      if (mounted.current && currentScope.current === prefix) setBusy(false);
+      sendInFlight.current = false;
+      if (mounted.current) setBusy(false);
     }
   }
   return (
     <section className="mc-panel mc-help">
-      <h2>Ask the team for help</h2>
-      <p>
-        Send a request to the team and check their reply here. For urgent
-        assistance, speak to staff. We will not send a text or email.
-      </p>
-      {error && <p role="alert">{error}</p>}
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          void send();
-        }}
-      >
-        <fieldset
-          disabled={busy || !!pending}
-          style={{ border: 0, padding: 0 }}
-        >
-          <label>
-            Your name
-            <input
-              required
-              maxLength={100}
-              value={displayName}
-              disabled={nameLocked}
-              onChange={(event) => onName(event.target.value)}
-            />
-          </label>
-          <label>
-            Help topic
-            <select
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-            >
-              <option value="service">Service</option>
-              <option value="payment">Payment</option>
-              <option value="reservation">Reservation</option>
-              <option value="other">Other</option>
-            </select>
-          </label>
-          <label>
-            Related to
-            <select
-              value={context}
-              onChange={(event) => setContext(event.target.value)}
-            >
-              <option value="">General request</option>
-              {orderId && <option value="order">My current order</option>}
-              {visitId && <option value="visit">My joined table visit</option>}
-            </select>
-          </label>
-          <label>
-            How can staff help?
-            <textarea
-              required
-              minLength={1}
-              maxLength={500}
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-            />
-          </label>
-          <button
-            className="mc-primary"
-            disabled={!message.trim() || !displayName.trim()}
+      <header className="mc-help-heading">
+        <h2>Ask the team for help</h2>
+        <p>
+          Send a request and check the team’s reply here. For urgent assistance,
+          speak to staff. We will not send a text or email.
+        </p>
+        {!!requests.length && !privateBlocked && !pending && (
+          <a
+            className="mc-help-replies-link"
+            href="#mc-help-requests-heading"
+            onClick={(event) => {
+              event.preventDefault();
+              const heading = document.getElementById(
+                "mc-help-requests-heading",
+              );
+              heading?.scrollIntoView?.({ block: "start", behavior: "auto" });
+              heading?.focus({ preventScroll: true });
+            }}
           >
-            Send help request
-          </button>
-        </fieldset>
-      </form>
-      {pending && (
-        <>
-          <p>
-            The team may already have received your request. Retry the same
-            request or refresh its status before sending another. Keep this tab
-            open; leaving this page does not save these retry details.
-          </p>
-          <button
-            className="mc-secondary"
-            disabled={busy}
-            onClick={() => void send()}
-          >
-            Retry original help request
-          </button>
-        </>
-      )}
-      {hasGuest && (
-        <button
-          className="mc-secondary"
-          disabled={busy || loading}
-          onClick={() => void load()}
-        >
-          Refresh help status
-        </button>
-      )}
-      <h3>Your requests in this guest session</h3>
-      {loading && <p role="status">Checking your help requests…</p>}
-      {!loading && requests.length === 0 ? (
-        <p>No help requests shown in this session.</p>
-      ) : (
-        requests.map((request) => (
-          <article key={request.id}>
-            <h4>
-              {request.reference} · {request.category}
-            </h4>
-            <p>{request.message}</p>
-            <p>Status: {request.status}</p>
-            {request.customerReply && (
-              <p>Venue reply: {request.customerReply}</p>
+            View requests and replies
+          </a>
+        )}
+      </header>
+      <div className="mc-help-layout">
+        <section className="mc-help-compose" aria-label="Contact the team">
+          <h3>
+            {pending ? "Your request needs checking" : "What can we help with?"}
+          </h3>
+          {notice && (
+            <p role="status" className="mc-help-notice">
+              {notice}
+            </p>
+          )}
+          {writeError && (
+            <p role="alert" className="mc-help-error">
+              {writeError}
+            </p>
+          )}
+          {pending && (
+            <div className="mc-help-pending">
+              <p>
+                {pending.postStarted
+                  ? "The team may already have received this request. A retry sends the same details; it does not start another request."
+                  : "Your request has not been sent. Verify this guest session to continue with the same details."}
+              </p>
+              <p>
+                Keep this page open. Leaving it or refreshing does not save
+                these retry details. For an urgent request or lost session, ask
+                staff to check it.
+              </p>
+              {!privateBlocked && (
+                <dl>
+                  <div>
+                    <dt>Topic</dt>
+                    <dd>{topics[pending.body.category]}</dd>
+                  </div>
+                  <div>
+                    <dt>Message</dt>
+                    <dd>{pending.body.message}</dd>
+                  </div>
+                </dl>
+              )}
+            </div>
+          )}
+          {privateBlocked ? (
+            <p className="mc-help-privacy" role="status">
+              Your private request details are hidden until this guest session
+              can be verified. No replacement request will be sent.
+            </p>
+          ) : (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void send();
+              }}
+            >
+              <fieldset disabled={busy || !!pending}>
+                <label>
+                  Your name
+                  <input
+                    required
+                    maxLength={100}
+                    value={displayName}
+                    disabled={nameLocked}
+                    onChange={(event) => onName(event.target.value)}
+                    autoComplete="given-name"
+                  />
+                </label>
+                <div className="mc-help-form-row">
+                  <label>
+                    Help topic
+                    <select
+                      value={category}
+                      onChange={(event) => setCategory(event.target.value)}
+                    >
+                      {Object.entries(topics).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Related to
+                    <select
+                      value={context}
+                      onChange={(event) => setContext(event.target.value)}
+                    >
+                      <option value="">General request</option>
+                      {orderId && (
+                        <option value="order">My current order</option>
+                      )}
+                      {visitId && (
+                        <option value="visit">My joined table visit</option>
+                      )}
+                    </select>
+                  </label>
+                </div>
+                <label>
+                  How can staff help?
+                  <textarea
+                    required
+                    minLength={1}
+                    maxLength={500}
+                    value={message}
+                    onChange={(event) => setMessage(event.target.value)}
+                    aria-describedby="mc-help-message-hint"
+                  />
+                </label>
+                <p id="mc-help-message-hint" className="mc-help-hint">
+                  Keep it brief. Do not include passwords or card details.
+                </p>
+                <button
+                  className="mc-primary"
+                  disabled={!message.trim() || !displayName.trim()}
+                >
+                  {busy ? "Sending request…" : "Send help request"}
+                </button>
+              </fieldset>
+            </form>
+          )}
+          {pending && (
+            <button
+              type="button"
+              className="mc-secondary"
+              disabled={busy}
+              onClick={() => void send()}
+            >
+              {busy ? "Checking your request…" : "Retry original help request"}
+            </button>
+          )}
+        </section>
+        <section className="mc-help-history" aria-label="Your help requests">
+          <header>
+            <div>
+              <h3 id="mc-help-requests-heading" tabIndex={-1}>
+                Your requests
+              </h3>
+              <p>
+                Only requests from this guest session at this branch are shown.
+              </p>
+            </div>
+            {hasGuest && (
+              <button
+                type="button"
+                className="mc-secondary"
+                disabled={busy || loading}
+                onClick={() => void load()}
+              >
+                Refresh help status
+              </button>
             )}
-          </article>
-        ))
-      )}
+          </header>
+          {loading && <p role="status">Checking your help requests…</p>}
+          {readError && (
+            <p role="alert" className="mc-help-error">
+              {readError}
+            </p>
+          )}
+          {!loading && !readError && !privateBlocked && !requests.length && (
+            <p className="mc-help-empty">
+              {loaded
+                ? "No help requests in this guest session yet."
+                : "Your requests will appear here after you send one."}
+            </p>
+          )}
+          {!privateBlocked &&
+            requests.map((request) => (
+              <article key={request.id}>
+                <header>
+                  <h4>{request.reference}</h4>
+                  <span className="mc-help-status">
+                    {statuses[request.status]}
+                  </span>
+                </header>
+                <p className="mc-help-topic">{topics[request.category]}</p>
+                <p>{request.message}</p>
+                {request.customerReply ? (
+                  <div className="mc-help-reply">
+                    <h5>Reply from the team</h5>
+                    <p>{request.customerReply}</p>
+                  </div>
+                ) : (
+                  <p className="mc-help-hint">
+                    {request.status === "resolved"
+                      ? "The team marked this request resolved. If you still need help, speak to staff."
+                      : "No reply yet. For urgent help, speak to staff."}
+                  </p>
+                )}
+              </article>
+            ))}
+        </section>
+      </div>
     </section>
   );
 }

@@ -26,6 +26,11 @@ import WorkspaceAccount from "./WorkspaceAccount";
 import OperationalOverview from "./OperationalOverview";
 import PolicyEditor from "./PolicyEditor";
 import BillingManagement from "./BillingManagement";
+import LiveOrderCard, {
+  orderStatusLabel,
+  paymentStatusLabel,
+} from "./LiveOrderCard";
+import { Disclosure } from "../ui/OperationalPrimitives";
 import Bills from "./Bills";
 import ReservationSettlement from "./ReservationSettlement";
 import TableEditor from "./TableEditor";
@@ -2662,7 +2667,9 @@ export default function OrganizationWorkspace({
                                       person.id,
                                       {
                                         userId: person.id,
-                                        name: person.name || person.id,
+                                        name:
+                                          person.name ||
+                                          "Staff name unavailable",
                                       },
                                     ]),
                                 ).values(),
@@ -2709,7 +2716,9 @@ export default function OrganizationWorkspace({
                             "rejected",
                             "cancelled",
                           ].map((status) => (
-                            <option key={status}>{status}</option>
+                            <option key={status} value={status}>
+                              {orderStatusLabel(status)}
+                            </option>
                           ))}
                         </select>
                       </label>
@@ -2760,7 +2769,9 @@ export default function OrganizationWorkspace({
                             "failed",
                             "expired",
                           ].map((state) => (
-                            <option key={state}>{state}</option>
+                            <option key={state} value={state}>
+                              {paymentStatusLabel(state)}
+                            </option>
                           ))}
                         </select>
                       </label>
@@ -2780,26 +2791,57 @@ export default function OrganizationWorkspace({
                     </div>
                     {filteredOrders.length
                       ? filteredOrders.map((order) => (
-                          <div className="mw-row" key={order.id}>
-                            <div>
-                              <b>
-                                {order.reference || order.id.slice(0, 8)} ·{" "}
-                                {order.displayName}
-                              </b>
-                              <small>
-                                {sourceLabel(order.source)} ·{" "}
-                                {sourceLabel(order.fulfillment)} ·{" "}
-                                {formatMoney(order.total)} ·{" "}
-                                {sourceLabel(order.paymentStatus)}
-                              </small>
-                              <small>
-                                Handler:{" "}
-                                {order.handlerName ||
-                                  order.assignedTo ||
-                                  order.handlerId ||
-                                  "Unassigned"}{" "}
-                                · {dateLabel(order.createdAt)}
-                              </small>
+                          <LiveOrderCard
+                            key={order.id}
+                            order={order}
+                            timeZone={branch?.timezone}
+                            actions={
+                              <div className="mw-actions">
+                                {!order.historicalReadOnly &&
+                                  nextState[order.status] &&
+                                  button(
+                                    "Mark " +
+                                      sourceLabel(nextState[order.status]),
+                                    () =>
+                                      act(
+                                        branchBase +
+                                          `/orders/${order.id}/status`,
+                                        {
+                                          status: nextState[order.status],
+                                          version: order.version,
+                                        },
+                                        "Order updated.",
+                                      ),
+                                    [
+                                      "submitted",
+                                      "accepted",
+                                      "preparing",
+                                    ].includes(order.status)
+                                      ? "orders.prepare"
+                                      : "orders.fulfill",
+                                  )}
+                                {!order.historicalReadOnly &&
+                                  button(
+                                    "Assign to me",
+                                    () =>
+                                      act(
+                                        branchBase +
+                                          `/orders/${order.id}/assign`,
+                                        {
+                                          userId: user.id,
+                                          version: order.version,
+                                        },
+                                        "Order assigned.",
+                                      ),
+                                    "orders.assign",
+                                  )}
+                              </div>
+                            }
+                          >
+                            <Disclosure
+                              summary="Items, instructions and history"
+                              className="mw-live-order-items"
+                            >
                               <OrderInstructions order={order} />
                               {list(order.items).map(
                                 (line: any, index: number) => (
@@ -2874,8 +2916,9 @@ export default function OrganizationWorkspace({
                                     <small key={index}>
                                       {sourceLabel(entry.action)} ·{" "}
                                       {entry.actorName ||
-                                        entry.actorId ||
-                                        "System"}{" "}
+                                        (entry.actorId
+                                          ? "Staff name unavailable"
+                                          : "System")}{" "}
                                       · {dateLabel(entry.at)}
                                       {entry.amount
                                         ? " · " + formatMoney(entry.amount)
@@ -2910,49 +2953,8 @@ export default function OrganizationWorkspace({
                                     save={mutate}
                                   />
                                 )}
-                            </div>
-                            <div className="mw-actions">
-                              <span className="mw-pill">
-                                {sourceLabel(order.status)}
-                              </span>
-                              {!order.historicalReadOnly &&
-                                nextState[order.status] &&
-                                button(
-                                  "Mark " +
-                                    sourceLabel(nextState[order.status]),
-                                  () =>
-                                    act(
-                                      branchBase + `/orders/${order.id}/status`,
-                                      {
-                                        status: nextState[order.status],
-                                        version: order.version,
-                                      },
-                                      "Order updated.",
-                                    ),
-                                  [
-                                    "submitted",
-                                    "accepted",
-                                    "preparing",
-                                  ].includes(order.status)
-                                    ? "orders.prepare"
-                                    : "orders.fulfill",
-                                )}
-                              {!order.historicalReadOnly &&
-                                button(
-                                  "Assign to me",
-                                  () =>
-                                    act(
-                                      branchBase + `/orders/${order.id}/assign`,
-                                      {
-                                        userId: user.id,
-                                        version: order.version,
-                                      },
-                                      "Order assigned.",
-                                    ),
-                                  "orders.assign",
-                                )}
-                            </div>
-                          </div>
+                            </Disclosure>
+                          </LiveOrderCard>
                         ))
                       : empty("No orders match the current filters.")}
                   </section>
