@@ -1,47 +1,102 @@
 import { formatMoney } from "./api";
-const rows = (value: unknown): any[] => (Array.isArray(value) ? value : []);
-const readable = (value: unknown) =>
-  typeof value === "string" ? value.replaceAll("_", " ") : "Unavailable";
+const rows = (value: unknown): any[] =>
+  Array.isArray(value)
+    ? value.filter(
+        (row) => row && typeof row === "object" && !Array.isArray(row),
+      )
+    : [];
+const text = (value: unknown, fallback: string) =>
+  typeof value === "string" && value.trim() ? value : fallback;
+const instant = (value: unknown) =>
+  typeof value === "string" && value.trim() ? Date.parse(value) : NaN;
 export default function OverviewAttention({
-  data,
+  data: supplied,
   canNavigate,
   onNavigate,
+  onReviewOrders,
 }: {
   data: any;
   canNavigate: (id: string) => boolean;
   onNavigate: (id: string) => void;
+  onReviewOrders?: (reference?: string) => void;
 }) {
   if (!["orders", "menu", "reservations", "shifts"].some(canNavigate))
     return null;
-  const clock = Date.parse(data.serverTime);
-  const timezone = data.branch?.timezone;
-  const at = (value: string) => {
-    const timestamp = Date.parse(value);
+  const data = supplied && typeof supplied === "object" ? supplied : {},
+    clock = instant(data.serverTime),
+    timezone = data.branch?.timezone;
+  const at = (value: unknown) => {
+    const timestamp = instant(value);
     if (!Number.isFinite(timestamp)) return "Time unavailable";
-    return new Date(timestamp).toLocaleString("en-GB", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      ...(timezone ? { timeZone: timezone } : {}),
-    });
+    if (typeof timezone === "string" && timezone.trim()) {
+      try {
+        return (
+          new Intl.DateTimeFormat("en-GB", {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone: timezone,
+          }).format(timestamp) +
+          " · " +
+          timezone
+        );
+      } catch {
+        /* Explicit UTC fallback keeps the instant truthful. */
+      }
+    }
+    return (
+      new Intl.DateTimeFormat("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "UTC",
+      }).format(timestamp) + " · UTC (branch timezone unavailable)"
+    );
   };
-  const arrivals = rows(data.reservations)
-    .filter(
-      (r) =>
-        ["confirmed", "arrived"].includes(r.status) &&
-        (!Number.isFinite(clock) || Date.parse(r.endsAt) >= clock),
-    )
-    .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
+  const validRows = (value: unknown) =>
+    Array.isArray(value) &&
+    value.every((row) => row && typeof row === "object" && !Array.isArray(row));
+  const reservations = rows(data.reservations),
+    arrivals = reservations
+      .filter(
+        (r) =>
+          ["confirmed", "arrived"].includes(r.status) &&
+          (!Number.isFinite(clock) ||
+            !Number.isFinite(instant(r.endsAt)) ||
+            instant(r.endsAt) >= clock),
+      )
+      .sort((a, b) => {
+        const left = instant(a.startsAt),
+          right = instant(b.startsAt);
+        return Number.isFinite(left) && Number.isFinite(right)
+          ? left - right
+          : Number.isFinite(left)
+            ? -1
+            : Number.isFinite(right)
+              ? 1
+              : 0;
+      });
   const shifts = rows(data.shifts).filter((s) =>
     ["open", "pending_approval"].includes(s.status),
   );
-  const link = (section: string, text: string) =>
+  const delayed = rows(data.delayedOrders),
+    stock = rows(data.lowStockAlerts);
+  const hidden = (count: number, noun: string) =>
+    count > 3 ? (
+      <p>
+        {count - 3} more {count === 4 ? noun.replace(/s$/, "") : noun}.
+      </p>
+    ) : null;
+  const reviewOrders = (reference?: string) =>
+    onReviewOrders ? onReviewOrders(reference) : onNavigate("orders");
+  const link = (section: string, label: string) =>
     canNavigate(section) && (
       <button
         className="secondary"
         type="button"
-        onClick={() => onNavigate(section)}
+        onClick={() =>
+          section === "orders" ? reviewOrders() : onNavigate(section)
+        }
       >
-        {text}
+        {label}
       </button>
     );
   return (
@@ -57,21 +112,37 @@ export default function OverviewAttention({
         {canNavigate("orders") && (
           <section>
             <h3>Orders waiting</h3>
-            {!Array.isArray(data.delayedOrders) ? (
+            {!validRows(data.delayedOrders) ? (
               <p>Waiting-time alerts are unavailable.</p>
-            ) : data.delayedOrders.length ? (
-              <ul>
-                {data.delayedOrders.slice(0, 3).map((o: any) => (
-                  <li key={o.id}>
-                    <strong>{o.reference}</strong>
-                    <span>
-                      {Number.isFinite(o.ageMinutes)
-                        ? `${o.ageMinutes} min`
-                        : "Waiting time unavailable"}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+            ) : delayed.length ? (
+              <>
+                <ul>
+                  {delayed.slice(0, 3).map((o, index) => (
+                    <li key={typeof o.id === "string" ? o.id : index}>
+                      <strong>
+                        {text(o.reference, "Order reference unavailable")}
+                      </strong>
+                      <span>
+                        {Number.isSafeInteger(o.ageMinutes) && o.ageMinutes >= 0
+                          ? `${o.ageMinutes} min`
+                          : "Waiting time unavailable"}
+                      </span>
+                      {onReviewOrders &&
+                        typeof o.reference === "string" &&
+                        o.reference.trim() && (
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={() => reviewOrders(o.reference)}
+                          >
+                            Review order {o.reference}
+                          </button>
+                        )}
+                    </li>
+                  ))}
+                </ul>
+                {hidden(delayed.length, "waiting orders")}
+              </>
             ) : (
               <p>No waiting-time alerts.</p>
             )}
@@ -81,24 +152,35 @@ export default function OverviewAttention({
         {canNavigate("menu") && (
           <section>
             <h3>Low stock</h3>
-            {!Array.isArray(data.lowStockAlerts) ? (
+            {!validRows(data.lowStockAlerts) ? (
               <p>Stock alerts are unavailable.</p>
-            ) : data.lowStockAlerts.length ? (
-              <ul>
-                {data.lowStockAlerts.slice(0, 3).map((p: any) => (
-                  <li key={p.productId + ":" + (p.variantId || "base")}>
-                    <strong>
-                      {p.name}
-                      {p.size ? ` · ${p.size}` : ""}
-                    </strong>
-                    <span>
-                      {Number.isSafeInteger(p.stock)
-                        ? `${p.stock} left`
-                        : "Stock unavailable"}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+            ) : stock.length ? (
+              <>
+                <ul>
+                  {stock.slice(0, 3).map((p, index) => (
+                    <li
+                      key={
+                        typeof p.productId === "string"
+                          ? p.productId + ":" + (p.variantId || "base")
+                          : index
+                      }
+                    >
+                      <strong>
+                        {text(p.name, "Product name unavailable")}
+                        {typeof p.size === "string" && p.size.trim()
+                          ? ` · ${p.size}`
+                          : ""}
+                      </strong>
+                      <span>
+                        {Number.isSafeInteger(p.stock)
+                          ? `${p.stock} left`
+                          : "Stock unavailable"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {hidden(stock.length, "stock alerts")}
+              </>
             ) : (
               <p>No low-stock alerts.</p>
             )}
@@ -108,21 +190,47 @@ export default function OverviewAttention({
         {canNavigate("reservations") && (
           <section>
             <h3>Upcoming arrivals</h3>
-            {!Array.isArray(data.reservations) ? (
+            {!Number.isFinite(clock) && (
+              <p>
+                Arrival freshness is unavailable. Confirm current arrivals with
+                the branch.
+              </p>
+            )}
+            {!(
+              validRows(data.reservations) &&
+              data.reservations.every(
+                (row: any) =>
+                  typeof row.status === "string" && row.status.trim(),
+              )
+            ) ? (
               <p>Arrival details are unavailable.</p>
             ) : arrivals.length ? (
-              <ul>
-                {arrivals.slice(0, 3).map((r) => (
-                  <li key={r.id}>
-                    <strong>{r.displayName || "Reservation"}</strong>
-                    <span>
-                      {at(r.startsAt)} · {readable(r.status)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
+              <>
+                <ul>
+                  {arrivals.slice(0, 3).map((r, index) => (
+                    <li key={typeof r.id === "string" ? r.id : index}>
+                      <strong>
+                        {text(r.displayName, "Reservation name unavailable")}
+                      </strong>
+                      <span>
+                        {at(r.startsAt)} ·{" "}
+                        {r.status === "arrived" ? "Arrived" : "Confirmed"}
+                        {!Number.isFinite(instant(r.endsAt))
+                          ? " · End time unavailable"
+                          : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {hidden(arrivals.length, "arrival records")}
+              </>
+            ) : Number.isFinite(clock) ? (
               <p>No confirmed arrivals waiting.</p>
+            ) : (
+              <p>
+                No confirmed arrival records were returned; current arrival
+                status is unverified.
+              </p>
             )}
             {link("reservations", "Review arrivals")}
           </section>
@@ -130,22 +238,36 @@ export default function OverviewAttention({
         {canNavigate("shifts") && (
           <section>
             <h3>Shift status</h3>
-            {!Array.isArray(data.shifts) ? (
+            {!(
+              validRows(data.shifts) &&
+              data.shifts.every(
+                (row: any) =>
+                  typeof row.status === "string" && row.status.trim(),
+              )
+            ) ? (
               <p>Shift details are unavailable.</p>
             ) : shifts.length ? (
-              <ul>
-                {shifts.slice(0, 3).map((s) => (
-                  <li key={s.id}>
-                    <strong>{readable(s.status)}</strong>
-                    <span>
-                      {s.status === "pending_approval" &&
-                      Number.isSafeInteger(s.variance)
-                        ? `Variance ${formatMoney(s.variance)}`
-                        : at(s.openedAt || s.createdAt)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul>
+                  {shifts.slice(0, 3).map((s, index) => (
+                    <li key={typeof s.id === "string" ? s.id : index}>
+                      <strong>
+                        {s.status === "pending_approval"
+                          ? "Awaiting manager approval"
+                          : "Open"}
+                      </strong>
+                      <span>
+                        {s.status === "pending_approval"
+                          ? Number.isSafeInteger(s.variance)
+                            ? `Variance ${formatMoney(s.variance)}`
+                            : "Variance unavailable"
+                          : at(s.openedAt || s.createdAt)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {hidden(shifts.length, "shift records")}
+              </>
             ) : (
               <p>No open shifts.</p>
             )}

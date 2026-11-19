@@ -24,6 +24,7 @@ import WorkspaceNavigation from "./WorkspaceNavigation";
 import { chooseWorkspaceLanding, getSectionPresentation } from "./presentation";
 import WorkspaceAccount from "./WorkspaceAccount";
 import OperationalOverview from "./OperationalOverview";
+import { serviceState } from "./overviewPresentation";
 import PolicyEditor from "./PolicyEditor";
 import BillingManagement from "./BillingManagement";
 import LiveOrderCard, {
@@ -563,7 +564,6 @@ export default function OrganizationWorkspace({
   }, [refresh]);
   useEffect(() => {
     setTabForm({});
-
   }, [activeSection, organizationId, branchBase]);
   const mutate = async (
     path: string,
@@ -840,6 +840,26 @@ export default function OrganizationWorkspace({
   const empty = (text: string) => <div className="mw-empty">{text}</div>;
   const orders = list(data?.orders);
   const liveOrders = orders.filter((order: any) => !order.historicalReadOnly);
+  const reviewOverviewOrders = (
+    reference?: string,
+    queue: "all" | "active" | "delayed" = "delayed",
+  ) => {
+    if (!allowed("orders.view")) return;
+    setOrderFilters({
+      query: reference || "",
+      status: "",
+      source: "",
+      payment: "",
+      unassigned: false,
+      serviceQueue: queue,
+    });
+    selectSection("orders");
+  };
+  const delayedOrderIds = new Set(
+    list(data?.delayedOrders)
+      .filter((order: any) => order && typeof order.id === "string")
+      .map((order: any) => order.id),
+  );
   const filteredOrders = orders.filter((order: any) => {
     if (order.historicalReadOnly) return false;
     const query = orderFilters.query.trim().toLowerCase();
@@ -862,6 +882,10 @@ export default function OrganizationWorkspace({
       (!orderFilters.unassigned || !order.handlerId) &&
       (orderFilters.serviceQueue !== "mine" || order.handlerId === user.id) &&
       (orderFilters.serviceQueue !== "ready" || order.status === "ready") &&
+      (orderFilters.serviceQueue !== "active" ||
+        serviceState(order, data?.serverTime) === "active") &&
+      (orderFilters.serviceQueue !== "delayed" ||
+        delayedOrderIds.has(order.id)) &&
       (orderFilters.serviceQueue !== "unassigned" || !order.handlerId)
     );
   });
@@ -1384,17 +1408,10 @@ export default function OrganizationWorkspace({
       <ServiceAttention
         orders={delayedOrders}
         threshold={data?.delayedOrderThresholdMinutes}
-        onReview={() => {
-          setOrderFilters({
-            query: "",
-            status: "",
-            source: "",
-            payment: "",
-            unassigned: false,
-            serviceQueue: "all",
-          });
-          selectSection("orders");
-        }}
+        onReview={() => reviewOverviewOrders(undefined, "delayed")}
+        onReviewOrders={(reference) =>
+          reviewOverviewOrders(reference, "delayed")
+        }
       />
       {entitlements?.warning &&
         !(
@@ -1931,7 +1948,9 @@ export default function OrganizationWorkspace({
               {activeSection === "overview" && (
                 <OperationalOverview
                   data={data}
-                  orders={liveOrders}
+                  orders={Array.isArray(data.orders) ? liveOrders : undefined}
+                  stale={!!readError}
+                  onReviewOrders={reviewOverviewOrders}
                   base={branchBase}
                   disabled={busy || offline}
                   canNavigate={(id) =>
@@ -2682,6 +2701,8 @@ export default function OrganizationWorkspace({
                           }
                         >
                           <option value="all">All recent orders</option>
+                          <option value="active">Active service orders</option>
+                          <option value="delayed">Waiting-time alerts</option>
                           <option value="mine">Assigned to me</option>
                           <option value="unassigned">Unassigned orders</option>
                           <option value="ready">Ready for service</option>

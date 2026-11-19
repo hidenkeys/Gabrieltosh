@@ -860,7 +860,10 @@ test("custom roles expose only actor-grantable permissions and invite using a sc
     );
     await screen.findByRole("option", { name: "Host" });
     assert.equal(screen.queryByRole("option", { name: "Owner" }), null);
-    assert.equal(screen.queryByRole("checkbox", { name: "Manage subscription billing" }), null);
+    assert.equal(
+      screen.queryByRole("checkbox", { name: "Manage subscription billing" }),
+      null,
+    );
     fireEvent.change(screen.getByLabelText("Staff email"), {
       target: { value: "staff@example.com" },
     });
@@ -4682,5 +4685,126 @@ test("reviewed trading day carries its date to the permitted export form without
     cleanup();
     globalThis.fetch = previousFetch;
     HTMLElement.prototype.scrollIntoView = previousScroll;
+  }
+});
+
+test("overview drilldowns reset stale filters and select only current active or delayed orders", async () => {
+  const previousFetch = globalThis.fetch;
+  const operationalContext = {
+    ...context,
+    organizations: context.organizations.map((org) => ({
+      ...org,
+      permissions: ["reports.view", "orders.view"],
+    })),
+  };
+  const active = {
+    ...snapshot("branch-1").orders[0],
+    reference: "QA-A",
+    stockHeld: false,
+    createdAt: "2026-11-19T11:30:00Z",
+  };
+  const expired = {
+    ...active,
+    id: "expired-order",
+    reference: "QA-EXPIRED",
+    holdExpired: true,
+    paymentStatus: "expired",
+  };
+  globalThis.fetch = (async (input: any) =>
+    String(input).endsWith("/context")
+      ? Response.json(operationalContext)
+      : String(input).includes("/workspace")
+        ? Response.json({
+            ...snapshot("branch-1"),
+            orders: [active, expired],
+            serverTime: "2026-11-19T12:00:00Z",
+            branch: { timezone: "UTC" },
+            report: {
+              date: "2026-11-19",
+              orders: 2,
+              collections: 0,
+              netSales: 0,
+              outstanding: 100000,
+              paymentMethods: {},
+            },
+            delayedOrders: [
+              { id: active.id, reference: active.reference, ageMinutes: 30 },
+            ],
+            lowStockAlerts: [],
+          })
+        : Response.json({})) as typeof fetch;
+  try {
+    render(<Workspace user={user} />);
+    fireEvent.click(
+      await screen.findByRole("tab", { name: "Overview", exact: true }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "View active orders",
+        exact: true,
+      }),
+    );
+    assert.equal(
+      (
+        screen.getByRole("combobox", {
+          name: "Service queue",
+        }) as HTMLSelectElement
+      ).value,
+      "active",
+    );
+    assert(screen.getByRole("article", { name: "Order QA-A", exact: true }));
+    assert(
+      !screen.queryByRole("article", { name: "Order QA-EXPIRED", exact: true }),
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "Overview", exact: true }));
+    fireEvent.click(
+      within(
+        await screen.findByRole("region", { name: "Needs your attention" }),
+      ).getByRole("button", { name: "Review order QA-A", exact: true }),
+    );
+    assert.equal(
+      (
+        screen.getByRole("combobox", {
+          name: "Service queue",
+        }) as HTMLSelectElement
+      ).value,
+      "delayed",
+    );
+    assert.equal(
+      (
+        screen.getByRole("searchbox", {
+          name: "Find orders",
+        }) as HTMLInputElement
+      ).value,
+      "QA-A",
+    );
+    assert(screen.getByRole("article", { name: "Order QA-A", exact: true }));
+    fireEvent.click(screen.getByRole("tab", { name: "Overview", exact: true }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "View orders", exact: true }),
+    );
+    assert.equal(
+      (
+        screen.getByRole("combobox", {
+          name: "Service queue",
+        }) as HTMLSelectElement
+      ).value,
+      "all",
+    );
+    assert.equal(
+      (
+        screen.getByRole("searchbox", {
+          name: "Find orders",
+        }) as HTMLInputElement
+      ).value,
+      "",
+    );
+    assert(
+      screen.getByRole("article", { name: "Order QA-EXPIRED", exact: true }),
+    );
+  } finally {
+    cleanup();
+    globalThis.fetch = previousFetch;
+    window.sessionStorage.clear();
   }
 });

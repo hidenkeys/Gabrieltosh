@@ -27,7 +27,7 @@ test("readiness failure has explicit retry and focuses the recovered state", asy
   try {
     render(<Signup />);
     const alert = await screen.findByRole("alert");
-    await waitFor(() => assert.equal(document.activeElement, alert));
+    await waitFor(() => assert(document.activeElement === alert));
     assert.equal(screen.queryByLabelText("Password"), null);
     fireEvent.click(
       screen.getByRole("button", { name: "Retry registration check" }),
@@ -35,7 +35,7 @@ test("readiness failure has explicit retry and focuses the recovered state", asy
     const heading = await screen.findByRole("heading", {
       name: "Registration is awaiting verification setup",
     });
-    await waitFor(() => assert.equal(document.activeElement, heading));
+    await waitFor(() => assert(document.activeElement === heading));
     assert.equal(calls, 2);
     assert.equal(
       screen.queryByRole("button", { name: "Retry registration check" }),

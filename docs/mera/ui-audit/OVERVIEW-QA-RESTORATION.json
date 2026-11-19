@@ -1,0 +1,30 @@
+{
+  "verifiedAt": "2026-11-19T08:24:50.503Z",
+  "manifest": "Temporary local fixture0159E9, exact13-row ID manifest retained outside repository",
+  "dataDirectory": "data/mera-demo-frontdesk-db",
+  "deletedExactRows": 13,
+  "remainingManifestRows": 0,
+  "financialStockPrintCountsUnchanged": true,
+  "financialStockPrintCounts": [
+    {
+      "kind": "ledger",
+      "count": 1
+    },
+    {
+      "kind": "stock_movement",
+      "count": 1
+    }
+  ],
+  "remainingOrders": {
+    "total_orders": 3,
+    "active_service_orders": 0
+  },
+  "report": {
+    "date": "2026-11-19",
+    "orders": 3,
+    "grossOrderValue": 680000,
+    "grossSales": 300000,
+    "collections": 0,
+    "refunds": 0
+  }
+}

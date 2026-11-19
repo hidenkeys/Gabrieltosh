@@ -1,4 +1,11 @@
 import { useRef } from "react";
+import {
+  serviceState,
+  overviewTime,
+  overviewText,
+} from "./overviewPresentation";
+import { orderStatusLabel } from "./LiveOrderCard";
+import { DataRegion } from "../ui/OperationalPrimitives";
 import OverviewAttention from "./OverviewAttention";
 import OverviewActivity from "./OverviewActivity";
 import { formatMoney } from "./api";
@@ -23,9 +30,11 @@ export default function OperationalOverview({
   canViewShifts = false,
   staff = [],
   onExportDate,
+  onReviewOrders,
+  stale = false,
 }: {
   data: any;
-  orders: any[];
+  orders?: any[];
   base: string;
   disabled: boolean;
   canCreate: boolean;
@@ -36,17 +45,55 @@ export default function OperationalOverview({
   canViewShifts?: boolean;
   staff?: { id: string; name: string }[];
   onExportDate?: (date: string) => void;
+  onReviewOrders?: (
+    reference?: string,
+    queue?: "all" | "active" | "delayed",
+  ) => void;
+  stale?: boolean;
 }) {
   const dateReports = useRef<HTMLDetailsElement>(null);
-  const report = data.report || {},
+  const report =
+      data.report &&
+      typeof data.report === "object" &&
+      !Array.isArray(data.report)
+        ? data.report
+        : {},
     flow = ["submitted", "accepted", "preparing", "ready"],
-    active = orders.filter((o) => flow.includes(o.status));
+    available = canViewOrders && Array.isArray(orders),
+    loaded = Array.isArray(orders) ? orders : [],
+    active = available
+      ? loaded.filter(
+          (order) => serviceState(order, data.serverTime) === "active",
+        )
+      : [],
+    expired = available
+      ? loaded.filter(
+          (order) => serviceState(order, data.serverTime) === "expired",
+        )
+      : [],
+    uncertain =
+      available &&
+      loaded.some(
+        (order) => serviceState(order, data.serverTime) === "unavailable",
+      );
   return (
     <div className="mw-overview">
+      {stale && (
+        <p role="status" className="mw-note">
+          Showing previously loaded records. Refresh the workspace to confirm
+          current service and totals.
+        </p>
+      )}
       <div className="mw-overview-toolbar">
         <p>
-          {report.date || "Date unavailable"} · Branch trading day
-          {data.branch?.timezone ? ` · ${data.branch.timezone}` : ""}
+          {typeof report.date === "string" &&
+          /^\d{4}-\d{2}-\d{2}$/.test(report.date)
+            ? report.date
+            : "Date unavailable"}{" "}
+          · Branch trading day
+          {typeof data.branch?.timezone === "string"
+            ? ` · ${data.branch.timezone}`
+            : ""}
         </p>
         <div className="mw-actions">
           <button
@@ -63,7 +110,14 @@ export default function OperationalOverview({
             Reports by date
           </button>
           {canViewOrders && (
-            <button className="secondary" onClick={() => onNavigate("orders")}>
+            <button
+              className="secondary"
+              onClick={() =>
+                onReviewOrders
+                  ? onReviewOrders(undefined, "all")
+                  : onNavigate("orders")
+              }
+            >
               View orders
             </button>
           )}
@@ -93,11 +147,13 @@ export default function OperationalOverview({
           [
             "Outstanding",
             money(report.outstanding),
-            "Unsettled order balances",
+            "Unsettled balances on this day’s orders",
           ],
           [
             "Orders",
-            report.orders ?? "Unavailable",
+            Number.isSafeInteger(report.orders) && report.orders >= 0
+              ? report.orders
+              : "Unavailable",
             "Orders placed this trading day",
           ],
         ].map(([label, value, note]) => (
@@ -126,98 +182,185 @@ export default function OperationalOverview({
         data={data}
         canNavigate={canNavigate}
         onNavigate={onNavigate}
+        onReviewOrders={
+          onReviewOrders
+            ? (reference) => onReviewOrders(reference, "delayed")
+            : undefined
+        }
       />
       <div className="mw-overview-columns">
         <section className="mw-card">
           <div className="mw-overview-section-heading">
             <h2>Service in progress</h2>
-            <span>{active.length} active</span>
+            <span>
+              {available
+                ? uncertain
+                  ? "Service count needs checking"
+                  : `${active.length} active`
+                : "Order activity unavailable"}
+            </span>
           </div>
-          <div className="mw-flow">
-            {flow.map((status) => (
-              <div key={status}>
-                <strong>
-                  {orders.filter((o) => o.status === status).length}
-                </strong>
-                <span>
-                  {status === "submitted"
-                    ? "New"
-                    : status[0].toUpperCase() + status.slice(1)}
-                </span>
-              </div>
-            ))}
-          </div>
-          {canViewOrders && (
+          {available && (
+            <div className="mw-flow">
+              {flow.map((status) => (
+                <div key={status}>
+                  <strong>
+                    {uncertain
+                      ? "Unavailable"
+                      : active.filter((o) => o.status === status).length}
+                  </strong>
+                  <span>
+                    {status === "submitted"
+                      ? "New"
+                      : status[0].toUpperCase() + status.slice(1)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          {available && expired.length > 0 && (
+            <p>
+              {expired.length} expired{" "}
+              {expired.length === 1 ? "order is" : "orders are"} excluded from
+              current service. Review them in Orders if follow-up is needed.
+            </p>
+          )}
+          {uncertain && (
+            <p role="status">
+              Some order hold details are unavailable. Current service counts
+              cannot be confirmed.
+            </p>
+          )}
+          {!available && (
+            <p>
+              {canViewOrders
+                ? "Order records are unavailable. Refresh the workspace before reviewing service."
+                : "Your account does not have access to order activity."}
+            </p>
+          )}
+          {available && (
             <>
               {active.length ? (
-                <div className="mw-table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Order</th>
-                        <th>Customer</th>
-                        <th>Status</th>
-                        <th>Handler</th>
-                        <th>Placed</th>
-                        <th>Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {active.slice(0, 5).map((o) => (
-                        <tr key={o.id}>
-                          <td>{o.reference}</td>
-                          <td>{o.displayName}</td>
-                          <td>{o.status.replaceAll("_", " ")}</td>
-                          <td>
-                            {o.handlerName ||
-                              (o.handlerId ? "Assigned staff" : "Unassigned")}
-                          </td>
-                          <td>
-                            {Number.isFinite(Date.parse(o.createdAt))
-                              ? new Date(o.createdAt).toLocaleTimeString(
-                                  "en-GB",
-                                  {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    ...(data.branch?.timezone
-                                      ? { timeZone: data.branch.timezone }
-                                      : {}),
-                                  },
-                                )
-                              : "Unavailable"}
-                          </td>
-                          <td>{money(o.total)}</td>
+                <div>
+                  <p className="mw-overview-scroll-hint">
+                    Swipe or scroll the service table to see each order’s
+                    details and review action.
+                  </p>
+                  <DataRegion
+                    label="Current service orders"
+                    className="mw-table-wrap"
+                  >
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Order</th>
+                          <th>Customer</th>
+                          <th>Status</th>
+                          <th>Handler</th>
+                          <th>Placed</th>
+                          <th>Total</th>
+                          {onReviewOrders && <th>Review</th>}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {active.slice(0, 5).map((o) => (
+                          <tr key={o.id}>
+                            <td>
+                              {overviewText(
+                                o.reference,
+                                "Reference unavailable",
+                              )}
+                            </td>
+                            <td>
+                              {overviewText(
+                                o.displayName,
+                                "Customer name not recorded",
+                              )}
+                            </td>
+                            <td>{orderStatusLabel(o.status)}</td>
+                            <td>
+                              {overviewText(
+                                o.handlerName,
+                                o.handlerId ? "Assigned staff" : "Unassigned",
+                              )}
+                            </td>
+                            <td>
+                              {overviewTime(o.createdAt, data.branch?.timezone)}
+                            </td>
+                            <td>{money(o.total)}</td>
+                            {onReviewOrders && (
+                              <td>
+                                {typeof o.reference === "string" &&
+                                o.reference.trim() ? (
+                                  <button
+                                    className="secondary"
+                                    type="button"
+                                    onClick={() =>
+                                      onReviewOrders(o.reference, "active")
+                                    }
+                                  >
+                                    Open {o.reference}
+                                  </button>
+                                ) : (
+                                  "Reference unavailable"
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </DataRegion>
                 </div>
               ) : (
                 <p className="mw-empty">
-                  No orders waiting. New orders will appear here.
+                  {uncertain
+                    ? "Current service needs checking."
+                    : "No orders waiting. New orders will appear here."}
                 </p>
+              )}
+              {active.length > 5 && (
+                <p>{active.length - 5} more active orders.</p>
+              )}
+              {onReviewOrders && (
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={() => onReviewOrders(undefined, "active")}
+                >
+                  View active orders
+                </button>
               )}
             </>
           )}
         </section>
         <section className="mw-card">
           <h2>Payment breakdown</h2>
-          {Object.entries(report.paymentMethods || {}).map(
-            ([method, amount]) => (
-              <div className="mw-row" key={method}>
-                <span>
-                  {(
-                    {
-                      cash: "Cash",
-                      external_pos: "Card / POS",
-                      external_transfer: "External transfer",
-                    } as any
-                  )[method] || method.replaceAll("_", " ")}
-                </span>
-                <b>{money(amount)}</b>
-              </div>
-            ),
+          {(!report.paymentMethods ||
+            typeof report.paymentMethods !== "object" ||
+            Array.isArray(report.paymentMethods)) && (
+            <p>Payment-method breakdown is unavailable.</p>
           )}
+          {Object.entries(
+            report.paymentMethods &&
+              typeof report.paymentMethods === "object" &&
+              !Array.isArray(report.paymentMethods)
+              ? report.paymentMethods
+              : {},
+          ).map(([method, amount]) => (
+            <div className="mw-row" key={method}>
+              <span>
+                {(
+                  {
+                    cash: "Cash",
+                    external_pos: "Card / POS",
+                    external_transfer: "External transfer",
+                  } as any
+                )[method] || "Other recorded method"}
+              </span>
+              <b>{money(amount)}</b>
+            </div>
+          ))}
           <div className="mw-row">
             <strong>Total collections</strong>
             <strong>{money(report.collections)}</strong>

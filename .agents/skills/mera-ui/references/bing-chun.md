@@ -73,3 +73,7 @@ Detailed limits and verified interactions: `docs/mera/ui-audit/FRONTDESK-PUBLIC-
 ## People and access consumers
 
 `MemberAccess.tsx`, `RoleManager.tsx`, `people.css` and `accessPresentation.ts` preserve the original operational surfaces and add members-first scope/status/search/review. Parent passes actual userId; `accessWriteJournal.ts` guards non-idempotent access changes across navigation/reload in the current tab/session. Never clear this marker on a read or infer failed writes from an empty list. Actual185–190 and paired people-comparison.html inspected; PEOPLE-CHECKPOINT.md distinguishes browser read/draft checks from focused write simulations. No real invitations/access changes or delivery verification were performed.
+
+## Current service overview and drilldowns
+
+`OperationalOverview.tsx`, `overviewPresentation.ts`, `OverviewAttention.tsx` and `ServiceAttention.tsx` preserve source-derived operational metrics/alerts. Distinguish current service from expired recent records and trading-day financial balances. Parent owns active/delayed/reference order filters; leaves never write status or financial records. Actual191–197 and overview-operations-comparison.html inspected; OVERVIEW-OPERATIONS-CHECKPOINT.md records temporary zero-value fixture restoration and pending broader role states. Named bounded service tables retain13px text and reachable review actions on handhelds.

@@ -1177,3 +1177,15 @@
   color: #63738a;
   font-size: 12px;
 }
+/* Operational overview: readable bounded service rows, original Bing Chun controls. */
+.mw-overview .mera-data-region table{font-size:13px}
+.mw-overview .mera-data-region td{vertical-align:top}
+.mw-overview .mera-data-region td:last-child button{white-space:normal;overflow-wrap:anywhere}
+.mw-overview-scroll-hint{display:none}
+@media(max-width:800px){.mw-overview-scroll-hint{display:block;font-size:13px;color:#626570}}
+.mw-overview .mera-data-region table{min-width:960px;table-layout:auto}
+.mw-overview .mera-data-region td:first-child{min-width:145px}
+.mw-overview .mera-data-region td:nth-child(5){min-width:180px}
+.mw-overview .mera-data-region td:last-child{min-width:180px}
+.mw-overview-metrics .text-button{display:block;margin-top:8px}
+@media(max-width:1200px){.mw-overview-scroll-hint{display:block;font-size:13px;color:#626570}}

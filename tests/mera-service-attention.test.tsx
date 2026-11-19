@@ -47,7 +47,7 @@ test("service attention keeps the queue action visible while keyboard details re
     });
     assert.equal(details.open, true);
     assert.equal(container.querySelectorAll("li").length, 10);
-    assert(screen.getByText(/25-minute threshold/));
+    assert(screen.getByText(/25-minute alert threshold/));
     assert(screen.getByText("2 more delayed orders."));
     assert(!container.textContent?.includes("private-0"));
     assert(screen.getByText(/Waiting time unavailable/));
