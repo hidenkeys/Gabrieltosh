@@ -1,3 +1,4 @@
+import {assertExpectedBillActor,beginBillChange,recordBillChange,mountMeraBillAttempts} from "./bill-attempts.js";
 import {assertExpectedShiftActor,replayShiftOperation,assertShiftRequestActive,recordShiftOperation,mountMeraShiftAttempts} from "./shift-attempts.js";
 import { assertReservationRequestActive, assertStaffReservationRequestActive, assertExpectedReservationActor, mountMeraReservationAttempts } from "./reservation-attempts.js";
 import { mountMeraRefundRequests, reviewRefundRequest, completeRefundRequest } from "./refund-requests.js";
@@ -2481,8 +2482,10 @@ export function createMeraRouter(db) {
     B + "/bills/:id/split",
     guard("payments.record"),
     async (req, res) => {
+      assertExpectedBillActor(req);
       const input = z
         .object({
+          requestKey:uuid.optional(),
           name: z.string().trim().min(1).max(80),
           amount: z.number().int().positive().optional(),
           items: z
@@ -2499,11 +2502,14 @@ export function createMeraRouter(db) {
         .parse(req.body);
       res.json(
         await locked(scope(req), async (c) => {
+          const s=scope(req),attempt={requestKey:input.requestKey,actorId:req.user.id,billId:req.params.id,operation:"split",intent:{name:input.name,amount:input.amount??null,items:input.items??null}};
+          const prior=await beginBillChange(c,s,attempt);if(prior)return prior;
           const source = billAmounts(
             await find(c, scope(req), "bill", req.params.id),
           );
           if (source.status !== "open")
             throw fail("Only open bills can be split.", 409);
+          if(source.visitId && (await find(c,s,"visit",source.visitId)).status!=="open")throw fail("Only bills from an open visit can be changed.",409,"VISIT_CLOSED");
           const outstandingByOrder = new Map();
           for (const line of source.charges)
             outstandingByOrder.set(
@@ -2614,7 +2620,9 @@ export function createMeraRouter(db) {
             billId: bill.id,
             amount: moved,
           });
-          return { source: billAmounts(source), bill };
+          const result={source:billAmounts(source),bill};
+          await recordBillChange(c,s,record,attempt,result);
+          return result;
         }),
       );
     },
@@ -2623,14 +2631,18 @@ export function createMeraRouter(db) {
     B + "/bills/:id/merge",
     guard("payments.record"),
     async (req, res) => {
-      const { sourceBillIds } = z
-        .object({ sourceBillIds: z.array(uuid).min(1).max(30) })
+      assertExpectedBillActor(req);
+      const { sourceBillIds,requestKey } = z
+        .object({ requestKey:uuid.optional(),sourceBillIds: z.array(uuid).min(1).max(30) })
         .parse(req.body);
       res.json(
         await locked(scope(req), async (c) => {
+          const s=scope(req),attempt={requestKey,actorId:req.user.id,billId:req.params.id,operation:"merge",intent:{sourceBillIds}};
+          const prior=await beginBillChange(c,s,attempt);if(prior)return prior;
           const target = await find(c, scope(req), "bill", req.params.id);
           if (target.status !== "open")
             throw fail("Target bill is not open.", 409);
+          if(!target.visitId || (await find(c,s,"visit",target.visitId)).status!=="open")throw fail("Only bills from the same open visit can be merged.",409,"VISIT_CLOSED");
           if (
             sourceBillIds.includes(target.id) ||
             new Set(sourceBillIds).size !== sourceBillIds.length
@@ -2660,7 +2672,9 @@ export function createMeraRouter(db) {
             targetId: target.id,
             sourceBillIds,
           });
-          return billAmounts(target);
+          const result=billAmounts(target);
+          await recordBillChange(c,s,record,attempt,result);
+          return result;
         }),
       );
     },
@@ -3162,6 +3176,7 @@ export function createMeraRouter(db) {
   mountMeraStockHistory(router,{db,guard,scope,locked,find,record,update,event});
   mountMeraReservationAttempts(router,{publicContext,guest,locked,record,event,guard,scope});
   mountMeraShiftAttempts(router,{guard,scope,locked,record,event});
+  mountMeraBillAttempts(router,{guard,scope,locked,find,record,event});
   mountMeraOrderAttempts(router,{guard,scope,locked,record,event,publicContext,guest,publicOrder});
   mountMeraPrinting(router,{db,guard,scope,locked,find,record,update,event});
   mountMeraQueries(router,{db,guard,scope});

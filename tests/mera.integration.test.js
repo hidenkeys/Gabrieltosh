@@ -528,12 +528,28 @@ test(
         (b) => b.visitId === nextVisit.id && b.status === "open",
       );
       assert.equal(bill.total, 760000);
+      const splitOperationKey=randomUUID();
       const split = await call(B + "/bills/" + bill.id + "/split", "POST", {
+        requestKey:splitOperationKey,
         name: "Guest Two bill",
         amount: 400000,
       });
       assert.equal(split.status, 200, JSON.stringify(split.data));
       assert.equal(split.data.source.total + split.data.bill.total, 760000);
+      {
+        const billRecoveryPeerMembership=randomUUID();
+        assert.equal((await call(B+"/bills/"+bill.id+"/change-attempts/split/"+splitOperationKey,"GET",undefined,other)).status,403);
+        await db.query("INSERT INTO mera_memberships(id,user_id,organization_id,role,permissions,branch_ids) VALUES($1,$2,$3,'cashier',$4,$5)",[billRecoveryPeerMembership,other,org,JSON.stringify(["payments.record"]),JSON.stringify([branch])]);
+        const splitPath=B+"/bills/"+bill.id+"/split",body={requestKey:splitOperationKey,name:"Guest Two bill",amount:400000},attempt=B+"/bills/"+bill.id+"/change-attempts/split/"+splitOperationKey;
+        assert.deepEqual((await call(splitPath,"POST",body)).data,split.data);assert.equal((await call(splitPath,"POST",{...body,name:"Changed name"})).data.code,"IDEMPOTENCY_CONFLICT");
+        const proof=await call(attempt);assert.equal(proof.status,200);assert.equal(proof.cacheControl,"no-store");assert.equal(proof.data.status,"recorded");assert.equal(proof.data.actorId,owner);assert.equal(proof.data.billId,bill.id);assert.equal(proof.data.organizationId,org);assert.equal(proof.data.branchId,branch);assert.equal(proof.data.requestKey,splitOperationKey);assert.deepEqual(proof.data.result,split.data);assert.deepEqual(proof.data.operationRecord.intent,{name:"Guest Two bill",amount:400000,items:null});assert.equal(proof.data.resultBasis,"recorded_operation_snapshot");
+        assert.deepEqual((await call(attempt+"/abandon","POST",{reason:"Preserve recorded bill change"})).data,proof.data);assert.equal((await call(attempt,"GET",undefined,other)).data.status,"not_found");assert.equal((await call(attempt,"GET",undefined,null)).status,401);
+        const key=randomUUID(),stopPath=B+"/bills/"+bill.id+"/change-attempts/split/"+key;
+        assert.equal((await call(stopPath,"GET",undefined,owner,"",{"X-Mera-Actor-Id":other})).data.code,"ACTOR_CHANGED");assert.equal((await call(stopPath+"/abandon","POST",{reason:"Wrong cookie actor"},owner,"",{"X-Mera-Actor-Id":other})).data.code,"ACTOR_CHANGED");
+        assert.equal((await call(stopPath)).data.status,"not_found");const stop=await call(stopPath+"/abandon","POST",{reason:"Stop delayed split intent"});assert.equal(stop.data.status,"abandoned");assert.deepEqual((await call(stopPath+"/abandon","POST",{reason:"Repeat explicit stop"})).data,stop.data);assert.equal((await call(splitPath,"POST",{requestKey:key,name:"Late split",amount:100})).data.code,"BILL_CHANGE_ABANDONED");assert.equal((await call(stopPath,"GET",undefined,other)).data.status,"not_found");
+        const raceKey=randomUUID(),raceBody={requestKey:raceKey,name:"Race split",amount:100};const [write,abandon]=await Promise.all([call(splitPath,"POST",raceBody),call(B+"/bills/"+bill.id+"/change-attempts/split/"+raceKey+"/abandon","POST",{reason:"Concurrent split versus safe stop"})]);if(write.status===200){assert.equal(abandon.data.status,"recorded");assert.equal((await call(B+"/bills/"+bill.id+"/merge","POST",{sourceBillIds:[write.data.bill.id]})).status,200);}else{assert.equal(write.data.code,"BILL_CHANGE_ABANDONED");assert.equal(abandon.data.status,"abandoned");}
+        await db.query("DELETE FROM mera_memberships WHERE id=$1",[billRecoveryPeerMembership]);
+      }
       const billPaymentKey = randomUUID();
       const partialBillPayment = await call(
         B + "/bills/" + split.data.bill.id + "/payments",
@@ -565,13 +581,26 @@ test(
         ).status,
         409,
       );
+      const mergeOperationKey=randomUUID();
       const merged = await call(B + "/bills/" + bill.id + "/merge", "POST", {
+        requestKey:mergeOperationKey,
         sourceBillIds: [split.data.bill.id],
       });
       assert.equal(merged.status, 200, JSON.stringify(merged.data));
       assert.equal(merged.data.total, 760000);
       assert.equal(merged.data.paid, 200000);
       assert.equal(merged.data.balance, 560000);
+      assert.deepEqual((await call(B+"/bills/"+bill.id+"/merge","POST",{requestKey:mergeOperationKey,sourceBillIds:[split.data.bill.id]})).data,merged.data);
+      assert.deepEqual((await call(B+"/bills/"+bill.id+"/split","POST",{requestKey:splitOperationKey,name:"Guest Two bill",amount:400000})).data,split.data);
+      assert.equal((await call(B+"/bills/"+bill.id+"/change-attempts/merge/"+splitOperationKey)).data.code,"IDEMPOTENCY_CONFLICT");
+      const priorVisitForBill=(await db.query("SELECT data FROM mera_records WHERE id=$1",[nextVisit.id])).rows[0].data;
+      await db.query("UPDATE mera_records SET data=$1 WHERE id=$2",[JSON.stringify({...priorVisitForBill,status:"closed"}),nextVisit.id]);
+      assert.equal((await call(B+"/bills/"+bill.id+"/split","POST",{name:"Closed-party split",amount:1})).data.code,"VISIT_CLOSED");
+      assert.equal((await call(B+"/bills/"+bill.id+"/merge","POST",{sourceBillIds:[split.data.bill.id]})).data.code,"VISIT_CLOSED");
+      assert.deepEqual((await call(B+"/bills/"+bill.id+"/merge","POST",{requestKey:mergeOperationKey,sourceBillIds:[split.data.bill.id]})).data,merged.data);
+      await db.query("UPDATE mera_records SET data=$1 WHERE id=$2",[JSON.stringify(priorVisitForBill),nextVisit.id]);
+      const immutableBillOps=(await db.query("SELECT DISTINCT ON(kind) id FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind IN ('bill_change_operation','bill_change_resolution') ORDER BY kind,id",[org,branch])).rows;assert.equal(immutableBillOps.length,2);for(const r of immutableBillOps){await assert.rejects(db.query("UPDATE mera_records SET data=data||'{\"tampered\":true}'::jsonb WHERE id=$1",[r.id]),/append-only/);await assert.rejects(db.query("DELETE FROM mera_records WHERE id=$1",[r.id]),/append-only/);}
+
       assert.equal(
         (
           await call(B + "/bills/" + bill.id + "/merge", "POST", {
