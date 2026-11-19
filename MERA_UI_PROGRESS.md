@@ -2,15 +2,15 @@
 
 Goal: Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.
 
-Scope **1.0** · revision `af219bb` · updated 2026-11-19T16:37:52+01:00
+Scope **1.0** · revision `3642f55` · updated 2026-11-19T16:49:57+01:00
 
-**UI correction: 65% complete | 35% remaining.** Weighted evidence: 65.8/100. This is checklist completion, not a time estimate.
+**UI correction: 67% complete | 33% remaining.** Weighted evidence: 67.0/100. This is checklist completion, not a time estimate.
 
 Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.
 
 ## Current milestone
 
-Customer-help recovery integrated ataf219bb: draft retention, distinct read states, nonsecret recovery reference, exact actor-bound replay/lookup/stop and immutable note/audit evidence. Full645pass/2skip, final91focused/build, actual isolated QA staff/customer privacy loop and834/390 layouts, matched main desktop comparison. P2 advances40→60; scope1.0 frozen; weighted65.8/100. Wider role/state/accessibility matrices, protected platform access, provider delivery and printing hardware gates remain unfinished. Main3003/QA3007 run final source; one clearly synthetic resolved help fixture and immutable QA events retained, main data unchanged.
+Workspace keyboard/integration milestone at3642f55: mobile destination/dismissal/roving-tab containment and resize focus corrected; mounted handoff descriptions unique; normal test command now includes TypeScript journals. Final656pass/2skip, disposablePGpass, build, focusedchecks and actual mobile/tablet/desktop comparison. Q3 advances0→40; Q2 remains in progress at0 pending full cross-screen state/role/accessibility matrix. Scope1.0 frozen; weighted67.0/100. Bill/reprint/access/signup recovery gaps, protected platform access, provider and printing hardware gates remain unfinished. Main3003/QA3007 preserved; no business mutation, deployment or money.
 
 ## Measurement
 
@@ -25,7 +25,7 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | POS and operational roles | 20% | 65% | lead / rotating operational agent |
 | Customer experience | 20% | 66% | customer |
 | Marketing and platform administration | 10% | 68% | backend (presentation workstream A) |
-| Integration, accessibility and delivery | 10% | 30% | lead |
+| Integration, accessibility and delivery | 10% | 42% | lead |
 
 ## Task board
 
@@ -58,8 +58,8 @@ Weights are frozen in scope1.0. Checkpoints:0 planned/not implemented;40 real in
 | M2 | Marketing features, pricing, legal and signup | 2% | 60% | IN_PROGRESS · backend | [mera-signup-ui.test.tsx](tests/mera-signup-ui.test.tsx), [FRONTDESK-PUBLIC-CHECKPOINT.md](docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md), [PUBLIC-JOURNEY-CHECKPOINT.md](docs/mera/ui-audit/PUBLIC-JOURNEY-CHECKPOINT.md), [public-journey-comparison.html](docs/mera/ui-audit/public-journey-comparison.html), [mera-public-navigation.test.tsx](tests/mera-public-navigation.test.tsx), [mera-signup-recovery.test.tsx](tests/mera-signup-recovery.test.tsx) |
 | M3 | Mera platform administration | 4% | 40% | IN_PROGRESS · backend | [Platform.tsx](src/mera/Platform.tsx), [mera-platform-ui.test.tsx](tests/mera-platform-ui.test.tsx), [38-platform-access-state.jpg](docs/mera/ui-audit/screenshots/38-platform-access-state.jpg), [SUBSCRIPTION-VISIT-PLATFORM-CHECKPOINT.md](docs/mera/ui-audit/SUBSCRIPTION-VISIT-PLATFORM-CHECKPOINT.md), [VISUAL-OPERATOR-FIXTURE.md](docs/mera/ui-audit/VISUAL-OPERATOR-FIXTURE.md), [platform-review-comparison.html](docs/mera/ui-audit/platform-review-comparison.html), [83-platform-directory-narrow-after.jpg](docs/mera/ui-audit/screenshots/83-platform-directory-narrow-after.jpg), [84-platform-mfa-expired-narrow.jpg](docs/mera/ui-audit/screenshots/84-platform-mfa-expired-narrow.jpg), [mera-response-dates.test.js](tests/mera-response-dates.test.js) |
 | Q1 | Four-surface reference comparison gate | 3% | 100% | VERIFIED · lead | [design-qa.md](design-qa.md), [MARKETING-QA.md](docs/mera/ui-audit/MARKETING-QA.md), [overview-comparison-current.jpg](docs/mera/ui-audit/overview-comparison-current.jpg), [counter-comparison-current.jpg](docs/mera/ui-audit/counter-comparison-current.jpg), [customer-comparison-current.jpg](docs/mera/ui-audit/customer-comparison-current.jpg), [marketing-comparison-final.jpg](docs/mera/ui-audit/marketing-comparison-final.jpg) |
-| Q2 | Cross-screen states, accessibility and responsiveness | 3% | 0% | NOT_STARTED · lead | Pending |
-| Q3 | Functional integration and regression gate | 3% | 0% | NOT_STARTED · lead | Pending |
+| Q2 | Cross-screen states, accessibility and responsiveness | 3% | 0% | IN_PROGRESS · lead | [ACCESSIBILITY-CHECKPOINT.md](docs/mera/ui-audit/ACCESSIBILITY-CHECKPOINT.md) |
+| Q3 | Functional integration and regression gate | 3% | 40% | IN_PROGRESS · lead | [ACCESSIBILITY-CHECKPOINT.md](docs/mera/ui-audit/ACCESSIBILITY-CHECKPOINT.md) |
 | Q4 | Final evidence, review and handoff | 1% | 0% | NOT_STARTED · lead | Pending |
 
 Task acceptance criteria, dependency IDs, change history and blockers are in [MERA_UI_PROGRESS.json](MERA_UI_PROGRESS.json). Every implemented surface/workflow is mapped below; section locators do not claim new browser routes.

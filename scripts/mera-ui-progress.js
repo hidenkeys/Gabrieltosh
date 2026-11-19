@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Customer-help recovery integrated ataf219bb: draft retention, distinct read states, nonsecret recovery reference, exact actor-bound replay/lookup/stop and immutable note/audit evidence. Full645pass/2skip, final91focused/build, actual isolated QA staff/customer privacy loop and834/390 layouts, matched main desktop comparison. P2 advances40→60; scope1.0 frozen; weighted65.8/100. Wider role/state/accessibility matrices, protected platform access, provider delivery and printing hardware gates remain unfinished. Main3003/QA3007 run final source; one clearly synthetic resolved help fixture and immutable QA events retained, main data unchanged.",
+  "Workspace keyboard/integration milestone at3642f55: mobile destination/dismissal/roving-tab containment and resize focus corrected; mounted handoff descriptions unique; normal test command now includes TypeScript journals. Final656pass/2skip, disposablePGpass, build, focusedchecks and actual mobile/tablet/desktop comparison. Q3 advances0→40; Q2 remains in progress at0 pending full cross-screen state/role/accessibility matrix. Scope1.0 frozen; weighted67.0/100. Bill/reprint/access/signup recovery gaps, protected platform access, provider and printing hardware gates remain unfinished. Main3003/QA3007 preserved; no business mutation, deployment or money.",
   "",
   "## Measurement",
   "",

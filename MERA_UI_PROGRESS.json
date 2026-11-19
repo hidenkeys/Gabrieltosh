@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T16:37:52+01:00",
-  "revision": "af219bb",
+  "lastUpdated": "2026-11-19T16:49:57+01:00",
+  "revision": "3642f55",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -1156,20 +1156,27 @@
       "title": "Cross-screen states, accessibility and responsiveness",
       "weight": 3,
       "checkpoint": 0,
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
         "F5",
         "Q1"
       ],
       "acceptance": "All inventory states and desktop/tablet/narrow, no overflow, focus/contrast/labels/touch/long dialogs/loading/recovery; no certification without evidence.",
-      "evidence": [],
+      "evidence": [
+        "docs/mera/ui-audit/ACCESSIBILITY-CHECKPOINT.md"
+      ],
       "blockers": [],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 0,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-19T16:49:57+01:00",
+          "checkpoint": 0,
+          "note": "Fresh audit corrected mobile selection/dismissal/roving-tab containment and per-order hint associations, with actual screenshot/keyboard/resize evidence. Full cross-screen state/role/accessibility matrix remains incomplete; no percentage credit."
         }
       ]
     },
@@ -1178,20 +1185,27 @@
       "workstream": "Q",
       "title": "Functional integration and regression gate",
       "weight": 3,
-      "checkpoint": 0,
-      "status": "NOT_STARTED",
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
         "Q1"
       ],
       "acceptance": "Role/scope denial, order/stock/payment/table privacy and uncertainty regressions across corrected screens; provider/hardware separately gated.",
-      "evidence": [],
+      "evidence": [
+        "docs/mera/ui-audit/ACCESSIBILITY-CHECKPOINT.md"
+      ],
       "blockers": [],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 0,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-19T16:49:57+01:00",
+          "checkpoint": 40,
+          "note": "Current regression gate implemented/executed: npm test now includes TypeScript journal tests; final656pass/2skip, separate disposablePGpass, build and focused checks. Prior platform test diagnostic failure investigated/fixed without relaxing states. Broad operational acceptance and bill/reprint/access/signup recovery gaps remain."
         }
       ]
     },
