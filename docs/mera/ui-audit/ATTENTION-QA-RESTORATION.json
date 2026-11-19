@@ -1,0 +1,22 @@
+{
+  "manifest": "Temporary local8A12BC exact3-row manifest, retained outside repository",
+  "deletedRows": 3,
+  "remainingManifestRows": 0,
+  "originalCountsRestored": true,
+  "counts": [
+    {
+      "kind": "ledger",
+      "count": 1
+    },
+    {
+      "kind": "order",
+      "count": 3
+    },
+    {
+      "kind": "stock_movement",
+      "count": 1
+    }
+  ],
+  "verifiedAt": "2026-11-19T08:51:05.430Z",
+  "instance": "frontdeskQA"
+}

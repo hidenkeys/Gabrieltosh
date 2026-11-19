@@ -136,3 +136,109 @@ test("an empty catalog offers a clear starting point without pretending publicat
     cleanup();
   }
 });
+
+test("stock-only access never mounts catalog editing tools and permission reduction selects the allowed view", () => {
+  let forbiddenMounts = 0;
+  function Forbidden() {
+    forbiddenMounts++;
+    return <p>Forbidden tools</p>;
+  }
+  const props = {
+    products,
+    header: <h2>Catalog</h2>,
+    renderProducts: () => <Forbidden />,
+    editor: <Forbidden />,
+    categories: <Forbidden />,
+    stock: <p>Authorized stock tools</p>,
+    shared: <Forbidden />,
+  };
+  try {
+    const view = render(
+      <MenuManagement
+        {...props}
+        allowedViews={["stock"]}
+        initialView="stock"
+      />,
+    );
+    assert.equal(forbiddenMounts, 0);
+    assert(
+      screen.getByRole("tab", { name: "Stock & availability", selected: true }),
+    );
+    assert(!screen.queryByRole("tab", { name: "Products" }));
+    view.rerender(<MenuManagement {...props} allowedViews={[]} />);
+    assert(screen.getByText("No menu tools are available for your access."));
+    assert(!screen.queryByText("Authorized stock tools"));
+    assert.equal(forbiddenMounts, 0);
+  } finally {
+    cleanup();
+  }
+});
+test("an overview stock entry selects stock without discarding a mounted product draft", () => {
+  try {
+    render(
+      <MenuManagement
+        products={products}
+        initialView="stock"
+        header={<h2>Catalog</h2>}
+        renderProducts={() => null}
+        editor={
+          <input
+            aria-label="Persistent product draft"
+            defaultValue="Original"
+          />
+        }
+        categories={<p>Categories</p>}
+        stock={<p>Review stock here</p>}
+        shared={<p>Shared</p>}
+      />,
+    );
+    assert(
+      screen.getByRole("tab", { name: "Stock & availability", selected: true }),
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "Products" }));
+    fireEvent.change(screen.getByLabelText("Persistent product draft"), {
+      target: { value: "Unsaved" },
+    });
+    fireEvent.click(screen.getByRole("tab", { name: "Stock & availability" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Products" }));
+    assert.equal(
+      (screen.getByLabelText("Persistent product draft") as HTMLInputElement)
+        .value,
+      "Unsaved",
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("menu keyboard wrapping follows the visible tab set after permissions limit available views", () => {
+  try {
+    render(
+      <MenuManagement
+        products={[]}
+        allowedViews={["products", "categories", "stock"]}
+        header={<h2>Catalog</h2>}
+        renderProducts={() => null}
+        categories={<p>Categories</p>}
+        stock={<p>Stock</p>}
+        shared={<p>Forbidden shared</p>}
+      />,
+    );
+    fireEvent.keyDown(
+      screen.getByRole("tab", { name: "Products", exact: true }),
+      { key: "ArrowLeft" },
+    );
+    assert(screen.getByRole("tab", { name: "Products", selected: true }));
+    assert(
+      document.activeElement ===
+        screen.getByRole("tab", { name: "Stock & availability" }),
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "Stock & availability" }));
+    assert(
+      screen.getByRole("tab", { name: "Stock & availability", selected: true }),
+    );
+    assert(!screen.queryByText("Forbidden shared"));
+  } finally {
+    cleanup();
+  }
+});

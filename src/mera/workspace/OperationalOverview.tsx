@@ -31,6 +31,7 @@ export default function OperationalOverview({
   staff = [],
   onExportDate,
   onReviewOrders,
+  onReviewSection,
   stale = false,
 }: {
   data: any;
@@ -49,6 +50,7 @@ export default function OperationalOverview({
     reference?: string,
     queue?: "all" | "active" | "delayed",
   ) => void;
+  onReviewSection?: (section: string, recordId?: string) => void;
   stale?: boolean;
 }) {
   const dateReports = useRef<HTMLDetailsElement>(null);
@@ -182,6 +184,7 @@ export default function OperationalOverview({
         data={data}
         canNavigate={canNavigate}
         onNavigate={onNavigate}
+        onReviewSection={onReviewSection}
         onReviewOrders={
           onReviewOrders
             ? (reference) => onReviewOrders(reference, "delayed")

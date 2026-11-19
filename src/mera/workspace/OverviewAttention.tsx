@@ -1,4 +1,5 @@
 import { formatMoney } from "./api";
+import { reservationArrivalEligible } from "./reservationPresentation";
 const rows = (value: unknown): any[] =>
   Array.isArray(value)
     ? value.filter(
@@ -14,11 +15,13 @@ export default function OverviewAttention({
   canNavigate,
   onNavigate,
   onReviewOrders,
+  onReviewSection,
 }: {
   data: any;
   canNavigate: (id: string) => boolean;
   onNavigate: (id: string) => void;
   onReviewOrders?: (reference?: string) => void;
+  onReviewSection?: (section: string, recordId?: string) => void;
 }) {
   if (!["orders", "menu", "reservations", "shifts"].some(canNavigate))
     return null;
@@ -56,13 +59,7 @@ export default function OverviewAttention({
     value.every((row) => row && typeof row === "object" && !Array.isArray(row));
   const reservations = rows(data.reservations),
     arrivals = reservations
-      .filter(
-        (r) =>
-          ["confirmed", "arrived"].includes(r.status) &&
-          (!Number.isFinite(clock) ||
-            !Number.isFinite(instant(r.endsAt)) ||
-            instant(r.endsAt) >= clock),
-      )
+      .filter((row) => reservationArrivalEligible(row, data.serverTime))
       .sort((a, b) => {
         const left = instant(a.startsAt),
           right = instant(b.startsAt);
@@ -93,7 +90,11 @@ export default function OverviewAttention({
         className="secondary"
         type="button"
         onClick={() =>
-          section === "orders" ? reviewOrders() : onNavigate(section)
+          section === "orders"
+            ? reviewOrders()
+            : onReviewSection
+              ? onReviewSection(section)
+              : onNavigate(section)
         }
       >
         {label}
@@ -219,6 +220,16 @@ export default function OverviewAttention({
                           ? " · End time unavailable"
                           : ""}
                       </span>
+                      {onReviewSection && typeof r.id === "string" && (
+                        <button
+                          type="button"
+                          className="secondary"
+                          onClick={() => onReviewSection("reservations", r.id)}
+                        >
+                          Review reservation{" "}
+                          {text(r.displayName, "Reservation")}
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -263,6 +274,15 @@ export default function OverviewAttention({
                             : "Variance unavailable"
                           : at(s.openedAt || s.createdAt)}
                       </span>
+                      {onReviewSection && typeof s.id === "string" && (
+                        <button
+                          type="button"
+                          className="secondary"
+                          onClick={() => onReviewSection("shifts", s.id)}
+                        >
+                          Review this shift
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>

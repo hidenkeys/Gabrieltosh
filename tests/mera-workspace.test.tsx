@@ -3169,6 +3169,7 @@ test("new-service flags pause new visits and bookings while staff orders and exi
       false,
     );
     fireEvent.click(screen.getByRole("tab", { name: "Reservations" }));
+    fireEvent.click(screen.getByText("Request a reservation", { exact: true }));
     assert.equal(
       (
         screen.getByRole("button", {
@@ -4033,8 +4034,8 @@ test("F5 integrated no-access state never falls back to an owner or stock-edit s
           organizations: [
             {
               ...context.organizations[0],
-              role: "custom-stock-only",
-              permissions: ["stock.adjust"],
+              role: "custom-role-without-grants",
+              permissions: [],
             },
           ],
         })
@@ -4801,6 +4802,200 @@ test("overview drilldowns reset stale filters and select only current active or 
     );
     assert(
       screen.getByRole("article", { name: "Order QA-EXPIRED", exact: true }),
+    );
+  } finally {
+    cleanup();
+    globalThis.fetch = previousFetch;
+    window.sessionStorage.clear();
+  }
+});
+
+test("stock-only staff can open overview stock tools without mounting menu-editing reads or availability writes", async () => {
+  const previousFetch = globalThis.fetch;
+  const reads: string[] = [];
+  const scoped = {
+    ...context,
+    organizations: context.organizations.map((org) => ({
+      ...org,
+      permissions: ["reports.view", "stock.adjust"],
+    })),
+  };
+  globalThis.fetch = (async (input: any) => {
+    const path = String(input);
+    reads.push(path);
+    if (path.endsWith("/context")) return Response.json(scoped);
+    if (path.includes("/workspace"))
+      return Response.json({
+        ...snapshot("branch-1"),
+        orders: [],
+        serverTime: "2026-11-19T12:00:00Z",
+        products: [],
+        report: {
+          date: "2026-11-19",
+          orders: 0,
+          netSales: 0,
+          collections: 0,
+          outstanding: 0,
+          paymentMethods: {},
+        },
+        lowStockAlerts: [],
+        delayedOrders: [],
+      });
+    if (path.endsWith("/stock-movements"))
+      return Response.json({ movements: [] });
+    return Response.json({});
+  }) as typeof fetch;
+  try {
+    render(<Workspace user={user} />);
+    fireEvent.click(
+      await screen.findByRole("tab", { name: "Overview", exact: true }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Review stock", exact: true }),
+    );
+    assert(
+      document.activeElement ===
+        screen.getByRole("heading", {
+          name: "Menu & stock",
+          level: 1,
+          exact: true,
+        }),
+    );
+    assert(
+      screen.getByRole("tab", { name: "Stock & availability", selected: true }),
+    );
+    assert(!screen.queryByRole("tab", { name: "Products", exact: true }));
+    assert(!screen.queryByText("Change availability for several products"));
+    assert(!screen.queryByRole("button", { name: "New product" }));
+    assert(
+      !reads.some(
+        (path) =>
+          path.endsWith("/categories") || path.includes("/shared-menus"),
+      ),
+    );
+  } finally {
+    cleanup();
+    globalThis.fetch = previousFetch;
+    window.sessionStorage.clear();
+  }
+});
+
+test("overview arrival and shift links select the relevant records, and normal navigation clears presets", async () => {
+  const previousFetch = globalThis.fetch;
+  const scoped = {
+    ...context,
+    organizations: context.organizations.map((org) => ({
+      ...org,
+      permissions: ["reports.view", "reservations.manage", "shifts.manage"],
+    })),
+  };
+  const reservation = {
+    id: "private-booking",
+    displayName: "Local arrival",
+    partySize: 2,
+    status: "confirmed",
+    startsAt: "2026-11-19T12:30:00Z",
+    endsAt: "2026-11-19T13:30:00Z",
+    depositRequired: 0,
+    depositAmount: 0,
+  };
+  const shift = {
+    id: "private-shift",
+    status: "open",
+    openingFloat: 0,
+    openedAt: "2026-11-19T10:00:00Z",
+  };
+  globalThis.fetch = (async (input: any) =>
+    String(input).endsWith("/context")
+      ? Response.json(scoped)
+      : String(input).includes("/workspace")
+        ? Response.json({
+            ...snapshot("branch-1"),
+            orders: [],
+            serverTime: "2026-11-19T12:00:00Z",
+            branch: { timezone: "UTC" },
+            report: {
+              date: "2026-11-19",
+              orders: 0,
+              collections: 0,
+              netSales: 0,
+              outstanding: 0,
+              paymentMethods: {},
+            },
+            delayedOrders: [],
+            lowStockAlerts: [],
+            reservations: [
+              reservation,
+              {
+                ...reservation,
+                id: "requested-booking",
+                displayName: "Requested party",
+                status: "requested",
+              },
+            ],
+            shifts: [
+              shift,
+              {
+                ...shift,
+                id: "closed-shift",
+                status: "closed",
+                expectedCash: 0,
+                countedCash: 0,
+              },
+            ],
+          })
+        : Response.json({})) as typeof fetch;
+  try {
+    render(<Workspace user={user} />);
+    fireEvent.click(
+      await screen.findByRole("tab", { name: "Overview", exact: true }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Review reservation Local arrival",
+        exact: true,
+      }),
+    );
+    assert(
+      document.activeElement ===
+        screen.getByRole("heading", {
+          name: "Reservations",
+          level: 1,
+          exact: true,
+        }),
+    );
+    assert(screen.getByText("Showing the selected reservation."));
+    assert(screen.getByRole("heading", { name: "Local arrival", exact: true }));
+    assert(
+      !screen.queryByRole("heading", { name: "Requested party", exact: true }),
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "Overview", exact: true }));
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Review this shift",
+        exact: true,
+      }),
+    );
+    assert.equal(
+      (
+        screen.getByRole("combobox", {
+          name: "Shift queue",
+        }) as HTMLSelectElement
+      ).value,
+      "attention",
+    );
+    assert(screen.getByRole("heading", { name: "Open shift", exact: true }));
+    assert(
+      !screen.queryByRole("heading", { name: "Closed shift", exact: true }),
+    );
+    fireEvent.click(
+      screen.getByRole("tab", { name: "Reservations", exact: true }),
+    );
+    assert(
+      screen.getByRole("button", { name: "All", exact: true, pressed: true }),
+    );
+    assert(
+      screen.getByRole("heading", { name: "Requested party", exact: true }),
     );
   } finally {
     cleanup();

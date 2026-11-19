@@ -160,3 +160,6 @@ import "./mera/customer/checkout.css";
 import "./mera/workspace/reporting.css";
 
 import "./mera/workspace/people.css";
+
+import "./mera/workspace/reservation-desk.css";
+import "./mera/workspace/shift-workspace.css";

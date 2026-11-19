@@ -29,7 +29,7 @@ test("F5 never grants access from a role name, including custom and prototype-li
   assert.equal(pick("cashier", ["orders.view"]), "orders");
   assert.equal(pick("custom-role-id", ["orders.prepare"]), "preparation");
   assert.equal(pick("toString", []), null);
-  assert.equal(pick("stock_controller", ["stock.adjust"]), null);
+  assert.equal(pick("stock_controller", ["stock.adjust"]), "menu");
   assert.equal(
     chooseWorkspaceLanding({
       role: "cashier",

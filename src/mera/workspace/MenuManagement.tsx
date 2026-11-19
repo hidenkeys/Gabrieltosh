@@ -14,6 +14,8 @@ type Props = {
   categories: React.ReactNode;
   stock: React.ReactNode;
   shared: React.ReactNode;
+  initialView?: "products" | "stock";
+  allowedViews?: readonly ("products" | "categories" | "stock" | "shared")[];
 };
 const views = [
   ["products", "Products"],
@@ -29,13 +31,21 @@ export default function MenuManagement({
   categories,
   stock,
   shared,
+  initialView = "products",
+  allowedViews,
 }: Props) {
-  const [view, setView] = useState<string>("products");
+  const [view, setView] = useState<string>(initialView);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [limit, setLimit] = useState(12);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const id = useId();
+  const visibleViews = views.filter(
+    ([key]) => !allowedViews || allowedViews.includes(key),
+  );
+  const isAllowed = (key: string) =>
+    visibleViews.some(([value]) => value === key);
+  const activeView = isAllowed(view) ? view : visibleViews[0]?.[0];
   const categoryNames = [
     ...new Set(
       products.map((p) => p.category).filter((name): name is string => !!name),
@@ -51,12 +61,15 @@ export default function MenuManagement({
   const shown = filtered.slice(0, limit);
   return (
     <div className="mw-menu-management">
+      {!visibleViews.length && (
+        <p role="status">No menu tools are available for your access.</p>
+      )}
       <div
         role="tablist"
         aria-label="Menu management"
         className="mw-menu-views"
       >
-        {views.map(([key, label], index) => (
+        {visibleViews.map(([key, label], index) => (
           <button
             key={key}
             ref={(node) => {
@@ -66,16 +79,17 @@ export default function MenuManagement({
             role="tab"
             id={`${id}-${key}-tab`}
             aria-controls={`${id}-${key}-panel`}
-            aria-selected={view === key}
-            tabIndex={view === key ? 0 : -1}
+            aria-selected={activeView === key}
+            tabIndex={activeView === key ? 0 : -1}
             onClick={() => setView(key)}
             onKeyDown={(event) => {
               let next: number;
-              if (event.key === "ArrowRight") next = (index + 1) % views.length;
+              if (event.key === "ArrowRight")
+                next = (index + 1) % visibleViews.length;
               else if (event.key === "ArrowLeft")
-                next = (index - 1 + views.length) % views.length;
+                next = (index - 1 + visibleViews.length) % visibleViews.length;
               else if (event.key === "Home") next = 0;
-              else if (event.key === "End") next = views.length - 1;
+              else if (event.key === "End") next = visibleViews.length - 1;
               else return;
               event.preventDefault();
               tabRefs.current[next]?.focus();
@@ -85,109 +99,114 @@ export default function MenuManagement({
           </button>
         ))}
       </div>
-      <div
-        role="tabpanel"
-        id={`${id}-products-panel`}
-        aria-labelledby={`${id}-products-tab`}
-        hidden={view !== "products"}
-      >
-        <section className="mw-card mw-menu-products">
-          {header}
-          <div className="mw-menu-filters">
-            <label>
-              Find a product
-              <input
-                type="search"
-                value={query}
-                placeholder="Name, code or category"
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setLimit(12);
-                }}
-              />
-            </label>
-            <label>
-              Product category
-              <select
-                value={category}
-                onChange={(event) => {
-                  setCategory(event.target.value);
-                  setLimit(12);
-                }}
-              >
-                <option value="">All categories</option>
-                {categoryNames.map((name) => (
-                  <option key={name}>{name}</option>
-                ))}
-              </select>
-            </label>
-            <span role="status">
-              {filtered.length} {filtered.length === 1 ? "product" : "products"}
-            </span>
-          </div>
-          {filtered.length ? (
-            renderProducts(shown)
-          ) : (
-            <div className="mw-empty">
-              <h3>
-                {products.length
-                  ? "No products match"
-                  : "Your menu starts here"}
-              </h3>
-              <p>
-                {products.length
-                  ? "Try another name or category."
-                  : "Add your first product, then review it before publishing."}
-              </p>
-              {products.length > 0 && (
-                <button
-                  className="secondary"
-                  type="button"
-                  onClick={() => {
-                    setQuery("");
-                    setCategory("");
+      {isAllowed("products") && (
+        <div
+          role="tabpanel"
+          id={`${id}-products-panel`}
+          aria-labelledby={`${id}-products-tab`}
+          hidden={activeView !== "products"}
+        >
+          <section className="mw-card mw-menu-products">
+            {header}
+            <div className="mw-menu-filters">
+              <label>
+                Find a product
+                <input
+                  type="search"
+                  value={query}
+                  placeholder="Name, code or category"
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setLimit(12);
+                  }}
+                />
+              </label>
+              <label>
+                Product category
+                <select
+                  value={category}
+                  onChange={(event) => {
+                    setCategory(event.target.value);
                     setLimit(12);
                   }}
                 >
-                  Clear product filters
-                </button>
-              )}
-            </div>
-          )}
-          {!!filtered.length && (
-            <div className="mw-menu-pagination">
-              <span>
-                Showing {shown.length} of {filtered.length} products
+                  <option value="">All categories</option>
+                  {categoryNames.map((name) => (
+                    <option key={name}>{name}</option>
+                  ))}
+                </select>
+              </label>
+              <span role="status">
+                {filtered.length}{" "}
+                {filtered.length === 1 ? "product" : "products"}
               </span>
-              {shown.length < filtered.length && (
-                <button
-                  className="secondary"
-                  type="button"
-                  onClick={() => setLimit((value) => value + 12)}
-                >
-                  Show more products
-                </button>
-              )}
             </div>
-          )}
-        </section>
-        {editor}
-      </div>
+            {filtered.length ? (
+              renderProducts(shown)
+            ) : (
+              <div className="mw-empty">
+                <h3>
+                  {products.length
+                    ? "No products match"
+                    : "Your menu starts here"}
+                </h3>
+                <p>
+                  {products.length
+                    ? "Try another name or category."
+                    : "Add your first product, then review it before publishing."}
+                </p>
+                {products.length > 0 && (
+                  <button
+                    className="secondary"
+                    type="button"
+                    onClick={() => {
+                      setQuery("");
+                      setCategory("");
+                      setLimit(12);
+                    }}
+                  >
+                    Clear product filters
+                  </button>
+                )}
+              </div>
+            )}
+            {!!filtered.length && (
+              <div className="mw-menu-pagination">
+                <span>
+                  Showing {shown.length} of {filtered.length} products
+                </span>
+                {shown.length < filtered.length && (
+                  <button
+                    className="secondary"
+                    type="button"
+                    onClick={() => setLimit((value) => value + 12)}
+                  >
+                    Show more products
+                  </button>
+                )}
+              </div>
+            )}
+          </section>
+          {editor}
+        </div>
+      )}
       {[
         ["categories", categories],
         ["stock", stock],
         ["shared", shared],
-      ].map(([key, content]) => (
-        <div
-          key={key as string}
-          role="tabpanel"
-          id={`${id}-${key}-panel`}
-          aria-labelledby={`${id}-${key}-tab`}
-          hidden={view !== key}
-        >
-          {content}
-        </div>
-      ))}
+      ]
+        .filter(([key]) => isAllowed(String(key)))
+        .map(([key, content]) => (
+          <div
+            key={key as string}
+            role="tabpanel"
+            id={`${id}-${key}-panel`}
+            aria-labelledby={`${id}-${key}-tab`}
+            hidden={activeView !== key}
+          >
+            {content}
+          </div>
+        ))}
     </div>
   );
 }

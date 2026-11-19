@@ -34,6 +34,8 @@ import LiveOrderCard, {
 import { Disclosure } from "../ui/OperationalPrimitives";
 import Bills from "./Bills";
 import ReservationSettlement from "./ReservationSettlement";
+import ReservationDesk from "./ReservationDesk";
+import ShiftWorkspace from "./ShiftWorkspace";
 import TableEditor from "./TableEditor";
 import PrintStudio from "./PrintStudio";
 import DepositPolicy from "./DepositPolicy";
@@ -158,6 +160,16 @@ export default function OrganizationWorkspace({
     date: string;
   } | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
+  const taskHeading = useRef<HTMLHeadingElement>(null);
+  const pendingDestinationFocus = useRef<{
+    scopeKey: string;
+    section: string;
+  } | null>(null);
+  const [attentionDestination, setAttentionDestination] = useState<{
+    scopeKey: string;
+    section: string;
+    recordId?: string;
+  } | null>(null);
   const [orderFilters, setOrderFilters] = useState({
     query: "",
     status: "",
@@ -218,24 +230,26 @@ export default function OrganizationWorkspace({
   const lastDenialCheck = useRef(0);
   const mutationGeneration = useRef(0);
   const branchBase = `/organizations/${encodeURIComponent(organizationId)}/branches/${encodeURIComponent(branchId)}`;
-  const visibleSections = sections.filter(([, , permission]) =>
-    permission === "support.manage"
-      ? allowed("organization.manage") &&
-        organization?.organizationWide === true
-      : permission === "help.manage"
-        ? permissions.some((permission: string) =>
-            [
-              "orders.fulfill",
-              "tables.manage",
-              "payments.record",
-              "refunds.approve",
-              "reservations.manage",
-              "organization.manage",
-            ].includes(permission),
-          )
-        : permission === "qr.manage"
-          ? allowed("menu.publish") || allowed("tables.manage")
-          : allowed(permission),
+  const visibleSections = sections.filter(([section, , permission]) =>
+    section === "menu"
+      ? allowed("menu.edit") || allowed("stock.adjust")
+      : permission === "support.manage"
+        ? allowed("organization.manage") &&
+          organization?.organizationWide === true
+        : permission === "help.manage"
+          ? permissions.some((permission: string) =>
+              [
+                "orders.fulfill",
+                "tables.manage",
+                "payments.record",
+                "refunds.approve",
+                "reservations.manage",
+                "organization.manage",
+              ].includes(permission),
+            )
+          : permission === "qr.manage"
+            ? allowed("menu.publish") || allowed("tables.manage")
+            : allowed(permission),
   );
   const navigationScope = JSON.stringify([
     context?.user?.id || principal,
@@ -252,9 +266,42 @@ export default function OrganizationWorkspace({
       selection: sectionSelection,
     }) || "";
   const selectSection = (section: string) => {
-    if (visibleSections.some(([id]) => id === section))
+    if (visibleSections.some(([id]) => id === section)) {
+      setAttentionDestination(null);
       setSectionSelection({ section, scopeKey: navigationScope });
+    }
   };
+  const reviewOverviewSection = (section: string, recordId?: string) => {
+    if (!visibleSections.some(([id]) => id === section)) return;
+    pendingDestinationFocus.current = { scopeKey: navigationScope, section };
+    setAttentionDestination({ scopeKey: navigationScope, section, recordId });
+    setSectionSelection({ section, scopeKey: navigationScope });
+  };
+  const currentAttention =
+    attentionDestination?.scopeKey === navigationScope
+      ? attentionDestination
+      : null;
+  useEffect(() => {
+    const request = pendingDestinationFocus.current;
+    if (!request) return;
+    if (
+      request.scopeKey !== navigationScope ||
+      request.section !== activeSection
+    ) {
+      pendingDestinationFocus.current = null;
+      return;
+    }
+    if (taskHeading.current) {
+      pendingDestinationFocus.current = null;
+      taskHeading.current.focus({ preventScroll: true });
+      const workspace =
+        taskHeading.current.closest<HTMLElement>(".mera-workspace");
+      (workspace || taskHeading.current).scrollIntoView?.({
+        block: "start",
+        behavior: "instant",
+      });
+    }
+  });
   const pagePresentation = getSectionPresentation(activeSection);
   useEffect(() => {
     if (!productEdit) {
@@ -845,6 +892,10 @@ export default function OrganizationWorkspace({
     queue: "all" | "active" | "delayed" = "delayed",
   ) => {
     if (!allowed("orders.view")) return;
+    pendingDestinationFocus.current = {
+      scopeKey: navigationScope,
+      section: "orders",
+    };
     setOrderFilters({
       query: reference || "",
       status: "",
@@ -1280,7 +1331,7 @@ export default function OrganizationWorkspace({
             {organization?.name || "Organization workspace"} /{" "}
             {branch?.name || "Choose a branch"}
           </div>
-          <h1>
+          <h1 ref={taskHeading} tabIndex={-1}>
             {activeSection === "overview"
               ? "Branch overview."
               : activeSection === "counter"
@@ -1951,6 +2002,7 @@ export default function OrganizationWorkspace({
                   orders={Array.isArray(data.orders) ? liveOrders : undefined}
                   stale={!!readError}
                   onReviewOrders={reviewOverviewOrders}
+                  onReviewSection={reviewOverviewSection}
                   base={branchBase}
                   disabled={busy || offline}
                   canNavigate={(id) =>
@@ -1981,6 +2033,13 @@ export default function OrganizationWorkspace({
                 <MenuManagement
                   key={branchBase}
                   products={products}
+                  initialView={
+                    !allowed("menu.edit") ||
+                    currentAttention?.section === "menu"
+                      ? "stock"
+                      : "products"
+                  }
+                  allowedViews={allowed("menu.edit") ? undefined : ["stock"]}
                   header={
                     <div className="mw-heading">
                       <div>
@@ -2560,6 +2619,7 @@ export default function OrganizationWorkspace({
                         base={branchBase}
                         products={products}
                         alerts={list(data.lowStockAlerts)}
+                        canEditAvailability={allowed("menu.edit")}
                         disabled={busy || offline}
                         save={mutate}
                       />
@@ -3418,171 +3478,178 @@ export default function OrganizationWorkspace({
               {activeSection === "reservations" && (
                 <section className="mw-card">
                   <h2>Reservations & front desk</h2>
-                  {list(data.reservations).map((reservation: any) => (
-                    <div className="mw-row" key={reservation.id}>
-                      <div>
-                        <b>
-                          {reservation.displayName} · {reservation.partySize}{" "}
-                          guests
-                        </b>
-                        <small>
-                          {dateLabel(reservation.startsAt)} —{" "}
-                          {dateLabel(reservation.endsAt)}
-                        </small>
-                        <span className="mw-pill">
-                          {sourceLabel(reservation.status)}
-                        </span>
-                      </div>
-                      {allowed("refunds.approve") && (
-                        <DepositOutcomes
-                          key={
-                            branchBase +
-                            reservation.id +
-                            financialRevision +
-                            "deposit-outcome"
-                          }
-                          base={branchBase}
+                  <ReservationDesk
+                    key={branchBase}
+                    reservations={data.reservations}
+                    serverTime={data.serverTime}
+                    timeZone={branch?.timezone}
+                    initialQueue={
+                      currentAttention?.section === "reservations"
+                        ? "arrivals"
+                        : "all"
+                    }
+                    initialReservationId={
+                      currentAttention?.section === "reservations"
+                        ? currentAttention.recordId
+                        : undefined
+                    }
+                    renderRecord={(reservation) => (
+                      <>
+                        {allowed("refunds.approve") && (
+                          <DepositOutcomes
+                            key={
+                              branchBase +
+                              reservation.id +
+                              financialRevision +
+                              "deposit-outcome"
+                            }
+                            base={branchBase}
+                            reservation={reservation}
+                            deposits={list(data.deposits).filter(
+                              (deposit: any) =>
+                                deposit.reservationId === reservation.id,
+                            )}
+                            disabled={busy || offline}
+                            canManage={allowed("refunds.approve")}
+                            save={mutate}
+                          />
+                        )}
+                        <ReservationSettlement
+                          key={branchBase + reservation.id + financialRevision}
                           reservation={reservation}
-                          deposits={list(data.deposits).filter(
-                            (deposit: any) =>
-                              deposit.reservationId === reservation.id,
-                          )}
+                          onVisitOpening={() => {
+                            if (
+                              activeScope.current === branchBase &&
+                              scopeEpoch.current.generation === scopeVersion
+                            )
+                              setPrivateAccess(null);
+                          }}
+                          onVisitOpened={(visit) => {
+                            if (
+                              activeScope.current === branchBase &&
+                              scopeEpoch.current.generation === scopeVersion &&
+                              authorizationEpoch.current ===
+                                renderedAuthorizationVersion
+                            )
+                              captureVisitAccess(visit);
+                          }}
+                          tables={list(data.tables)}
+                          base={branchBase}
                           disabled={busy || offline}
-                          canManage={allowed("refunds.approve")}
+                          canPay={allowed("payments.record")}
                           save={mutate}
                         />
+                        <div className="mw-actions">
+                          {reservation.status === "requested" &&
+                            button("Confirm", () =>
+                              act(
+                                branchBase +
+                                  `/reservations/${reservation.id}/status`,
+                                { status: "confirmed" },
+                                "Reservation confirmed.",
+                              ),
+                            )}
+                          {reservation.status === "confirmed" &&
+                            button("Mark arrived", () =>
+                              act(
+                                branchBase +
+                                  `/reservations/${reservation.id}/status`,
+                                { status: "arrived" },
+                                "Arrival recorded.",
+                              ),
+                            )}
+                          {["requested", "confirmed"].includes(
+                            reservation.status,
+                          ) &&
+                            button("Cancel", () =>
+                              act(
+                                branchBase +
+                                  `/reservations/${reservation.id}/status`,
+                                { status: "cancelled" },
+                                "Reservation cancelled.",
+                              ),
+                            )}
+                        </div>
+                      </>
+                    )}
+                  />
+                  <Disclosure summary="Request a reservation">
+                    <form
+                      className="mw-form"
+                      onSubmit={submit(() => {
+                        const startsAt = new Date(
+                          tabForm.startsAt,
+                        ).toISOString();
+                        const endsAt = new Date(tabForm.endsAt).toISOString();
+                        return mutate(
+                          branchBase + "/reservations",
+                          "POST",
+                          {
+                            requestKey: uuid(),
+                            displayName: tabForm.name,
+                            ...minimumSpendAck,
+                            contact: tabForm.contact,
+                            partySize: Number(tabForm.partySize),
+                            startsAt,
+                            endsAt,
+                            ...(tabForm.tableId
+                              ? { tableId: tabForm.tableId }
+                              : {}),
+                            notes: tabForm.notes || "",
+                          },
+                          "Reservation requested.",
+                        );
+                      })}
+                    >
+                      {field("Guest name", "name")}
+                      {field("Contact", "contact")}
+                      {field("Party size", "partySize", "number")}
+                      {field(
+                        "Starts at (this device’s local time)",
+                        "startsAt",
+                        "datetime-local",
                       )}
-                      <ReservationSettlement
-                        key={branchBase + reservation.id + financialRevision}
-                        reservation={reservation}
-                        onVisitOpening={() => {
-                          if (
-                            activeScope.current === branchBase &&
-                            scopeEpoch.current.generation === scopeVersion
-                          )
-                            setPrivateAccess(null);
-                        }}
-                        onVisitOpened={(visit) => {
-                          if (
-                            activeScope.current === branchBase &&
-                            scopeEpoch.current.generation === scopeVersion &&
-                            authorizationEpoch.current ===
-                              renderedAuthorizationVersion
-                          )
-                            captureVisitAccess(visit);
-                        }}
-                        tables={list(data.tables)}
-                        base={branchBase}
-                        disabled={busy || offline}
-                        canPay={allowed("payments.record")}
-                        save={mutate}
-                      />
-                      <div className="mw-actions">
-                        {reservation.status === "requested" &&
-                          button("Confirm", () =>
-                            act(
-                              branchBase +
-                                `/reservations/${reservation.id}/status`,
-                              { status: "confirmed" },
-                              "Reservation confirmed.",
-                            ),
-                          )}
-                        {reservation.status === "confirmed" &&
-                          button("Mark arrived", () =>
-                            act(
-                              branchBase +
-                                `/reservations/${reservation.id}/status`,
-                              { status: "arrived" },
-                              "Arrival recorded.",
-                            ),
-                          )}
-                        {["requested", "confirmed"].includes(
-                          reservation.status,
-                        ) &&
-                          button("Cancel", () =>
-                            act(
-                              branchBase +
-                                `/reservations/${reservation.id}/status`,
-                              { status: "cancelled" },
-                              "Reservation cancelled.",
-                            ),
-                          )}
+                      {field(
+                        "Ends at (this device’s local time)",
+                        "endsAt",
+                        "datetime-local",
+                      )}
+                      <label>
+                        Preferred table
+                        <select
+                          value={tabForm.tableId || ""}
+                          onChange={(event) =>
+                            updateForm("tableId", event.target.value)
+                          }
+                        >
+                          <option value="">No preference</option>
+                          {list(data.tables).map((table: any) => (
+                            <option key={table.id} value={table.id}>
+                              {table.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {minimumSpendField}
+                      <div className="mw-wide">
+                        <button
+                          className="primary"
+                          disabled={
+                            busy ||
+                            offline ||
+                            features?.flags?.new_reservations === false
+                          }
+                        >
+                          Request reservation
+                        </button>
                       </div>
+                    </form>
+                    <div className="mw-note">
+                      Availability is checked before a reservation is confirmed.
+                      Deposits and cancellation/refund policies must be approved
+                      before live collection.
                     </div>
-                  ))}
-                  <form
-                    className="mw-form"
-                    onSubmit={submit(() => {
-                      const startsAt = new Date(tabForm.startsAt).toISOString();
-                      const endsAt = new Date(tabForm.endsAt).toISOString();
-                      return mutate(
-                        branchBase + "/reservations",
-                        "POST",
-                        {
-                          requestKey: uuid(),
-                          displayName: tabForm.name,
-                          ...minimumSpendAck,
-                          contact: tabForm.contact,
-                          partySize: Number(tabForm.partySize),
-                          startsAt,
-                          endsAt,
-                          ...(tabForm.tableId
-                            ? { tableId: tabForm.tableId }
-                            : {}),
-                          notes: tabForm.notes || "",
-                        },
-                        "Reservation requested.",
-                      );
-                    })}
-                  >
-                    {field("Guest name", "name")}
-                    {field("Contact", "contact")}
-                    {field("Party size", "partySize", "number")}
-                    {field(
-                      "Starts at (this device’s local time)",
-                      "startsAt",
-                      "datetime-local",
-                    )}
-                    {field(
-                      "Ends at (this device’s local time)",
-                      "endsAt",
-                      "datetime-local",
-                    )}
-                    <label>
-                      Preferred table
-                      <select
-                        value={tabForm.tableId || ""}
-                        onChange={(event) =>
-                          updateForm("tableId", event.target.value)
-                        }
-                      >
-                        <option value="">No preference</option>
-                        {list(data.tables).map((table: any) => (
-                          <option key={table.id} value={table.id}>
-                            {table.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    {minimumSpendField}
-                    <div className="mw-wide">
-                      <button
-                        className="primary"
-                        disabled={
-                          busy ||
-                          offline ||
-                          features?.flags?.new_reservations === false
-                        }
-                      >
-                        Request reservation
-                      </button>
-                    </div>
-                  </form>
-                  <div className="mw-note">
-                    Availability is checked before a reservation is confirmed.
-                    Deposits and cancellation/refund policies must be approved
-                    before live collection.
-                  </div>
+                  </Disclosure>
                 </section>
               )}
               {activeSection === "payments" && (
@@ -3769,87 +3836,91 @@ export default function OrganizationWorkspace({
                     Review shift cash, handovers and counted balances for this
                     branch.
                   </p>
-                  {Array.isArray(data.shifts) && !data.shifts.length && (
-                    <p className="mw-note">
-                      No shifts recorded for this branch.
-                    </p>
-                  )}
-                  {!Array.isArray(data.shifts) && (
-                    <p role="alert">
-                      Shift records are unavailable. Refresh the workspace
-                      before continuing.
-                    </p>
-                  )}
-                  {list(data.shifts).map((shift: any) => (
-                    <ShiftRecord
-                      key={shift.id}
-                      shift={shift}
-                      timeZone={branch?.timezone}
-                    >
-                      <ShiftActions
-                        base={branchBase}
+                  <ShiftWorkspace
+                    key={branchBase}
+                    shifts={data.shifts}
+                    initialQueue={
+                      currentAttention?.section === "shifts"
+                        ? "attention"
+                        : "all"
+                    }
+                    initialShiftId={
+                      currentAttention?.section === "shifts"
+                        ? currentAttention.recordId
+                        : undefined
+                    }
+                    renderRecord={(shift) => (
+                      <ShiftRecord
+                        key={shift.id}
                         shift={shift}
-                        canApprove={allowed("organization.manage")}
-                        disabled={busy || offline}
-                        save={mutate}
-                      />
-                      {shift.status === "open" && (
-                        <CashMovement
-                          key={branchBase + shift.id + financialRevision}
+                        timeZone={branch?.timezone}
+                      >
+                        <ShiftActions
                           base={branchBase}
-                          shiftId={shift.id}
+                          shift={shift}
+                          canApprove={allowed("organization.manage")}
                           disabled={busy || offline}
                           save={mutate}
                         />
-                      )}
-                      {shift.status === "open" && (
-                        <Disclosure
-                          summary="Close and reconcile this shift"
-                          className="mw-finance-tools"
-                        >
-                          <form
-                            className="mw-form"
-                            onSubmit={submit(() =>
-                              mutate(
-                                branchBase + `/shifts/${shift.id}/close`,
-                                "POST",
-                                {
-                                  countedCash: Math.round(
-                                    Number(tabForm[`counted_${shift.id}`]) *
-                                      100,
-                                  ),
-                                  reason: tabForm[`variance_${shift.id}`] || "",
-                                },
-                                "Shift closed.",
-                              ),
-                            )}
+                        {shift.status === "open" && (
+                          <CashMovement
+                            key={branchBase + shift.id + financialRevision}
+                            base={branchBase}
+                            shiftId={shift.id}
+                            disabled={busy || offline}
+                            save={mutate}
+                          />
+                        )}
+                        {shift.status === "open" && (
+                          <Disclosure
+                            summary="Close and reconcile this shift"
+                            className="mw-finance-tools"
                           >
-                            {field(
-                              "Counted cash (naira)",
-                              `counted_${shift.id}`,
-                              "number",
-                              true,
-                              0.01,
-                            )}
-                            {field(
-                              "Variance explanation",
-                              `variance_${shift.id}`,
-                              "text",
-                              false,
-                            )}
-                            <div className="mw-wide">
-                              <button
-                                className="secondary"
-                                disabled={busy || offline}
-                              >
-                                Close & reconcile
-                              </button>
-                            </div>
-                          </form>
-                        </Disclosure>
-                      )}
-                    </ShiftRecord>
-                  ))}
+                            <form
+                              className="mw-form"
+                              onSubmit={submit(() =>
+                                mutate(
+                                  branchBase + `/shifts/${shift.id}/close`,
+                                  "POST",
+                                  {
+                                    countedCash: Math.round(
+                                      Number(tabForm[`counted_${shift.id}`]) *
+                                        100,
+                                    ),
+                                    reason:
+                                      tabForm[`variance_${shift.id}`] || "",
+                                  },
+                                  "Shift closed.",
+                                ),
+                              )}
+                            >
+                              {field(
+                                "Counted cash (naira)",
+                                `counted_${shift.id}`,
+                                "number",
+                                true,
+                                0.01,
+                              )}
+                              {field(
+                                "Variance explanation",
+                                `variance_${shift.id}`,
+                                "text",
+                                false,
+                              )}
+                              <div className="mw-wide">
+                                <button
+                                  className="secondary"
+                                  disabled={busy || offline}
+                                >
+                                  Close & reconcile
+                                </button>
+                              </div>
+                            </form>
+                          </Disclosure>
+                        )}
+                      </ShiftRecord>
+                    )}
+                  />
                   {Array.isArray(data.shifts) &&
                     !data.shifts.some(
                       (shift: any) => shift.status === "open",

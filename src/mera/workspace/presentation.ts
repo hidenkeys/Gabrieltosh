@@ -97,7 +97,7 @@ export function getSectionPresentation(section: string) {
 const sectionPermissions: Record<WorkspaceSection, readonly string[]> = {
   overview: ["reports.view"],
   onboarding: ["organization.manage"],
-  menu: ["menu.edit"],
+  menu: ["menu.edit", "stock.adjust"],
   orders: ["orders.view"],
   counter: ["orders.create"],
   preparation: ["orders.prepare"],
