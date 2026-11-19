@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import TimeWindows from "./TimeWindows";
 import MediaUpload from "../MediaUpload";
 import { brandingTokens } from "../branding";
@@ -47,7 +47,10 @@ export default function BranchSettings({
   const [section, setSection] = useState("operations");
   const [error, setError] = useState("");
   const [saved, setSaved] = useState("");
+  const inFlight = useRef(false);
   const saveSettings = async (path: string, body: any, message: string) => {
+    if (disabled || inFlight.current) return;
+    inFlight.current = true;
     setError("");
     setSaved("");
     try {
@@ -55,6 +58,8 @@ export default function BranchSettings({
       setSaved(message);
     } catch (failure) {
       setError((failure as Error).message);
+    } finally {
+      inFlight.current = false;
     }
   };
   return (

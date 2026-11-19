@@ -133,7 +133,13 @@ function ScopedTickets({
       if (!active.current) return;
       pendingRef.current = null;
       setPending(null);
-      setQuantities({});
+      setQuantities((old) =>
+        Object.fromEntries(
+          Object.entries(old).filter(
+            ([key]) => !key.startsWith(intent.ticketId + ":"),
+          ),
+        ),
+      );
     } catch (failure: any) {
       if (!active.current) return;
       if (pendingRef.current || !failure.status || failure.status >= 500) {
@@ -246,7 +252,13 @@ function ScopedTickets({
                   if (flight.current) return;
                   pendingRef.current = null;
                   setPending(null);
-                  setQuantities({});
+                  setQuantities((old) =>
+                    Object.fromEntries(
+                      Object.entries(old).filter(
+                        ([key]) => !key.startsWith(newer.id + ":"),
+                      ),
+                    ),
+                  );
                   setError("");
                 }}
               >

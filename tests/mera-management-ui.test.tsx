@@ -14,7 +14,7 @@ Object.defineProperty(globalThis, "navigator", {
   configurable: true,
 });
 const React = await import("react");
-const { render, screen, fireEvent, waitFor, cleanup } =
+const { render, screen, fireEvent, waitFor, cleanup, act } =
   await import("@testing-library/react");
 const { default: BranchSettings } =
   await import("../src/mera/workspace/BranchSettings");
@@ -187,6 +187,46 @@ test("brand color text entry preserves valid colors and exposes incomplete hex i
         }) as HTMLInputElement
       ).value,
       "#49324f",
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("O3 settings locks duplicate and cross-form submits synchronously without retrying", async () => {
+  let resolve: any;
+  const writes: any[] = [];
+  try {
+    render(
+      <BranchSettings
+        branch={{ settings: {} }}
+        organization={{ id: "org-1" }}
+        base={base}
+        disabled={false}
+        save={async (...args) => {
+          writes.push(args);
+          return new Promise((r) => {
+            resolve = r;
+          });
+        }}
+      />,
+    );
+    const operations = screen
+      .getByRole("button", { name: "Save branch policies" })
+      .closest("form")!;
+    fireEvent.submit(operations);
+    fireEvent.submit(operations);
+    fireEvent.click(screen.getByRole("button", { name: "Brand appearance" }));
+    fireEvent.submit(
+      screen.getByRole("button", { name: "Save branding" }).closest("form")!,
+    );
+    assert.equal(writes.length, 1);
+    assert.equal(writes[0][0], base + "/settings");
+    await act(async () => resolve({}));
+    assert.equal(
+      writes.length,
+      1,
+      "settling a request must not submit the other form",
     );
   } finally {
     cleanup();

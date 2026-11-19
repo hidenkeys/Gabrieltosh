@@ -178,3 +178,55 @@ test("old scope failure cannot restore a private error in a new preparation stat
   assert.ok(!screen.queryByText("PRIVATE OLD FAILURE"));
   assert.ok(screen.getByText("No preparation tickets for this branch."));
 });
+test("saving one ticket preserves another ticket’s unsaved preparation count", async () => {
+  const second = { ...ticket, id: "t2", orderId: "o2" },
+    secondOrder = { ...order, id: "o2", reference: "A101" };
+  render(
+    <Tickets
+      {...props}
+      tickets={[ticket, second]}
+      orders={[order, secondOrder]}
+    />,
+  );
+  const inputs = screen.getAllByLabelText(
+    "Prepared quantity for Tea on kitchen",
+  );
+  fireEvent.change(inputs[0], { target: { value: "2" } });
+  fireEvent.change(inputs[1], { target: { value: "3" } });
+  fireEvent.submit(inputs[0].closest("form")!);
+  await waitFor(() =>
+    assert.equal((inputs[0] as HTMLInputElement).disabled, false),
+  );
+  assert.equal((inputs[1] as HTMLInputElement).value, "3");
+  assert.ok(inputs[1].isConnected);
+});
+test("reviewing a newer ticket preserves unsaved counts belonging to other tickets", async () => {
+  const second = { ...ticket, id: "t2", orderId: "o2" },
+    secondOrder = { ...order, id: "o2", reference: "A101" },
+    p = {
+      ...props,
+      save: async () => {
+        throw Error("Unknown");
+      },
+    };
+  const view = render(
+    <Tickets {...p} tickets={[ticket, second]} orders={[order, secondOrder]} />,
+  );
+  const inputs = screen.getAllByLabelText(
+    "Prepared quantity for Tea on kitchen",
+  );
+  fireEvent.change(inputs[0], { target: { value: "2" } });
+  fireEvent.change(inputs[1], { target: { value: "3" } });
+  fireEvent.submit(inputs[0].closest("form")!);
+  await screen.findByText("Preparation update unconfirmed");
+  view.rerender(
+    <Tickets
+      {...p}
+      tickets={[{ ...ticket, version: 9 }, second]}
+      orders={[order, secondOrder]}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Use latest ticket" }));
+  assert.equal((inputs[1] as HTMLInputElement).value, "3");
+  assert.ok(inputs[1].isConnected);
+});
