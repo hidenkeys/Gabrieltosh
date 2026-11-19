@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T15:38:02+01:00",
-  "revision": "5b5816f",
+  "lastUpdated": "2026-11-19T16:23:48+01:00",
+  "revision": "8149ed2",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -606,9 +606,12 @@
       ],
       "acceptance": "Scan reference/time/customer/table/source/status/payment/amount/handler and next action; timeline/details; assignment/privacy preserved.",
       "evidence": [
-        "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md"
+        "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
+        "docs/mera/ui-audit/ORDER-MANAGEMENT-CHECKPOINT.md"
       ],
-      "blockers": [],
+      "blockers": [
+        "Help request uncertain-write recovery and draft retention require implementation; not blocked on user input."
+      ],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
@@ -619,6 +622,11 @@
           "at": "2026-11-19T01:03:29+01:00",
           "checkpoint": 40,
           "note": "Records/printing/help integration: actual browser comparisons and help reply/privacy loop, regression suite391passed/2skipped. Partial acceptance only; remaining task scope documented."
+        },
+        {
+          "at": "2026-11-19T16:23:48+01:00",
+          "checkpoint": 40,
+          "note": "Order history/timezone/shared timeline and waiter preparation facts integrated at8149ed2; full637pass/2skip, focused23pass, build and actual Chrome comparison. No additional checkpoint: help uncertain-write/draft recovery and broader state acceptance remain unfinished."
         }
       ]
     },

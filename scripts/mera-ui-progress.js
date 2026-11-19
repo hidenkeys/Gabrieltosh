@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Public journey/onboarding milestone verified at5b5816f: selected ivory/green composition and proposed terms retained; reliable section/skip/lazy/history focus and mobilemenu destination, guarded signup acknowledgments/singleflight and reload-safe nonsecret uncertainty marker. Fullsuite630pass/2skip,25focused/build, actual same-tab2782×1110 comparisons and390/834normal browser checks. M2 advances40→60, scope1.0 unchanged;65.0/100. No browser account creation or real delivery claim. Authoritative signup recovery/resend, live mutation matrix, production email/legal/commercial readiness and other cross-screen/role/platform/operational acceptance remain unfinished. Main3003/QA3007 running; no production deploy/data/money/security grant.",
+  "Order-management slice integrated at8149ed2: waiter preparation facts preserve kitchen permission boundaries; history/live timeline use explicit branch times and honest identity/zero/assignment facts. Fullsuite637pass/2skip, focused23pass/build and same-tab desktop plus responsive browser review. P2 remains40; scope1.0 and65.0/100 unchanged because help uncertain-write/draft recovery and full state acceptance remain unfinished. Main3003/QA3007 running; protected platform access, provider delivery and printing hardware gates remain explicit.",
   "",
   "## Measurement",
   "",
