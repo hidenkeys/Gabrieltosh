@@ -62,7 +62,7 @@ const lines = [
   "",
   "## Current milestone",
   "",
-  "Front desk/customization/public information partial milestone verified at1b029f9. Actual waitlist state transitions, keyboard focus/basket handoff, pricing deep links and responsive signup passed. Next: waiter tables/rounds/bills/handoffs, complex live themes/options and broad permission/error/recovery acceptance. Main preview restored on3003; separate frontdesk QA3007/database55444. Live providers and physical printing remain separate launch gates.",
+  "Table service partial milestone verified at00eb99f: actual local party-to-POS round, bill split/merge, table combination and unpaid-close rejection; phone/tablet screenshots inspected. Next: assigned waiter work/handoff and broader permission/error/recovery acceptance. Main preview3003 remains running. Live providers, protected platform QA credential recovery and physical printing remain separate gates.",
   "",
   "## Measurement",
   "",

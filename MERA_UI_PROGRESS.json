@@ -2,8 +2,8 @@
   "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
   "scopeVersion": "1.0",
   "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T01:50:36+01:00",
-  "revision": "1b029f9",
+  "lastUpdated": "2026-11-19T02:06:13+01:00",
+  "revision": "00eb99f",
   "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
   "clarifications": [
     {
@@ -574,21 +574,31 @@
       "workstream": "P",
       "title": "Waiter tables, rounds, bills and handoffs",
       "weight": 4,
-      "checkpoint": 0,
-      "status": "NOT_STARTED",
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [
         "F4",
         "F5"
       ],
       "acceptance": "Assigned work first, floor/current party, rounds, prepared handoff, split/partial payment and minimum/deposit outcomes without private-session regressions.",
-      "evidence": [],
+      "evidence": [
+        "docs/mera/ui-audit/TABLES-CHECKPOINT.md",
+        "docs/mera/ui-audit/screenshots/145-tables-after.jpg",
+        "docs/mera/ui-audit/screenshots/146-tables-phone.jpg",
+        "docs/mera/ui-audit/screenshots/147-tables-tablet.jpg"
+      ],
       "blockers": [],
       "history": [
         {
           "at": "2026-11-18T15:56:52+01:00",
           "checkpoint": 0,
           "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
+        },
+        {
+          "at": "2026-11-19T02:06:13+01:00",
+          "checkpoint": 40,
+          "note": "Table/party/bill partial correction verified in actual browser. Assignment/handoff, minimum/deposit and permission/recovery acceptance remain."
         }
       ]
     },
