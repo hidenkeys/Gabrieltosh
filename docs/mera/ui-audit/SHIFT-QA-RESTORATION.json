@@ -1,0 +1,95 @@
+{
+  "verifiedAt": "2026-11-19T09:37:22.958Z",
+  "environment": "Disposable frontdesk QA only",
+  "databaseDirectory": "data/mera-demo-frontdesk-db",
+  "databasePort": 55444,
+  "baselineRecordedAt": "2026-11-19T09:31:17.101Z",
+  "deletedMutableShift": {
+    "id": "87ade186-6783-4b8f-b6bf-e2708e306c7b",
+    "openingFloat": 0,
+    "expectedCash": 0,
+    "countedCash": 0,
+    "variance": 0,
+    "finalStatus": "closed"
+  },
+  "deletedExactRows": 1,
+  "remainingMutableFixtureRows": 0,
+  "retainedImmutableRecords": [
+    {
+      "id": "08c126e3-0f9d-44b1-a619-53ca6fa827b7",
+      "kind": "shift_operation",
+      "operation": "open",
+      "action": null,
+      "requestKey": "67a46726-0065-4337-ab1c-69c6cb5242a7",
+      "createdAt": "2026-11-19T09:33:49.795Z"
+    },
+    {
+      "id": "3f01987c-1246-4563-8062-51ba03db9bf2",
+      "kind": "audit",
+      "operation": null,
+      "action": "shift_request_abandoned",
+      "requestKey": "f3802ad2-02bc-453e-8652-87a42da3d75f",
+      "createdAt": "2026-11-19T09:35:57.325Z"
+    },
+    {
+      "id": "55d889a5-32cc-44c6-b768-8d3b011d7c94",
+      "kind": "audit",
+      "operation": null,
+      "action": "shift_closed",
+      "requestKey": null,
+      "createdAt": "2026-11-19T09:36:03.757Z"
+    },
+    {
+      "id": "639cb2b6-0121-4af1-87fc-72193c48c91e",
+      "kind": "shift_request_resolution",
+      "operation": "close",
+      "action": null,
+      "requestKey": "f3802ad2-02bc-453e-8652-87a42da3d75f",
+      "createdAt": "2026-11-19T09:35:57.320Z"
+    },
+    {
+      "id": "be55f226-ad17-4328-bed4-0b94559a7f55",
+      "kind": "shift_operation",
+      "operation": "close",
+      "action": null,
+      "requestKey": "0ff566dc-0e9f-4125-9697-3391c4c48ba2",
+      "createdAt": "2026-11-19T09:36:03.759Z"
+    }
+  ],
+  "retainedCountDelta": {
+    "audit": 2,
+    "shift_operation": 2,
+    "shift_request_resolution": 1
+  },
+  "appendOnlyGuardEnabledAndPreserved": true,
+  "allBaselineRecordHashesUnchanged": true,
+  "baselineRecordCount": 92,
+  "branchSettingsUnchanged": true,
+  "financialStockPrintCountsUnchanged": true,
+  "allBaselineCountsRestored": false,
+  "baselinePlusExpectedRetainedDeltaVerified": true,
+  "finalCounts": {
+    "product": 35,
+    "ticket": 3,
+    "bill": 4,
+    "order_quote": 2,
+    "shift_operation": 2,
+    "table": 2,
+    "audit": 33,
+    "order": 3,
+    "waitlist": 2,
+    "export": 1,
+    "menu_publication": 1,
+    "shift_request_resolution": 1,
+    "item_fulfillment": 1,
+    "order_request_resolution": 1,
+    "visit_table_change": 1,
+    "job": 1,
+    "template": 1,
+    "visit": 1,
+    "stock_movement": 1,
+    "ledger": 1
+  },
+  "scope": "Only the proven new mutable shift row was deleted; immutable operation, resolution and audit records retained. No original records or settings changed.",
+  "limitation": "Validation-rejected close, navigation/reload recovery, explicit fenced stop and fresh zero close tested; no unknown-network simulation claimed."
+}

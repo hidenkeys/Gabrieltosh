@@ -11,7 +11,7 @@ BEGIN
  IF TG_OP <> 'INSERT' AND OLD.data->>'historicalReadOnly'='true' THEN
   RAISE EXCEPTION 'Imported historical records are read-only';
  END IF;
- IF TG_OP <> 'INSERT' AND OLD.kind IN ('ledger','audit','provider_event','financial_request_resolution','writeoff','minimum_spend_waiver','deposit_hold','deposit_refund','deposit_forfeiture') THEN
+ IF TG_OP <> 'INSERT' AND OLD.kind IN ('ledger','audit','provider_event','financial_request_resolution','writeoff','minimum_spend_waiver','deposit_hold','deposit_refund','deposit_forfeiture','shift_operation','shift_request_resolution') THEN
   RAISE EXCEPTION 'Mera ledger and audit records are append-only';
  END IF;
  IF TG_OP <> 'DELETE' AND NEW.kind='ledger' THEN

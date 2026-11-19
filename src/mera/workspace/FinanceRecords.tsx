@@ -135,6 +135,11 @@ export function ShiftRecord({
         <div>
           <h3>{status} shift</h3>
           <p>{time(shift.openedAt || shift.createdAt, timeZone)}</p>
+          {typeof shift.id === "string" && (
+            <p>
+              Shift reference: <code>{shift.id.slice(0, 8).toUpperCase()}</code>
+            </p>
+          )}
         </div>
         <span className="mw-pill">{status}</span>
       </header>

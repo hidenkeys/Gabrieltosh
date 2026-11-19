@@ -1,0 +1,54 @@
+.mw-shift-operation {
+  margin-block: 16px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mw-shift-operation summary {
+  min-height: 44px;
+  padding-block: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.mw-shift-operation fieldset {
+  border: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+  max-width: 560px;
+  min-width: 0;
+  margin-block: 16px;
+}
+.mw-shift-operation label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+}
+.mw-shift-operation input:not([type="checkbox"]) {
+  min-height: 44px;
+  width: 100%;
+  min-width: 0;
+}
+.mw-shift-operation .mw-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-block: 12px;
+}
+.mw-shift-operation input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.mw-shift-operation p {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #51647d;
+}
+.mw-shift-operation fieldset button {
+  justify-self: start;
+}
+.mw-shift-operation :is(summary, input, button):focus-visible {
+  outline: 3px solid #2f7df6;
+  outline-offset: 3px;
+}

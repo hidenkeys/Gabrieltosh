@@ -2454,6 +2454,45 @@ test(
       const inactiveReassignment=await call(B+"/orders/"+counterStaffOrder.data.id+"/assign","POST",{userId:unnamedAssignee,version:unnamedReassignment.data.version});
       assert.equal(inactiveReassignment.status,400);assert.equal(inactiveReassignment.data.error,"The assignee does not have branch access.");
       const unchangedAssignee=(await db.query("SELECT data FROM mera_records WHERE id=$1",[counterStaffOrder.data.id])).rows[0].data;assert.equal(unchangedAssignee.version,unnamedReassignment.data.version);assert.equal(unchangedAssignee.handlerName,null);
+      { // Shift operation recovery never recomputes an original acknowledged result.
+        const openPath=foreignBase+"/shifts",openKey=randomUUID(),openBody={requestKey:openKey,openingFloat:0},openAttempt=foreignBase+"/shifts/open-attempts/"+openKey;
+        assert.equal((await call(openAttempt)).data.status,"not_found");
+        assert.equal((await call(openPath,"POST",openBody,owner,"",{"X-Mera-Actor-Id":other})).data.code,"ACTOR_CHANGED");
+        const opened=await call(openPath,"POST",openBody,owner,"",{"X-Mera-Actor-Id":owner});assert.equal(opened.status,201,JSON.stringify(opened.data));
+        assert.deepEqual((await call(openPath,"POST",openBody)).data,opened.data);
+        assert.equal((await call(openPath,"POST",{...openBody,openingFloat:1})).data.code,"IDEMPOTENCY_CONFLICT");
+        const openProof=await call(openAttempt);assert.equal(openProof.cacheControl,"no-store");assert.equal(openProof.data.status,"recorded");assert.equal(openProof.data.actorId,owner);assert.equal(openProof.data.operation,"open");assert.equal(openProof.data.shiftId,null);assert.equal(openProof.data.requestKey,openKey);assert.equal(openProof.data.operationRecord.shiftId,opened.data.id);assert.deepEqual(openProof.data.operationRecord.intent,{openingFloat:0});assert.deepEqual(openProof.data.shift,opened.data);
+        assert.deepEqual((await call(openAttempt+"/abandon","POST",{reason:"Keep recorded original operation"})).data,openProof.data);
+        const closeKey=randomUUID(),closeBody={requestKey:closeKey,countedCash:0,reason:""},closePath=openPath+"/"+opened.data.id+"/close",closeAttempt=openPath+"/"+opened.data.id+"/close-attempts/"+closeKey;
+        assert.equal((await call(closeAttempt)).data.status,"not_found");assert.equal((await call(closePath,"POST",closeBody,owner,"",{"X-Mera-Actor-Id":other})).data.code,"ACTOR_CHANGED");
+        const closed=await call(closePath,"POST",closeBody);assert.equal(closed.status,200,JSON.stringify(closed.data));assert.equal(closed.data.expectedCash,0);assert.equal(closed.data.variance,0);assert.equal(closed.data.status,"closed");
+        assert.deepEqual((await call(closePath,"POST",closeBody)).data,closed.data);assert.equal((await call(closePath,"POST",{...closeBody,countedCash:1})).data.code,"IDEMPOTENCY_CONFLICT");
+        const closeProof=await call(closeAttempt);assert.equal(closeProof.data.shiftId,opened.data.id);assert.equal(closeProof.data.resultBasis,"recorded_operation_snapshot");assert.deepEqual(closeProof.data.operationRecord.intent,{countedCash:0,reason:"",shiftId:opened.data.id});assert.deepEqual(closeProof.data.shift,closed.data);
+        assert.equal((await call(openPath,"POST",openBody)).data.status,"open");assert.equal((await db.query("SELECT data->>'status' AS status FROM mera_records WHERE id=$1",[opened.data.id])).rows[0].status,"closed");
+        assert.equal((await call(openAttempt,"GET",undefined,null)).status,401);assert.equal((await call(openAttempt,"GET",undefined,other)).status,403);
+        await db.query("UPDATE mera_memberships SET permissions=permissions||$1::jsonb WHERE organization_id=$2 AND user_id=$3",[JSON.stringify(["shifts.manage"]),foreignOrg.data.organizationId,other]);
+        const otherProof=await call(openAttempt,"GET",undefined,other);assert.equal(otherProof.data.status,"not_found");assert.equal(otherProof.data.actorId,other);assert.equal(otherProof.data.shift,undefined);
+        assert.equal((await call(B+"/shifts/open-attempts/"+openKey)).data.status,"not_found");
+        const fencedKey=randomUUID(),fencedPath=foreignBase+"/shifts/open-attempts/"+fencedKey;
+        const fenced=await call(fencedPath+"/abandon","POST",{reason:"Stop delayed open operation"});assert.equal(fenced.data.status,"abandoned");assert.deepEqual((await call(fencedPath+"/abandon","POST",{reason:"Repeated stop"})).data,fenced.data);
+        assert.equal((await call(openPath,"POST",{requestKey:fencedKey,openingFloat:0})).data.code,"SHIFT_REQUEST_ABANDONED");
+        assert.equal((await call(fencedPath,"GET",undefined,other)).data.status,"not_found");
+        const otherOpened=await call(openPath,"POST",{requestKey:fencedKey,openingFloat:0},other);assert.equal(otherOpened.status,201,JSON.stringify(otherOpened.data));
+        assert.deepEqual((await call(openPath,"POST",openBody)).data,opened.data);assert.deepEqual((await call(closePath,"POST",closeBody)).data,closed.data);
+        assert.equal((await db.query("SELECT count(*)::int AS count FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='shift' AND data->>'status'='open'",[foreignOrg.data.organizationId,foreignOrg.data.branchId])).rows[0].count,1);
+        const closeFenceKey=randomUUID(),closeFencePath=openPath+"/"+otherOpened.data.id+"/close-attempts/"+closeFenceKey;
+        assert.equal((await call(closeFencePath+"/abandon","POST",{reason:"Stop delayed close operation"})).data.status,"abandoned");
+        assert.equal((await call(openPath+"/"+otherOpened.data.id+"/close","POST",{requestKey:closeFenceKey,countedCash:0})).data.code,"SHIFT_REQUEST_ABANDONED");
+        assert.equal((await db.query("SELECT data->>'status' AS status FROM mera_records WHERE id=$1",[otherOpened.data.id])).rows[0].status,"open");
+        assert.equal((await call(openPath+"/"+otherOpened.data.id+"/close","POST",{requestKey:randomUUID(),countedCash:0})).status,200);
+        const raceKey=randomUUID(),raceAttempt=foreignBase+"/shifts/open-attempts/"+raceKey;
+        const [raceCreate,raceStop]=await Promise.all([call(openPath,"POST",{requestKey:raceKey,openingFloat:0}),call(raceAttempt+"/abandon","POST",{reason:"Concurrent open versus safe stop"})]);
+        if(raceCreate.status===201){assert.equal(raceStop.data.status,"recorded");assert.equal(raceStop.data.shift.id,raceCreate.data.id);assert.equal((await call(openPath+"/"+raceCreate.data.id+"/close","POST",{countedCash:0})).status,200);}else{assert.equal(raceCreate.data.code,"SHIFT_REQUEST_ABANDONED");assert.equal(raceStop.data.status,"abandoned");}
+        assert.equal((await call(openPath+"/"+opened.data.id+"/close-attempts/"+openKey)).data.code,"IDEMPOTENCY_CONFLICT");
+        const immutableShiftRows=(await db.query("SELECT DISTINCT ON(kind) id FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind IN ('shift_operation','shift_request_resolution') ORDER BY kind,id",[foreignOrg.data.organizationId,foreignOrg.data.branchId])).rows;
+        for(const row of immutableShiftRows){await assert.rejects(db.query("UPDATE mera_records SET data=data||'{\"tampered\":true}'::jsonb WHERE id=$1",[row.id]),/append-only/);await assert.rejects(db.query("DELETE FROM mera_records WHERE id=$1",[row.id]),/append-only/);}
+
+      }
       callBase = base;
       const membership = (
         await call("/organizations/" + org + "/members")

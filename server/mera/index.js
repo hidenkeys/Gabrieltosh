@@ -1,3 +1,4 @@
+import {assertExpectedShiftActor,replayShiftOperation,assertShiftRequestActive,recordShiftOperation,mountMeraShiftAttempts} from "./shift-attempts.js";
 import { assertReservationRequestActive, assertStaffReservationRequestActive, assertExpectedReservationActor, mountMeraReservationAttempts } from "./reservation-attempts.js";
 import { mountMeraRefundRequests, reviewRefundRequest, completeRefundRequest } from "./refund-requests.js";
 import { mountMeraWorkspaceAdmin } from "./workspace-admin.js";
@@ -1722,30 +1723,17 @@ export function createMeraRouter(db) {
     },
   );
   router.post(B + "/shifts", guard("shifts.manage"), async (req, res) => {
-    const { openingFloat } = z
-      .object({ openingFloat: z.number().int().min(0) })
-      .parse(req.body);
-    res.status(201).json(
-      await locked(scope(req), async (c) => {
-        if (
-          (
-            await readRecords(
-              c,
-              req.params.organizationId,
-              req.params.branchId,
-              "shift",
-            )
-          ).some((r) => r.data.status === "open")
-        )
-          throw fail("Close the existing branch shift first.", 409);
-        return record(c, scope(req), "shift", {
-          openingFloat,
-          status: "open",
-          openedBy: req.user.id,
-          createdAt: now(),
-        });
-      }),
-    );
+    assertExpectedShiftActor(req);
+    const input=z.object({openingFloat:z.number().int().min(0),requestKey:uuid.optional()}).parse(req.body);
+    res.status(201).json(await locked(scope(req),async c=>{
+      const s=scope(req),attempt={requestKey:input.requestKey,actorId:req.user.id,operation:"open",intent:{openingFloat:input.openingFloat}};
+      const prior=await replayShiftOperation(c,s,attempt);if(prior)return prior;
+      await assertShiftRequestActive(c,s,attempt);
+      if((await readRecords(c,s.organizationId,s.branchId,"shift")).some(r=>r.data.status==="open"))throw fail("Close the existing branch shift first.",409);
+      const shift=await record(c,s,"shift",{openingFloat:input.openingFloat,status:"open",openedBy:req.user.id,createdAt:now()});
+      await recordShiftOperation(c,s,record,attempt,shift);
+      return shift;
+    }));
   });
   router.post(
     B + "/shifts/:id/movements",
@@ -1782,14 +1770,19 @@ export function createMeraRouter(db) {
     B + "/shifts/:id/close",
     guard("shifts.manage"),
     async (req, res) => {
+      assertExpectedShiftActor(req);
       const input = z
         .object({
+          requestKey:uuid.optional(),
           countedCash: z.number().int().min(0),
           reason: z.string().trim().max(300).default(""),
         })
         .parse(req.body);
       res.json(
         await locked(scope(req), async (c) => {
+          const s=scope(req),attempt={requestKey:input.requestKey,actorId:req.user.id,operation:"close",shiftId:req.params.id,intent:{countedCash:input.countedCash,reason:input.reason,shiftId:req.params.id}};
+          const prior=await replayShiftOperation(c,s,attempt);if(prior)return prior;
+          await assertShiftRequestActive(c,s,attempt);
           const shift = await find(c, scope(req), "shift", req.params.id);
           if (shift.status !== "open")
             throw fail("The shift is already closed.", 409);
@@ -1810,7 +1803,8 @@ export function createMeraRouter(db) {
           if (variance && !input.reason)
             throw fail("Explain the cash variance before closing.");
           Object.assign(shift, {
-            ...input,
+            countedCash:input.countedCash,
+            reason:input.reason,
             expectedCash,
             variance,
             status: variance ? "pending_approval" : "closed",
@@ -1821,7 +1815,9 @@ export function createMeraRouter(db) {
             shiftId: shift.id,
             variance,
           });
-          return update(c, scope(req), "shift", shift.id, shift);
+          const result=await update(c, scope(req), "shift", shift.id, shift);
+          await recordShiftOperation(c,s,record,attempt,result);
+          return result;
         }),
       );
     },
@@ -3164,6 +3160,7 @@ export function createMeraRouter(db) {
   mountMeraWorkspaceAdmin(router,{db,guard,scope,event});
   mountMeraStockHistory(router,{db,guard,scope,locked,find,record,update,event});
   mountMeraReservationAttempts(router,{publicContext,guest,locked,record,event,guard,scope});
+  mountMeraShiftAttempts(router,{guard,scope,locked,record,event});
   mountMeraOrderAttempts(router,{guard,scope,locked,record,event,publicContext,guest,publicOrder});
   mountMeraPrinting(router,{db,guard,scope,locked,find,record,update,event});
   mountMeraQueries(router,{db,guard,scope});

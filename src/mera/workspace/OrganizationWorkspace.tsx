@@ -36,6 +36,12 @@ import Bills from "./Bills";
 import ReservationSettlement from "./ReservationSettlement";
 import ReservationDesk from "./ReservationDesk";
 import ReservationRequest from "./ReservationRequest";
+import ShiftOperation from "./ShiftOperation";
+import {
+  readShiftOperationJournal,
+  hasShiftOperationJournals,
+  redactShiftOperationJournals,
+} from "./shiftOperationJournal";
 import {
   staffReservationScopeSchema,
   readStaffReservationJournal,
@@ -152,6 +158,7 @@ export default function OrganizationWorkspace({
   const [, setReservationRecoveryRevision] = useState(0);
   const [reservationPrivacyWarning, setReservationPrivacyWarning] =
     useState(false);
+  const [shiftPrivacyWarning, setShiftPrivacyWarning] = useState(false);
   const [journalWarning, setJournalWarning] = useState(false);
   const [abandonReason, setAbandonReason] = useState("");
   const [abandonConfirmed, setAbandonConfirmed] = useState(false);
@@ -171,6 +178,8 @@ export default function OrganizationWorkspace({
   } | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const taskHeading = useRef<HTMLHeadingElement>(null);
+  const shiftOperationPanel = useRef<HTMLDivElement>(null);
+  const pendingShiftReveal = useRef<string | null>(null);
   const reservationRequestPanel = useRef<HTMLDivElement>(null);
   const pendingReservationReveal = useRef<string | null>(null);
   const pendingDestinationFocus = useRef<{
@@ -328,6 +337,24 @@ export default function OrganizationWorkspace({
     details.querySelector("summary")?.focus();
     details.scrollIntoView?.({ block: "center" });
   });
+  useEffect(() => {
+    if (!pendingShiftReveal.current) return;
+    if (pendingShiftReveal.current !== navigationScope) {
+      pendingShiftReveal.current = null;
+      return;
+    }
+    if (activeSection !== "shifts" || !shiftOperationPanel.current) return;
+    pendingShiftReveal.current = null;
+    const panel = shiftOperationPanel.current;
+    const details = panel.querySelector("details");
+    if (details) details.open = true;
+    const target = panel.querySelector<HTMLElement>("summary, h3, button");
+    if (target) {
+      if (!target.hasAttribute("tabindex")) target.tabIndex = -1;
+      target.focus({ preventScroll: true });
+    }
+    panel.scrollIntoView?.({ block: "center" });
+  });
   const pagePresentation = getSectionPresentation(activeSection);
   useEffect(() => {
     if (!productEdit) {
@@ -359,11 +386,15 @@ export default function OrganizationWorkspace({
   useEffect(() => {
     const changed = () => setReservationRecoveryRevision((value) => value + 1);
     window.addEventListener("mera:reservation-recovery", changed);
-    return () =>
+    window.addEventListener("mera:shift-recovery", changed);
+    return () => {
       window.removeEventListener("mera:reservation-recovery", changed);
+      window.removeEventListener("mera:shift-recovery", changed);
+    };
   }, []);
   const clearProtected = useCallback(() => {
     if (!redactStaffReservationJournals()) setReservationPrivacyWarning(true);
+    if (!redactShiftOperationJournals()) setShiftPrivacyWarning(true);
     setError("");
     setReadError("");
     authorizationEpoch.current++;
@@ -479,6 +510,7 @@ export default function OrganizationWorkspace({
           setPrincipal(actor);
           clearFinancialJournals(actor);
           setReservationPrivacyWarning(!redactStaffReservationJournals(actor));
+          setShiftPrivacyWarning(!redactShiftOperationJournals(actor));
         }
         setContext(result);
         if (!accessDenied.current) setReadError("");
@@ -669,18 +701,26 @@ export default function OrganizationWorkspace({
     const originalReservation =
       method === "POST" &&
       /^\/organizations\/[^/]+\/branches\/[^/]+\/reservations$/.test(path);
+    const originalShiftOperation =
+      method === "POST" &&
+      /^\/organizations\/[^/]+\/branches\/[^/]+\/shifts(?:\/[^/]+\/close)?$/.test(
+        path,
+      );
+    const actorBoundIntent = originalReservation || originalShiftOperation;
     let attemptedBody: any;
     try {
       if (
-        originalReservation &&
+        actorBoundIntent &&
         (!requestedActor ||
           requestedActor !== principal ||
           requestedScope !== branchBase ||
-          path !== branchBase + "/reservations" ||
+          !(originalReservation
+            ? path === branchBase + "/reservations"
+            : path.startsWith(branchBase + "/shifts")) ||
           scopeEpoch.current.generation !== scopeVersion)
       )
         throw new WorkspaceError(
-          "The staff account or branch changed. Refresh the workspace and check the original reservation before continuing.",
+          "The staff account or branch changed. Refresh the workspace and check the original request before continuing.",
           403,
           "WORKSPACE_CHANGED",
         );
@@ -693,7 +733,7 @@ export default function OrganizationWorkspace({
         );
       if (financial && pending) body = pending.body;
       const signature =
-        body?.requestKey && !originalReservation
+        body?.requestKey && !actorBoundIntent
           ? path + JSON.stringify({ ...body, requestKey: undefined })
           : null;
       if (signature) {
@@ -708,7 +748,7 @@ export default function OrganizationWorkspace({
         method,
         body,
         undefined,
-        originalReservation ? { expectedActorId: requestedActor } : undefined,
+        actorBoundIntent ? { expectedActorId: requestedActor } : undefined,
       );
       if (financial && requestedActor === confirmedPrincipal.current) {
         const match = requestedScope.match(
@@ -1023,6 +1063,10 @@ export default function OrganizationWorkspace({
         throw new Error(
           "Guest details could not be cleared safely. Keep this session open and retry signing out after reviewing reservation recovery.",
         );
+      if (!redactShiftOperationJournals())
+        throw new Error(
+          "Shift details could not be cleared safely. Keep this session open and review shift recovery before signing out.",
+        );
       await onLogout();
       window.dispatchEvent(new window.Event("mera:logout"));
       setLogoutConfirm(false);
@@ -1042,6 +1086,17 @@ export default function OrganizationWorkspace({
     try {
       return {
         pending: !!readStaffReservationJournal(reservationScope.data),
+        blocked: false,
+      };
+    } catch {
+      return { pending: true, blocked: true };
+    }
+  })();
+  const shiftRecovery = (() => {
+    if (!reservationScope.success) return { pending: false, blocked: false };
+    try {
+      return {
+        pending: !!readShiftOperationJournal(reservationScope.data),
         blocked: false,
       };
     } catch {
@@ -1325,7 +1380,8 @@ export default function OrganizationWorkspace({
                     if (
                       financialRequests.current.size ||
                       uncertainOrders.current.size ||
-                      hasStaffReservationJournals(principal || user.id)
+                      hasStaffReservationJournals(principal || user.id) ||
+                      hasShiftOperationJournals(principal || user.id)
                     )
                       setLogoutConfirm(true);
                     else void signOut();
@@ -1379,11 +1435,11 @@ export default function OrganizationWorkspace({
             </h2>
             <p id="mw-signout-detail">
               Signing out clears this tab’s financial recovery details and
-              private reservation guest details. A reservation request reference
-              is kept for checking after you sign in again. Signing out does not
-              cancel a request or reverse a transaction. Keep this session open
-              to resolve the original submission, or explicitly sign out and
-              arrange reconciliation.
+              private reservation and shift details. Original reservation and
+              shift request references are kept for checking after you sign in
+              again. Signing out does not cancel a request or reverse a
+              transaction. Keep this session open to resolve the original
+              submission, or explicitly sign out and arrange reconciliation.
             </p>
             <div className="mw-actions">
               <button
@@ -1574,6 +1630,39 @@ export default function OrganizationWorkspace({
             )}
           </div>
         )}
+      {shiftPrivacyWarning && (
+        <div role="alert" className="mw-note">
+          Private shift details could not be cleared from this tab. Keep this
+          session open and review shift recovery before signing out.
+        </div>
+      )}
+      {shiftRecovery.pending && (
+        <section role="status" className="mw-note" aria-label="Shift recovery">
+          <strong>An original shift submission needs checking</strong>
+          <p>
+            {shiftRecovery.blocked
+              ? "This tab could not read its saved shift submission. New shift changes remain blocked until recovery is resolved."
+              : "Check the original opening or closing submission before making another shift change. No submission is sent automatically."}
+          </p>
+          {allowed("shifts.manage") ? (
+            <button
+              className="secondary"
+              onClick={() => {
+                pendingShiftReveal.current = navigationScope;
+                selectSection("shifts");
+                setReservationRecoveryRevision((value) => value + 1);
+              }}
+            >
+              Review original shift submission
+            </button>
+          ) : (
+            <p>
+              Sign in with the original account and shift access to check this
+              submission.
+            </p>
+          )}
+        </section>
+      )}
       {reservationPrivacyWarning && (
         <div role="alert" className="mw-note">
           Private reservation details could not be cleared from this tab. Keep
@@ -3911,6 +4000,27 @@ export default function OrganizationWorkspace({
                     Review shift cash, handovers and counted balances for this
                     branch.
                   </p>
+                  <div ref={shiftOperationPanel}>
+                    <ShiftOperation
+                      userId={principal || user.id}
+                      organizationId={organizationId}
+                      branchId={branchId}
+                      shifts={data.shifts}
+                      timeZone={branch?.timezone}
+                      disabled={busy || offline}
+                      canManage={allowed("shifts.manage")}
+                      save={mutate}
+                      onRecorded={() => {
+                        if (
+                          activeScope.current === branchBase &&
+                          scopeEpoch.current.generation === scopeVersion &&
+                          authorizationEpoch.current ===
+                            renderedAuthorizationVersion
+                        )
+                          void refresh();
+                      }}
+                    />
+                  </div>
                   <ShiftWorkspace
                     key={branchBase}
                     shifts={data.shifts}
@@ -3946,99 +4056,9 @@ export default function OrganizationWorkspace({
                             save={mutate}
                           />
                         )}
-                        {shift.status === "open" && (
-                          <Disclosure
-                            summary="Close and reconcile this shift"
-                            className="mw-finance-tools"
-                          >
-                            <form
-                              className="mw-form"
-                              onSubmit={submit(() =>
-                                mutate(
-                                  branchBase + `/shifts/${shift.id}/close`,
-                                  "POST",
-                                  {
-                                    countedCash: Math.round(
-                                      Number(tabForm[`counted_${shift.id}`]) *
-                                        100,
-                                    ),
-                                    reason:
-                                      tabForm[`variance_${shift.id}`] || "",
-                                  },
-                                  "Shift closed.",
-                                ),
-                              )}
-                            >
-                              {field(
-                                "Counted cash (naira)",
-                                `counted_${shift.id}`,
-                                "number",
-                                true,
-                                0.01,
-                              )}
-                              {field(
-                                "Variance explanation",
-                                `variance_${shift.id}`,
-                                "text",
-                                false,
-                              )}
-                              <div className="mw-wide">
-                                <button
-                                  className="secondary"
-                                  disabled={busy || offline}
-                                >
-                                  Close & reconcile
-                                </button>
-                              </div>
-                            </form>
-                          </Disclosure>
-                        )}
                       </ShiftRecord>
                     )}
                   />
-                  {Array.isArray(data.shifts) &&
-                    !data.shifts.some(
-                      (shift: any) => shift.status === "open",
-                    ) && (
-                      <div className="mw-shift-open">
-                        <h3>Open a shift</h3>
-                        <p>
-                          Record the cash float physically present at the start
-                          of service.
-                        </p>
-                        <form
-                          className="mw-form"
-                          onSubmit={submit(() =>
-                            mutate(
-                              branchBase + "/shifts",
-                              "POST",
-                              {
-                                openingFloat: Math.round(
-                                  Number(tabForm.float) * 100,
-                                ),
-                              },
-                              "Shift opened.",
-                            ),
-                          )}
-                        >
-                          {field(
-                            "Opening float (naira)",
-                            "float",
-                            "number",
-                            true,
-                            0.01,
-                          )}
-                          <div className="mw-wide">
-                            <button
-                              className="primary"
-                              disabled={busy || offline}
-                            >
-                              Open shift
-                            </button>
-                          </div>
-                        </form>
-                      </div>
-                    )}
                 </section>
               )}
               {activeSection === "team" && (

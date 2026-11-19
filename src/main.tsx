@@ -23,6 +23,7 @@ import "./mera/workspace/order-history.css";
 import "./mera/workspace/live-orders.css";
 import "./mera/workspace/printing-qr.css";
 import "./mera/workspace/reservation-request.css";
+import "./mera/workspace/shift-operation.css";
 import "./mera/customer/help-requests.css";
 const Marketing = React.lazy(() => import("./mera/marketing/Marketing"));
 const LegalInformation = React.lazy(() =>
