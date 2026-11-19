@@ -25,6 +25,7 @@ const { render, screen, fireEvent, cleanup, act } =
   await import("@testing-library/react");
 const { default: GuestActivity } =
   await import("../src/mera/customer/GuestActivity.tsx");
+test.beforeEach(() => window.sessionStorage.clear());
 test.afterEach(cleanup);
 const activity = (text: string) => ({
   reservations: [],
@@ -54,7 +55,7 @@ test("activity scope switch hides previous private content immediately and ignor
   });
   const view = render(
     React.createElement(GuestActivity, {
-      prefix: "/api/mera/v1/public/old/branch",
+      prefix: "/public/old/20000000-0000-4000-8000-000000000001",
     }),
   );
   await screen.findByText("Old private feedback");
@@ -63,7 +64,7 @@ test("activity scope switch hides previous private content immediately and ignor
   );
   view.rerender(
     React.createElement(GuestActivity, {
-      prefix: "/api/mera/v1/public/new/branch",
+      prefix: "/public/new/20000000-0000-4000-8000-000000000002",
     }),
   );
   assert.equal(screen.queryByText("Old private feedback"), null);
@@ -83,7 +84,7 @@ test("activity authorization loss clears private content and offers a deliberate
   );
   render(
     React.createElement(GuestActivity, {
-      prefix: "/api/mera/v1/public/venue/branch",
+      prefix: "/public/venue/20000000-0000-4000-8000-000000000001",
     }),
   );
   await screen.findByText("Private guest feedback");
@@ -117,6 +118,10 @@ test("cancellation disclosure is closed until chosen and uncertain retries prese
   };
   t.mock.method(globalThis, "fetch", async (input: any, init: any) => {
     const path = String(input);
+    if (path.endsWith("/guest"))
+      return Response.json({
+        sessionRef: "40000000-0000-4000-8000-000000000001",
+      });
     if (init.method === "GET") {
       assert(path.endsWith("/activity"));
       return Response.json({
@@ -133,10 +138,16 @@ test("cancellation disclosure is closed until chosen and uncertain retries prese
     if (bodies.length === 2)
       return Response.json({ error: "Please try later" }, { status: 429 });
     cancelled = true;
-    return Response.json({ status: "cancelled", refundConfirmed: false });
+    return Response.json({
+      id: reservation.id,
+      status: "cancelled",
+      refundConfirmed: false,
+    });
   });
   render(
-    React.createElement(GuestActivity, { prefix: "/public/venue/branch" }),
+    React.createElement(GuestActivity, {
+      prefix: "/public/venue/20000000-0000-4000-8000-000000000001",
+    }),
   );
   await screen.findByText("Reservation confirmed");
   const details = document.querySelector(
@@ -210,4 +221,207 @@ test("reservation dates use the supplied venue timezone rather than a device ass
   );
   assert.equal(reservationDateLabel("bad", "Africa/Lagos"), "Time unavailable");
   assert.match(reservationDateLabel("2026-11-20T23:30:00Z", "invalid"), /UTC/);
+});
+
+const cancelPrefix = "/public/venue/20000000-0000-4000-8000-000000000001";
+const guestRef = "40000000-0000-4000-8000-000000000001";
+const booking = {
+  id: "70000000-0000-4000-8000-000000000001",
+  startsAt: "2026-12-10T12:00:00Z",
+  partySize: 2,
+  status: "confirmed",
+  depositAmount: 0,
+};
+function submitReason(reason = "Original cancellation reason") {
+  fireEvent.click(
+    screen.getByText("Request cancellation", { selector: "summary" }),
+  );
+  fireEvent.change(
+    screen.getByRole("textbox", { name: "Cancellation reason" }),
+    { target: { value: reason } },
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Send cancellation request" }),
+  );
+}
+test("cancellation reload proves original guest, makes no automatic POST and retries original body after canonical booking already changed", async (t) => {
+  const bodies: any[] = [];
+  let recorded = false;
+  t.mock.method(globalThis, "fetch", async (input: any, init: any) => {
+    if (String(input).endsWith("/guest"))
+      return Response.json({ sessionRef: guestRef });
+    if (init.method === "GET")
+      return Response.json({
+        reservations: [
+          {
+            ...booking,
+            status: recorded ? "cancelled" : "confirmed",
+            cancellationRequestedAt: recorded ? "2026-11-19T12:00:00Z" : null,
+          },
+        ],
+        feedback: [],
+      });
+    bodies.push(JSON.parse(init.body));
+    recorded = true;
+    if (bodies.length === 1) throw Error("lost acknowledgement");
+    return Response.json({
+      ...booking,
+      status: "cancelled",
+      refundConfirmed: false,
+    });
+  });
+  const first = render(<GuestActivity prefix={cancelPrefix} />);
+  await screen.findByText("Reservation confirmed");
+  submitReason();
+  await screen.findByRole("alert");
+  first.unmount();
+  render(<GuestActivity prefix={cancelPrefix} />);
+  await screen.findByText("Reservation cancelled");
+  assert.equal(bodies.length, 1);
+  assert(screen.getByText("Original reason: Original cancellation reason"));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Retry cancellation request" }),
+  );
+  await act(async () => {});
+  assert.equal(bodies.length, 2);
+  assert.deepEqual(bodies[1], bodies[0]);
+  assert.equal(window.sessionStorage.length, 0);
+  assert.equal(
+    screen.queryByRole("button", { name: "Retry cancellation request" }),
+    null,
+  );
+});
+
+test("wrong guest after reload never sees the original reason or sends a cancellation", async (t) => {
+  let session = guestRef,
+    posts = 0;
+  t.mock.method(globalThis, "fetch", async (input: any, init: any) => {
+    if (String(input).endsWith("/guest"))
+      return Response.json({ sessionRef: session });
+    if (init.method === "GET")
+      return Response.json({ reservations: [booking], feedback: [] });
+    posts++;
+    throw Error("unknown");
+  });
+  const first = render(<GuestActivity prefix={cancelPrefix} />);
+  await screen.findByText("Reservation confirmed");
+  submitReason("Private original reason");
+  await screen.findByRole("alert");
+  first.unmount();
+  session = "40000000-0000-4000-8000-000000000099";
+  render(<GuestActivity prefix={cancelPrefix} />);
+  await screen.findByText(/Your guest session changed/);
+  assert.equal(screen.queryByText(/Private original reason/), null);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Retry cancellation request" }),
+  );
+  await act(async () => {});
+  assert.equal(posts, 1);
+  assert.ok(window.sessionStorage.length > 0);
+});
+
+test("storage refusal prevents cancellation POST", async (t) => {
+  let posts = 0;
+  t.mock.method(globalThis, "fetch", async (input: any, init: any) => {
+    if (String(input).endsWith("/guest"))
+      return Response.json({ sessionRef: guestRef });
+    if (init.method === "POST") posts++;
+    return Response.json({ reservations: [booking], feedback: [] });
+  });
+  render(<GuestActivity prefix={cancelPrefix} />);
+  await screen.findByText("Reservation confirmed");
+  t.mock.method(window.Storage.prototype, "setItem", () => {
+    throw Error("Storage unavailable");
+  });
+  submitReason();
+  await screen.findByRole("alert");
+  assert.equal(posts, 0);
+});
+
+test("session end cancellation redaction preserves opaque unresolved reference and other guests", async (t) => {
+  const {
+    saveCancellationJournal,
+    prepareCancellationSessionEnd,
+    readCancellationJournal,
+  } = await import("../src/mera/customer/cancellationRecovery");
+  const value = {
+    version: 1 as const,
+    prefix: cancelPrefix,
+    sessionRef: guestRef,
+    reservationId: booking.id,
+    body: {
+      requestKey: "80000000-0000-4000-8000-000000000001",
+      reason: "Sensitive reason",
+    },
+  };
+  saveCancellationJournal(value);
+  const other = "/public/other/20000000-0000-4000-8000-000000000002";
+  saveCancellationJournal({
+    ...value,
+    prefix: other,
+    sessionRef: "40000000-0000-4000-8000-000000000099",
+  });
+  t.mock.method(globalThis, "fetch", async () =>
+    Response.json({ sessionRef: guestRef }),
+  );
+  await prepareCancellationSessionEnd(cancelPrefix);
+  const marker = readCancellationJournal(cancelPrefix)!;
+  assert.ok(!("body" in marker));
+  assert.equal((marker as any).requestKey, value.body.requestKey);
+  assert.ok("body" in readCancellationJournal(other)!);
+  render(<GuestActivity prefix={cancelPrefix} />);
+  await screen.findByText(/Saved cancellation details could not be verified/);
+  assert.equal(screen.queryByText(/Sensitive reason/), null);
+  assert.equal(
+    screen.queryByRole("button", { name: "Retry cancellation request" }),
+    null,
+  );
+});
+
+test("a delayed guest proof after activity scope changes cannot send the old cancellation", async (t) => {
+  let resolve!: (value: Response) => void;
+  let posts = 0;
+  t.mock.method(globalThis, "fetch", async (input: any, init: any) => {
+    if (String(input).endsWith("/guest"))
+      return new Promise<Response>((done) => {
+        resolve = done;
+      });
+    if (init.method === "POST") posts++;
+    return Response.json({ reservations: [booking], feedback: [] });
+  });
+  const view = render(<GuestActivity prefix={cancelPrefix} />);
+  await screen.findByText("Reservation confirmed");
+  submitReason();
+  view.rerender(
+    <GuestActivity prefix="/public/new/20000000-0000-4000-8000-000000000002" />,
+  );
+  await act(async () => {
+    resolve(Response.json({ sessionRef: guestRef }));
+  });
+  assert.equal(posts, 0);
+  assert.equal(window.sessionStorage.length, 0);
+});
+
+test("invalid stored cancellation blocks replacement without exposing untrusted fields", async (t) => {
+  window.sessionStorage.setItem(
+    "mera:customer-cancellation:v1:" + cancelPrefix,
+    JSON.stringify({
+      version: 1,
+      body: { reason: "Untrusted private reason" },
+    }),
+  );
+  let posts = 0;
+  t.mock.method(globalThis, "fetch", async (_input: any, init: any) => {
+    if (init.method === "POST") posts++;
+    return Response.json({ reservations: [booking], feedback: [] });
+  });
+  render(<GuestActivity prefix={cancelPrefix} />);
+  await screen.findByText(/Saved cancellation details could not be verified/);
+  assert.equal(screen.queryByText(/Untrusted private reason/), null);
+  assert.equal(
+    screen.queryByRole("button", { name: "Send cancellation request" }),
+    null,
+  );
+  assert.equal(posts, 0);
+  assert.equal(window.sessionStorage.length, 1);
 });

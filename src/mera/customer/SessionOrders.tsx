@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { customerRequest } from "./client";
 import { prepareHelpSessionEnd } from "./helpRecovery";
+import { prepareCancellationSessionEnd } from "./cancellationRecovery";
 import {
   orderStateLabel,
   paymentStateLabel,
@@ -218,6 +219,7 @@ function ScopedSessionOrders({
               setError("");
               try {
                 await prepareHelpSessionEnd(prefix);
+                await prepareCancellationSessionEnd(prefix);
                 if (current !== generation.current) return;
                 const result = await customerRequest(
                   prefix + "/guest/end",

@@ -119,11 +119,15 @@ test("deposit cancellation shows pending review without claiming refund", async 
   const { default: GuestActivity } =
     await import("../src/mera/customer/GuestActivity.tsx");
   mockGuestSessionFetch(t, async (input, init) => {
+    if (String(input).endsWith("/guest"))
+      return Response.json({
+        sessionRef: "40000000-0000-4000-8000-000000000001",
+      });
     if (String(input).endsWith("/activity"))
       return Response.json({
         reservations: [
           {
-            id: "reservation-one",
+            id: "70000000-0000-4000-8000-000000000001",
             startsAt: "2026-12-01T12:00:00Z",
             partySize: 2,
             status: "confirmed",
@@ -147,13 +151,18 @@ test("deposit cancellation shows pending review without claiming refund", async 
       assert.equal(JSON.parse(init.body).reason, "Plans changed");
       requested = true;
       return Response.json({
+        id: "70000000-0000-4000-8000-000000000001",
         depositReviewRequired: true,
         refundConfirmed: false,
       });
     }
     throw Error("Unexpected request");
   });
-  render(React.createElement(GuestActivity, { prefix: "/public/org/branch" }));
+  render(
+    React.createElement(GuestActivity, {
+      prefix: "/public/org/20000000-0000-4000-8000-000000000001",
+    }),
+  );
   await screen.findByText("Please review service timing");
   fireEvent.click(
     screen.getByText("Request cancellation", { selector: "summary" }),

@@ -120,7 +120,10 @@ test("operator denial clears private data and a late directory response cannot r
   }) as any;
   try {
     render(<Platform />);
-    await waitFor(() => { if(typeof resolveDirectory!=="function") throw new Error("Directory request has not started yet."); });
+    await waitFor(() => {
+      if (typeof resolveDirectory !== "function")
+        throw new Error("Directory request has not started yet.");
+    });
     act(() =>
       window.dispatchEvent(new window.CustomEvent("mera:access-denied")),
     );
@@ -222,23 +225,38 @@ test("organization review opens a named dialog and returns keyboard focus when c
       name: "Review business",
     });
     assert.equal(dialog.contains(document.activeElement), true);
-    const close=screen.getByRole("button",{name:"Close organization"});
-    assert.ok(document.activeElement===close,"Focus should be on the enabled close control.");
-    fireEvent.keyDown(close,{key:"Tab",shiftKey:true});
-    assert.equal(dialog.contains(document.activeElement),true);
-    assert.ok(document.activeElement!==close,"Shift+Tab should wrap away from the first control.");
-    fireEvent.keyDown(document.activeElement!,{key:"Tab"});
-    assert.ok(document.activeElement===close,"Focus should be on the enabled close control.");
+    const close = screen.getByRole("button", { name: "Close organization" });
+    assert.ok(
+      document.activeElement === close,
+      "Focus should be on the enabled close control.",
+    );
+    fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
+    assert.equal(dialog.contains(document.activeElement), true);
+    assert.ok(
+      document.activeElement !== close,
+      "Shift+Tab should wrap away from the first control.",
+    );
+    fireEvent.keyDown(document.activeElement!, { key: "Tab" });
+    assert.ok(
+      document.activeElement === close,
+      "Focus should be on the enabled close control.",
+    );
     trigger.focus();
-    assert.equal(dialog.contains(document.activeElement),true);
+    assert.equal(dialog.contains(document.activeElement), true);
     fireEvent.keyDown(dialog, { key: "Escape" });
     assert.equal(screen.queryByRole("dialog"), null);
-    assert.ok(document.activeElement===trigger,"Focus should return to the organization review trigger.");
+    assert.ok(
+      document.activeElement === trigger,
+      "Focus should return to the organization review trigger.",
+    );
     fireEvent.click(trigger);
     await screen.findByRole("dialog", { name: "Review business" });
     fireEvent.click(screen.getByRole("button", { name: "Close organization" }));
     assert.equal(screen.queryByRole("dialog"), null);
-    assert.ok(document.activeElement===trigger,"Focus should return to the organization review trigger.");
+    assert.ok(
+      document.activeElement === trigger,
+      "Focus should return to the organization review trigger.",
+    );
   } finally {
     cleanup();
   }
@@ -270,7 +288,10 @@ test("support loading failure is recoverable and never masquerades as an empty i
     );
     assert.ok(await screen.findByText("Loading support cases…"));
     assert.equal(screen.queryByText("No support cases recorded."), null);
-    await waitFor(() => { if(typeof finish!=="function") throw new Error("Support request has not started yet."); });
+    await waitFor(() => {
+      if (typeof finish !== "function")
+        throw new Error("Support request has not started yet.");
+    });
     await act(async () => {
       finish!(Response.json({ cases: [] }));
     });
@@ -290,12 +311,18 @@ test("access failure and authenticator recovery move focus to the current state"
   try {
     render(<Platform />);
     const alert = await screen.findByRole("alert");
-    await waitFor(() => { if(document.activeElement!==alert) throw new Error("Access error has not received focus yet."); });
+    await waitFor(() => {
+      if (document.activeElement !== alert)
+        throw new Error("Access error has not received focus yet.");
+    });
     fireEvent.click(screen.getByRole("button", { name: "Refresh access" }));
     const heading = await screen.findByRole("heading", {
       name: "Verify your authenticator",
     });
-    await waitFor(() => { if(document.activeElement!==heading) throw new Error("Verification heading has not received focus yet."); });
+    await waitFor(() => {
+      if (document.activeElement !== heading)
+        throw new Error("Verification heading has not received focus yet.");
+    });
     assert.equal(
       screen.queryByRole("heading", { name: "Organization directory" }),
       null,
@@ -424,5 +451,56 @@ test("compact platform chooser reaches all five sections and shares desktop navi
     assert.ok(screen.getByRole("heading", { name: "Backup readiness" }));
   } finally {
     cleanup();
+  }
+});
+
+test("operator audit never invents session verification as a missing support reason", async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async (input) =>
+    String(input).endsWith("/auth")
+      ? Response.json({ enrolled: true, verified: true })
+      : Response.json({
+          organizations: [],
+          policy: {},
+          audits: [
+            {
+              id: "support",
+              action: "platform_support_case_updated",
+              created_at: "2026-11-19T12:00:00Z",
+              details: {},
+            },
+            {
+              id: "merchant",
+              action: "merchant_support_case_created",
+              created_at: "2026-11-19T12:01:00Z",
+              details: { reason: "  " },
+            },
+            {
+              id: "verification",
+              action: "platform_step_up",
+              created_at: "2026-11-19T12:02:00Z",
+              details: {},
+            },
+            {
+              id: "review",
+              action: "platform_policy_reviewed",
+              created_at: "2026-11-19T12:03:00Z",
+              details: { reason: "Reviewed by operator" },
+            },
+          ],
+        });
+  try {
+    render(<Platform />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Audit log", exact: true }),
+    );
+    assert.equal(screen.getAllByText("No reason recorded").length, 3);
+    assert(!screen.queryByText("Session verification"));
+    assert(screen.getByText("Reviewed by operator"));
+    assert(screen.getByText("platform support case updated"));
+    assert(screen.getByText("merchant support case created"));
+  } finally {
+    cleanup();
+    globalThis.fetch = original;
   }
 });

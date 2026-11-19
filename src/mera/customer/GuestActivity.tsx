@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { customerRequest, requestId } from "./client";
 import {
+  readCancellationJournal,
+  saveCancellationJournal,
+  clearCancellationJournal,
+  proveCancellationSession,
+  type CancellationJournal,
+} from "./cancellationRecovery";
+import {
   reservationStatusLabel,
   reservationDateLabel,
 } from "./reservationPresentation";
@@ -31,7 +38,11 @@ function ScopedGuestActivity({
   const [activity, setActivity] = useState<any>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [loading, setLoading] = useState(true);
+    [loading, setLoading] = useState(true),
+    [privateBlocked, setPrivateBlocked] = useState(false);
+  const pendingJournal = useRef<CancellationJournal | null>(null),
+    blocked = useRef(false),
+    inFlight = useRef(false);
   const mounted = useRef(true);
   const loadGeneration = useRef(0);
   const cancellationIntents = useRef(
@@ -42,13 +53,24 @@ function ScopedGuestActivity({
     if (!mounted.current) return;
     setLoading(true);
     try {
+      if (blocked.current) return;
+      if (pendingJournal.current)
+        await proveCancellationSession(prefix, pendingJournal.current);
+      if (!mounted.current || generation !== loadGeneration.current) return;
       const next = await customerRequest(prefix + "/activity");
       if (!mounted.current || generation !== loadGeneration.current) return;
       setActivity(next);
+      setPrivateBlocked(false);
       setError("");
     } catch (e) {
       if (!mounted.current || generation !== loadGeneration.current) return;
-      if ([401, 403, 404].includes((e as any).status)) setActivity(null);
+      if (
+        pendingJournal.current ||
+        [401, 403, 404].includes((e as any).status)
+      ) {
+        setActivity(null);
+        setPrivateBlocked(true);
+      }
       setError((e as Error).message);
     } finally {
       if (mounted.current && generation === loadGeneration.current)
@@ -57,12 +79,92 @@ function ScopedGuestActivity({
   }
   useEffect(() => {
     mounted.current = true;
-    void load();
+    try {
+      const saved = readCancellationJournal(prefix);
+      if (saved) {
+        if (!("body" in saved))
+          throw Error(
+            "Private cancellation details were cleared. Ask staff to check the original request before requesting another.",
+          );
+        pendingJournal.current = saved;
+        cancellationIntents.current.set(saved.reservationId, saved.body);
+        setPrivateBlocked(true);
+      }
+      void load();
+    } catch {
+      blocked.current = true;
+      setPrivateBlocked(true);
+      setLoading(false);
+      setError(
+        "Saved cancellation details could not be verified. No replacement request will be sent. Ask staff to check the original request.",
+      );
+    }
     return () => {
       mounted.current = false;
       loadGeneration.current++;
     };
   }, [prefix]);
+  async function cancel(reservationId: string, reason: string) {
+    if (inFlight.current || blocked.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      let intent = cancellationIntents.current.get(reservationId);
+      if (
+        pendingJournal.current &&
+        pendingJournal.current.reservationId !== reservationId
+      )
+        throw Error(
+          "Check the original cancellation before requesting another.",
+        );
+      if (intent && intent.reason !== reason)
+        throw Error(
+          "Refresh your activity to check the previous cancellation request before changing its reason.",
+        );
+      const sessionRef = await proveCancellationSession(
+        prefix,
+        pendingJournal.current,
+      );
+      if (!mounted.current) return;
+      if (!intent) intent = { requestKey: requestId(), reason: reason.trim() };
+      const saved = saveCancellationJournal({
+        version: 1,
+        prefix,
+        sessionRef,
+        reservationId,
+        body: intent,
+      });
+      pendingJournal.current = saved;
+      cancellationIntents.current.set(reservationId, saved.body);
+      const result = await customerRequest(
+        prefix + `/reservations/${reservationId}/cancellation`,
+        "POST",
+        saved.body,
+      );
+      if (!mounted.current) return;
+      if (result?.id !== reservationId || result?.refundConfirmed !== false)
+        throw Error(
+          "The original cancellation result could not be verified. Retry the same request.",
+        );
+      clearCancellationJournal(prefix, saved.body.requestKey);
+      pendingJournal.current = null;
+      cancellationIntents.current.delete(reservationId);
+      await load();
+    } catch (e) {
+      if (mounted.current) {
+        if ([401, 403, 404].includes((e as any).status)) {
+          loadGeneration.current++;
+          setActivity(null);
+          setPrivateBlocked(true);
+        }
+        setError((e as Error).message);
+      }
+    } finally {
+      inFlight.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  }
   return (
     <section className="mc-panel mc-activity">
       <h2>Your visits & feedback</h2>
@@ -79,7 +181,40 @@ function ScopedGuestActivity({
       </button>
       {loading && <p role="status">Loading your activity…</p>}
       {error && <p role="alert">{error}</p>}
-      {activity && (
+      {pendingJournal.current && (
+        <p role="status">
+          An original cancellation still needs checking. It is saved in this tab
+          and is never retried automatically.
+        </p>
+      )}
+      {pendingJournal.current &&
+        (privateBlocked ||
+          !activity?.reservations?.some(
+            (r: any) =>
+              r.id === pendingJournal.current?.reservationId &&
+              !r.cancellationRequestedAt &&
+              ["requested", "confirmed"].includes(r.status),
+          )) && (
+          <section aria-label="Original cancellation request">
+            {!privateBlocked && (
+              <p>Original reason: {pendingJournal.current.body.reason}</p>
+            )}
+            <button
+              type="button"
+              className="mc-secondary"
+              disabled={busy || loading}
+              onClick={() =>
+                void cancel(
+                  pendingJournal.current!.reservationId,
+                  pendingJournal.current!.body.reason,
+                )
+              }
+            >
+              Retry cancellation request
+            </button>
+          </section>
+        )}
+      {activity && !privateBlocked && (
         <>
           <h3>Reservations</h3>
           {!activity.reservations?.length && (
@@ -130,40 +265,13 @@ function ScopedGuestActivity({
                   <details className="mc-reservation-cancellation">
                     <summary>Request cancellation</summary>
                     <form
-                      onSubmit={async (event) => {
+                      onSubmit={(event) => {
                         event.preventDefault();
                         const values = new FormData(event.currentTarget);
-                        setBusy(true);
-                        setError("");
-                        try {
-                          const reason = String(values.get("reason"));
-                          let intent = cancellationIntents.current.get(
-                            reservation.id,
-                          );
-                          if (intent && intent.reason !== reason)
-                            throw new Error(
-                              "Refresh your activity to check the previous cancellation request before changing its reason.",
-                            );
-                          if (!intent) {
-                            intent = { requestKey: requestId(), reason };
-                            cancellationIntents.current.set(
-                              reservation.id,
-                              intent,
-                            );
-                          }
-                          await customerRequest(
-                            prefix +
-                              `/reservations/${reservation.id}/cancellation`,
-                            "POST",
-                            intent,
-                          );
-                          if (!mounted.current) return;
-                          await load();
-                        } catch (e) {
-                          if (mounted.current) setError((e as Error).message);
-                        } finally {
-                          if (mounted.current) setBusy(false);
-                        }
+                        void cancel(
+                          reservation.id,
+                          String(values.get("reason")),
+                        );
                       }}
                     >
                       <label>

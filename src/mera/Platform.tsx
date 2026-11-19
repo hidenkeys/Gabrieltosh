@@ -1190,7 +1190,12 @@ export default function Platform() {
                           (o: any) => o.id === event.organization_id,
                         )?.name || "Platform"}
                       </td>
-                      <td>{event.details?.reason || "Session verification"}</td>
+                      <td>
+                        {typeof event.details?.reason === "string" &&
+                        event.details.reason.trim()
+                          ? event.details.reason
+                          : "No reason recorded"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
