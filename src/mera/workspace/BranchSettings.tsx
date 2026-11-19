@@ -2,6 +2,7 @@ import { useState } from "react";
 import TimeWindows from "./TimeWindows";
 import MediaUpload from "../MediaUpload";
 import { brandingTokens } from "../branding";
+import BrandColorField from "./BrandColorField";
 type Props = {
   branch: any;
   organization: any;
@@ -332,26 +333,16 @@ export default function BranchSettings({
               }
             />
           </div>
-          <label>
-            Primary color
-            <input
-              type="color"
-              value={branding.primary}
-              onChange={(event) =>
-                setBranding({ ...branding, primary: event.target.value })
-              }
-            />
-          </label>
-          <label>
-            Accent color
-            <input
-              type="color"
-              value={branding.accent}
-              onChange={(event) =>
-                setBranding({ ...branding, accent: event.target.value })
-              }
-            />
-          </label>
+          <BrandColorField
+            label="Primary color"
+            value={branding.primary}
+            onChange={(primary) => setBranding({ ...branding, primary })}
+          />
+          <BrandColorField
+            label="Accent color"
+            value={branding.accent}
+            onChange={(accent) => setBranding({ ...branding, accent })}
+          />
           <label>
             Approved font
             <select

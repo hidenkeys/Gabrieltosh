@@ -154,3 +154,5 @@ import "./mera/workspace/visit-tools.css";
 import "./mera/workspace/responsibility.css";
 
 import "./mera/workspace/item-fulfillment.css";
+
+import "./mera/customer/checkout.css";

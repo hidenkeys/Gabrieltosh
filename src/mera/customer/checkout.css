@@ -1,0 +1,172 @@
+.mera-customer .mc-checkout-form {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+.mera-customer .mc-checkout-items,
+.mera-customer .mc-checkout-review {
+  min-width: 0;
+  border-top: 1px solid #e9e6e2;
+  padding-top: 18px;
+  margin-top: 18px;
+}
+.mera-customer .mc-checkout-form h3 {
+  font-family: inherit;
+  font-size: 16px;
+  margin: 0 0 12px;
+  color: #111b2f;
+}
+.mera-customer .mc-checkout-form h4 {
+  font-family: inherit;
+  font-size: 14px;
+  margin: 0 0 10px;
+  color: #111b2f;
+}
+.mera-customer .mc-checkout-details {
+  min-width: 0;
+  border: 0;
+  border-top: 1px solid #e9e6e2;
+  margin: 18px 0 0;
+  padding: 18px 0 0;
+  display: grid;
+  gap: 12px;
+}
+.mera-customer .mc-checkout-details legend {
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111b2f;
+  padding: 0 12px 0 0;
+}
+.mera-customer .mc-checkout-hint {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #51647d;
+  margin: 0;
+}
+.mera-customer .mc-checkout-details label {
+  margin: 0;
+  display: grid;
+  gap: 7px;
+}
+.mera-customer .mc-checkout-details input,
+.mera-customer .mc-checkout-details select {
+  min-height: 44px;
+}
+.mera-customer .mc-checkout-details textarea {
+  min-height: 88px;
+  resize: vertical;
+  line-height: 1.5;
+}
+.mera-customer .mc-checkout-details input[aria-invalid="true"] {
+  border-color: #a63e36;
+}
+.mera-customer .mc-checkout-error {
+  padding: 14px;
+  border: 1px solid #dfbbb6;
+  border-radius: 8px;
+  background: #fff5f3;
+  color: #76302a;
+  margin-block: 12px;
+  line-height: 1.5;
+}
+.mera-customer .mc-checkout-error h3 {
+  font-size: 15px;
+  margin: 0 0 6px;
+}
+.mera-customer .mc-checkout-error p {
+  margin: 0;
+}
+.mera-customer .mc-checkout-error:focus-visible {
+  outline: 3px solid var(--mc-link, #1558c9);
+  outline-offset: 3px;
+}
+.mera-customer .mc-checkout-price-review {
+  padding: 14px;
+  border: 1px solid #e9e6e2;
+  border-radius: 8px;
+  background: #f8f7f4;
+  line-height: 1.6;
+}
+.mera-customer .mc-checkout-price-review p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+.mera-customer .mc-checkout-price-review p:last-child {
+  font-size: 12px;
+  color: #51647d;
+  margin-bottom: 0;
+}
+.mera-customer .mc-checkout-review > .mc-total {
+  margin-block: 18px;
+  padding-block: 14px;
+  border-block: 1px solid #e9e6e2;
+  align-items: baseline;
+  gap: 12px;
+}
+.mera-customer .mc-checkout-review > .mc-total span:first-child {
+  font-size: 15px;
+}
+.mera-customer .mc-checkout-review > .mc-total span:last-child {
+  font-size: 23px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.mera-customer .mc-checkout-review > .mc-primary {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 14px;
+}
+.mera-customer .mc-checkout-review > .mc-note {
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 12px;
+  border: 1px solid #e9e6e2;
+  border-radius: 8px;
+  background: #fffefa;
+}
+.mera-customer .mc-checkout-pending {
+  padding: 14px;
+  border: 1px solid #e9e6e2;
+  border-radius: 8px;
+  background: #f8f7f4;
+  margin-block: 14px;
+  line-height: 1.6;
+}
+.mera-customer .mc-checkout-pending .mc-actions {
+  display: grid;
+  gap: 8px;
+}
+.mera-customer .mc-checkout-pending button {
+  min-height: 44px;
+}
+.mera-customer .mc-checkout-pending h3:focus-visible {
+  outline: 3px solid var(--mc-link, #1558c9);
+  outline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .mera-customer .mc-checkout-details,
+  .mera-customer .mc-checkout-items,
+  .mera-customer .mc-checkout-review {
+    margin-top: 16px;
+    padding-top: 16px;
+  }
+  .mera-customer .mc-checkout-pending .mc-alert button {
+    width: 100%;
+    margin-top: 8px;
+  }
+}
+.mera-customer .mc-checkout-notice {
+  padding: 14px;
+  margin-block: 12px;
+  border: 1px solid #e9e6e2;
+  border-radius: 8px;
+  background: #f8f7f4;
+  color: #111b2f;
+  line-height: 1.6;
+}
+.mera-customer .mc-checkout-notice:focus-visible {
+  outline: 3px solid var(--mc-link, #1558c9);
+  outline-offset: 3px;
+}

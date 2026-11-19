@@ -764,11 +764,11 @@ test("session history pages and ending require explicit in-app confirmation", as
       },
     }),
   );
-  await screen.findByText("M-FIRST · ready · paid");
+  await screen.findByText("M-FIRST · Ready · Payment confirmed");
   fireEvent.click(
     screen.getByRole("button", { name: "Load more session orders" }),
   );
-  await screen.findByText("M-SECOND · completed · paid");
+  await screen.findByText("M-SECOND · Completed · Payment confirmed");
   fireEvent.click(screen.getByRole("button", { name: "Open order M-SECOND" }));
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(selected.id, "second");

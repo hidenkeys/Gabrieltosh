@@ -142,7 +142,7 @@ test("canonical selection fetches current order, formats status, and denial clea
     />,
   );
   await screen.findByRole("button", { name: "Open order M-ORIGINAL" });
-  assert(screen.getByText("M-ORIGINAL · preparing · partially paid"));
+  assert(screen.getByText("M-ORIGINAL · Being prepared · Partly paid"));
   fireEvent.click(
     screen.getByRole("button", { name: "Open order M-ORIGINAL" }),
   );

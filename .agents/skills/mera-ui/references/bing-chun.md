@@ -61,3 +61,7 @@ Detailed limits and verified interactions: `docs/mera/ui-audit/FRONTDESK-PUBLIC-
 
 - `TableServiceView.tsx`, `table-service.css`, `NonReplayForm.tsx`, `Bills.tsx`, `bills.css`, `VisitTables.tsx`, `VisitMinimumSpend.tsx`, `PrivateVisitAccess.tsx`, `visit-tools.css`: source-derived table/party/setup hierarchy and guarded action panels; actual144–147. See TABLES-CHECKPOINT.md.
 - `OrderResponsibility.tsx`, `responsibility.css`, `ItemFulfillment.tsx`, `item-fulfillment.css`: order handler selection/history and separate cumulative prepared-item handoff; actual148–154 and service-responsibility-comparison.html. Scope current order handler accurately; do not invent persistent visit waiter assignment. Keep unknown attempts mounted across local filters. See SERVICE-HANDOFF-CHECKPOINT.md for actual QA and remaining acceptance.
+
+## Customer checkout consumers
+
+`src/mera/customer/CustomerExperience.tsx` basket/checkout.css now groups native order entry, local recovery feedback and manual-payment review while retaining parent journals/quotes. `orderPresentation.ts` supplies customer labels/date formatting to tracking and SessionOrders; never interpret a successful submit as paid. `src/mera/workspace/BrandColorField.tsx` adds exact hex entry to existing BranchSettings branding. Actual155–166 and customer-checkout-comparison.html; limits and fixture restoration are documented in CUSTOMER-CHECKOUT-CHECKPOINT.md. Temporary QA theme values are test data, not design tokens.

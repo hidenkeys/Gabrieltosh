@@ -208,10 +208,17 @@ test("successful visit refresh does not clear an unrelated uncertain order write
       ),
     ),
   );
-  await screen.findByText("Order write could not be confirmed");
+  await screen.findByText("An order request still needs review.");
+  assert.equal(screen.queryByText("Order write could not be confirmed"), null);
   fireEvent.click(screen.getByRole("button", { name: "Refresh bill" }));
   await screen.findByText("₦2,000.00");
-  assert(screen.getByText("Order write could not be confirmed"));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Review your order request" }),
+  );
+  const checkoutError = await screen.findByText(
+    "Order write could not be confirmed",
+  );
+  assert(checkoutError.closest("#mc-basket"));
 });
 
 for (const phase of ["terms", "private bill"] as const)

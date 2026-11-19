@@ -1,19 +1,125 @@
 /* Management pilot: semantic aliases use the verified original Bing Chun palette. */
-.mw-management { --management-ink:#111b2f; --management-blue:#2f7df6; --management-line:#e9e6e2; color:var(--management-ink); font-family:Inter,system-ui,sans-serif; }
-.mw-management [hidden] { display:none!important; }
-.mw-management-heading { display:flex; align-items:start; justify-content:space-between; gap:16px; margin-bottom:20px; }
-.mw-management-heading h2 { margin:5px 0 8px; font-size:23px; line-height:1.25; }
-.mw-management-heading p { max-width:66ch; margin:0; line-height:1.5; }
-.mw-management-eyebrow { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
-.mw-management-switch { display:flex; flex-wrap:wrap; gap:8px; border-bottom:1px solid var(--management-line); padding-bottom:16px; margin-bottom:20px; }
-.mw-management-switch button { min-height:44px; padding:10px 16px; border:1px solid var(--management-line); border-radius:9px; background:#fffefa; color:var(--management-ink); font:inherit; cursor:pointer; }
-.mw-management-switch button[aria-pressed=true] { color:#fff; background:#1558c9; border-color:#1558c9; }
-.mw-management button:focus-visible,.mw-management input:focus-visible,.mw-management select:focus-visible { outline:3px solid var(--management-blue); outline-offset:3px; }
-.mw-management-panel { border:1px solid var(--management-line); border-radius:14px; background:#fffefa; }
-.mw-management-panel > h2 { font-size:19px; }
-.mw-management-panel fieldset { border:1px solid var(--management-line); border-radius:10px; padding:16px; min-width:0; }
-.mw-management-panel legend { font-weight:650; padding:0 6px; }
-.mw-management-feedback,.mw-management-empty { padding:14px 16px; background:#f8f7f4; border:1px solid var(--management-line); border-radius:10px; line-height:1.5; }
-.mw-management-summary { padding-block:12px; border-bottom:1px solid var(--management-line); }
-.mw-management-checklist { margin-block:20px; }
-@media(max-width:640px) { .mw-management-heading h2 { font-size:21px; } .mw-management-switch button { flex:1 1 auto; } .mw-management .mw-form { grid-template-columns:minmax(0,1fr); } .mw-management-panel fieldset { padding:12px; } }
+.mw-management {
+  --management-ink: #111b2f;
+  --management-blue: #2f7df6;
+  --management-line: #e9e6e2;
+  color: var(--management-ink);
+  font-family: Inter, system-ui, sans-serif;
+}
+.mw-management [hidden] {
+  display: none !important;
+}
+.mw-management-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.mw-management-heading h2 {
+  margin: 5px 0 8px;
+  font-size: 23px;
+  line-height: 1.25;
+}
+.mw-management-heading p {
+  max-width: 66ch;
+  margin: 0;
+  line-height: 1.5;
+}
+.mw-management-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.mw-management-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid var(--management-line);
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+.mw-management-switch button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--management-line);
+  border-radius: 9px;
+  background: #fffefa;
+  color: var(--management-ink);
+  font: inherit;
+  cursor: pointer;
+}
+.mw-management-switch button[aria-pressed="true"] {
+  color: #fff;
+  background: #1558c9;
+  border-color: #1558c9;
+}
+.mw-management button:focus-visible,
+.mw-management input:focus-visible,
+.mw-management select:focus-visible {
+  outline: 3px solid var(--management-blue);
+  outline-offset: 3px;
+}
+.mw-management-panel {
+  border: 1px solid var(--management-line);
+  border-radius: 14px;
+  background: #fffefa;
+}
+.mw-management-panel > h2 {
+  font-size: 19px;
+}
+.mw-management-panel fieldset {
+  border: 1px solid var(--management-line);
+  border-radius: 10px;
+  padding: 16px;
+  min-width: 0;
+}
+.mw-management-panel legend {
+  font-weight: 650;
+  padding: 0 6px;
+}
+.mw-management-feedback,
+.mw-management-empty {
+  padding: 14px 16px;
+  background: #f8f7f4;
+  border: 1px solid var(--management-line);
+  border-radius: 10px;
+  line-height: 1.5;
+}
+.mw-management-summary {
+  padding-block: 12px;
+  border-bottom: 1px solid var(--management-line);
+}
+.mw-management-checklist {
+  margin-block: 20px;
+}
+@media (max-width: 640px) {
+  .mw-management-heading h2 {
+    font-size: 21px;
+  }
+  .mw-management-switch button {
+    flex: 1 1 auto;
+  }
+  .mw-management .mw-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mw-management-panel fieldset {
+    padding: 12px;
+  }
+}
+
+.mw-brand-color {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 14px;
+  align-items: end;
+  min-width: 0;
+}
+.mw-brand-color label {
+  min-width: 0;
+}
+.mw-brand-color input[type="text"] {
+  width: 100%;
+  min-width: 0;
+}

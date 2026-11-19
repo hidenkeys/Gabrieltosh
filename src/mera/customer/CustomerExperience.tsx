@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { brandingStyle } from "../branding";
+import {
+  orderStateLabel,
+  paymentStateLabel,
+  activityLabel,
+  customerDate,
+} from "./orderPresentation";
 import { categoryNavigation, matchesCategory } from "./categories";
 import { quoteDeadline, quoteReviewExpired } from "./quoteClock";
 import {
@@ -93,6 +99,14 @@ export default function CustomerExperience({
   );
   const [joinTable, setJoinTable] = useState(requestedTable || "");
   const [branches, setBranches] = useState<any[]>([]);
+  const [checkoutError, setCheckoutError] = useState("");
+  const [checkoutNotice, setCheckoutNotice] = useState("");
+  const checkoutNoticeRef = useRef<HTMLDivElement>(null);
+  const [checkoutNameInvalid, setCheckoutNameInvalid] = useState(false);
+  const checkoutErrorRef = useRef<HTMLDivElement>(null);
+  const checkoutNameRef = useRef<HTMLInputElement>(null);
+  const stopRequestHeadingRef = useRef<HTMLHeadingElement>(null);
+  const orderHeadingRef = useRef<HTMLHeadingElement>(null);
   const [hasGuest, setHasGuest] = useState(false);
   const [menu, setMenu] = useState<any>(null),
     [error, setError] = useState(""),
@@ -252,6 +266,9 @@ export default function CustomerExperience({
     });
     checkoutInFlight.current = false;
     setBusy(false);
+    setCheckoutError("");
+    setCheckoutNotice("");
+    setCheckoutNameInvalid(false);
     checkoutIntentRef.current = null;
     setCheckoutIntent(null);
     setCart([]);
@@ -627,6 +644,9 @@ export default function CustomerExperience({
     setFulfillment("counter_pickup");
     setTrackingError("");
     setError("");
+    setCheckoutError("");
+    setCheckoutNotice("");
+    setCheckoutNameInvalid(false);
     setSuccess(message);
     setTab("menu");
     reservationKey.current = requestId();
@@ -737,12 +757,84 @@ export default function CustomerExperience({
       : null;
   const expiredReview =
     !checkoutIntent && currentQuote && quoteReviewExpired(currentQuote);
+  const checkoutWorking =
+    busy && (checkoutInFlight.current || resolvingAttempt.current);
+  useEffect(() => {
+    if (tab === "track" && order?.id) orderHeadingRef.current?.focus();
+  }, [tab, order?.id]);
+  useEffect(() => {
+    if (!checkoutError || tab !== "menu") return;
+    if (
+      checkoutNameInvalid &&
+      checkoutNameRef.current &&
+      !checkoutNameRef.current.disabled
+    )
+      checkoutNameRef.current.focus();
+    else {
+      checkoutErrorRef.current?.focus();
+      checkoutErrorRef.current?.scrollIntoView?.({
+        block: "nearest",
+        behavior: "auto",
+      });
+    }
+  }, [checkoutError, checkoutNameInvalid, tab, checkoutRecovery.phase]);
+  useEffect(() => {
+    if (confirmStopRequest) stopRequestHeadingRef.current?.focus();
+  }, [confirmStopRequest]);
+  useEffect(() => {
+    if (tab === "menu" && checkoutNotice) {
+      checkoutNoticeRef.current?.focus();
+      checkoutNoticeRef.current?.scrollIntoView?.({
+        block: "nearest",
+        behavior: "auto",
+      });
+    }
+  }, [checkoutNotice, tab]);
+  function reviewCheckout() {
+    setTab("menu");
+    setBasketViewed(true);
+  }
   async function submitOrder() {
-    if (checkoutInFlight.current || checkoutRecovery.phase !== "ready") return;
+    if (
+      checkoutInFlight.current ||
+      resolvingAttempt.current ||
+      busy ||
+      checkoutRecovery.phase !== "ready"
+    )
+      return;
+    if (!checkoutIntentRef.current) {
+      setCheckoutNameInvalid(false);
+      if (!cart.length) {
+        setCheckoutError(
+          "Your basket is empty. Choose something from the menu before submitting.",
+        );
+        return;
+      }
+      if (!displayName.trim() || displayName.trim().length > 100) {
+        setCheckoutNameInvalid(true);
+        setCheckoutError(
+          "Enter the name we should call for your order (up to 100 characters).",
+        );
+        return;
+      }
+      if (!menu?.orderingAvailable) {
+        setCheckoutError(
+          "Ordering is paused. You can keep browsing, but no new order can be sent right now.",
+        );
+        return;
+      }
+      if (fulfillment === "table_service" && !visit?.visit?.id) {
+        setCheckoutError(
+          "Join your table before placing a table order, or choose counter pickup or takeaway.",
+        );
+        return;
+      }
+    }
     checkoutInFlight.current = true;
     const generation = checkoutGeneration.current;
     setBusy(true);
-    setError("");
+    setCheckoutError("");
+    setCheckoutNotice("");
     let attempt = checkoutIntentRef.current;
     let sessionVerified = false;
     try {
@@ -890,7 +982,7 @@ export default function CustomerExperience({
           });
       }
       await load().catch(() => {});
-      setError(message);
+      setCheckoutError(message);
     } finally {
       if (generation === checkoutGeneration.current) {
         checkoutInFlight.current = false;
@@ -908,7 +1000,8 @@ export default function CustomerExperience({
     resolvingAttempt.current = true;
     const generation = checkoutGeneration.current;
     setBusy(true);
-    setError("");
+    setCheckoutError("");
+    setCheckoutNotice("");
     try {
       const scope = checkoutScopeFromMenu(
         menu?.organization?.id,
@@ -935,11 +1028,10 @@ export default function CustomerExperience({
       );
       if (generation !== checkoutGeneration.current) return;
       if (result.status === "not_found") {
-        setCheckoutRecovery({
-          phase: "ready",
-          message:
-            "The venue has not recorded this request yet. That does not confirm failure. Keep the original retry details, or explicitly stop this unconfirmed request before starting another.",
-        });
+        setCheckoutRecovery({ phase: "ready", message: "" });
+        setCheckoutNotice(
+          "The venue has not recorded this request yet. That does not confirm failure. Keep the original retry details, or explicitly stop this unconfirmed request before starting another.",
+        );
         return;
       }
       if (result.status === "recorded") {
@@ -973,7 +1065,7 @@ export default function CustomerExperience({
       } else {
         setTab("menu");
         setFulfillment(visit?.visit?.id ? "table_service" : "counter_pickup");
-        setSuccess(
+        setCheckoutNotice(
           "That unconfirmed request is stopped. No payment or refund was made. You can choose items for a new order.",
         );
         void load();
@@ -981,7 +1073,7 @@ export default function CustomerExperience({
     } catch (e) {
       if (generation !== checkoutGeneration.current) return;
       checkoutUncertain.current = true;
-      setError((e as Error).message);
+      setCheckoutError((e as Error).message);
       if (
         e instanceof CheckoutRecoveryError ||
         [401, 403, 404].includes((e as any).status)
@@ -1398,6 +1490,23 @@ export default function CustomerExperience({
             </button>
           </div>
         )}
+        {tab !== "menu" &&
+          (checkoutError || (checkoutNotice && checkoutIntent)) && (
+            <div className="mc-alert" role="status">
+              <p>
+                {checkoutIntent
+                  ? "An order request still needs review."
+                  : "Your basket needs attention."}
+              </p>
+              <button
+                type="button"
+                className="mc-secondary"
+                onClick={reviewCheckout}
+              >
+                Review your order request
+              </button>
+            </div>
+          )}
         {success && (
           <div className="mc-alert mc-success" role="status">
             {success}
@@ -1507,7 +1616,11 @@ export default function CustomerExperience({
                       {p.allergens?.length > 0 && (
                         <p>Allergens: {p.allergens.join(", ")}</p>
                       )}
-                      <span className="mc-price">{money(p.price)}</span>
+                      <span className="mc-price">
+                        {p.variants?.length
+                          ? "Choose size for price"
+                          : money(p.price)}
+                      </span>
                       <button
                         aria-label={`${!p.available || (p.stockMode === "counted" && p.stock <= 0) ? "Sold out" : "Choose"}: ${p.name}`}
                         disabled={
@@ -1567,6 +1680,28 @@ export default function CustomerExperience({
               ref={basketRef}
               aria-labelledby="mc-basket-title"
             >
+              {checkoutNotice && (
+                <div
+                  className="mc-checkout-notice"
+                  role="status"
+                  tabIndex={-1}
+                  ref={checkoutNoticeRef}
+                >
+                  {checkoutNotice}
+                </div>
+              )}
+              {checkoutError && (
+                <div
+                  id="mc-checkout-error"
+                  className="mc-checkout-error"
+                  role="alert"
+                  tabIndex={-1}
+                  ref={checkoutErrorRef}
+                >
+                  <h3>Check your order</h3>
+                  <p>{checkoutError}</p>
+                </div>
+              )}
               {checkoutRecovery.phase !== "ready" ? (
                 <div className="mc-recovery">
                   <h2 id="mc-basket-title" ref={basketHeadingRef} tabIndex={-1}>
@@ -1584,7 +1719,14 @@ export default function CustomerExperience({
                   )}
                 </div>
               ) : (
-                <>
+                <form
+                  className="mc-checkout-form"
+                  aria-label="Review your order"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void submitOrder();
+                  }}
+                >
                   <div className="mc-basket-heading">
                     <h2
                       id="mc-basket-title"
@@ -1598,249 +1740,338 @@ export default function CustomerExperience({
                     </span>
                   </div>
                   <button
+                    type="button"
                     className="mc-mobile-only mc-secondary"
                     onClick={returnToMenu}
                   >
                     Back to menu
                   </button>
-                  {cart.length === 0 ? (
-                    <p className="mc-basket-empty">
-                      Your basket is empty. Choose something from the menu to
-                      get started.
-                    </p>
-                  ) : (
-                    cart.map((line) => (
-                      <div className="mc-line" key={line.key}>
-                        <strong>{line.name}</strong>
-                        <small>{line.summary}</small>
-                        <div className="mc-line-controls">
-                          <button
-                            aria-label={`Remove one ${line.name}${line.summary ? ` (${line.summary})` : ""}`}
-                            disabled={checkoutLocked}
-                            onClick={() => {
-                              if (
-                                checkoutIntentRef.current ||
-                                checkoutInFlight.current
-                              )
-                                return;
-                              setCart((old) =>
-                                old
-                                  .map((l) =>
-                                    l.key === line.key
-                                      ? { ...l, quantity: l.quantity - 1 }
-                                      : l,
-                                  )
-                                  .filter((l) => l.quantity > 0),
-                              );
-                              checkoutKey.current = requestId();
-                            }}
-                          >
-                            −
-                          </button>
-                          <span>{line.quantity}</span>
-                          <button
-                            aria-label={`Add one ${line.name}${line.summary ? ` (${line.summary})` : ""}`}
-                            disabled={checkoutLocked || line.quantity >= 100}
-                            onClick={() => {
-                              if (
-                                checkoutIntentRef.current ||
-                                checkoutInFlight.current
-                              )
-                                return;
-                              setCart((old) =>
-                                old.map((l) =>
-                                  l.key === line.key
-                                    ? { ...l, quantity: l.quantity + 1 }
-                                    : l,
-                                ),
-                              );
-                              checkoutKey.current = requestId();
-                            }}
-                          >
-                            +
-                          </button>
-                          <b>{money(line.unitPrice * line.quantity)}</b>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                  <label>
-                    Your name
-                    <input
-                      maxLength={100}
-                      autoComplete="given-name"
-                      value={displayName}
-                      disabled={checkoutLocked}
-                      onChange={(e) => {
-                        if (!checkoutLocked) setDisplayName(e.target.value);
-                      }}
-                      placeholder="What should we call you?"
-                    />
-                  </label>
-                  <label>
-                    Enjoy it
-                    <select
-                      value={fulfillment}
-                      disabled={checkoutLocked}
-                      onChange={(e) => {
-                        if (!checkoutLocked) setFulfillment(e.target.value);
-                      }}
-                    >
-                      <option value="counter_pickup">Counter pickup</option>
-                      <option value="takeaway">Takeaway</option>
-                      {(visit ||
-                        checkoutIntent?.fulfillment === "table_service") && (
-                        <option value="table_service">At my table</option>
-                      )}
-                    </select>
-                  </label>
-                  <label>
-                    Anything we should know?
-                    <textarea
-                      maxLength={500}
-                      value={note}
-                      disabled={checkoutLocked}
-                      onChange={(e) => {
-                        if (!checkoutLocked) setNote(e.target.value);
-                      }}
-                      placeholder="Optional order note"
-                    />
-                  </label>
-                  {currentQuote && (
-                    <div aria-label="Server price review" role="status">
-                      <p>Subtotal {money(currentQuote.subtotal)}</p>
-                      {currentQuote.lines?.map((line: any, index: number) => (
-                        <p key={index}>
-                          {line.label}: {money(line.amount)}
-                        </p>
-                      ))}
-                      <p>
-                        Review these charges before submitting. Quote expires{" "}
-                        {new Date(currentQuote.expiresAt).toLocaleTimeString()}.
-                      </p>
-                    </div>
-                  )}
-                  {expiredReview && (
-                    <p className="mc-alert" role="status">
-                      This price review has expired or its time could not be
-                      verified. Review the latest total before submitting. No
-                      order has been sent.
-                    </p>
-                  )}
-                  <div className="mc-total">
-                    <span>
-                      {menu.pricingPolicy?.enabled && !currentQuote
-                        ? "Items estimate"
-                        : "Total"}
-                    </span>
-                    <span>{money(currentQuote?.total ?? total)}</span>
-                  </div>
-                  {menu.pricingPolicy?.enabled && !currentQuote && (
-                    <p>
-                      Review the server’s discount, service charge and tax
-                      before submitting your order.
-                    </p>
-                  )}
-                  <p className="mc-note">
-                    The venue checks final prices and availability when you
-                    submit. Online payment is not available. Please pay at the
-                    counter; staff will confirm your payment.
-                  </p>
-                  {!menu.orderingAvailable && (
-                    <div className="mc-alert">
-                      Ordering is currently paused. You can still browse the
-                      menu.
-                    </div>
-                  )}
-                  {checkoutIntent && !busy && (
-                    <p className="mc-note" role="status">
-                      Order confirmation is uncertain. Your original basket and
-                      details are preserved. Retry this request or check your
-                      session orders before starting another order.
-                    </p>
-                  )}
-                  {checkoutIntent && (
-                    <div className="mc-actions">
-                      <button
-                        type="button"
-                        className="mc-secondary"
-                        disabled={busy}
-                        onClick={() => void resolveOriginalOrder()}
-                      >
-                        Check original order
-                      </button>
-                      <button
-                        type="button"
-                        className="mc-secondary"
-                        disabled={busy}
-                        onClick={() => setConfirmStopRequest(true)}
-                      >
-                        Stop unconfirmed request…
-                      </button>
-                    </div>
-                  )}
-                  {checkoutIntent && confirmStopRequest && (
-                    <div className="mc-alert">
-                      <h3>Stop this unconfirmed request?</h3>
-                      <p>
-                        If the venue already received your order, it will be
-                        kept and shown to you. Otherwise this request will be
-                        stopped so you can start another. This does not cancel
-                        an accepted order, make a payment or confirm a refund.
-                      </p>
-                      <label>
-                        Why stop this request?
-                        <textarea
-                          minLength={3}
-                          maxLength={500}
-                          value={stopReason}
-                          disabled={busy}
-                          onChange={(event) =>
-                            setStopReason(event.target.value)
-                          }
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        className="mc-secondary"
-                        disabled={busy}
-                        onClick={() => setConfirmStopRequest(false)}
-                      >
-                        Keep original request
-                      </button>
-                      <button
-                        type="button"
-                        className="mc-primary"
-                        disabled={busy || stopReason.trim().length < 3}
-                        onClick={() => void resolveOriginalOrder(true)}
-                      >
-                        Stop this request
-                      </button>
-                    </div>
-                  )}
-                  <button
-                    className="mc-primary"
-                    disabled={
-                      busy ||
-                      (!checkoutIntent &&
-                        (!cart.length ||
-                          !displayName.trim() ||
-                          !menu.orderingAvailable))
-                    }
-                    onClick={submitOrder}
+                  <section
+                    className="mc-checkout-items"
+                    aria-labelledby="mc-checkout-items-title"
                   >
-                    {busy
-                      ? "Checking…"
-                      : checkoutIntent
-                        ? "Retry original order"
-                        : menu.pricingPolicy?.enabled &&
-                            (!currentQuote || expiredReview)
-                          ? expiredReview
-                            ? "Review latest total"
-                            : "Review total"
-                          : "Submit order"}
-                  </button>
-                </>
+                    <h3 id="mc-checkout-items-title">Your items</h3>
+                    {cart.length === 0 ? (
+                      <p className="mc-basket-empty">
+                        Your basket is empty. Choose something from the menu to
+                        get started.
+                      </p>
+                    ) : (
+                      cart.map((line) => (
+                        <div className="mc-line" key={line.key}>
+                          <strong>{line.name}</strong>
+                          <small>{line.summary}</small>
+                          <div className="mc-line-controls">
+                            <button
+                              type="button"
+                              aria-label={`Remove one ${line.name}${line.summary ? ` (${line.summary})` : ""}`}
+                              disabled={checkoutLocked}
+                              onClick={() => {
+                                if (
+                                  checkoutIntentRef.current ||
+                                  checkoutInFlight.current
+                                )
+                                  return;
+                                setCart((old) =>
+                                  old
+                                    .map((l) =>
+                                      l.key === line.key
+                                        ? { ...l, quantity: l.quantity - 1 }
+                                        : l,
+                                    )
+                                    .filter((l) => l.quantity > 0),
+                                );
+                                checkoutKey.current = requestId();
+                              }}
+                            >
+                              −
+                            </button>
+                            <span>{line.quantity}</span>
+                            <button
+                              type="button"
+                              aria-label={`Add one ${line.name}${line.summary ? ` (${line.summary})` : ""}`}
+                              disabled={checkoutLocked || line.quantity >= 100}
+                              onClick={() => {
+                                if (
+                                  checkoutIntentRef.current ||
+                                  checkoutInFlight.current
+                                )
+                                  return;
+                                setCart((old) =>
+                                  old.map((l) =>
+                                    l.key === line.key
+                                      ? { ...l, quantity: l.quantity + 1 }
+                                      : l,
+                                  ),
+                                );
+                                checkoutKey.current = requestId();
+                              }}
+                            >
+                              +
+                            </button>
+                            <b>{money(line.unitPrice * line.quantity)}</b>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </section>
+                  <fieldset
+                    className="mc-checkout-details"
+                    disabled={checkoutLocked}
+                  >
+                    <legend>Order details</legend>
+                    <label>
+                      Your name
+                      <input
+                        ref={checkoutNameRef}
+                        required={!checkoutIntent}
+                        aria-invalid={checkoutNameInvalid || undefined}
+                        aria-describedby={`mc-order-name-hint${checkoutNameInvalid ? " mc-checkout-error" : ""}`}
+                        onInvalid={(event) => {
+                          event.preventDefault();
+                          setCheckoutNameInvalid(true);
+                          setCheckoutError(
+                            "Enter the name we should call for your order (up to 100 characters).",
+                          );
+                          checkoutNameRef.current?.focus();
+                        }}
+                        maxLength={100}
+                        autoComplete="given-name"
+                        value={displayName}
+                        disabled={checkoutLocked}
+                        onChange={(e) => {
+                          if (!checkoutLocked) {
+                            setDisplayName(e.target.value);
+                            setCheckoutNameInvalid(false);
+                            if (checkoutNameInvalid) setCheckoutError("");
+                          }
+                        }}
+                        placeholder="What should we call you?"
+                      />
+                    </label>
+                    <p id="mc-order-name-hint" className="mc-checkout-hint">
+                      We’ll use this name when your order is ready.
+                    </p>
+                    <label>
+                      Enjoy it
+                      <select
+                        value={fulfillment}
+                        disabled={checkoutLocked}
+                        onChange={(e) => {
+                          if (!checkoutLocked) setFulfillment(e.target.value);
+                        }}
+                      >
+                        <option value="counter_pickup">Counter pickup</option>
+                        <option value="takeaway">Takeaway</option>
+                        {(visit ||
+                          checkoutIntent?.fulfillment === "table_service") && (
+                          <option value="table_service">At my table</option>
+                        )}
+                      </select>
+                    </label>
+                    {fulfillment === "table_service" && (
+                      <p className="mc-checkout-hint">
+                        {visit?.visit?.tableName
+                          ? `For ${visit.visit.tableName}.`
+                          : "For your original joined table. Ask staff if you are unsure which table this request belongs to."}
+                      </p>
+                    )}
+                    <label>
+                      Anything we should know?
+                      <textarea
+                        maxLength={500}
+                        value={note}
+                        disabled={checkoutLocked}
+                        onChange={(e) => {
+                          if (!checkoutLocked) setNote(e.target.value);
+                        }}
+                        placeholder="Optional order note"
+                      />
+                    </label>
+                  </fieldset>
+                  <section
+                    className="mc-checkout-review"
+                    aria-labelledby="mc-checkout-review-title"
+                  >
+                    <h3 id="mc-checkout-review-title">Review & send</h3>
+                    {currentQuote && (
+                      <div
+                        aria-label="Price review"
+                        className="mc-checkout-price-review"
+                      >
+                        <h4>
+                          {expiredReview
+                            ? "Previous price review"
+                            : "Price review"}
+                        </h4>
+                        <p>Subtotal {money(currentQuote.subtotal)}</p>
+                        {currentQuote.lines?.map((line: any, index: number) => (
+                          <p key={index}>
+                            {line.label}: {money(line.amount)}
+                          </p>
+                        ))}
+                        <p>
+                          {checkoutIntent ? (
+                            "Your original reviewed charges are kept while this request is checked."
+                          ) : (
+                            <>
+                              Review these charges before submitting. Review
+                              expires at{" "}
+                              {new Date(
+                                currentQuote.expiresAt,
+                              ).toLocaleTimeString()}
+                              .
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                    {expiredReview && (
+                      <p className="mc-alert" role="status">
+                        This price review has expired or its time could not be
+                        verified. Review the latest total before submitting. No
+                        order has been sent.
+                      </p>
+                    )}
+                    <div className="mc-total">
+                      <span>
+                        {checkoutIntent
+                          ? "Original order total"
+                          : expiredReview
+                            ? "Previous reviewed total"
+                            : menu.pricingPolicy?.enabled && !currentQuote
+                              ? "Items estimate"
+                              : "Total"}
+                      </span>
+                      <span>{money(currentQuote?.total ?? total)}</span>
+                    </div>
+                    {menu.pricingPolicy?.enabled && !currentQuote && (
+                      <p>
+                        Review discounts, service charge and tax before
+                        submitting your order.
+                      </p>
+                    )}
+                    <p className="mc-note">
+                      The venue checks final prices and availability when you
+                      submit. Online payment is not available. Please pay at the
+                      counter; staff will confirm your payment.
+                    </p>
+                    {!menu.orderingAvailable && (
+                      <div className="mc-alert">
+                        Ordering is currently paused. You can still browse the
+                        menu.
+                      </div>
+                    )}
+                    {checkoutIntent && (
+                      <section
+                        className="mc-checkout-pending"
+                        aria-label="Original order request"
+                      >
+                        <h4>Your original request</h4>
+                        {checkoutIntent && !checkoutWorking && (
+                          <p className="mc-note" role="status">
+                            Order confirmation is uncertain. Your original
+                            basket and details are preserved. Retry this request
+                            or check your original order before starting another
+                            order.
+                          </p>
+                        )}
+                        {checkoutIntent && (
+                          <div className="mc-actions">
+                            <button
+                              type="button"
+                              className="mc-secondary"
+                              disabled={busy}
+                              onClick={() => void resolveOriginalOrder()}
+                            >
+                              Check original order
+                            </button>
+                            <button
+                              type="button"
+                              className="mc-secondary"
+                              disabled={busy}
+                              onClick={() => setConfirmStopRequest(true)}
+                            >
+                              Stop unconfirmed request…
+                            </button>
+                          </div>
+                        )}
+                        {checkoutIntent && confirmStopRequest && (
+                          <div className="mc-alert">
+                            <h3 tabIndex={-1} ref={stopRequestHeadingRef}>
+                              Stop this unconfirmed request?
+                            </h3>
+                            <p>
+                              If the venue already received your order, it will
+                              be kept and shown to you. Otherwise this request
+                              will be stopped so you can start another. This
+                              does not cancel an accepted order, make a payment
+                              or confirm a refund.
+                            </p>
+                            <label>
+                              Why stop this request?
+                              <textarea
+                                minLength={3}
+                                maxLength={500}
+                                value={stopReason}
+                                disabled={busy}
+                                onChange={(event) =>
+                                  setStopReason(event.target.value)
+                                }
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              className="mc-secondary"
+                              disabled={busy}
+                              onClick={() => setConfirmStopRequest(false)}
+                            >
+                              Keep original request
+                            </button>
+                            <button
+                              type="button"
+                              className="mc-primary"
+                              disabled={busy || stopReason.trim().length < 3}
+                              onClick={() => void resolveOriginalOrder(true)}
+                            >
+                              Stop this request
+                            </button>
+                          </div>
+                        )}
+                      </section>
+                    )}
+                    {checkoutWorking && (
+                      <p role="status" className="mc-checkout-hint">
+                        {checkoutIntent
+                          ? "Checking the original order request…"
+                          : "Checking your order details…"}
+                      </p>
+                    )}
+                    <button
+                      type={checkoutIntent ? "button" : "submit"}
+                      className="mc-primary"
+                      disabled={
+                        busy ||
+                        (!checkoutIntent &&
+                          (!cart.length || !menu.orderingAvailable))
+                      }
+                      onClick={
+                        checkoutIntent ? () => void submitOrder() : undefined
+                      }
+                    >
+                      {checkoutWorking
+                        ? "Checking…"
+                        : checkoutIntent
+                          ? "Retry original order"
+                          : menu.pricingPolicy?.enabled &&
+                              (!currentQuote || expiredReview)
+                            ? expiredReview
+                              ? "Review latest total"
+                              : "Review total"
+                            : "Submit order"}
+                    </button>
+                  </section>
+                </form>
               )}
             </aside>
           </div>
@@ -1861,7 +2092,9 @@ export default function CustomerExperience({
         )}
         {tab === "track" && (
           <section className="mc-panel mc-tracking-panel">
-            <h2>Your order</h2>
+            <h2 ref={orderHeadingRef} tabIndex={-1}>
+              Your order
+            </h2>
             <p className="mc-note">
               Follow orders from this guest session. To check an order from
               another device, please ask staff for help.
@@ -1879,10 +2112,14 @@ export default function CustomerExperience({
             ) : (
               <>
                 <p>
-                  Reference <b>{order.reference || order.id}</b>
+                  Reference <b>{order.reference || "Reference unavailable"}</b>
                 </p>
-                <span className="mc-state">{order.status}</span>
-                <span className="mc-state">{order.paymentStatus}</span>
+                <span className="mc-state">
+                  {orderStateLabel(order.status)}
+                </span>
+                <span className="mc-state">
+                  {paymentStateLabel(order.paymentStatus)}
+                </span>
                 <p>
                   Total {money(order.total)} · Recorded payments{" "}
                   {money(order.paid || 0)}
@@ -1904,17 +2141,19 @@ export default function CustomerExperience({
                   <h3>
                     {menu?.organization?.name} · {menu?.branch?.name}
                   </h3>
-                  <p>Order reference: {order.reference || order.id}</p>
                   <p>
-                    Order status: {String(order.status).replaceAll("_", " ")}
+                    Order reference:{" "}
+                    {order.reference || "Reference unavailable"}
+                  </p>
+                  <p>
+                    Order status: {orderStateLabel(order.status)}
                     {" · "}Payment status:{" "}
-                    {String(order.paymentStatus).replaceAll("_", " ")}
+                    {paymentStateLabel(order.paymentStatus)}
                   </p>
                   {order.createdAt && (
                     <p>
-                      {new Date(order.createdAt).toLocaleString("en-GB", {
-                        timeZone: menu?.branch?.timezone || "Africa/Lagos",
-                      })}
+                      Placed{" "}
+                      {customerDate(order.createdAt, menu?.branch?.timezone)}
                     </p>
                   )}
                   {(order.items || []).map((line: any, index: number) => (
@@ -1984,13 +2223,12 @@ export default function CustomerExperience({
                 <ul className="mc-history">
                   {(order.history || []).map((entry: any, i: number) => (
                     <li key={entry.id || i}>
-                      {entry.action || entry.status}
+                      {activityLabel(entry.action || entry.status)}
                       <small>
-                        {entry.createdAt || entry.at
-                          ? new Date(
-                              entry.createdAt || entry.at,
-                            ).toLocaleString()
-                          : ""}
+                        {customerDate(
+                          entry.createdAt || entry.at,
+                          menu?.branch?.timezone,
+                        )}
                       </small>
                     </li>
                   ))}
@@ -2356,6 +2594,7 @@ export default function CustomerExperience({
           <>
             <SessionOrders
               prefix={prefix}
+              timeZone={menu?.branch?.timezone}
               onSelect={setOrder}
               onClear={clearGuestView}
               hasUnconfirmedOrder={!!checkoutIntent}

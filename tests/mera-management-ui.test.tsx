@@ -151,3 +151,44 @@ test("O3 failed publication checks offer retry and preserve explicit review requ
     globalThis.fetch = original;
   }
 });
+
+test("brand color text entry preserves valid colors and exposes incomplete hex input", async () => {
+  const { default: BrandColorField } =
+    await import("../src/mera/workspace/BrandColorField");
+  const values: string[] = [];
+  function Example() {
+    const [value, setValue] = React.useState("#1558c9");
+    return (
+      <BrandColorField
+        label="Primary color"
+        value={value}
+        onChange={(next) => {
+          values.push(next);
+          setValue(next);
+        }}
+      />
+    );
+  }
+  try {
+    render(<Example />);
+    const field = screen.getByRole("textbox", {
+      name: "Primary color hex",
+    }) as HTMLInputElement;
+    fireEvent.change(field, { target: { value: "#493" } });
+    assert.equal(field.checkValidity(), false);
+    assert.deepEqual(values, []);
+    fireEvent.change(field, { target: { value: "#49324F" } });
+    assert.equal(field.checkValidity(), true);
+    assert.deepEqual(values, ["#49324F"]);
+    assert.equal(
+      (
+        screen.getByLabelText("Primary color", {
+          exact: true,
+        }) as HTMLInputElement
+      ).value,
+      "#49324f",
+    );
+  } finally {
+    cleanup();
+  }
+});

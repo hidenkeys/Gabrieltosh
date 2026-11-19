@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { customerRequest } from "./client";
+import {
+  orderStateLabel,
+  paymentStateLabel,
+  customerDate,
+} from "./orderPresentation";
 export default function SessionOrders({
   ...props
 }: Parameters<typeof ScopedSessionOrders>[0]) {
@@ -10,11 +15,13 @@ function ScopedSessionOrders({
   onSelect,
   onClear,
   hasUnconfirmedOrder = false,
+  timeZone,
 }: {
   prefix: string;
   onSelect: (order: any) => void;
   onClear: (message: string) => void;
   hasUnconfirmedOrder?: boolean;
+  timeZone?: string;
 }) {
   const [orders, setOrders] = useState<any[]>([]),
     [cursor, setCursor] = useState<string | null>(null),
@@ -88,9 +95,11 @@ function ScopedSessionOrders({
       {orders.map((order) => (
         <article key={order.id}>
           <p>
-            {order.reference} · {String(order.status).replaceAll("_", " ")} ·{" "}
-            {String(order.paymentStatus).replaceAll("_", " ")}
+            {order.reference || "Order reference unavailable"} ·{" "}
+            {orderStateLabel(order.status)} ·{" "}
+            {paymentStateLabel(order.paymentStatus)}
           </p>
+          <p>{customerDate(order.createdAt, timeZone)}</p>
           <button
             className="mc-secondary"
             disabled={busy}
@@ -119,7 +128,7 @@ function ScopedSessionOrders({
               }
             }}
           >
-            Open order {order.reference}
+            Open order {order.reference || "with unavailable reference"}
           </button>
         </article>
       ))}
