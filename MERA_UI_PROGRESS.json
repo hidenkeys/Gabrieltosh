@@ -5,7 +5,7 @@
   "lastUpdated": "2026-11-20",
   "revision": "9901897",
   "baselineNote": "Consolidated MeraTech brief supersedes marketing direction and adds company/product pages, real consultancy and Travel interest plus entry motion. Scope1 historical93% and scope2 historical47.4% remain archived intact. Existing staging and working shared foundations retain only applicable evidence; prior marketing implementation earns no new website credit.",
-  "currentMilestone": "Hosted operational workflow verified through completed order and downloaded CSV; owner resume/draft continuity and operator saved details checked. Homepage mobile correction9901897 deployed and visually verified. Homepage, QR product and consultancy initial-step layouts reviewed at four widths. Broader state/accessibility review remains; Chrome file upload explicitly blocked, positive-paid documents/provider readiness/hardware unverified.",
+  "currentMilestone": "Hosted operational workflow verified through completed order and downloaded CSV; owner resume/draft continuity and operator saved details checked. Homepage mobile correction9901897 deployed and visually verified. Homepage, QR product, Travel interest and consultancy initial-step layouts reviewed at four widths. Broader state/accessibility review remains; Chrome file upload explicitly blocked, positive-paid documents/provider readiness/hardware unverified.",
   "clarifications": [
     {
       "at": "2026-11-18T15:56:52+01:00",
@@ -252,6 +252,13 @@
       "scopeWeight": 100,
       "weightedPoints": 71.0,
       "roundedCompletion": 71
+    },
+    {
+      "at": "2026-11-20",
+      "event": "Travel four-width review accepted alongside actual interest receipt/operator evidence; no scope change",
+      "scopeWeight": 100,
+      "weightedPoints": 73.0,
+      "roundedCompletion": 73
     }
   ],
   "dependencies": [
@@ -424,13 +431,14 @@
       "workstream": "W",
       "title": "Mera QR and planned Travel with truthful interface demonstrations",
       "weight": 7,
-      "checkpoint": 60,
+      "checkpoint": 80,
       "status": "IN_PROGRESS",
       "owner": "marketing_refresh / lead",
       "dependencies": [],
       "acceptance": "Mera QR and planned Travel with truthful interface demonstrations implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
       "evidence": [
-        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md",
+        "docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md"
       ],
       "blockers": [],
       "history": []
@@ -589,13 +597,14 @@
       "workstream": "C",
       "title": "Truthful Travel interest submission and confirmation",
       "weight": 3,
-      "checkpoint": 60,
+      "checkpoint": 80,
       "status": "IN_PROGRESS",
       "owner": "staging / owner_onboarding / lead",
       "dependencies": [],
       "acceptance": "Truthful Travel interest submission and confirmation implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
       "evidence": [
-        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md",
+        "docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md"
       ],
       "blockers": [],
       "history": []
@@ -737,8 +746,8 @@
         "C3"
       ],
       "task": "Planned direction and interest",
-      "visualReview": "New-scope verification pending",
-      "responsive": "Pending"
+      "visualReview": "Real interest receipt and operator arrival verified; planned status retained",
+      "responsive": "390/834/1440/1920 captured-state review passed"
     },
     {
       "id": "consultancy",

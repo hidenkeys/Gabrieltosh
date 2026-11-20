@@ -4,13 +4,13 @@ Goal: Deliver a coherent MeraTech parent website, Mera QR onboarding, planned Tr
 
 Scope **3.0** · revision `9901897` · updated 2026-11-20
 
-**UI correction: 71% complete | 29% remaining.** Weighted evidence: 71.0/100. This is checklist completion, not a time estimate.
+**UI correction: 73% complete | 27% remaining.** Weighted evidence: 73.0/100. This is checklist completion, not a time estimate.
 
 Consolidated MeraTech brief supersedes marketing direction and adds company/product pages, real consultancy and Travel interest plus entry motion. Scope1 historical93% and scope2 historical47.4% remain archived intact. Existing staging and working shared foundations retain only applicable evidence; prior marketing implementation earns no new website credit.
 
 ## Current milestone
 
-Hosted operational workflow verified through completed order and downloaded CSV; owner resume/draft continuity and operator saved details checked. Homepage mobile correction9901897 deployed and visually verified. Homepage, QR product and consultancy initial-step layouts reviewed at four widths. Broader state/accessibility review remains; Chrome file upload explicitly blocked, positive-paid documents/provider readiness/hardware unverified.
+Hosted operational workflow verified through completed order and downloaded CSV; owner resume/draft continuity and operator saved details checked. Homepage mobile correction9901897 deployed and visually verified. Homepage, QR product, Travel interest and consultancy initial-step layouts reviewed at four widths. Broader state/accessibility review remains; Chrome file upload explicitly blocked, positive-paid documents/provider readiness/hardware unverified.
 
 ## Measurement
 
@@ -22,9 +22,9 @@ Weights are frozen in the current versioned scope. Checkpoints:0 planned/not imp
 | --- | ---: | ---: | --- |
 | Reassessment, skill, tokens and actual brand | 15% | 78% | lead |
 | Railway staging and hosted configuration | 15% | 100% | staging |
-| Parent website, products, demonstrations and motion | 25% | 65% | marketing_refresh / lead |
+| Parent website, products, demonstrations and motion | 25% | 71% | marketing_refresh / lead |
 | Mera QR signup and owner onboarding | 20% | 60% | owner_onboarding |
-| Consultancy, interest and platform administration | 15% | 65% | staging / owner_onboarding / lead |
+| Consultancy, interest and platform administration | 15% | 69% | staging / owner_onboarding / lead |
 | Responsive, regression and delivery verification | 10% | 60% | lead |
 
 ## Task board
@@ -38,7 +38,7 @@ Weights are frozen in the current versioned scope. Checkpoints:0 planned/not imp
 | R2 | HTTPS routing, sessions, worker and private database verification | 5% | 100% | VERIFIED · staging | [STAGING-AD02976-EVIDENCE.json](deploy/STAGING-AD02976-EVIDENCE.json) |
 | R3 | Persistent assets, safe releases and rollback documentation | 5% | 100% | VERIFIED · staging | [STAGING-AD02976-EVIDENCE.json](deploy/STAGING-AD02976-EVIDENCE.json), [RAILWAY-STAGING.md](deploy/RAILWAY-STAGING.md), [STAGING-7643E4D-EVIDENCE.json](deploy/STAGING-7643E4D-EVIDENCE.json) |
 | W1 | MeraTech parent homepage and offering hierarchy | 7% | 80% | IN_PROGRESS · marketing_refresh / lead | [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md), [HOSTED-WORKFLOW-PASS.md](docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md) |
-| W2 | Mera QR and planned Travel with truthful interface demonstrations | 7% | 60% | IN_PROGRESS · marketing_refresh / lead | [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md) |
+| W2 | Mera QR and planned Travel with truthful interface demonstrations | 7% | 80% | IN_PROGRESS · marketing_refresh / lead | [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md), [HOSTED-WORKFLOW-PASS.md](docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md) |
 | W3 | Products, consultancy, about, contact, sign-in and policy navigation | 6% | 60% | IN_PROGRESS · marketing_refresh / lead | [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md), [HOSTED-WORKFLOW-PASS.md](docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md) |
 | W4 | Session introduction, QR resolution and responsive product motion | 5% | 60% | IN_PROGRESS · marketing_refresh / lead | [MeraEntry.tsx](src/mera/ui/MeraEntry.tsx), [mera-entry.css](src/mera/ui/mera-entry.css), [mera-entry.test.tsx](tests/mera-entry.test.tsx), [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md) |
 | S1 | Secure account, sign-in and separate demo routes | 5% | 60% | IN_PROGRESS · owner_onboarding | [Signup.tsx](src/mera/Signup.tsx), [MeraSignIn.tsx](src/mera/MeraSignIn.tsx), [HOSTED-WORKFLOW-PASS.md](docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md) |
@@ -46,7 +46,7 @@ Weights are frozen in the current versioned scope. Checkpoints:0 planned/not imp
 | S3 | Saved progress, validation, availability and failure recovery | 5% | 60% | IN_PROGRESS · owner_onboarding | [mera-owner-setup.test.tsx](tests/mera-owner-setup.test.tsx), [mera-address-availability.test.js](tests/mera-address-availability.test.js), [HOSTED-WORKFLOW-PASS.md](docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md) |
 | C1 | Private enquiry and interest storage, validation and duplicate protection | 4% | 60% | IN_PROGRESS · staging / owner_onboarding / lead | [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md) |
 | C2 | Functional consultancy brief with documents and recovery | 4% | 60% | IN_PROGRESS · staging / owner_onboarding / lead | [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md) |
-| C3 | Truthful Travel interest submission and confirmation | 3% | 60% | IN_PROGRESS · staging / owner_onboarding / lead | [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md) |
+| C3 | Truthful Travel interest submission and confirmation | 3% | 80% | IN_PROGRESS · staging / owner_onboarding / lead | [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md), [HOSTED-WORKFLOW-PASS.md](docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md) |
 | C4 | MFA-protected enquiry and interest operator workflows | 4% | 80% | IN_PROGRESS · staging / owner_onboarding / lead | [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md), [HOSTED-WORKFLOW-PASS.md](docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md) |
 | Q1 | Rendered mobile/tablet/laptop/wide review and accessibility | 4% | 60% | IN_PROGRESS · lead | [HOSTED-WORKFLOW-PASS.md](docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md) |
 | Q2 | Branding, CSV, floor/seating, private visits and receipt checks | 3% | 60% | IN_PROGRESS · lead | [HOSTED-WORKFLOW-PASS.md](docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md) |
@@ -61,7 +61,7 @@ Task acceptance criteria, dependency IDs, change history and blockers are in [ME
 | home | /mera | Prospect | W1 | Company and offerings | Mobile readiness layout corrected and captured; 390/834/1440/1920 captured-state review passed |
 | products | /mera/products | Prospect | W3 | Choose offering | New-scope verification pending; Pending |
 | qr | /mera/qr | Hospitality prospect | W2 | QR product story and actual demo | Product readiness, navigation and offline FAQ exercised; 390/834/1440/1920 captured-state review passed |
-| travel | /mera/travel | Travel prospect | W2, C3 | Planned direction and interest | New-scope verification pending; Pending |
+| travel | /mera/travel | Travel prospect | W2, C3 | Planned direction and interest | Real interest receipt and operator arrival verified; planned status retained; 390/834/1440/1920 captured-state review passed |
 | consultancy | /mera/consultancy | Client | W3, C2 | Project brief | Real brief submitted; initial-form matrix reviewed; upload denied; Initial step390/834/1440/1920 passed; later states partial |
 | about | /mera/about | Prospect | W3 | Company intent | New-scope verification pending; Pending |
 | contact | /mera/contact | Visitor | W3 | Correct enquiry destination | New-scope verification pending; Pending |
@@ -130,5 +130,6 @@ Status: INVENTORY_DRAFT_REVIEW_PENDING. 208 requirement IDs inventoried in docs/
 - 2026-11-20: Scope3 consolidated company/two-products/consultancy brief. Scope2 archived47.4%. Applicable implementation and hosted evidence retained only.; weight 100; 30.8 points / 30% rounded.
 - 2026-11-20: Hosted operational workflow and operator layout pass; scope3 unchanged; weight 100; 68.8 points / 68% rounded.
 - 2026-11-20: Deployed homepage correction and QR/consultancy matrix reviewed; state coverage remains partial; weight 100; 71 points / 71% rounded.
+- 2026-11-20: Travel four-width review accepted alongside actual interest receipt/operator evidence; no scope change; weight 100; 73 points / 73% rounded.
 
 Regenerate this report with `node scripts/mera-ui-progress.js`. The calculation validates weights, task IDs, mapped screens and local evidence paths; the lead still reviews whether evidence supports each checkpoint.
