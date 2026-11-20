@@ -16,7 +16,8 @@ import MenuManagement from "./MenuManagement";
 import { catalogPriceLabel } from "./catalogPresentation";
 import MenuPublication from "./MenuPublication";
 import { ProductImage } from "../../ProductImage";
-import SetupChecklist from "./SetupChecklist";
+import OwnerSetup from "./OwnerSetup";
+import CreateOrganization from "./CreateOrganization";
 import RefundRequests from "./RefundRequests";
 import StaffPos from "./StaffPos";
 import { validateStaffSelection } from "./staffSelection";
@@ -293,15 +294,21 @@ export default function OrganizationWorkspace({
     organizationId,
     branchId,
   ]);
-  const activeSection =
-    chooseWorkspaceLanding({
-      role: organization?.role,
-      permissions,
-      visibleSectionIds: visibleSections.map(([id]) => id),
-      organizationWide: organization?.organizationWide === true,
-      scopeKey: navigationScope,
-      selection: sectionSelection,
-    }) || "";
+  const guideRequested =
+    new URLSearchParams(window.location.search).get("setup") === "1" &&
+    organization?.organizationWide === true &&
+    allowed("organization.manage") &&
+    !sectionSelection;
+  const activeSection = guideRequested
+    ? "onboarding"
+    : chooseWorkspaceLanding({
+        role: organization?.role,
+        permissions,
+        visibleSectionIds: visibleSections.map(([id]) => id),
+        organizationWide: organization?.organizationWide === true,
+        scopeKey: navigationScope,
+        selection: sectionSelection,
+      }) || "";
   const selectSection = (
     section: string,
     options?: { focusDestination: boolean },
@@ -1589,45 +1596,15 @@ export default function OrganizationWorkspace({
         </section>
       )}
       {!loading && context && !organizations.length && (
-        <div className="mw-card">
-          <Building2 size={30} />
-          <h2>No organization access yet</h2>
-          <p>
-            Your account has no active Mera membership. Ask the organization
-            owner to invite you. Existing store access does not automatically
-            grant platform access.
-          </p>
-          <form
-            className="mw-form"
-            onSubmit={submit(async () => {
-              await mutate(
-                "/organizations",
-                "POST",
-                {
-                  name: tabForm.organizationName,
-                  slug: tabForm.slug,
-                  branchName: tabForm.branchName,
-                },
-                "Organization created.",
-              );
-              await loadContext();
-            })}
-          >
-            {field("Organization name", "organizationName")}
-            {field("Requested subdomain", "slug")}
-            {field("First branch name", "branchName")}
-            <div className="mw-wide">
-              <button className="primary" disabled={busy}>
-                Create organization
-              </button>
-            </div>
-          </form>
-          <p className="mw-muted">
-            The requested address must be available and verified before
-            publication. Creating a development organization does not publish a
-            hosted site or activate a wallet.
-          </p>
-        </div>
+        <CreateOrganization
+          key={context.user.id}
+          actorId={context.user.id}
+          actorName={context.user.name}
+          disabled={busy || offline}
+          demo={!!context.demo}
+          save={mutate}
+          onCreated={loadContext}
+        />
       )}
       {!!pausedServices.length && (
         <section role="status" className="mw-note">
@@ -2038,8 +2015,23 @@ export default function OrganizationWorkspace({
               tabIndex={0}
             >
               {activeSection === "onboarding" && (
-                <SetupChecklist
+                <OwnerSetup
                   key={branchBase}
+                  organization={organization}
+                  branch={branch}
+                  onboarding={data.onboarding || organization?.onboarding}
+                  actorName={context?.user?.name || user.name}
+                  canGuide={
+                    organization?.organizationWide === true &&
+                    allowed("organization.manage")
+                  }
+                  disabled={busy || offline}
+                  demo={!!context?.demo}
+                  permissions={permissions}
+                  onOpen={(section) =>
+                    selectSection(section, { focusDestination: true })
+                  }
+                  save={mutate}
                   basics={
                     <BusinessDetails
                       key={organizationId}

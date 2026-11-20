@@ -1,21 +1,16 @@
-@font-face {
-  font-family: "Mera Platform Editorial";
-  src: url("/fonts/mera/LibreCaslonDisplay-Regular.ttf") format("truetype");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
 .mera-platform {
-  --platform-green: #10563e;
-  --platform-ink: #201e24;
-  --platform-muted: #625e63;
-  --platform-line: #e5dfd5;
-  color: var(--platform-ink);
-  background: #fcf9f3;
+  --platform-green: var(--mera-forest);
+  --platform-ink: var(--mera-ink);
+  --platform-muted: var(--mera-muted);
+  --platform-line: var(--mera-border);
   min-height: 100vh;
-  padding: 0 max(24px, calc((100vw - 1280px) / 2)) 48px;
-  font-family: Inter, Arial, sans-serif;
-  font-size: 14px;
+  padding: 0;
+  color: var(--mera-ink);
+  background: var(--mera-paper);
+  font:
+    14px Inter,
+    Arial,
+    sans-serif;
 }
 .mera-platform *,
 .mera-platform *::before,
@@ -26,64 +21,183 @@
   display: none !important;
 }
 .mera-platform a {
-  color: var(--platform-green);
+  color: var(--mera-forest);
 }
 .mera-platform .mera-platform-topbar {
+  min-height: 76px;
+  padding: 16px 28px;
   display: flex;
   align-items: center;
-  min-height: 80px;
-  gap: 22px;
-  border-bottom: 1px solid var(--platform-line);
+  gap: 28px;
+  border-bottom: 1px solid var(--mera-border);
+  background: var(--mera-white);
+}
+.mera-platform-home {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
 }
 .mera-platform-topbar > span {
-  border-left: 1px solid var(--platform-line);
-  padding-left: 22px;
-  color: var(--platform-muted);
+  padding-left: 28px;
+  border-left: 1px solid var(--mera-border);
+  color: var(--mera-muted);
+  font-size: 13px;
 }
 .mera-platform-topbar > a:last-child {
   margin-left: auto;
-  font-size: 13px;
-}
-.mera-platform .mera-platform-wordmark {
-  font-family: "Mera Platform Editorial", Georgia, serif;
-  font-size: 47px;
-  font-weight: 400;
-  letter-spacing: -0.005em;
-  line-height: 1;
-  color: var(--platform-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
   text-decoration: none;
+  padding-block: 10px;
 }
-.mera-platform-wordmark span {
-  color: var(--platform-green);
+.mera-platform-topbar > a:last-child svg {
+  width: 14px;
+  height: 14px;
+}
+.mera-platform-layout {
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  min-height: calc(100vh - 76px);
+  max-width: 1800px;
+  margin: auto;
+}
+.mera-platform-sidebar {
+  padding: 28px 16px;
+  border-right: 1px solid var(--mera-border);
+  background: #f0f2ea;
+  display: flex;
+  flex-direction: column;
+}
+.mera-platform-rail-context {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 0 10px 26px;
+}
+.mera-platform-rail-context svg {
+  width: 19px;
+  height: 19px;
+  color: var(--mera-forest);
+}
+.mera-platform-rail-context strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+}
+.mera-platform-rail-context span {
+  display: block;
+  margin-top: 4px;
+  color: var(--mera-muted);
+  font-size: 10px;
+}
+.mera-platform-nav-group {
+  margin-bottom: 26px;
+}
+.mera-platform .mera-platform-nav-group > p {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  padding: 0 10px;
+  margin: 0 0 10px;
+}
+.mera-platform .mera-platform-nav button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 12px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--mera-muted);
+  font-size: 12px;
+  text-align: left;
+  margin: 3px 0;
+  font-weight: 500;
+}
+.mera-platform-nav button > svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 1.7;
+  flex-shrink: 0;
+}
+.mera-platform .mera-platform-nav button:hover {
+  background: #e4eadc;
+}
+.mera-platform .mera-platform-nav button[aria-current="page"] {
+  background: var(--mera-forest);
+  color: white;
+  font-weight: 600;
+}
+.mera-platform-count {
+  margin-left: auto;
+  border-radius: 4px;
+  font-size: 10px;
+  padding: 2px 5px;
+  background: #dce5d8;
+  color: var(--mera-ink);
+}
+.mera-platform button[aria-current="page"] .mera-platform-count {
+  background: #ffffff24;
+  color: white;
+}
+.mera-platform .mera-platform-rail-note {
+  margin: auto 10px 0;
+  padding-top: 50px;
+  font-size: 10px;
+  line-height: 1.7;
+}
+.mera-platform-content {
+  min-width: 0;
+  padding: 0 clamp(24px, 3vw, 48px) 48px;
+}
+.mera-platform-access .mera-platform-layout {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 1040px;
+}
+.mera-platform-access .mera-platform-content {
+  padding-top: 28px;
+}
+.mera-platform h1,
+.mera-platform h2,
+.mera-platform h3 {
+  font-family: Inter, Arial, sans-serif;
+  color: var(--mera-ink);
 }
 .mera-platform h1 {
-  font-family: "Mera Platform Editorial", Georgia, serif;
-  font-size: 42px;
-  font-weight: 400;
-  letter-spacing: -0.015em;
-  margin: 5px 0 7px;
-  line-height: 1.08;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 1.18;
+  margin: 6px 0 8px;
 }
 .mera-platform h2 {
-  font-size: 18px;
-  margin: 0 0 12px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
   letter-spacing: -0.025em;
+  margin: 0 0 12px;
 }
 .mera-platform h3 {
   font-size: 15px;
   margin: 20px 0 10px;
 }
 .mera-platform p {
-  line-height: 1.6;
-  color: var(--platform-muted);
+  color: var(--mera-muted);
+  font-size: 13px;
+  line-height: 1.65;
   margin: 8px 0 14px;
   max-width: 850px;
 }
 .mera-platform .eyebrow {
-  font-size: 10px;
-  text-transform: uppercase;
+  color: var(--mera-forest);
+  font-size: 9px;
   letter-spacing: 0.12em;
-  color: var(--platform-green);
+  text-transform: uppercase;
   font-weight: 700;
   margin: 0;
 }
@@ -92,110 +206,134 @@
   justify-content: space-between;
   align-items: center;
   gap: 24px;
-  padding: 28px 0 22px;
+  padding: 30px 0 22px;
+}
+.mera-page-heading > div {
+  min-width: 0;
 }
 .mera-platform .mera-page-heading p:last-child {
   margin-bottom: 0;
 }
 .mera-platform button,
 .mera-platform .secondary {
-  border: 1px solid var(--platform-line);
-  background: #fffdfa;
-  color: var(--platform-ink);
-  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--mera-border);
+  border-radius: 5px;
+  background: var(--mera-white);
+  color: var(--mera-ink);
   min-height: 40px;
   padding: 10px 14px;
-  font: inherit;
-  font-weight: 600;
+  font:
+    600 12px/1.3 Inter,
+    Arial,
+    sans-serif;
   cursor: pointer;
-  line-height: 1.2;
+}
+.mera-platform button svg {
+  width: 15px;
+  height: 15px;
 }
 .mera-platform button:not(.secondary):not(.mera-platform-nav button) {
-  background: var(--platform-green);
-  color: #fff;
-  border-color: var(--platform-green);
+  background: var(--mera-forest);
+  color: white;
+  border-color: var(--mera-forest);
 }
 .mera-platform button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
 .mera-platform button:hover:not(:disabled) {
-  border-color: var(--platform-green);
+  border-color: var(--mera-forest);
 }
-.mera-platform .mera-platform-nav {
-  display: flex;
-  gap: 6px;
-  padding: 4px 0 18px;
-  border-bottom: 1px solid var(--platform-line);
-  overflow-x: auto;
-}
-.mera-platform .mera-platform-nav button {
+.mera-platform .mera-page-heading > button {
   flex-shrink: 0;
-  border: 0;
-  background: transparent;
-  color: var(--platform-muted);
-  white-space: nowrap;
-}
-.mera-platform .mera-platform-nav button[aria-current="page"] {
-  background: #e8efe8;
-  color: var(--platform-green);
-}
-.mera-platform-count {
-  display: inline-block;
-  padding: 2px 5px;
-  margin-left: 6px;
-  border-radius: 4px;
-  background: #e1e7df;
-  font-size: 11px;
 }
 .mera-platform .mera-stat-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin: 20px 0;
-}
-.mera-platform .mera-stat-grid article {
-  padding: 16px 18px;
-}
-.mera-platform .mera-stat-grid p {
-  font-size: 12px;
-  margin: 0 0 8px;
-}
-.mera-platform .mera-stat-grid strong {
-  display: block;
-  font-size: 20px;
-  letter-spacing: -0.025em;
-  line-height: 1.25;
-  font-weight: 600;
-}
-.mera-platform .mera-panel {
-  background: #fffefa;
-  border: 1px solid var(--platform-line);
-  border-radius: 10px;
-  padding: 22px;
-  margin-top: 16px;
-  box-shadow: none;
+  border: 1px solid var(--mera-border);
+  border-radius: 6px;
+  background: var(--mera-white);
+  margin: 2px 0 24px;
+  overflow: hidden;
 }
 .mera-platform .mera-stat-grid .mera-panel {
-  margin-top: 0;
+  margin: 0;
+  padding: 18px 20px;
+  border: 0;
+  border-radius: 0;
+}
+.mera-platform .mera-stat-grid .mera-panel + .mera-panel {
+  border-left: 1px solid var(--mera-border);
+}
+.mera-platform .mera-stat-grid p {
+  font-size: 11px;
+  margin: 0 0 9px;
+}
+.mera-platform .mera-stat-grid strong {
+  font-size: 19px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+.mera-platform .mera-panel {
+  background: var(--mera-white);
+  border: 1px solid var(--mera-border);
+  border-radius: 6px;
+  padding: 24px;
+  margin-top: 18px;
+  box-shadow: none;
+  min-width: 0;
+}
+.mera-platform .mera-platform-verification {
+  max-width: 560px;
+  padding: 32px;
+  margin: 8px 0 40px;
+}
+.mera-platform-verification-icon {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 24px;
+  color: var(--mera-forest);
+}
+.mera-platform .mera-platform-verification h2 {
+  font-size: 23px;
+  letter-spacing: -0.04em;
+}
+.mera-platform-verification form {
+  margin-top: 26px;
+}
+.mera-platform-verification form button {
+  width: 100%;
+  margin-top: 6px;
+  min-height: 46px;
+}
+.mera-platform-verification input {
+  font-size: 20px;
+  letter-spacing: 0.2em;
 }
 .mera-platform label {
   display: grid;
   gap: 7px;
+  margin: 15px 0;
   font-size: 12px;
   font-weight: 600;
-  margin: 15px 0;
 }
 .mera-platform input,
 .mera-platform textarea,
 .mera-platform select {
   width: 100%;
+  min-width: 0;
   min-height: 42px;
   padding: 10px 12px;
-  border: 1px solid #d9d3c9;
-  border-radius: 7px;
-  color: var(--platform-ink);
-  background: #fff;
+  border: 1px solid #cbd3c7;
+  border-radius: 5px;
+  background: white;
+  color: var(--mera-ink);
   font: inherit;
 }
 .mera-platform textarea {
@@ -207,7 +345,7 @@
   grid-template-columns: minmax(220px, 1fr) minmax(160px, 230px);
   gap: 16px;
   max-width: 800px;
-  margin: 12px 0;
+  margin: 20px 0;
 }
 .mera-platform-filters label {
   margin: 0;
@@ -216,95 +354,124 @@
   margin: 0;
 }
 .mera-platform-section-heading p {
-  font-size: 12px;
+  font-size: 11px;
   margin: 4px 0;
 }
 .mera-platform .table-wrap {
   overflow: auto;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   margin-top: 18px;
+  border: 1px solid var(--mera-border);
+  border-radius: 5px;
 }
 .mera-platform table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
 }
 .mera-platform th {
-  color: var(--platform-muted);
-  font-size: 11px;
+  background: #f3f5ee;
+  font-size: 10px;
+  color: var(--mera-muted);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  background: #f7f4ee;
   white-space: nowrap;
 }
 .mera-platform td,
 .mera-platform th {
-  padding: 12px 14px;
   text-align: left;
-  border-bottom: 1px solid #eee9e0;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e7ebe3;
+}
+.mera-platform tbody tr:last-child td {
+  border-bottom: 0;
+}
+.mera-platform tbody tr:hover {
+  background: #fafbf8;
 }
 .mera-platform td {
   vertical-align: middle;
   overflow-wrap: anywhere;
   min-width: 100px;
 }
-.mera-platform td button {
-  font-size: 12px;
-  white-space: nowrap;
+.mera-platform td strong {
+  font-weight: 600;
 }
-.mera-platform .status-pill {
+.mera-platform td button {
+  font-size: 11px;
+  white-space: nowrap;
+  min-height: 36px;
+}
+.mera-platform .status-pill,
+.mera-subscription-state {
   display: inline-block;
-  padding: 7px 10px;
-  border-radius: 6px;
-  background: #f5eddd;
-  color: #755620;
-  font-size: 12px;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  background: #f4eedf;
+  color: #70551e;
+}
+.mera-subscription-state[data-state="active"] {
+  color: #27543b;
+  background: #e8f0e3;
+}
+.mera-subscription-state[data-state="cancelled"],
+.mera-subscription-state[data-state="unknown"] {
+  color: var(--mera-muted);
+  background: #eef0ea;
+}
+.mera-subscription-state[data-state="suspended"] {
+  color: #81352c;
+  background: #f8ebe6;
 }
 .mera-platform .info-box {
-  background: #f5efdf;
-  border: 1px solid #e8d7b1;
-  border-radius: 7px;
+  border: 1px solid #e6d6ad;
+  background: #faf3e3;
   color: #635023;
-  padding: 12px 14px;
+  border-radius: 5px;
+  padding: 14px 16px;
   line-height: 1.6;
 }
 .mera-platform .mera-platform-review {
   position: fixed;
   inset: 0;
-  width: min(820px, calc(100vw - 40px));
+  width: min(860px, calc(100vw - 40px));
   max-height: calc(100dvh - 48px);
   margin: auto;
-  padding: 26px;
-  border: 1px solid var(--platform-line);
-  border-radius: 12px;
-  background: #fffefa;
-  color: var(--platform-ink);
+  padding: 28px;
   overflow: auto;
-  box-shadow: 0 24px 80px #201e2426;
+  border: 1px solid var(--mera-border);
+  border-radius: 8px;
+  background: var(--mera-white);
+  color: var(--mera-ink);
+  box-shadow: 0 24px 80px #152b2433;
 }
 .mera-platform-review::backdrop {
-  background: #171e1b66;
+  background: #10251e80;
 }
 .mera-platform .mera-platform-review-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  border-bottom: 1px solid var(--platform-line);
-  padding-bottom: 18px;
+  border-bottom: 1px solid var(--mera-border);
+  padding-bottom: 20px;
   margin-bottom: 18px;
 }
 .mera-platform-review-heading h2 {
-  font-family: "Mera Platform Editorial", Georgia, serif;
-  font-size: 34px;
-  font-weight: 400;
-  margin: 4px 0 0;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  margin: 6px 0 0;
 }
 .mera-platform-review form + section,
 .mera-platform-review > section {
   padding-top: 18px;
-  border-top: 1px solid var(--platform-line);
+  border-top: 1px solid var(--mera-border);
 }
 .mera-platform-review dl {
   display: grid;
@@ -313,11 +480,11 @@
 }
 .mera-platform-review dl > div {
   padding: 9px 0;
-  border-bottom: 1px solid var(--platform-line);
+  border-bottom: 1px solid var(--mera-border);
 }
 .mera-platform-review dt {
   font-size: 11px;
-  color: var(--platform-muted);
+  color: var(--mera-muted);
   margin-bottom: 5px;
 }
 .mera-platform-review dd {
@@ -330,6 +497,7 @@
   line-height: 1.6;
   min-height: 44px;
   padding: 10px 0;
+  font-size: 13px;
   font-weight: 600;
 }
 .mera-platform button:focus-visible,
@@ -337,109 +505,43 @@
 .mera-platform input:focus-visible,
 .mera-platform select:focus-visible,
 .mera-platform textarea:focus-visible,
-.mera-platform summary:focus-visible {
-  outline: 3px solid var(--platform-green);
+.mera-platform summary:focus-visible,
+.mera-platform .table-wrap:focus-visible,
+.mera-platform [tabindex="-1"]:focus-visible {
+  outline: 3px solid var(--mera-forest);
   outline-offset: 3px;
 }
-@media (max-width: 800px) {
-  .mera-platform {
-    padding-inline: 20px;
-  }
-  .mera-platform .mera-stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 540px) {
-  .mera-platform {
-    padding-inline: 16px;
-  }
-  .mera-platform .mera-platform-topbar {
-    gap: 12px;
-    min-height: 72px;
-    flex-wrap: wrap;
-    padding: 14px 0;
-  }
-  .mera-platform-topbar > span {
-    padding-left: 12px;
-    font-size: 12px;
-  }
-  .mera-platform-topbar > a:last-child {
-    font-size: 11px;
-  }
-  .mera-platform .mera-platform-wordmark {
-    font-size: 40px;
-  }
-  .mera-platform .mera-page-heading {
-    align-items: flex-start;
-    gap: 16px;
-    padding: 24px 0 18px;
-  }
-  .mera-platform h1 {
-    font-size: 33px;
-  }
-  .mera-platform .mera-page-heading > button {
-    font-size: 12px;
-    min-width: 94px;
-  }
-  .mera-platform .mera-stat-grid {
-    gap: 8px;
-  }
-  .mera-platform .mera-stat-grid article {
-    padding: 13px;
-  }
-  .mera-platform .mera-stat-grid strong {
-    font-size: 17px;
-  }
-  .mera-platform .mera-platform-filters {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  .mera-platform .mera-panel {
-    padding: 16px;
-  }
-  .mera-platform .mera-platform-review {
-    width: calc(100vw - 20px);
-    max-height: calc(100dvh - 20px);
-    padding: 18px;
-  }
-  .mera-platform-review-heading h2 {
-    font-size: 28px;
-  }
-  .mera-platform-review dl {
-    grid-template-columns: 1fr;
-  }
-}
 .mera-platform .mera-platform-org-context {
-  color: var(--platform-green);
+  color: var(--mera-forest);
   font-size: 12px;
   margin: 0 0 14px;
 }
 .mera-platform-action-reason {
-  padding: 14px 16px;
+  padding: 16px;
+  border: 1px solid var(--mera-border);
+  border-radius: 5px;
+  background: #f3f5ee;
   margin-bottom: 20px;
-  border: 1px solid var(--platform-line);
-  border-radius: 8px;
-  background: #f7f4ee;
 }
 .mera-platform-action-reason label {
   margin: 0;
 }
 .mera-platform-action-reason p {
-  font-size: 12px;
+  font-size: 11px;
   margin-bottom: 0;
 }
 .mera-platform .mera-platform-operation {
-  border: 1px solid var(--platform-line);
-  border-radius: 8px;
+  border: 1px solid var(--mera-border);
+  border-radius: 5px;
   margin: 10px 0;
 }
 .mera-platform .mera-platform-operation > summary {
   padding: 14px 16px;
   min-height: 48px;
-  font-size: 14px;
+  font-size: 13px;
 }
 .mera-platform-operation[open] > summary {
-  border-bottom: 1px solid var(--platform-line);
+  border-bottom: 1px solid var(--mera-border);
 }
 .mera-platform-operation > :not(summary) {
   margin-left: 16px;
@@ -451,23 +553,135 @@
 .mera-platform .mera-platform-section-select {
   display: none;
 }
-.mera-platform .table-wrap {
-  max-width: 100%;
-  min-width: 0;
+@media (min-width: 1800px) {
+  .mera-platform-layout {
+    border-inline: 1px solid var(--mera-border);
+  }
+  .mera-platform-topbar {
+    padding-inline: max(28px, calc((100vw - 1744px) / 2));
+  }
 }
-.mera-platform .table-wrap:focus-visible {
-  outline: 3px solid var(--platform-green);
-  outline-offset: 3px;
+@media (max-width: 1050px) {
+  .mera-platform-layout {
+    grid-template-columns: 204px minmax(0, 1fr);
+  }
+  .mera-platform-sidebar {
+    padding-inline: 12px;
+  }
+  .mera-platform-content {
+    padding-inline: 24px;
+  }
+  .mera-platform .mera-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mera-platform .mera-stat-grid .mera-panel:nth-child(3) {
+    border-left: 0;
+  }
+  .mera-platform .mera-stat-grid .mera-panel:nth-child(n + 3) {
+    border-top: 1px solid var(--mera-border);
+  }
 }
-@media (max-width: 640px) {
-  .mera-platform .mera-platform-nav {
+@media (max-width: 760px) {
+  .mera-platform-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mera-platform-sidebar {
     display: none;
   }
   .mera-platform .mera-platform-section-select {
     display: grid;
-    margin: 0 0 16px;
+    margin: 0 0 20px;
+    font-size: 11px;
   }
   .mera-platform-section-select select {
     min-height: 44px;
+  }
+  .mera-platform .mera-platform-topbar {
+    gap: 18px;
+    padding: 16px 20px;
+  }
+  .mera-platform-topbar > span {
+    padding-left: 18px;
+    font-size: 11px;
+  }
+  .mera-platform-topbar > a:last-child {
+    font-size: 11px;
+  }
+  .mera-platform .mera-page-heading {
+    padding-top: 24px;
+  }
+}
+@media (max-width: 540px) {
+  .mera-platform-content {
+    padding: 0 16px 32px;
+  }
+  .mera-platform-access .mera-platform-content {
+    padding-top: 12px;
+  }
+  .mera-platform .mera-platform-topbar {
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    padding: 14px 16px;
+    min-height: 76px;
+  }
+  .mera-platform-topbar > span {
+    margin-left: auto;
+    font-size: 10px;
+  }
+  .mera-platform-topbar > a:last-child {
+    width: 100%;
+    justify-content: flex-end;
+    padding-block: 0;
+    font-size: 10px;
+  }
+  .mera-platform .mera-page-heading {
+    align-items: flex-start;
+    gap: 12px;
+    padding: 22px 0 20px;
+  }
+  .mera-platform h1 {
+    font-size: 25px;
+  }
+  .mera-platform .mera-page-heading > button {
+    font-size: 11px;
+    padding: 10px;
+    min-width: 86px;
+  }
+  .mera-page-heading > button svg {
+    display: none;
+  }
+  .mera-platform .mera-stat-grid .mera-panel {
+    padding: 14px;
+  }
+  .mera-platform .mera-stat-grid strong {
+    font-size: 18px;
+  }
+  .mera-platform .mera-panel {
+    padding: 18px;
+  }
+  .mera-platform .mera-platform-filters {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .mera-platform .mera-platform-verification {
+    padding: 24px;
+  }
+  .mera-platform .mera-platform-review {
+    width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+    padding: 18px;
+  }
+  .mera-platform-review-heading h2 {
+    font-size: 23px;
+  }
+  .mera-platform-review-heading {
+    align-items: flex-start;
+  }
+  .mera-platform-review-heading > button {
+    white-space: normal;
+    max-width: 115px;
+  }
+  .mera-platform-review dl {
+    grid-template-columns: 1fr;
   }
 }

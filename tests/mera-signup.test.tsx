@@ -35,6 +35,7 @@ test("unconfigured public identity delivery blocks registration before collectin
   }
 });
 test("development verification is explicit and does not claim email delivery", async () => {
+  window.history.replaceState({}, "", "/mera/signup?demo=1");
   const calls: any[] = [];
   globalThis.fetch = (async (input: any, init: any = {}) => {
     calls.push({ path: String(input), body: init.body });

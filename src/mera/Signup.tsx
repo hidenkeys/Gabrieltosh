@@ -1,4 +1,13 @@
-import { Disclosure } from "./ui/OperationalPrimitives";
+import { MeraBrand } from "./ui/MeraBrand";
+import {
+  ArrowRight,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  Store,
+  Utensils,
+  Users,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./workspace/api";
 import { usePublicNavigation } from "./marketing/publicNavigation";
@@ -28,6 +37,8 @@ const verificationPending: SignupMarker = {
 };
 export default function Signup() {
   const navigate = usePublicNavigation(sections);
+  const demo = new URLSearchParams(window.location.search).get("demo") === "1";
+  const [showPassword, setShowPassword] = useState(false);
   const mounted = useRef(false),
     inFlight = useRef(false);
   const [locked, setLocked] = useState(
@@ -93,6 +104,7 @@ export default function Signup() {
       inFlight.current ||
       busy ||
       checking ||
+      !demo ||
       capabilities?.registration !== "simulator" ||
       registration ||
       verified ||
@@ -148,6 +160,7 @@ export default function Signup() {
       busy ||
       checking ||
       locked ||
+      !demo ||
       capabilities?.registration !== "simulator" ||
       !validRegistrationAck(registration) ||
       verified
@@ -194,7 +207,7 @@ export default function Signup() {
     }
   }
   return (
-    <div className="mera-signup">
+    <div className="mera-signup mera-identity">
       <a
         className="mera-marketing-skip"
         href="#mera-signup-main"
@@ -203,38 +216,61 @@ export default function Signup() {
         Skip to owner setup
       </a>
       <header className="mera-signup-header">
-        <a className="mera-wordmark" href="/mera">
-          mera<span>.</span>
+        <a className="mera-signup-home" href="/mera" aria-label="Mera home">
+          <MeraBrand />
         </a>
-        <a href="/mera/workspace">Staff sign-in →</a>
+        <div className="mera-signup-access">
+          <span>Already part of a team?</span>
+          <a href="/mera/workspace">
+            Sign in <ArrowRight size={15} aria-hidden="true" />
+          </a>
+        </div>
       </header>
       <main id="mera-signup-main">
-        <section className="mera-signup-introduction">
-          <p className="eyebrow">OWNER SETUP</p>
-          <h1>Set up your organization.</h1>
+        <section
+          className="mera-signup-introduction"
+          aria-labelledby="owner-start-title"
+        >
+          <p className="eyebrow">YOUR BUSINESS, CONNECTED</p>
+          <h1 id="owner-start-title">
+            Make room for <br />
+            better service.
+          </h1>
           <p>
-            Start with an owner account. Then add your branches, menu and team.
+            One place for your menu, your people and every step of service.
+            Start with your account. Build the rest at your pace.
           </p>
-          <Disclosure
-            className="mera-signup-explanation"
-            summary="Setup and pricing details"
-          >
-            <p>
-              Your branches, service policies and brand stay in your control.
-            </p>
-            <ol>
-              <li>Create an owner account.</li>
-              <li>Configure your organization and branches.</li>
-              <li>Preview your menu and review readiness.</li>
-            </ol>
-            <p className="mera-signup-note">
-              Pricing and payment settings remain proposals until agreed. No
-              subscription charge or online collection happens during this
-              preview.
-            </p>
-          </Disclosure>
+          <ol className="mera-account-steps" aria-label="Getting started">
+            <li aria-current="step">
+              <span>01</span>
+              <div>
+                <strong>Your owner account</strong>
+                <small>A secure starting point for your business.</small>
+              </div>
+            </li>
+            <li>
+              <span>02</span>
+              <div>
+                <strong>Your organization</strong>
+                <small>Branch, service modes and your own identity.</small>
+              </div>
+            </li>
+            <li>
+              <span>03</span>
+              <div>
+                <strong>Ready for service</strong>
+                <small>Menu, team and a considered launch checklist.</small>
+              </div>
+            </li>
+          </ol>
+          <div className="mera-signup-service">
+            <Store size={20} aria-hidden="true" />
+            <Utensils size={20} aria-hidden="true" />
+            <Users size={20} aria-hidden="true" />
+            <span>From the first counter to the last table.</span>
+          </div>
           <a className="mera-signup-price-link" href="/mera#pricing">
-            Review proposed pricing
+            Review proposed pricing <ArrowRight size={15} aria-hidden="true" />
           </a>
         </section>
         <section
@@ -278,27 +314,60 @@ export default function Signup() {
               <a href="/mera/legal">Review policy information</a>
             </section>
           )}
-          {capabilities?.registration === "blocked" && (
-            <>
-              <h2 tabIndex={-1}>Registration is awaiting verification setup</h2>
-              <p>
-                Owner email delivery and sender authorization must be configured
-                before public registration opens.{" "}
-                {locked
-                  ? "No new registration has been sent from this page; the earlier request still needs review."
-                  : "No account has been created."}
-              </p>
-              <a className="secondary" href="/mera/workspace">
-                Open existing workspace
-              </a>
-            </>
-          )}
-          {capabilities?.registration === "simulator" &&
+          {(capabilities?.registration === "blocked" ||
+            (capabilities?.registration === "simulator" && !demo)) &&
+            !locked && (
+              <>
+                <div className="mera-signup-state-icon">
+                  <ShieldCheck size={25} aria-hidden="true" />
+                </div>
+                <p className="mera-signup-badge">New owner registration</p>
+                <h2 tabIndex={-1}>
+                  Registration is awaiting verification setup
+                </h2>
+                <p>
+                  Owner email delivery and sender authorization must be
+                  configured before public registration opens.{" "}
+                  {locked
+                    ? "No new registration has been sent from this page; the earlier request still needs review."
+                    : "No account has been created."}
+                </p>
+                <div className="mera-signup-readiness">
+                  <strong>What this means</strong>
+                  <p>
+                    We will only open registration when we can securely verify
+                    your email. Existing owners and invited staff can still sign
+                    in.
+                  </p>
+                </div>
+                <a className="primary" href="/mera/workspace">
+                  Open existing workspace{" "}
+                  <ArrowRight size={16} aria-hidden="true" />
+                </a>
+                {capabilities?.registration === "simulator" && (
+                  <div className="mera-signup-demo-entry">
+                    <strong>Just exploring?</strong>
+                    <p>
+                      Use a separate demonstration account. No email is
+                      delivered and no billing is activated.
+                    </p>
+                    <a href="/mera/signup?demo=1">
+                      Explore the owner demo{" "}
+                      <ArrowRight size={14} aria-hidden="true" />
+                    </a>
+                  </div>
+                )}
+              </>
+            )}
+          {demo &&
+            capabilities?.registration === "simulator" &&
             !registration &&
             !verified &&
             !locked && (
               <>
-                <p className="mera-signup-badge">Development environment</p>
+                <p className="mera-signup-badge">
+                  Demonstration · Account 1 of 2
+                </p>
                 <h2 tabIndex={-1}>Explore owner onboarding</h2>
                 <p>
                   Use demonstration details. Verification is simulated here; no
@@ -327,10 +396,11 @@ export default function Signup() {
                         maxLength={254}
                       />
                     </label>
-                    <label>
-                      Password
+                    <label htmlFor="owner-password">Password</label>
+                    <div className="mera-password-control">
                       <input
-                        type="password"
+                        id="owner-password"
+                        type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         autoComplete="new-password"
@@ -339,7 +409,22 @@ export default function Signup() {
                         required
                         aria-describedby="password-help"
                       />
-                    </label>
+                      <button
+                        type="button"
+                        className="mera-password-toggle"
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                        aria-pressed={showPassword}
+                        onClick={() => setShowPassword((value) => !value)}
+                      >
+                        {showPassword ? (
+                          <EyeOff size={18} aria-hidden="true" />
+                        ) : (
+                          <Eye size={18} aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
                     <p id="password-help">
                       Use at least 12 characters and a password unique to this
                       demonstration.
@@ -355,7 +440,9 @@ export default function Signup() {
             )}
           {registration && !locked && (
             <>
-              <p className="mera-signup-badge">Simulated verification</p>
+              <p className="mera-signup-badge">
+                Demonstration · Verification 2 of 2
+              </p>
               <h2 tabIndex={-1}>Try the verification step</h2>
               <p>
                 No email has been sent. This development action consumes a
@@ -377,7 +464,7 @@ export default function Signup() {
                 organization. This does not verify a real email address or
                 activate billing.
               </p>
-              <a className="primary" href="/mera/workspace">
+              <a className="primary" href="/mera/workspace?setup=1">
                 Continue to organization setup →
               </a>
             </>
@@ -386,7 +473,11 @@ export default function Signup() {
       </main>
       <footer>
         <a href="/mera/legal">Privacy & terms preparation</a>
-        <span>No production registration or payment activation.</span>
+        <a href="/mera/platform">Platform operator access</a>
+        <span>
+          <ShieldCheck size={14} aria-hidden="true" /> No payment is taken
+          during setup.
+        </span>
       </footer>
     </div>
   );

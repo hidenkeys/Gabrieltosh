@@ -60,3 +60,50 @@ test("unsupported readiness fails closed with retry instead of an empty card", a
     cleanup();
   }
 });
+test("normal signup never presents simulated registration as real signup", async () => {
+  window.history.replaceState({}, "", "/mera/signup");
+  globalThis.fetch = (async () =>
+    Response.json({ registration: "simulator" })) as any;
+  try {
+    render(<Signup />);
+    await screen.findByRole("heading", {
+      name: "Registration is awaiting verification setup",
+    });
+    assert.equal(screen.queryByLabelText("Password"), null);
+    assert.equal(
+      screen
+        .getByRole("link", { name: "Explore the owner demo" })
+        .getAttribute("href"),
+      "/mera/signup?demo=1",
+    );
+    assert.equal(
+      screen
+        .getByRole("link", { name: "Platform operator access" })
+        .getAttribute("href"),
+      "/mera/platform",
+    );
+  } finally {
+    cleanup();
+  }
+});
+test("explicit demonstration has an accessible password visibility control", async () => {
+  window.history.replaceState({}, "", "/mera/signup?demo=1");
+  globalThis.fetch = (async () =>
+    Response.json({ registration: "simulator" })) as any;
+  try {
+    render(<Signup />);
+    const password = await screen.findByLabelText("Password");
+    assert.equal(password.getAttribute("type"), "password");
+    fireEvent.click(screen.getByRole("button", { name: "Show password" }));
+    assert.equal(password.getAttribute("type"), "text");
+    assert.equal(
+      screen
+        .getByRole("button", { name: "Hide password" })
+        .getAttribute("aria-pressed"),
+      "true",
+    );
+  } finally {
+    cleanup();
+    window.history.replaceState({}, "", "/mera/signup");
+  }
+});

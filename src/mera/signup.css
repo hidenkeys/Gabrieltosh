@@ -1,121 +1,360 @@
+/* Mera account entry. Deliberately scoped away from organization operations. */
 .mera-signup {
   min-height: 100vh;
-  color: #28262b;
-  background: #faf7ef;
+  background: var(--mera-paper);
+  color: var(--mera-ink);
 }
-.mera-signup header,
-.mera-signup main,
-.mera-signup footer {
-  max-width: 1160px;
-  width: calc(100% - 48px);
-  margin: auto;
+.mera-signup-header,
+.mera-signup > main,
+.mera-signup > footer {
+  width: min(1280px, calc(100% - 80px));
+  margin-inline: auto;
 }
-.mera-signup header,
-.mera-signup footer {
-  padding: 26px 0;
+.mera-signup-header {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
-  align-items: center;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--mera-border);
 }
-.mera-signup main {
+.mera-signup-home {
+  display: inline-flex;
+}
+.mera-signup-access {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 13px;
+}
+.mera-signup-access > span {
+  color: var(--mera-muted);
+}
+.mera-signup a {
+  color: var(--mera-forest);
+  text-underline-offset: 4px;
+}
+.mera-signup-access a,
+.mera-signup-price-link,
+.mera-signup-demo-entry a {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 650;
+}
+.mera-signup > main {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(400px, 1fr);
+  gap: clamp(40px, 7vw, 110px);
+  padding-block: 64px 72px;
   align-items: start;
-  gap: 80px;
-  padding: 70px 0;
+}
+.mera-signup-introduction {
+  padding-top: 10px;
+}
+.mera-signup .eyebrow,
+.mera-signup-badge {
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--mera-forest);
 }
 .mera-signup h1 {
-  font-size: clamp(2.8rem, 5vw, 4.4rem);
-  line-height: 1.05;
+  font:
+    700 clamp(36px, 4.4vw, 62px)/1.05 Inter,
+    system-ui,
+    sans-serif;
   letter-spacing: -0.055em;
-  margin: 18px 0 24px;
+  margin: 21px 0 22px;
+  max-width: 10ch;
 }
 .mera-signup h2 {
-  font-size: 1.8rem;
-  letter-spacing: -0.03em;
+  font:
+    650 clamp(23px, 2.25vw, 31px)/1.16 Inter,
+    system-ui,
+    sans-serif;
+  letter-spacing: -0.035em;
   margin: 12px 0;
 }
 .mera-signup p {
-  line-height: 1.7;
-  color: #656259;
+  color: var(--mera-muted);
+  line-height: 1.65;
+  font-size: 14px;
 }
-.mera-signup ol {
-  padding-left: 22px;
-  margin: 28px 0;
-  line-height: 2.3;
+.mera-signup-introduction > p:not(.eyebrow) {
+  max-width: 45ch;
+  font-size: 16px;
+}
+.mera-signup .mera-account-steps {
+  list-style: none;
+  padding: 0;
+  margin: 38px 0 32px;
+  display: grid;
+  gap: 22px;
+}
+.mera-account-steps li {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.mera-account-steps li > span {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--mera-border);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 50%;
+}
+.mera-account-steps li[aria-current] > span {
+  color: white;
+  background: var(--mera-forest);
+  border-color: var(--mera-forest);
+}
+.mera-account-steps strong {
+  font-size: 14px;
+  font-weight: 650;
+  display: block;
+  line-height: 1.4;
+}
+.mera-account-steps small {
+  color: var(--mera-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  display: block;
+  margin-top: 3px;
+}
+.mera-signup-service {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border-top: 1px solid var(--mera-border);
+  padding-top: 22px;
+  font-size: 12px;
+  color: var(--mera-muted);
+}
+.mera-signup-service svg {
+  flex-shrink: 0;
+  color: var(--mera-forest);
+}
+.mera-signup-price-link {
+  margin-top: 22px;
+  font-size: 13px;
 }
 .mera-signup-card {
+  min-width: 0;
   padding: 36px;
-  background: #fffefb;
-  border: 1px solid #e4ddcf;
-  border-radius: 26px;
-  box-shadow: 0 12px 60px #463c2410;
+  border: 1px solid var(--mera-border);
+  border-radius: 16px;
+  background: var(--mera-white);
+  box-shadow: 0 12px 40px #152b2407;
 }
-.mera-signup label {
-  display: grid;
-  gap: 8px;
-  font-weight: 600;
-  margin: 18px 0;
+.mera-signup-card label {
+  display: block;
+  margin: 21px 0 7px;
+  font-size: 12px;
+  font-weight: 650;
+}
+.mera-signup-card label input {
+  margin-top: 8px;
 }
 .mera-signup input {
-  border: 1px solid #d8d4ca;
-  border-radius: 12px;
-  background: white;
-  padding: 13px 15px;
-  font: inherit;
   width: 100%;
+  min-height: 48px;
+  border: 1px solid #b9c4bb;
+  padding: 12px 14px;
+  border-radius: 7px;
+  font: inherit;
+  color: var(--mera-ink);
+  background: white;
+}
+.mera-signup-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.mera-signup #password-help {
+  font-size: 12px;
+  margin: 9px 0 22px;
+}
+.mera-password-control {
+  position: relative;
+}
+.mera-password-control input {
+  padding-right: 52px;
+}
+.mera-signup button.mera-password-toggle {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--mera-ink);
+  padding: 0;
 }
 .mera-signup .primary,
 .mera-signup .secondary {
   display: inline-flex;
-  min-height: 44px;
   align-items: center;
   justify-content: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 12px 18px;
+  border-radius: 7px;
+  font:
+    650 13px/1.4 Inter,
+    system-ui,
+    sans-serif;
   text-decoration: none;
-  margin-top: 16px;
+  margin-top: 14px;
+}
+.mera-signup .primary {
+  background: var(--mera-forest);
+  border: 1px solid var(--mera-forest);
+  color: white;
+}
+.mera-signup .secondary {
+  background: white;
+  color: var(--mera-forest);
+  border: 1px solid var(--mera-border);
 }
 .mera-signup form .primary {
   width: 100%;
+  margin-top: 0;
 }
-.mera-signup-badge {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-weight: 700;
+.mera-signup .primary:hover {
+  background: #0f3026;
 }
-.mera-signup-note {
+.mera-signup button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.mera-signup-state-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  background: var(--mera-lime);
+  border-radius: 12px;
+  margin-bottom: 25px;
+}
+.mera-signup-readiness {
+  border-left: 3px solid var(--mera-lime);
+  padding: 2px 0 2px 16px;
+  margin: 24px 0 12px;
+}
+.mera-signup-readiness strong,
+.mera-signup-demo-entry strong {
   font-size: 13px;
-  border-top: 1px solid #e5dfd2;
-  padding-top: 20px;
+}
+.mera-signup-readiness p,
+.mera-signup-demo-entry p {
+  margin: 6px 0;
+  font-size: 13px;
+}
+.mera-signup-demo-entry {
+  border-top: 1px solid var(--mera-border);
+  margin-top: 28px;
+  padding-top: 24px;
+}
+.mera-signup-demo-entry a {
+  margin-top: 10px;
+  font-size: 13px;
+}
+.mera-signup [role="alert"] {
+  padding: 14px;
+  border: 1px solid #d3aaa2;
+  border-radius: 6px;
+  color: #7b3024;
+  background: #fff6f3;
+}
+.mera-signup > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 24px 0;
+  border-top: 1px solid var(--mera-border);
+  font-size: 11px;
+  color: var(--mera-muted);
+}
+.mera-signup > footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
 .mera-signup :focus-visible {
-  outline: 3px solid #10563e;
-  outline-offset: 3px;
+  outline: 3px solid var(--mera-forest);
+  outline-offset: 4px;
 }
-@media (max-width: 760px) {
-  .mera-signup main {
-    grid-template-columns: 1fr;
+@media (max-width: 1000px) {
+  .mera-signup-header,
+  .mera-signup > main,
+  .mera-signup > footer {
+    width: calc(100% - 48px);
+  }
+  .mera-signup > main {
     gap: 32px;
-    padding: 30px 0;
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 1.1fr);
+    padding-block: 44px;
   }
   .mera-signup-card {
-    padding: 24px;
+    padding: 26px;
   }
-  .mera-signup footer {
-    flex-direction: column;
-    align-items: start;
-  }
-  .mera-signup header,
-  .mera-signup main,
-  .mera-signup footer {
-    width: calc(100% - 32px);
+  .mera-signup-service {
+    flex-wrap: wrap;
   }
 }
-
-.mera-signup-fields {
-  border: 0;
-  padding: 0;
-  margin: 0;
-  min-width: 0;
+@media (max-width: 720px) {
+  .mera-signup-header,
+  .mera-signup > main,
+  .mera-signup > footer {
+    width: calc(100% - 32px);
+  }
+  .mera-signup-header {
+    padding: 20px 0;
+  }
+  .mera-signup-access > span {
+    display: none;
+  }
+  .mera-signup > main {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    padding-block: 28px 36px;
+  }
+  .mera-signup h1 {
+    font-size: 38px;
+    max-width: none;
+    margin: 14px 0;
+  }
+  .mera-signup h1 br {
+    display: none;
+  }
+  .mera-signup-introduction {
+    padding: 0;
+  }
+  .mera-signup-introduction > p:not(.eyebrow) {
+    font-size: 14px;
+  }
+  .mera-signup .mera-account-steps,
+  .mera-signup-service,
+  .mera-signup-price-link {
+    display: none;
+  }
+  .mera-signup-card {
+    padding: 24px 20px;
+    border-radius: 12px;
+  }
+  .mera-signup > footer {
+    justify-content: flex-start;
+  }
 }

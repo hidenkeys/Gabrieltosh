@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {
-  url: "http://localhost:3003/mera/signup",
+  url: "http://localhost:3003/mera/signup?demo=1",
 });
 for (const key of ["window", "document", "HTMLElement", "Event", "MouseEvent"])
   Object.defineProperty(globalThis, key, {
@@ -44,7 +44,7 @@ async function fill() {
 const reset = () => {
   cleanup();
   window.sessionStorage.clear();
-  window.history.replaceState({}, "", "/mera/signup");
+  window.history.replaceState({}, "", "/mera/signup?demo=1");
 };
 test("single-flight registration persists no secrets and valid acknowledgments alone complete verification", async () => {
   let finish!: (v: Response) => void;
@@ -304,7 +304,7 @@ test("skip link moves focus to main heading without submitting or resetting reco
     fireEvent.click(screen.getByRole("link", { name: "Skip to owner setup" }));
     assert.equal(
       document.activeElement,
-      screen.getByRole("heading", { name: "Set up your organization." }),
+      screen.getByRole("heading", { name: "Make room for better service." }),
     );
     assert.equal(window.location.hash, "#mera-signup-main");
   } finally {

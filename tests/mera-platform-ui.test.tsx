@@ -29,6 +29,14 @@ test("platform exposes no directory before operator step-up", async () => {
     render(<Platform />);
     await screen.findByRole("heading", { name: "Verify your authenticator" });
     assert.equal(directoryReads, 0);
+    assert.equal(
+      screen.queryByRole("navigation", { name: "Platform sections" }),
+      null,
+    );
+    assert.equal(
+      screen.getByRole("img", { name: "Mera" }).getAttribute("src"),
+      "/mera/brand/mera-mark-dark.png",
+    );
     assert.equal(screen.queryByText("Private tenant"), null);
   } finally {
     cleanup();
@@ -185,6 +193,15 @@ test("platform sections and subscription filter keep operational tasks focused",
     assert.equal(screen.queryByRole("cell", { name: "Paused business" }), null);
     fireEvent.click(screen.getByRole("button", { name: "Support inbox" }));
     assert.ok(screen.getByRole("heading", { name: "Organization support" }));
+    const supportHeading = screen.getByRole("heading", {
+      level: 1,
+      name: "Support inbox",
+    });
+    assert.equal(document.activeElement, supportHeading);
+    assert.equal(
+      screen.queryByRole("region", { name: "Organization overview" }),
+      null,
+    );
     assert.equal(
       screen.queryByRole("heading", { name: "Organization directory" }),
       null,
@@ -425,6 +442,10 @@ test("compact platform chooser reaches all five sections and shares desktop navi
     );
     fireEvent.change(chooser, { target: { value: "audit" } });
     assert.ok(screen.getByRole("heading", { name: "Operator audit" }));
+    assert.equal(
+      document.activeElement,
+      screen.getByRole("heading", { level: 1, name: "Audit log" }),
+    );
     assert.equal(
       screen
         .getByRole("button", { name: "Audit log" })

@@ -416,6 +416,19 @@ export function createMeraRouter(db) {
       demo: process.env.MERA_DEMO === "true",
     });
   });
+  // Advisory only: organization creation still performs the atomic claim.
+  router.get("/organizations/address-availability", async (req, res) => {
+    if (!req.user) throw fail("Sign in to continue.", 401);
+    const parsed = organizationSlugSchema.safeParse(req.query.slug);
+    if (!parsed.success) return res.json({ available: false, reason: "invalid_or_reserved" });
+    const slug = parsed.data;
+    const [canonical, claimed] = await Promise.all([
+      db.query("SELECT id FROM mera_organizations WHERE slug=$1 LIMIT 1", [slug]),
+      db.query("SELECT organization_id FROM mera_slug_claims WHERE slug=$1 LIMIT 1", [slug]),
+    ]);
+    const available = !canonical.rows.length && !claimed.rows.length;
+    res.json({ available, reason: available ? "available" : "already_claimed" });
+  });
   router.post("/organizations", async (req, res) => {
     await requireVerifiedOwner(req,db);
     if (!req.user) throw fail("Sign in to continue.", 401);
