@@ -1625,15 +1625,19 @@
     padding-bottom: 36px;
   }
   .mt-commercial-note {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
     margin-bottom: 24px;
-    align-items: flex-start;
+    align-items: start;
     gap: 12px;
   }
   .mt-commercial-note > div {
-    flex: 1;
+    min-width: 0;
   }
   .mt-commercial-note .mt-text-link {
-    margin-left: 36px;
+    grid-column: 2;
+    justify-self: start;
+    margin-left: 0;
   }
   .mt-final-action {
     padding-block: 38px;
