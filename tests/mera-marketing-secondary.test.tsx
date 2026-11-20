@@ -127,3 +127,27 @@ test("M2 a pricing fragment from another page reaches its section after the lazy
     HTMLElement.prototype.scrollIntoView = previous;
   }
 });
+
+test("enquiry privacy link resolves to factual staging notice with recovery and delivery limits", () => {
+  try {
+    window.history.replaceState(null, "", "/mera/legal#privacy");
+    render(<LegalInformationPage />);
+    const privacy = document.getElementById("privacy")!;
+    assert.ok(privacy);
+    assert.equal(document.activeElement, privacy.querySelector("h2"));
+    assert.match(privacy.textContent || "", /synthetic details and documents/);
+    assert.match(privacy.textContent || "", /authorized platform operators/);
+    assert.match(privacy.textContent || "", /temporary recovery copy/);
+    assert.match(privacy.textContent || "", /send no confirmation email/);
+    assert.ok(screen.getByText("Pending business and legal approval"));
+    assert.equal(
+      screen
+        .getByRole("link", { name: "Enquiries and Travel interest" })
+        .getAttribute("href"),
+      "#privacy",
+    );
+  } finally {
+    cleanup();
+    window.history.replaceState(null, "", "/mera/signup");
+  }
+});

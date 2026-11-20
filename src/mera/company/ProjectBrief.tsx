@@ -433,7 +433,7 @@ export default function ProjectBrief() {
                 <span>
                   I agree that MeraTech may use these details and documents to
                   review my enquiry and contact me about it.{" "}
-                  <a href="/mera/privacy">Privacy information</a>
+                  <a href="/mera/legal#privacy" target="_blank" rel="noopener noreferrer">Privacy information (opens in a new tab)</a>
                 </span>
               </label>
               {merged.privacyAcknowledged && (

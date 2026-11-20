@@ -151,7 +151,7 @@ export default function TravelInterest() {
             <span>
               I agree that MeraTech may keep these details to review my interest
               and contact me about MeraTravel Suite.{" "}
-              <a href="/mera/privacy">Privacy information</a>
+              <a href="/mera/legal#privacy" target="_blank" rel="noopener noreferrer">Privacy information (opens in a new tab)</a>
             </span>
           </label>
           {merged.privacyAcknowledged && (

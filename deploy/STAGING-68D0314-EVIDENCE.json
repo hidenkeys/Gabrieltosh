@@ -1,0 +1,136 @@
+{
+  "at": "2026-11-20T07:25:00.131Z",
+  "origin": "https://mera-web-staging.up.railway.app",
+  "sourceRevision": "68d0314c13a97aa2cd96764ce0a168c7d4395a14",
+  "scope": {
+    "projectId": "242b97ee-5c3d-4991-8613-ff3a2628732b",
+    "environmentId": "1d313de7-1669-4ded-a6c8-4fe3581abee4",
+    "environment": "staging"
+  },
+  "deployments": {
+    "web": {
+      "id": "2b426c5d-5d0f-4c1d-b882-28deccfcbfc3",
+      "status": "SUCCESS"
+    },
+    "jobs": {
+      "id": "ab4aaa6d-0e0c-4c1b-b872-90417582044a",
+      "status": "SUCCESS"
+    }
+  },
+  "checks": [
+    {
+      "path": "/api/health",
+      "status": 200
+    },
+    {
+      "path": "/",
+      "status": 302
+    },
+    {
+      "path": "/mera",
+      "status": 301
+    },
+    {
+      "path": "/mera/",
+      "status": 200
+    },
+    {
+      "path": "/robots.txt",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/context",
+      "status": 401
+    },
+    {
+      "path": "/api/mera/v1/platform",
+      "status": 401
+    },
+    {
+      "path": "/api/products",
+      "status": 404
+    },
+    {
+      "path": "/api/mera/v1/identity/capabilities",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/public/bing-chun/20000000-0000-4000-8000-000000000001/menu",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/public/staging-setup/20000000-0000-4000-8000-000000000002/menu",
+      "status": 404
+    },
+    {
+      "path": "/api/mera/v1/public/bing-chun/20000000-0000-4000-8000-000000000002/menu",
+      "status": 404
+    },
+    {
+      "path": "/api/login",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/context",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/platform",
+      "status": 403
+    },
+    {
+      "path": "/api/logout",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/context",
+      "status": 401
+    }
+  ],
+  "secureCookie": {
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "strict"
+  },
+  "companyFlow": {
+    "at": "2026-11-20T07:24:06.862Z",
+    "origin": "https://mera-web-staging.up.railway.app",
+    "checks": [
+      {
+        "route": "/api/health",
+        "status": 200
+      },
+      {
+        "route": "/api/mera/v1/platform/company-leads",
+        "status": 401
+      },
+      {
+        "route": "/api/mera/v1/platform/company-leads/handlers",
+        "status": 401
+      }
+    ],
+    "submission": {
+      "httpStatus": 201,
+      "acknowledgement": {
+        "kind": "travel_interest",
+        "reference": "TRV-DF5096F10E58",
+        "status": "received",
+        "externalDelivery": false,
+        "emailDelivery": "not_sent",
+        "receivedAt": "2026-11-20T07:24:07.253Z"
+      },
+      "synthetic": true
+    }
+  },
+  "regressionRun": {
+    "command": "node scripts/mera-staging-smoke.js",
+    "checksPassed": 17,
+    "initialAttempt": "Transient initial connection timeout before checks; single retry passed."
+  },
+  "limitations": [
+    "API checks do not replace browser visual verification.",
+    "One synthetic Travel interest created; no real customer data submitted.",
+    "No external email delivery, production deployment, payment execution or hardware printing tested."
+  ],
+  "preservation": "Existing service configuration, secrets, database and synthetic menu records preserved; additive company migrations used existing guarded release."
+}

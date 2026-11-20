@@ -61,6 +61,7 @@ export function PricingAndSupport() {
 }
 const policySections = [
   "mera-policy-main",
+  "privacy",
   "customer-information",
   "communication-preferences",
   "payments-policies",
@@ -69,6 +70,7 @@ const policySections = [
 export function LegalInformationPage() {
   const navigate = usePublicNavigation(policySections);
   const topics = [
+    ["privacy", "Enquiries and Travel interest"],
     ["customer-information", "Customer information"],
     ["communication-preferences", "Communication preferences"],
     ["payments-policies", "Payments and service policies"],
@@ -120,6 +122,50 @@ export function LegalInformationPage() {
             ))}
           </nav>
           <div className="mera-legal-topics">
+            <section id="privacy">
+              <h2>Enquiries and Travel interest</h2>
+              <p>
+                This notice describes the current test experience. The complete
+                privacy policy remains subject to business and legal approval.
+                Use synthetic details and documents when testing this staging
+                site; do not submit passwords, payment-card details or
+                confidential personal records.
+              </p>
+              <p>
+                A consultancy brief collects your name, email, organization and
+                project details, including the problem, scope, budget preference
+                and preferred timeline. You may add contact details and
+                supporting documents. Travel interest collects your name and
+                email, with optional organization, role and interest details.
+                These details are used to review the enquiry or interest and its
+                follow-up. Neither form accepts a project, creates a Travel
+                account or subscribes you to marketing messages.
+              </p>
+              <p>
+                Submitted records and supporting documents are private to
+                authorized platform operators. They are not published in a
+                public menu or shared with organization staff through these
+                forms. Operator review, notes, assignment and follow-up are
+                subject to platform access controls and auditing.
+              </p>
+              <p>
+                When you send, this browser tab keeps a temporary recovery copy
+                of the submitted details and attachments so an interrupted
+                request can be retried without creating another submission. The
+                private payload is removed from that recovery copy when receipt
+                is confirmed. Do not clear an uncertain submission before
+                checking its outcome. This local recovery copy is separate from
+                the record received by the service.
+              </p>
+              <p>
+                A receipt confirms that the service received the submission; it
+                does not confirm an email was sent. These forms currently send
+                no confirmation email. Retention periods, controller contact
+                details and procedures for data requests still need approval
+                before public launch; this page does not invent or replace those
+                policies.
+              </p>
+            </section>
             <section id="customer-information">
               <h2>Customer information</h2>
               <p>
