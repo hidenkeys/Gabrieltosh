@@ -1,0 +1,12 @@
+import type { ZodType } from "zod";
+export const companyDocumentLimit: number;
+export const companyDocumentCount: number;
+export const companyDocumentMimes: readonly string[];
+export const companyLeadStatuses: readonly string[];
+export const companyBudgetRanges: readonly string[];
+export const companyBudgetLabels: Record<string, string>;
+export const companyDocumentSchema: ZodType<any>;
+export const consultancyEnquirySchema: ZodType<any>;
+export const travelInterestSchema: ZodType<any>;
+export const companyAcknowledgementSchema: ZodType<any>;
+export const companyLeadUpdateSchema: ZodType<any>;

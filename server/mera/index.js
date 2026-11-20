@@ -1,3 +1,4 @@
+import { migrateCompanyLeads, mountCompanyLeads } from "./company-leads.js";
 import {withAccessLock,authorizeAccessTarget,beginAccessOperation,recordAccessOperation,recordAccess,mountMeraAccessAttempts} from "./access-attempts.js";
 import {assertExpectedPrintActor,beginPrintStudioOperation,recordPrintStudioOperation,cleanReprintJob,mountMeraPrintStudioAttempts} from "./print-studio-attempts.js";
 import {assertExpectedBillActor,beginBillChange,recordBillChange,mountMeraBillAttempts} from "./bill-attempts.js";
@@ -109,6 +110,7 @@ export async function migrateMera(db) {
   await migrateMeraAssets(db);
   await migrateMeraQueries(db);
   await migrateMeraAliases(db);
+  await migrateCompanyLeads(db);
 }
 export async function seedMeraDemo(db) {
   if (process.env.NODE_ENV === "production" || process.env.MERA_DEMO !== "true")
@@ -3161,6 +3163,7 @@ export function createMeraRouter(db) {
   mountMeraRoles(router, {db,guard});
   mountMeraTickets(router, {guard,scope,locked,find,readRecords,event});
   const platformAccess=mountMeraPlatform(router, { db, providers, proposedPolicy });
+  mountCompanyLeads(router,{db,platformGuard:platformAccess.guard,platformAudit:platformAccess.audit});
   mountMeraOrganizationAliases(router,{db,platformGuard:platformAccess.guard,platformAudit:platformAccess.audit});
   mountMeraFeatureFlags(router,{db,platformGuard:platformAccess.guard,platformAudit:platformAccess.audit});
   mountMeraPlatformSupport(router,{db,guard,platformGuard:platformAccess.guard,platformAudit:platformAccess.audit});
