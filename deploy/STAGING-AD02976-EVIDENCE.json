@@ -1,0 +1,91 @@
+{
+  "at": "2026-11-20T06:45:35.504Z",
+  "origin": "https://mera-web-staging.up.railway.app",
+  "checks": [
+    {
+      "path": "/api/health",
+      "status": 200
+    },
+    {
+      "path": "/",
+      "status": 302
+    },
+    {
+      "path": "/mera",
+      "status": 301
+    },
+    {
+      "path": "/mera/",
+      "status": 200
+    },
+    {
+      "path": "/robots.txt",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/context",
+      "status": 401
+    },
+    {
+      "path": "/api/mera/v1/platform",
+      "status": 401
+    },
+    {
+      "path": "/api/products",
+      "status": 404
+    },
+    {
+      "path": "/api/mera/v1/identity/capabilities",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/public/bing-chun/20000000-0000-4000-8000-000000000001/menu",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/public/staging-setup/20000000-0000-4000-8000-000000000002/menu",
+      "status": 404
+    },
+    {
+      "path": "/api/mera/v1/public/bing-chun/20000000-0000-4000-8000-000000000002/menu",
+      "status": 404
+    },
+    {
+      "path": "/api/login",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/context",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/platform",
+      "status": 403
+    },
+    {
+      "path": "/api/logout",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/context",
+      "status": 401
+    }
+  ],
+  "secureCookie": {
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "strict"
+  },
+  "sourceRevision": "ad02976427b6c28cc66d04aec97900674ada103e",
+  "webDeploymentId": "69ebb35d-296d-4ad0-9e51-63ead1a30d0a",
+  "jobsDeploymentId": "d3ee34c0-cc21-455c-b46b-ceeaf572b305",
+  "deploymentStatuses": "SUCCESS",
+  "assetPersistenceAfterRedeploy": {
+    "at": "2026-11-20T06:45:41.824Z",
+    "assetId": "cba154c3-0b6d-49b7-9b78-f089c8cfbe6e",
+    "bytes": 159715,
+    "sha256": "b0effb678d247758fd25e989e0b49792cc37b294b4580062b2480d4cd78d9850",
+    "readBack": "matched",
+    "browserChooserClaim": false
+  }
+}

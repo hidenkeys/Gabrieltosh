@@ -383,3 +383,15 @@
     transform: none !important;
   }
 }
+
+/* Keep operational form defaults from adding a second spacing system here. */
+.mera-company-field label,
+.mera-company-form label:has(input[type="checkbox"]) {
+  margin: 0;
+  color: var(--mera-ink);
+}
+.mera-company-form input:not([type="checkbox"]),
+.mera-company-form select,
+.mera-company-form textarea {
+  margin: 0;
+}

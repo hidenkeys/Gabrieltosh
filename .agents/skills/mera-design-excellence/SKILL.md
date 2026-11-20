@@ -1,15 +1,17 @@
 ---
 name: mera-design-excellence
-description: Design, implement and visually verify Mera marketing, owner onboarding and platform administration while preserving the existing Bing Chun operational UI. Use for this repository's interface work, not unrelated products or backend-only changes.
+description: Design and verify MeraTech company pages, Mera QR onboarding, planned MeraTravel interest, consultancy enquiries and platform administration while preserving Bing Chun operations in this repository.
 ---
 
 # Mera design excellence
 
-Read [verified foundations](references/foundations.md) before changing an interface. This skill extends `mera-ui`; the November 20 staging/redesign brief supersedes its earlier marketing treatment. It does not change operational authority or authorize external actions. Shared Zidi principles inform hierarchy, task architecture, forms, navigation, motion and verification; no Zidi brand or product assumptions belong here.
+Read [verified foundations](references/foundations.md) and [company architecture](references/company-architecture.md) before changing an interface. This skill extends `mera-ui`; the consolidated MeraTech brief supersedes earlier website/brand/onboarding interpretations. It does not change operational authority or authorize external actions. Shared Zidi principles inform hierarchy, task architecture, forms, navigation, motion and verification; no Zidi brand or product assumptions belong here.
 
 ## Choose the design context
 
-**Mera marketing:** a distinctive hospitality technology identity using the supplied geometric mark, strong sans-serif headings, paper/white/forest section contrast and restrained lime emphasis. Explain the service journey with actual product captures. A cream page, serif title and repeated cards are not an acceptable redesign. Establish a common header/content/footer grid, then vary composition by purpose: editorial promise, legible product demonstration, sequential service journey, service-mode exploration, clear commercial disclosure, FAQ and action. Never fabricate customers, scale, delivery or live integrations.
+**MeraTech company and products:** MeraTech is the parent, Mera QR is the existing hospitality product, MeraTravel Suite is planned, and Consultancy is bespoke discovery/design/development/implementation. Keep their routes, status and CTAs distinct. Use the supplied geometric mark, strong sans-serif hierarchy and meaningful surface contrast. A cream page, serif title and repeated cards are not an acceptable redesign. Establish a common header/content/footer grid and vary composition by purpose. Do not publish unapproved prices, invented customers, offices, response times or integrations.
+
+The supplied `meratech` HTML is context only: do not port its layout, execute its mock authentication, copy pricing, ingredient inventory or live Travel/payment claims. Marketing demonstrations use a coherent explicitly fictional venue and legible editable HTML/components. Interactions must actually switch examples or navigate; no fake payment, booking or submission success. Label Travel visuals as planned concepts. Bing Chun stays in an explicit test/demo context, never the universal MeraTech identity.
 
 **Owner signup, onboarding and Mera operators:** use the same identity at business-software density. Registration is separate from sign-in, demo and operator authentication. Keep initial account creation short and later setup resumable. Use a step rail, useful-width form and contextual preview on desktop; a focused single column on mobile. A visited step is not a completed step. Show exact saved/unsaved/uncertain status. Platform operators need compact grouped navigation, filters, readable records and contextual details, not a marketing hero. Preserve MFA, scope checks and reasoned audit actions.
 
@@ -26,6 +28,14 @@ One owner edits a shared file at a time. Reuse `MeraBrand`, the scoped foundatio
 - Data tables may scroll within a named region; the whole page must not overflow. Mobile menus must expose the current location and keyboard dismissal.
 - Use Lucide icons already installed. Never approximate the supplied logo with text, tracing or CSS shapes.
 - Motion uses shared short timings, transform/opacity for entrances and explicit reduced-motion handling. Content is present without animation; no scroll hijacking or reveal-dependent visibility.
+
+## Entry and loading
+
+Use the original mark for a brief nonblocking first-session website introduction. Persist only the session-seen flag; failure to store it must not block content. Never impose a timer before showing a ready page or replay a full introduction on every route. For QR entry, show a lightweight Mera status only while actual organization/branch/table/menu resolution is pending, then defer to venue identity. Provide bounded loading, error and explicit retry where a real request can fail. No fake percentages, indefinite hidden content or automatic repeated announcements. Reduced motion skips decorative movement; content and controls remain usable if animation fails.
+
+## Enquiry and interest integrity
+
+Consultancy submissions are requests for review, not accepted projects or quotations. Travel interest is not product signup or a launch promise. Require clear field validation and necessary privacy acknowledgement; retain exact uncertain submissions for explicit retry with duplicate protection. Supporting documents remain private, validated and bounded. Operator list/details/assignment/notes/follow-up require existing platform authorization and auditing. Never claim email delivery without an actual configured provider.
 
 ## Functional and commercial boundaries
 

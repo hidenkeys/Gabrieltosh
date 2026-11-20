@@ -1,11 +1,11 @@
 {
-  "goal": "Deploy isolated Mera Railway staging and rebuild Mera-owned marketing, owner onboarding and platform administration while preserving Bing Chun operations.",
-  "scopeVersion": "2.0",
-  "frozenAt": "2026-11-20",
+  "goal": "Deliver a coherent MeraTech parent website, Mera QR onboarding, planned Travel interest and functional consultancy with verified Railway staging, preserving hospitality operations.",
+  "scopeVersion": "3.0",
+  "frozenAt": "2026-11-20 consolidated brief",
   "lastUpdated": "2026-11-20",
-  "revision": "405d8a0",
-  "baselineNote": "Expanded scope authorized November20. Historical scope1 retains93/100 at commit2c6d0e9 in docs/mera/staging-redesign/history. New deliverables start at0; planning alone earns no credit.",
-  "currentMilestone": "Baseline web deploying at405d8a0. Brand foundations and marketing implemented; visual acceptance pending. Owner setup/platform integration underway. Focused staging5/5 and marketing5/5; historical fullsuite not rerun.",
+  "revision": "91c88c6 + reviewed UI integration",
+  "baselineNote": "Consolidated MeraTech brief supersedes marketing direction and adds company/product pages, real consultancy and Travel interest plus entry motion. Scope1 historical93% and scope2 historical47.4% remain archived intact. Existing staging and working shared foundations retain only applicable evidence; prior marketing implementation earns no new website credit.",
+  "currentMilestone": "Company pages, public submissions and private operator inbox integrated. First local desktop/mobile/tablet review performed; final corrections and staging release in progress. Hosted acceptance and remaining operational checks are still pending.",
   "clarifications": [
     {
       "at": "2026-11-18T15:56:52+01:00",
@@ -18,366 +18,6 @@
     {
       "at": "2026-11-19T00:24:32+01:00",
       "text": "Owner explicitly approved isolated QA operator creation after automatic-review rejection. Guarded visual database fixture then exercised normal password/MFA only; no production operator/merchant access approval implied."
-    }
-  ],
-  "workstreams": [
-    {
-      "id": "R",
-      "title": "Railway staging and deployment verification",
-      "weight": 20,
-      "owner": "staging"
-    },
-    {
-      "id": "D",
-      "title": "Mera skill, assets and foundations",
-      "weight": 15,
-      "owner": "lead"
-    },
-    {
-      "id": "W",
-      "title": "Marketing website",
-      "weight": 20,
-      "owner": "marketing_refresh"
-    },
-    {
-      "id": "S",
-      "title": "Signup and owner onboarding",
-      "weight": 25,
-      "owner": "owner_onboarding"
-    },
-    {
-      "id": "A",
-      "title": "Platform administration",
-      "weight": 10,
-      "owner": "lead"
-    },
-    {
-      "id": "V",
-      "title": "Responsive, accessibility and regression evidence",
-      "weight": 10,
-      "owner": "lead"
-    }
-  ],
-  "tasks": [
-    {
-      "id": "R1",
-      "workstream": "R",
-      "title": "Guarded staging runtime and repeat-safe synthetic seed",
-      "weight": 5,
-      "checkpoint": 40,
-      "status": "IN_PROGRESS",
-      "owner": "staging",
-      "dependencies": [],
-      "acceptance": "Guarded staging runtime and repeat-safe synthetic seed implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [
-        "scripts/mera-staging-release.js",
-        "tests/mera-staging.test.js"
-      ],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "R2",
-      "workstream": "R",
-      "title": "Isolated HTTPS deployment and database migrations",
-      "weight": 7,
-      "checkpoint": 0,
-      "status": "IN_PROGRESS",
-      "owner": "staging",
-      "dependencies": [],
-      "acceptance": "Isolated HTTPS deployment and database migrations implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "R3",
-      "workstream": "R",
-      "title": "Hosted auth, uploads, workers and rollback verification",
-      "weight": 8,
-      "checkpoint": 0,
-      "status": "IN_PROGRESS",
-      "owner": "staging",
-      "dependencies": [],
-      "acceptance": "Hosted auth, uploads, workers and rollback verification implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "D1",
-      "workstream": "D",
-      "title": "Verified project design skill and source references",
-      "weight": 5,
-      "checkpoint": 40,
-      "status": "IN_PROGRESS",
-      "owner": "lead",
-      "dependencies": [],
-      "acceptance": "Verified project design skill and source references implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [
-        ".agents/skills/mera-design-excellence/SKILL.md",
-        ".agents/skills/mera-design-excellence/references/foundations.md"
-      ],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "D2",
-      "workstream": "D",
-      "title": "Original logo variants and scoped identity primitives",
-      "weight": 5,
-      "checkpoint": 40,
-      "status": "IN_PROGRESS",
-      "owner": "lead",
-      "dependencies": [],
-      "acceptance": "Original logo variants and scoped identity primitives implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [
-        "src/mera/ui/MeraBrand.tsx",
-        "public/mera/brand/mera-mark-dark.png",
-        "public/mera/brand/mera-mark-light.png"
-      ],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "D3",
-      "workstream": "D",
-      "title": "Shared motion, accessibility and responsive foundations",
-      "weight": 5,
-      "checkpoint": 40,
-      "status": "IN_PROGRESS",
-      "owner": "lead",
-      "dependencies": [],
-      "acceptance": "Shared motion, accessibility and responsive foundations implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [
-        "src/mera/ui/mera-foundations.css"
-      ],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "W1",
-      "workstream": "W",
-      "title": "Marketing composition and real product story",
-      "weight": 10,
-      "checkpoint": 40,
-      "status": "IN_PROGRESS",
-      "owner": "marketing_refresh",
-      "dependencies": [],
-      "acceptance": "Marketing composition and real product story implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [
-        "src/mera/marketing/Marketing.tsx",
-        "src/mera/marketing/marketing.css"
-      ],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "W2",
-      "workstream": "W",
-      "title": "Service modes, pricing disclosures and FAQ",
-      "weight": 5,
-      "checkpoint": 40,
-      "status": "IN_PROGRESS",
-      "owner": "marketing_refresh",
-      "dependencies": [],
-      "acceptance": "Service modes, pricing disclosures and FAQ implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [
-        "src/mera/marketing/Marketing.tsx",
-        "tests/mera-marketing-ui.test.tsx"
-      ],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "W3",
-      "workstream": "W",
-      "title": "Marketing navigation, mobile and visual acceptance",
-      "weight": 5,
-      "checkpoint": 0,
-      "status": "IN_PROGRESS",
-      "owner": "marketing_refresh",
-      "dependencies": [],
-      "acceptance": "Marketing navigation, mobile and visual acceptance implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "S1",
-      "workstream": "S",
-      "title": "Separate secure registration, sign-in and demo",
-      "weight": 7,
-      "checkpoint": 0,
-      "status": "IN_PROGRESS",
-      "owner": "owner_onboarding",
-      "dependencies": [],
-      "acceptance": "Separate secure registration, sign-in and demo implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "S2",
-      "workstream": "S",
-      "title": "Resumable nine-step owner configuration",
-      "weight": 10,
-      "checkpoint": 0,
-      "status": "IN_PROGRESS",
-      "owner": "owner_onboarding",
-      "dependencies": [],
-      "acceptance": "Resumable nine-step owner configuration implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "S3",
-      "workstream": "S",
-      "title": "Validation, subdomain, readiness and recovery",
-      "weight": 8,
-      "checkpoint": 0,
-      "status": "IN_PROGRESS",
-      "owner": "owner_onboarding",
-      "dependencies": [],
-      "acceptance": "Validation, subdomain, readiness and recovery implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "A1",
-      "workstream": "A",
-      "title": "Operator identity, navigation and record hierarchy",
-      "weight": 5,
-      "checkpoint": 0,
-      "status": "IN_PROGRESS",
-      "owner": "lead",
-      "dependencies": [],
-      "acceptance": "Operator identity, navigation and record hierarchy implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "A2",
-      "workstream": "A",
-      "title": "Protected detail, filters, MFA and permission verification",
-      "weight": 5,
-      "checkpoint": 0,
-      "status": "IN_PROGRESS",
-      "owner": "lead",
-      "dependencies": [],
-      "acceptance": "Protected detail, filters, MFA and permission verification implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "V1",
-      "workstream": "V",
-      "title": "Hosted role and remaining operational workflow checks",
-      "weight": 4,
-      "checkpoint": 0,
-      "status": "IN_PROGRESS",
-      "owner": "lead",
-      "dependencies": [],
-      "acceptance": "Hosted role and remaining operational workflow checks implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "V2",
-      "workstream": "V",
-      "title": "Responsive screenshots, keyboard and reduced motion",
-      "weight": 3,
-      "checkpoint": 0,
-      "status": "IN_PROGRESS",
-      "owner": "lead",
-      "dependencies": [],
-      "acceptance": "Responsive screenshots, keyboard and reduced motion implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [],
-      "blockers": [],
-      "history": []
-    },
-    {
-      "id": "V3",
-      "workstream": "V",
-      "title": "Regression suite, deployment evidence and final review",
-      "weight": 3,
-      "checkpoint": 0,
-      "status": "IN_PROGRESS",
-      "owner": "lead",
-      "dependencies": [],
-      "acceptance": "Regression suite, deployment evidence and final review implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
-      "evidence": [],
-      "blockers": [],
-      "history": []
-    }
-  ],
-  "screens": [
-    {
-      "id": "marketing",
-      "route": "/mera",
-      "role": "Prospect",
-      "taskIds": [
-        "W1",
-        "W2",
-        "W3"
-      ],
-      "task": "Product discovery and signup",
-      "visualReview": "Before captured; after pending",
-      "responsive": "Pending"
-    },
-    {
-      "id": "signup",
-      "route": "/mera/signup",
-      "role": "New owner",
-      "taskIds": [
-        "S1",
-        "S3"
-      ],
-      "task": "Secure registration, separate demo",
-      "visualReview": "Before captured; after pending",
-      "responsive": "Pending"
-    },
-    {
-      "id": "owner",
-      "route": "/mera/workspace",
-      "role": "Owner",
-      "taskIds": [
-        "S2",
-        "S3"
-      ],
-      "task": "Guided configuration",
-      "visualReview": "Pending",
-      "responsive": "Pending"
-    },
-    {
-      "id": "platform",
-      "route": "/mera/platform",
-      "role": "Operator",
-      "taskIds": [
-        "A1",
-        "A2"
-      ],
-      "task": "Authorized platform management",
-      "visualReview": "Pending",
-      "responsive": "Pending"
-    },
-    {
-      "id": "operations",
-      "route": "/mera/workspace and customer routes",
-      "role": "Staff/guest",
-      "taskIds": [
-        "V1",
-        "V2",
-        "V3"
-      ],
-      "task": "Preserved operational workflows and historical remaining gates",
-      "visualReview": "Historical evidence preserved; hosted pending",
-      "responsive": "Pending"
     }
   ],
   "overallPrdCoverage": {
@@ -591,12 +231,545 @@
       "scopeWeight": 100,
       "weightedPoints": 0,
       "roundedCompletion": 0
+    },
+    {
+      "at": "2026-11-20",
+      "event": "Scope3 consolidated company/two-products/consultancy brief. Scope2 archived47.4%. Applicable implementation and hosted evidence retained only.",
+      "scopeWeight": 100,
+      "weightedPoints": 30.8,
+      "roundedCompletion": 30
     }
   ],
   "dependencies": [
-    "Staging credentials and data must be synthetic; no production changes.",
-    "Real email delivery remains unavailable; no simulated verification on real signup.",
-    "Local QA3007 saved browser denial remains separate; current localhost3003 baseline inspection works.",
-    "Physical printer/provider verification remains outside UI acceptance."
+    "Existing staging healthy atad02976; new additive company submission migration awaits reviewed deployment.",
+    "Real owner email verification and live finance remain blocked; no false activation.",
+    "Browser access to HTTPS staging works; historicallocal3007denial is not bypassed.",
+    "Supporting documents use private PostgreSQL storage and MFA-protected download, not public branding assets.",
+    "Physical printer output remains unverified."
+  ],
+  "workstreams": [
+    {
+      "id": "F",
+      "title": "Reassessment, skill, tokens and actual brand",
+      "weight": 15,
+      "owner": "lead"
+    },
+    {
+      "id": "R",
+      "title": "Railway staging and hosted configuration",
+      "weight": 15,
+      "owner": "staging"
+    },
+    {
+      "id": "W",
+      "title": "Parent website, products, demonstrations and motion",
+      "weight": 25,
+      "owner": "marketing_refresh / lead"
+    },
+    {
+      "id": "S",
+      "title": "Mera QR signup and owner onboarding",
+      "weight": 20,
+      "owner": "owner_onboarding"
+    },
+    {
+      "id": "C",
+      "title": "Consultancy, interest and platform administration",
+      "weight": 15,
+      "owner": "staging / owner_onboarding / lead"
+    },
+    {
+      "id": "Q",
+      "title": "Responsive, regression and delivery verification",
+      "weight": 10,
+      "owner": "lead"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "F1",
+      "workstream": "F",
+      "title": "Company architecture, source audit and updated design skill",
+      "weight": 5,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Company architecture, source audit and updated design skill implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        ".agents/skills/mera-design-excellence/SKILL.md",
+        ".agents/skills/mera-design-excellence/references/company-architecture.md",
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "F2",
+      "workstream": "F",
+      "title": "Original logo variants across company and product contexts",
+      "weight": 4,
+      "checkpoint": 80,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Original logo variants across company and product contexts implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "src/mera/ui/MeraBrand.tsx",
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "F3",
+      "workstream": "F",
+      "title": "Scoped design foundations and accessible shared motion",
+      "weight": 6,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Scoped design foundations and accessible shared motion implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "src/mera/ui/mera-foundations.css",
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "R1",
+      "workstream": "R",
+      "title": "Isolated services, migrations and synthetic credentials",
+      "weight": 5,
+      "checkpoint": 100,
+      "status": "VERIFIED",
+      "owner": "staging",
+      "dependencies": [],
+      "acceptance": "Isolated services, migrations and synthetic credentials implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "deploy/STAGING-BASELINE-EVIDENCE.json"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "R2",
+      "workstream": "R",
+      "title": "HTTPS routing, sessions, worker and private database verification",
+      "weight": 5,
+      "checkpoint": 100,
+      "status": "VERIFIED",
+      "owner": "staging",
+      "dependencies": [],
+      "acceptance": "HTTPS routing, sessions, worker and private database verification implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "deploy/STAGING-AD02976-EVIDENCE.json"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "R3",
+      "workstream": "R",
+      "title": "Persistent assets, safe releases and rollback documentation",
+      "weight": 5,
+      "checkpoint": 80,
+      "status": "IN_PROGRESS",
+      "owner": "staging",
+      "dependencies": [],
+      "acceptance": "Persistent assets, safe releases and rollback documentation implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "deploy/STAGING-AD02976-EVIDENCE.json",
+        "deploy/RAILWAY-STAGING.md"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "W1",
+      "workstream": "W",
+      "title": "MeraTech parent homepage and offering hierarchy",
+      "weight": 7,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "marketing_refresh / lead",
+      "dependencies": [],
+      "acceptance": "MeraTech parent homepage and offering hierarchy implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "W2",
+      "workstream": "W",
+      "title": "Mera QR and planned Travel with truthful interface demonstrations",
+      "weight": 7,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "marketing_refresh / lead",
+      "dependencies": [],
+      "acceptance": "Mera QR and planned Travel with truthful interface demonstrations implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "W3",
+      "workstream": "W",
+      "title": "Products, consultancy, about, contact, sign-in and policy navigation",
+      "weight": 6,
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
+      "owner": "marketing_refresh / lead",
+      "dependencies": [],
+      "acceptance": "Products, consultancy, about, contact, sign-in and policy navigation implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "W4",
+      "workstream": "W",
+      "title": "Session introduction, QR resolution and responsive product motion",
+      "weight": 5,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "marketing_refresh / lead",
+      "dependencies": [],
+      "acceptance": "Session introduction, QR resolution and responsive product motion implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "src/mera/ui/MeraEntry.tsx",
+        "src/mera/ui/mera-entry.css",
+        "tests/mera-entry.test.tsx",
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "S1",
+      "workstream": "S",
+      "title": "Secure account, sign-in and separate demo routes",
+      "weight": 5,
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
+      "owner": "owner_onboarding",
+      "dependencies": [],
+      "acceptance": "Secure account, sign-in and separate demo routes implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "src/mera/Signup.tsx",
+        "src/mera/MeraSignIn.tsx"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "S2",
+      "workstream": "S",
+      "title": "Guided nine-step owner setup and contextual previews",
+      "weight": 10,
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
+      "owner": "owner_onboarding",
+      "dependencies": [],
+      "acceptance": "Guided nine-step owner setup and contextual previews implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "src/mera/workspace/OwnerSetup.tsx"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "S3",
+      "workstream": "S",
+      "title": "Saved progress, validation, availability and failure recovery",
+      "weight": 5,
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
+      "owner": "owner_onboarding",
+      "dependencies": [],
+      "acceptance": "Saved progress, validation, availability and failure recovery implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "tests/mera-owner-setup.test.tsx",
+        "tests/mera-address-availability.test.js"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "C1",
+      "workstream": "C",
+      "title": "Private enquiry and interest storage, validation and duplicate protection",
+      "weight": 4,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "staging / owner_onboarding / lead",
+      "dependencies": [],
+      "acceptance": "Private enquiry and interest storage, validation and duplicate protection implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "C2",
+      "workstream": "C",
+      "title": "Functional consultancy brief with documents and recovery",
+      "weight": 4,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "staging / owner_onboarding / lead",
+      "dependencies": [],
+      "acceptance": "Functional consultancy brief with documents and recovery implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "C3",
+      "workstream": "C",
+      "title": "Truthful Travel interest submission and confirmation",
+      "weight": 3,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "staging / owner_onboarding / lead",
+      "dependencies": [],
+      "acceptance": "Truthful Travel interest submission and confirmation implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "C4",
+      "workstream": "C",
+      "title": "MFA-protected enquiry and interest operator workflows",
+      "weight": 4,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "staging / owner_onboarding / lead",
+      "dependencies": [],
+      "acceptance": "MFA-protected enquiry and interest operator workflows implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "Q1",
+      "workstream": "Q",
+      "title": "Rendered mobile/tablet/laptop/wide review and accessibility",
+      "weight": 4,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Rendered mobile/tablet/laptop/wide review and accessibility implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "Q2",
+      "workstream": "Q",
+      "title": "Branding, CSV, floor/seating, private visits and receipt checks",
+      "weight": 3,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Branding, CSV, floor/seating, private visits and receipt checks implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "Q3",
+      "workstream": "Q",
+      "title": "Final regressions, deployed revision and manual testing evidence",
+      "weight": 3,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Final regressions, deployed revision and manual testing evidence implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    }
+  ],
+  "screens": [
+    {
+      "id": "home",
+      "route": "/mera",
+      "role": "Prospect",
+      "taskIds": [
+        "W1"
+      ],
+      "task": "Company and offerings",
+      "visualReview": "New-scope verification pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "products",
+      "route": "/mera/products",
+      "role": "Prospect",
+      "taskIds": [
+        "W3"
+      ],
+      "task": "Choose offering",
+      "visualReview": "New-scope verification pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "qr",
+      "route": "/mera/qr",
+      "role": "Hospitality prospect",
+      "taskIds": [
+        "W2"
+      ],
+      "task": "QR product story and actual demo",
+      "visualReview": "New-scope verification pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "travel",
+      "route": "/mera/travel",
+      "role": "Travel prospect",
+      "taskIds": [
+        "W2",
+        "C3"
+      ],
+      "task": "Planned direction and interest",
+      "visualReview": "New-scope verification pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "consultancy",
+      "route": "/mera/consultancy",
+      "role": "Client",
+      "taskIds": [
+        "W3",
+        "C2"
+      ],
+      "task": "Project brief",
+      "visualReview": "New-scope verification pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "about",
+      "route": "/mera/about",
+      "role": "Prospect",
+      "taskIds": [
+        "W3"
+      ],
+      "task": "Company intent",
+      "visualReview": "New-scope verification pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "contact",
+      "route": "/mera/contact",
+      "role": "Visitor",
+      "taskIds": [
+        "W3"
+      ],
+      "task": "Correct enquiry destination",
+      "visualReview": "New-scope verification pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "signin",
+      "route": "/mera/sign-in",
+      "role": "Returning user",
+      "taskIds": [
+        "W3",
+        "S1"
+      ],
+      "task": "Product routing",
+      "visualReview": "New-scope verification pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "legal",
+      "route": "/mera/legal",
+      "role": "Visitor",
+      "taskIds": [
+        "W3"
+      ],
+      "task": "Approved policy boundaries",
+      "visualReview": "New-scope verification pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "signup",
+      "route": "/mera/signup",
+      "role": "QR owner",
+      "taskIds": [
+        "S1",
+        "S3"
+      ],
+      "task": "Registration and separate demo",
+      "visualReview": "New-scope verification pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "setup",
+      "route": "/mera/workspace?setup=1",
+      "role": "Owner",
+      "taskIds": [
+        "S2",
+        "S3"
+      ],
+      "task": "Nine-step setup",
+      "visualReview": "New-scope verification pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "platform",
+      "route": "/mera/platform",
+      "role": "MFA operator",
+      "taskIds": [
+        "C4"
+      ],
+      "task": "Company submissions and platform operations",
+      "visualReview": "New-scope verification pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "entry",
+      "route": "Company and QR routes",
+      "role": "Visitor",
+      "taskIds": [
+        "W4"
+      ],
+      "task": "Real loading and nonblocking intro",
+      "visualReview": "New-scope verification pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "operations",
+      "route": "Organization and guest routes",
+      "role": "Staff and guest",
+      "taskIds": [
+        "Q2"
+      ],
+      "task": "Remaining operational checks",
+      "visualReview": "New-scope verification pending",
+      "responsive": "Pending"
+    }
   ]
 }

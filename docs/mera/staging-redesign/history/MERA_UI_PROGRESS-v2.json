@@ -1,0 +1,623 @@
+{
+  "goal": "Deploy isolated Mera Railway staging and rebuild Mera-owned marketing, owner onboarding and platform administration while preserving Bing Chun operations.",
+  "scopeVersion": "2.0",
+  "frozenAt": "2026-11-20",
+  "lastUpdated": "2026-11-20",
+  "revision": "ad02976",
+  "baselineNote": "Expanded scope authorized November20. Historical scope1 retains93/100 at commit2c6d0e9 in docs/mera/staging-redesign/history. New deliverables start at0; planning alone earns no credit.",
+  "currentMilestone": "Baseline405d8a0 hosted and17HTTPchecks passed; ad02976 redesign deploying. Hostednormaloperatorpassword+MFA successful; beforecapture05 inspected. Build and23focusedchecks pass; fullsuite rerun after obsoleteheading assertionfix. Responsive/operationalbrowserchecks pending.",
+  "clarifications": [
+    {
+      "at": "2026-11-18T15:56:52+01:00",
+      "text": "Owner confirms no original Mera screenshot exists; create a sophisticated modern enterprise identity for marketing/platform. Bing Chun running source remains authority for organization screens. F2 now visual direction/selection, not missing file."
+    },
+    {
+      "at": "2026-11-18T16:32:27+01:00",
+      "text": "Owner explicitly selected option1, ivory and green. First displayed generated image is saved as the exact marketing/platform visual target; no visual-acceptance credit implied."
+    },
+    {
+      "at": "2026-11-19T00:24:32+01:00",
+      "text": "Owner explicitly approved isolated QA operator creation after automatic-review rejection. Guarded visual database fixture then exercised normal password/MFA only; no production operator/merchant access approval implied."
+    }
+  ],
+  "workstreams": [
+    {
+      "id": "R",
+      "title": "Railway staging and deployment verification",
+      "weight": 20,
+      "owner": "staging"
+    },
+    {
+      "id": "D",
+      "title": "Mera skill, assets and foundations",
+      "weight": 15,
+      "owner": "lead"
+    },
+    {
+      "id": "W",
+      "title": "Marketing website",
+      "weight": 20,
+      "owner": "marketing_refresh"
+    },
+    {
+      "id": "S",
+      "title": "Signup and owner onboarding",
+      "weight": 25,
+      "owner": "owner_onboarding"
+    },
+    {
+      "id": "A",
+      "title": "Platform administration",
+      "weight": 10,
+      "owner": "lead"
+    },
+    {
+      "id": "V",
+      "title": "Responsive, accessibility and regression evidence",
+      "weight": 10,
+      "owner": "lead"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "R1",
+      "workstream": "R",
+      "title": "Guarded staging runtime and repeat-safe synthetic seed",
+      "weight": 5,
+      "checkpoint": 100,
+      "status": "VERIFIED",
+      "owner": "staging",
+      "dependencies": [],
+      "acceptance": "Guarded staging runtime and repeat-safe synthetic seed implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [
+        "scripts/mera-staging-release.js",
+        "tests/mera-staging.test.js",
+        "deploy/STAGING-BASELINE-EVIDENCE.json"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "R2",
+      "workstream": "R",
+      "title": "Isolated HTTPS deployment and database migrations",
+      "weight": 7,
+      "checkpoint": 80,
+      "status": "IN_PROGRESS",
+      "owner": "staging",
+      "dependencies": [],
+      "acceptance": "Isolated HTTPS deployment and database migrations implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [
+        "deploy/STAGING-BASELINE-EVIDENCE.json",
+        "docs/mera/staging-redesign/screenshots/04-hosted-baseline.png"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "R3",
+      "workstream": "R",
+      "title": "Hosted auth, uploads, workers and rollback verification",
+      "weight": 8,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "staging",
+      "dependencies": [],
+      "acceptance": "Hosted auth, uploads, workers and rollback verification implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [
+        "deploy/STAGING-BASELINE-EVIDENCE.json"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "D1",
+      "workstream": "D",
+      "title": "Verified project design skill and source references",
+      "weight": 5,
+      "checkpoint": 80,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Verified project design skill and source references implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [
+        ".agents/skills/mera-design-excellence/SKILL.md",
+        ".agents/skills/mera-design-excellence/references/foundations.md"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "D2",
+      "workstream": "D",
+      "title": "Original logo variants and scoped identity primitives",
+      "weight": 5,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Original logo variants and scoped identity primitives implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [
+        "src/mera/ui/MeraBrand.tsx",
+        "public/mera/brand/mera-mark-dark.png",
+        "public/mera/brand/mera-mark-light.png"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "D3",
+      "workstream": "D",
+      "title": "Shared motion, accessibility and responsive foundations",
+      "weight": 5,
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Shared motion, accessibility and responsive foundations implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [
+        "src/mera/ui/mera-foundations.css"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "W1",
+      "workstream": "W",
+      "title": "Marketing composition and real product story",
+      "weight": 10,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "marketing_refresh",
+      "dependencies": [],
+      "acceptance": "Marketing composition and real product story implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [
+        "src/mera/marketing/Marketing.tsx",
+        "src/mera/marketing/marketing.css"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "W2",
+      "workstream": "W",
+      "title": "Service modes, pricing disclosures and FAQ",
+      "weight": 5,
+      "checkpoint": 60,
+      "status": "IN_PROGRESS",
+      "owner": "marketing_refresh",
+      "dependencies": [],
+      "acceptance": "Service modes, pricing disclosures and FAQ implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [
+        "src/mera/marketing/Marketing.tsx",
+        "tests/mera-marketing-ui.test.tsx"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "W3",
+      "workstream": "W",
+      "title": "Marketing navigation, mobile and visual acceptance",
+      "weight": 5,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "marketing_refresh",
+      "dependencies": [],
+      "acceptance": "Marketing navigation, mobile and visual acceptance implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "S1",
+      "workstream": "S",
+      "title": "Separate secure registration, sign-in and demo",
+      "weight": 7,
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
+      "owner": "owner_onboarding",
+      "dependencies": [],
+      "acceptance": "Separate secure registration, sign-in and demo implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [
+        "src/mera/Signup.tsx",
+        "src/mera/MeraSignIn.tsx",
+        "tests/mera-signin-ui.test.tsx"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "S2",
+      "workstream": "S",
+      "title": "Resumable nine-step owner configuration",
+      "weight": 10,
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
+      "owner": "owner_onboarding",
+      "dependencies": [],
+      "acceptance": "Resumable nine-step owner configuration implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [
+        "src/mera/workspace/OwnerSetup.tsx",
+        "tests/mera-owner-setup.test.tsx"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "S3",
+      "workstream": "S",
+      "title": "Validation, subdomain, readiness and recovery",
+      "weight": 8,
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
+      "owner": "owner_onboarding",
+      "dependencies": [],
+      "acceptance": "Validation, subdomain, readiness and recovery implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [
+        "src/mera/workspace/CreateOrganization.tsx",
+        "tests/mera-address-availability.test.js"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "A1",
+      "workstream": "A",
+      "title": "Operator identity, navigation and record hierarchy",
+      "weight": 5,
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Operator identity, navigation and record hierarchy implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [
+        "src/mera/Platform.tsx",
+        "src/mera/platform.css"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "A2",
+      "workstream": "A",
+      "title": "Protected detail, filters, MFA and permission verification",
+      "weight": 5,
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Protected detail, filters, MFA and permission verification implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [
+        "tests/mera-platform-ui.test.tsx"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "V1",
+      "workstream": "V",
+      "title": "Hosted role and remaining operational workflow checks",
+      "weight": 4,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Hosted role and remaining operational workflow checks implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "V2",
+      "workstream": "V",
+      "title": "Responsive screenshots, keyboard and reduced motion",
+      "weight": 3,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Responsive screenshots, keyboard and reduced motion implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "V3",
+      "workstream": "V",
+      "title": "Regression suite, deployment evidence and final review",
+      "weight": 3,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Regression suite, deployment evidence and final review implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    }
+  ],
+  "screens": [
+    {
+      "id": "marketing",
+      "route": "/mera",
+      "role": "Prospect",
+      "taskIds": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "task": "Product discovery and signup",
+      "visualReview": "Before captured; after pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "signup",
+      "route": "/mera/signup",
+      "role": "New owner",
+      "taskIds": [
+        "S1",
+        "S3"
+      ],
+      "task": "Secure registration, separate demo",
+      "visualReview": "Before captured; after pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "owner",
+      "route": "/mera/workspace",
+      "role": "Owner",
+      "taskIds": [
+        "S2",
+        "S3"
+      ],
+      "task": "Guided configuration",
+      "visualReview": "Pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "platform",
+      "route": "/mera/platform",
+      "role": "Operator",
+      "taskIds": [
+        "A1",
+        "A2"
+      ],
+      "task": "Authorized platform management",
+      "visualReview": "Pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "operations",
+      "route": "/mera/workspace and customer routes",
+      "role": "Staff/guest",
+      "taskIds": [
+        "V1",
+        "V2",
+        "V3"
+      ],
+      "task": "Preserved operational workflows and historical remaining gates",
+      "visualReview": "Historical evidence preserved; hosted pending",
+      "responsive": "Pending"
+    }
+  ],
+  "overallPrdCoverage": {
+    "status": "INVENTORY_DRAFT_REVIEW_PENDING",
+    "counts": null,
+    "percentage": null,
+    "note": "208 requirement IDs inventoried in docs/mera/PRD-COVERAGE.md. Denominator/classification needs lead review; no PRD percentage inferred. UI weights remain independent."
+  },
+  "productionReadiness": {
+    "status": "NOT_READY",
+    "gates": [
+      "Rubies agreements/verified API and credentials",
+      "Zidi versioned contract/access",
+      "Authorized email identity/delivery",
+      "Target domains/TLS/hosting and deployment approval",
+      "Physical receipt/sticker output and calibration",
+      "Approved pricing/fee/tax/retention policies",
+      "Production operator/key custody/monitoring/load/device verification"
+    ]
+  },
+  "history": [
+    {
+      "at": "2026-11-18T15:56:52+01:00",
+      "event": "Baseline1.0 frozen before new implementation",
+      "scopeWeight": 100,
+      "weightedPoints": 11.2,
+      "roundedCompletion": 11
+    },
+    {
+      "at": "2026-11-18T16:10:03+01:00",
+      "event": "Customer menu/cart integrated and exercised; account/settings/signup pilots remain partial; no scope change",
+      "scopeWeight": 100,
+      "weightedPoints": 14.8,
+      "roundedCompletion": 14
+    },
+    {
+      "at": "2026-11-18T16:32:27+01:00",
+      "event": "Exact Mera visual selected; overview required sections implemented; no scope change or backend visual credit",
+      "scopeWeight": 100,
+      "weightedPoints": 18.0,
+      "roundedCompletion": 18
+    },
+    {
+      "at": "2026-11-18T17:08:29+01:00",
+      "event": "Selected Mera homepage visual/state review corrected; global pilot gate still pending; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 21.2,
+      "roundedCompletion": 21
+    },
+    {
+      "at": "2026-11-18T17:17:08+01:00",
+      "event": "Four-surface comparison gate passed; customer wording corrected; broader shell and workflow rollout next, scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 27.6,
+      "roundedCompletion": 27
+    },
+    {
+      "at": "2026-11-18T17:29:28+01:00",
+      "event": "Shared all-page shell visual/role checks accepted; checkout recovery state implementation credited. Setup/platform/customer follow-on slices remain partial; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 32.8,
+      "roundedCompletion": 32
+    },
+    {
+      "at": "2026-11-18T22:52:35+01:00",
+      "event": "Menu/branch integrated and exercised with actual publication recovery; basic reservation interface corrected; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 39.4,
+      "roundedCompletion": 39
+    },
+    {
+      "at": "2026-11-18T23:28:34+01:00",
+      "event": "Station preparation browser integration verified; published POS pricing and reservation recovery integrated with regressions; reservation browser review remains pending; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 41.2,
+      "roundedCompletion": 41
+    },
+    {
+      "at": "2026-11-18T23:41:52+01:00",
+      "event": "Reservation browser milestone and partial People hierarchy/read-state review accepted; safe recent-history/platform read-state integrations tested; no scope change",
+      "scopeWeight": 100,
+      "weightedPoints": 43.0,
+      "roundedCompletion": 43
+    },
+    {
+      "at": "2026-11-19T00:24:32+01:00",
+      "event": "Private visit and approved protected-platform partial milestones verified; subscription surface accepted without broad O7 credit; source46.2weighted points, scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 46.2,
+      "roundedCompletion": 46
+    },
+    {
+      "at": "2026-11-19T01:03:29+01:00",
+      "event": "Records printing QR support and customer-help partial milestone verified; shared primitives introduced; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 51.0,
+      "roundedCompletion": 51
+    },
+    {
+      "at": "2026-11-19T01:18:04+01:00",
+      "event": "Finance/shift/export and remaining management partial milestone; browser-native date submission corrected and actual CSV download verified; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 52.6,
+      "roundedCompletion": 52
+    },
+    {
+      "at": "2026-11-19T01:50:36+01:00",
+      "event": "Front desk, customization and public information partial milestone; actual waitlist transitions, focus, signup density and pricing deep links verified; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 56.6,
+      "roundedCompletion": 56
+    },
+    {
+      "at": "2026-11-19T08:45:26+01:00",
+      "event": "Receipt/sticker studio integrated and exercised; source d56f410, scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 62.0,
+      "roundedCompletion": 62
+    },
+    {
+      "at": "2026-11-19T09:12:02+01:00",
+      "event": "People/member/role partial milestone verified at90b8a50; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 62.6,
+      "roundedCompletion": 62
+    },
+    {
+      "at": "2026-11-19T09:27:32+01:00",
+      "event": "Overview/service/order drilldown partial milestone verified at77e397c; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 63.2,
+      "roundedCompletion": 63
+    },
+    {
+      "at": "2026-11-19T09:57:42+01:00",
+      "event": "Attention destinations visual/focus/size milestone verified atf5b4452; scope unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 63.8,
+      "roundedCompletion": 63
+    },
+    {
+      "at": "2026-11-19T10:24:38+01:00",
+      "event": "Staff reservation recovery slice verified at942d77e; no checkpoint or scope-weight change",
+      "scopeWeight": 100,
+      "weightedPoints": 63.8,
+      "roundedCompletion": 63
+    },
+    {
+      "at": "2026-11-19T10:39:08+01:00",
+      "event": "Shift open/close recovery slice verified at10e1feb; checkpoints andscopeweightsunchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 63.8,
+      "roundedCompletion": 63
+    },
+    {
+      "at": "2026-11-19T15:16:12+01:00",
+      "event": "Shared dialog/primitive source-and-browser milestone verified at49ffed5; F4 advances40\u219280, scopeunchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 64.6,
+      "roundedCompletion": 64
+    },
+    {
+      "at": "2026-11-19T15:38:02+01:00",
+      "event": "Public marketing/onboarding milestone verified at5b5816f; M2 advances40\u219260; scopeunchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 65.0,
+      "roundedCompletion": 65
+    },
+    {
+      "at": "2026-11-19T20:41:27+01:00",
+      "event": "Lead-reviewed F4/F5/P4/C1 closure at0e054fb; role/menu evidence documented; full regression rerun pending; scopeunchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 70.6,
+      "roundedCompletion": 70
+    },
+    {
+      "at": "2026-11-19T21:11:26+01:00",
+      "event": "O1/O2 accepted withfinaloverview/roleevidence at3edb270; fullregression729pass2skip/buildpassed; scopeunchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 71.6,
+      "roundedCompletion": 71
+    },
+    {
+      "at": "2026-11-19T21:20:48+01:00",
+      "event": "M3accepted100/M2reviewed80 withactualplatformdenial/audit and736passingregressions;scopeunchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 74.4,
+      "roundedCompletion": 74
+    },
+    {
+      "at": "2026-11-19T21:22:54+01:00",
+      "event": "Lead-approved literal acceptance reconciliation:O4/O5/O7/P1/P2/C5/Q3closed;O3/O6/P3/P5/C2/C3/C4/Q2reviewed80;O6downloadenvironmentBLOCKED;scopeunchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 92.4,
+      "roundedCompletion": 92
+    },
+    {
+      "at": "2026-11-19T21:33:18+01:00",
+      "event": "C4accepted100atbcc76e7; remaining finitebrowser/upload/downloadgates explicitlyBLOCKED; no workaround/wholegoalcompletion; scopeunchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 93.0,
+      "roundedCompletion": 93
+    },
+    {
+      "at": "2026-11-19",
+      "note": "Source bcc76e7: opt-in Mera PostgreSQL1/1 and POS PostgreSQL9/9 passed separately, including skipped standard-suite checks. User confirmed permission repair twice but browser still rejects origin3007 with saved/managed denial. No workaround;93% acceptance unchanged. Main preview restarted3003. See FINAL-INTEGRATION-STATUS.md."
+    },
+    {
+      "at": "2026-11-20",
+      "event": "Scope2 expanded staged deployment and Mera redesign. Scope1 archived intact at93%.",
+      "scopeWeight": 100,
+      "weightedPoints": 0,
+      "roundedCompletion": 0
+    }
+  ],
+  "dependencies": [
+    "Staging credentials and data must be synthetic; no production changes.",
+    "Real email delivery remains unavailable; no simulated verification on real signup.",
+    "Local QA3007 saved browser denial remains separate; current localhost3003 baseline inspection works.",
+    "Physical printer/provider verification remains outside UI acceptance."
+  ]
+}
