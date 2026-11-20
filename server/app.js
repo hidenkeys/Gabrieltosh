@@ -1,4 +1,5 @@
 import express from "express";
+import { hostingOptions, stagingHeaders } from "./mera-hosting.js";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { meraPublicLimits } from "./mera-security.js";
@@ -92,7 +93,9 @@ export async function getReport(client, date) {
 export function createApp() {
   const app = express();
   app.disable("x-powered-by");
-  app.set("trust proxy", "loopback");
+  const hosting = hostingOptions();
+  app.set("trust proxy", hosting.trustProxy);
+  if (hosting.railway) app.use(stagingHeaders);
   app.use(
     helmet({
       contentSecurityPolicy: {

@@ -1,0 +1,35 @@
+{
+  "workspaceId": "316c834e-d625-468b-9bd5-3dc90264e894",
+  "projectId": "242b97ee-5c3d-4991-8613-ff3a2628732b",
+  "environmentId": "1d313de7-1669-4ded-a6c8-4fe3581abee4",
+  "configurationMethod": "Railway update-service; this is a reviewed settings manifest, not deprecated Config as Code",
+  "services": {
+    "mera-web": {
+      "build": {
+        "builder": "RAILPACK",
+        "buildCommand": "npm ci --include=dev && npm run build"
+      },
+      "deploy": {
+        "preDeployCommand": [
+          "node scripts/mera-staging-release.js"
+        ],
+        "startCommand": "npm start",
+        "healthcheckPath": "/api/health",
+        "healthcheckTimeout": 120,
+        "restartPolicyType": "ON_FAILURE",
+        "restartPolicyMaxRetries": 3
+      }
+    },
+    "mera-jobs": {
+      "build": {
+        "builder": "RAILPACK",
+        "buildCommand": "npm ci --omit=dev"
+      },
+      "deploy": {
+        "startCommand": "npm run worker:mera",
+        "restartPolicyType": "ON_FAILURE",
+        "restartPolicyMaxRetries": 3
+      }
+    }
+  }
+}
