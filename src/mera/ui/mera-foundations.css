@@ -1,0 +1,49 @@
+/* Mera-owned identity only. Organization/customer themes remain independent. */
+.mera-identity {
+  --mera-ink: #152b24;
+  --mera-muted: #56635c;
+  --mera-forest: #153f32;
+  --mera-paper: #f7f6f0;
+  --mera-white: #ffffff;
+  --mera-lime: #d9eb92;
+  --mera-border: #d8ded6;
+  --mera-ease: cubic-bezier(.2,.7,.2,1);
+  --mera-fast: 140ms;
+  --mera-enter: 220ms;
+  font-family: Inter, Arial, sans-serif;
+  color: var(--mera-ink);
+}
+.mera-brand {
+  display: inline-block;
+  position: relative;
+  width: 104px;
+  aspect-ratio: 789 / 275;
+  overflow: hidden;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.mera-brand img {
+  position: absolute;
+  width: 142.5856%;
+  height: auto;
+  max-width: none;
+  left: -21.5463%;
+  top: -149.4545%;
+}
+.mera-identity :where(button, a, input, select, textarea) {
+  transition: background-color var(--mera-fast) var(--mera-ease), color var(--mera-fast) var(--mera-ease), border-color var(--mera-fast) var(--mera-ease), box-shadow var(--mera-fast) var(--mera-ease);
+}
+.mera-identity :where(button, a, input, select, textarea):focus-visible {
+  outline: 3px solid var(--mera-forest);
+  outline-offset: 4px;
+}
+.mera-identity :where(button):active:not(:disabled) { transform: translateY(1px); }
+.mera-identity :where([role="dialog"]) { animation: mera-enter var(--mera-enter) var(--mera-ease); }
+@keyframes mera-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .mera-identity *, .mera-identity *::before, .mera-identity *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

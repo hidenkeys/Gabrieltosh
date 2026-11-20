@@ -1,5 +1,6 @@
 import { usePublicNavigation } from "./publicNavigation";
 import { Disclosure } from "../ui/OperationalPrimitives";
+import { MeraBrand } from "../ui/MeraBrand";
 
 export function PricingAndSupport() {
   return (
@@ -11,11 +12,7 @@ export function PricingAndSupport() {
       >
         <div className="mera-secondary-section-heading">
           <p className="eyebrow">TRANSPARENT BY DESIGN</p>
-          <h2 id="mera-plan-title">
-            A plan that fits
-            <br />
-            your operation.
-          </h2>
+          <h2 id="mera-plan-title">A clear starting point.</h2>
           <p>
             Start with one organization and one branch. Review the commercial
             terms before you launch.
@@ -109,11 +106,7 @@ export function PricingAndSupport() {
       >
         <div>
           <p className="eyebrow">HERE FOR YOUR OPERATION</p>
-          <h2 id="mera-support-title">
-            Keep the conversation
-            <br />
-            with your team.
-          </h2>
+          <h2 id="mera-support-title">Support, in your workspace.</h2>
           <p>
             Existing merchants can create and follow in-app support cases from
             their organization workspace.
@@ -151,7 +144,7 @@ export function LegalInformationPage() {
     ["retention-support", "Retention and support"],
   ];
   return (
-    <div className="mera-marketing mera-secondary-page">
+    <div className="mera-marketing mera-identity mera-secondary-page">
       <a
         className="mera-marketing-skip"
         href="#mera-policy-main"
@@ -160,8 +153,8 @@ export function LegalInformationPage() {
         Skip to policy information
       </a>
       <header className="mera-secondary-header">
-        <a className="mera-wordmark" href="/mera" aria-label="Mera home">
-          mera<span>.</span>
+        <a className="mera-home-link" href="/mera" aria-label="Mera home">
+          <MeraBrand />
         </a>
         <nav aria-label="Public information">
           <a href="/mera#experience">Product</a>

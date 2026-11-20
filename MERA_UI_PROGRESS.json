@@ -1,10 +1,11 @@
 {
-  "goal": "Correct Mera's complete web experience to preserve the original Bing Chun UI, implement the supplied Mera visual direction where appropriate, and verify all in-scope screens and workflows without regressing functionality.",
-  "scopeVersion": "1.0",
-  "frozenAt": "2026-11-18T15:56:52+01:00",
-  "lastUpdated": "2026-11-19T21:33:18+01:00",
-  "revision": "bcc76e7",
-  "baselineNote": "Weights retained exactly as requested. Initial evidence11.2 weighted points (floor11%). Previous pilot is capped60% and reopened under the expanded scope. No backend completion credited.",
+  "goal": "Deploy isolated Mera Railway staging and rebuild Mera-owned marketing, owner onboarding and platform administration while preserving Bing Chun operations.",
+  "scopeVersion": "2.0",
+  "frozenAt": "2026-11-20",
+  "lastUpdated": "2026-11-20",
+  "revision": "405d8a0",
+  "baselineNote": "Expanded scope authorized November20. Historical scope1 retains93/100 at commit2c6d0e9 in docs/mera/staging-redesign/history. New deliverables start at0; planning alone earns no credit.",
+  "currentMilestone": "Baseline web deploying at405d8a0. Brand foundations and marketing implemented; visual acceptance pending. Owner setup/platform integration underway. Focused staging5/5 and marketing5/5; historical fullsuite not rerun.",
   "clarifications": [
     {
       "at": "2026-11-18T15:56:52+01:00",
@@ -21,2401 +22,362 @@
   ],
   "workstreams": [
     {
-      "id": "F",
-      "title": "References, design system and application shell",
+      "id": "R",
+      "title": "Railway staging and deployment verification",
+      "weight": 20,
+      "owner": "staging"
+    },
+    {
+      "id": "D",
+      "title": "Mera skill, assets and foundations",
       "weight": 15,
       "owner": "lead"
     },
     {
-      "id": "O",
-      "title": "Organization management",
+      "id": "W",
+      "title": "Marketing website",
+      "weight": 20,
+      "owner": "marketing_refresh"
+    },
+    {
+      "id": "S",
+      "title": "Signup and owner onboarding",
       "weight": 25,
-      "owner": "workspace / lead overview"
+      "owner": "owner_onboarding"
     },
     {
-      "id": "P",
-      "title": "POS and operational roles",
-      "weight": 20,
-      "owner": "lead / rotating operational agent"
-    },
-    {
-      "id": "C",
-      "title": "Customer experience",
-      "weight": 20,
-      "owner": "customer"
-    },
-    {
-      "id": "M",
-      "title": "Marketing and platform administration",
+      "id": "A",
+      "title": "Platform administration",
       "weight": 10,
-      "owner": "backend (presentation workstream A)"
+      "owner": "lead"
     },
     {
-      "id": "Q",
-      "title": "Integration, accessibility and delivery",
+      "id": "V",
+      "title": "Responsive, accessibility and regression evidence",
       "weight": 10,
       "owner": "lead"
     }
   ],
   "tasks": [
     {
-      "id": "F1",
-      "workstream": "F",
-      "title": "Original Counter/Reports source and visual evidence",
-      "weight": 3,
-      "checkpoint": 100,
-      "status": "VERIFIED",
+      "id": "R1",
+      "workstream": "R",
+      "title": "Guarded staging runtime and repeat-safe synthetic seed",
+      "weight": 5,
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
+      "owner": "staging",
+      "dependencies": [],
+      "acceptance": "Guarded staging runtime and repeat-safe synthetic seed implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [
+        "scripts/mera-staging-release.js",
+        "tests/mera-staging.test.js"
+      ],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "R2",
+      "workstream": "R",
+      "title": "Isolated HTTPS deployment and database migrations",
+      "weight": 7,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "staging",
+      "dependencies": [],
+      "acceptance": "Isolated HTTPS deployment and database migrations implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "R3",
+      "workstream": "R",
+      "title": "Hosted auth, uploads, workers and rollback verification",
+      "weight": 8,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "staging",
+      "dependencies": [],
+      "acceptance": "Hosted auth, uploads, workers and rollback verification implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "D1",
+      "workstream": "D",
+      "title": "Verified project design skill and source references",
+      "weight": 5,
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [],
-      "acceptance": "Actual source and captures opened; provenance and original components recorded.",
+      "acceptance": "Verified project design skill and source references implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
       "evidence": [
-        "docs/mera/ui-audit/screenshots/01-bing-chun-counter.jpg",
-        "docs/mera/ui-audit/screenshots/02-bing-chun-overview.jpg",
-        "src/App.tsx"
+        ".agents/skills/mera-design-excellence/SKILL.md",
+        ".agents/skills/mera-design-excellence/references/foundations.md"
       ],
       "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 100,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        }
-      ]
+      "history": []
     },
     {
-      "id": "F2",
-      "workstream": "F",
-      "title": "New Mera visual direction and explicit selection",
-      "weight": 2,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "lead",
-      "dependencies": [
-        "F1"
-      ],
-      "acceptance": "Research and show three visual directions for selection; original Mera screenshot does not exist per owner clarification.",
-      "evidence": [
-        "docs/mera/ui-audit/MERA-VISUAL-SELECTION.md",
-        "docs/mera/ui-audit/references/mera-selected-ivory-green.png",
-        ".agents/skills/mera-ui/references/marketing.md"
-      ],
-      "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T16:32:27+01:00",
-          "checkpoint": 100,
-          "note": "Three independent concepts shown; owner explicitly selected first displayed ivory/green image. Exact target saved and opened; implementation acceptance remains M1/Q1."
-        }
-      ]
-    },
-    {
-      "id": "F3",
-      "workstream": "F",
-      "title": "Project UI skill and verified source map",
-      "weight": 2,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "lead",
-      "dependencies": [
-        "F1"
-      ],
-      "acceptance": "Project skill valid, paths verified, independent forward review complete. Marketing authority clarification must stay current.",
-      "evidence": [
-        ".agents/skills/mera-ui/SKILL.md",
-        ".agents/skills/mera-ui/references/bing-chun.md"
-      ],
-      "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 100,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        }
-      ]
-    },
-    {
-      "id": "F4",
-      "workstream": "F",
-      "title": "Shared primitives and preservation specification",
-      "weight": 2,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "lead",
-      "dependencies": [
-        "F1"
-      ],
-      "acceptance": "Extract source-grounded controls/tables/disclosures/dialogs and document effective typography/spacing/status/branding rules without invented token scale.",
-      "evidence": [
-        "docs/mera/ui-audit/PRIMITIVES.md",
-        "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
-        "src/mera/ui/useDialogFocus.ts",
-        "tests/mera-dialog-focus.test.tsx",
-        "docs/mera/ui-audit/SHARED-DIALOG-CHECKPOINT.md",
-        "docs/mera/ui-audit/shared-dialog-comparison.html",
-        "docs/mera/ui-audit/ROLE-ACCEPTANCE-CLOSURE.md"
-      ],
-      "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T16:10:03+01:00",
-          "checkpoint": 0,
-          "note": "Source preservation/primitives specification prepared; extraction and acceptance still pending."
-        },
-        {
-          "at": "2026-11-19T01:03:29+01:00",
-          "checkpoint": 40,
-          "note": "Records/printing/help integration: actual browser comparisons and help reply/privacy loop, regression suite391passed/2skipped. Partial acceptance only; remaining task scope documented."
-        },
-        {
-          "at": "2026-11-19T15:16:12+01:00",
-          "checkpoint": 80,
-          "note": "AllfourMera dialog consumers use shared source-grounded focus/scroll/isolation lifecycle. Matched actual233/235 same2782\u00d71048, unchanged720\u00d71015.77native layout, real nativekeyboard/narrow433CSS and customer834/390/errorfocus/return verified. Fullsuite616pass/2skip, build andfocusedconsumer/shared/integrated checks passed. Sharedprimitives80; fullcrossscreen/assistive/protectedplatformbrowser matrix incomplete, noQ2credit."
-        },
-        {
-          "at": "2026-11-19T20:41:27+01:00",
-          "checkpoint": 100,
-          "note": "Lead-reviewed role/menu acceptance at0e054fb; actual294\u2013307 plus prior source/size/state evidence;117focused checks/build passed; full rerun pending. Exact dimensions/limits in ROLE-ACCEPTANCE-CLOSURE.md. Scopeunchanged."
-        },
-        {
-          "at": "2026-11-19T21:11:26+01:00",
-          "checkpoint": 100,
-          "note": "Finalintegrated3edb270 build and731total729pass0fail2skip56.90s; actualstock/reportsrolechecks andisolatedfixture restoration supplementclosure. Noallgoalclaim."
-        }
-      ]
-    },
-    {
-      "id": "F5",
-      "workstream": "F",
-      "title": "Compact shared shell, account menu and role landing",
-      "weight": 4,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "lead",
-      "dependencies": [
-        "F3",
-        "F4"
-      ],
-      "acceptance": "Grouped permission-aware navigation on all workspace screens; compact context/account menu; role-specific entry; diagnostics restricted; loading/error/denial/recovery states.",
-      "evidence": [
-        "src/mera/workspace/WorkspaceAccount.tsx",
-        "tests/mera-ui-pilot.test.tsx",
-        "src/mera/workspace/presentation.ts",
-        "tests/mera-workspace.test.tsx",
-        "docs/mera/ui-audit/SHELL-BROWSER-CHECK.json",
-        "docs/mera/ui-audit/SHARED-SHELL-CHECKPOINT.md",
-        "docs/mera/ui-audit/ROLE-ACCEPTANCE-CLOSURE.md"
-      ],
-      "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T16:10:03+01:00",
-          "checkpoint": 0,
-          "note": "Account menu mounted only overview/POS; full permission-aware shell and role landing pending Q1."
-        },
-        {
-          "at": "2026-11-18T17:29:28+01:00",
-          "checkpoint": 80,
-          "note": "All20 destinations use one compact grouped sidebar/account shell. Permission-based role landing, scoped selection/revocation/no-access integration tests pass. Desktop/narrow shell and Escape/focus reviewed; full role/device/content matrix remains."
-        },
-        {
-          "at": "2026-11-19T20:41:27+01:00",
-          "checkpoint": 100,
-          "note": "Lead-reviewed role/menu acceptance at0e054fb; actual294\u2013307 plus prior source/size/state evidence;117focused checks/build passed; full rerun pending. Exact dimensions/limits in ROLE-ACCEPTANCE-CLOSURE.md. Scopeunchanged."
-        },
-        {
-          "at": "2026-11-19T21:11:26+01:00",
-          "checkpoint": 100,
-          "note": "Finalintegrated3edb270 build and731total729pass0fail2skip56.90s; actualstock/reportsrolechecks andisolatedfixture restoration supplementclosure. Noallgoalclaim."
-        }
-      ]
-    },
-    {
-      "id": "F6",
-      "workstream": "F",
-      "title": "Durable progress and complete screen inventory",
-      "weight": 2,
-      "checkpoint": 100,
-      "status": "VERIFIED",
+      "id": "D2",
+      "workstream": "D",
+      "title": "Original logo variants and scoped identity primitives",
+      "weight": 5,
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [],
-      "acceptance": "Frozen weights sum100; explicit checkpoints/calculation; every implemented surface mapped; evidence/history retained.",
+      "acceptance": "Original logo variants and scoped identity primitives implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
       "evidence": [
-        "MERA_UI_PROGRESS.json",
-        "scripts/mera-ui-progress.js"
+        "src/mera/ui/MeraBrand.tsx",
+        "public/mera/brand/mera-mark-dark.png",
+        "public/mera/brand/mera-mark-light.png"
       ],
       "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 100,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        }
-      ]
+      "history": []
     },
     {
-      "id": "O1",
-      "workstream": "O",
-      "title": "Overview layout pilot",
-      "weight": 2,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "lead",
-      "dependencies": [
-        "F1"
-      ],
-      "acceptance": "Prior compact layout integrated/exercised; updated full-shell requirements reopen visual acceptance. No credit for missing operational widgets.",
-      "evidence": [
-        "docs/mera/ui-audit/screenshots/05-mera-overview-after.jpg",
-        "docs/mera/ui-audit/screenshots/10-mera-overview-narrow.jpg",
-        "design-qa.md",
-        "docs/mera/ui-audit/overview-comparison-current.jpg",
-        "docs/mera/ui-audit/ROLE-ACCEPTANCE-CLOSURE.md",
-        "docs/mera/ui-audit/overview-role-closure-comparison.jpg",
-        "docs/mera/ui-audit/ROLE-QA-RESTORATION.json"
-      ],
-      "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 60,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T17:17:08+01:00",
-          "checkpoint": 80,
-          "note": "Lead inspected combined source/implementation comparisons. Four-screen visual gate passed; full operational workflow/state acceptance remains separately tracked. Build passed; regression236 pass/2 skip plus copy/recovery24 pass."
-        },
-        {
-          "at": "2026-11-19T21:11:26+01:00",
-          "checkpoint": 100,
-          "note": "Lead-reviewed final1280/834/390overview captures309\u2013313, wrappedactionmeasurement, actualexactorder/stockdrilldowns pluspriorpositivearrivals/shifts evidence. Finalbuild/729pass2skip. Frozenacceptanceclosed; scopeunchanged."
-        }
-      ]
-    },
-    {
-      "id": "O2",
-      "workstream": "O",
-      "title": "Overview actionable content and date context",
-      "weight": 3,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "lead",
-      "dependencies": [
-        "O1",
-        "F5"
-      ],
-      "acceptance": "Orders needing attention, outstanding payments, arrivals, stock, shifts/recent activity with permission-safe real data, dates and drilldowns; unavailable differs from zero.",
-      "evidence": [
-        "src/mera/workspace/OverviewAttention.tsx",
-        "tests/mera-ui-pilot.test.tsx",
-        "docs/mera/ui-audit/PILOT-CHECKPOINT-2026-11-18.md",
-        "src/mera/workspace/OverviewActivity.tsx",
-        "tests/mera-overview-activity.test.tsx",
-        "docs/mera/ui-audit/screenshots/21-overview-selected-date.jpg",
-        "docs/mera/ui-audit/screenshots/23-overview-activity-narrow.jpg",
-        "docs/mera/ui-audit/OVERVIEW-OPERATIONS-CHECKPOINT.md",
-        "docs/mera/ui-audit/ATTENTION-DESTINATIONS-CHECKPOINT.md",
-        "docs/mera/ui-audit/ROLE-ACCEPTANCE-CLOSURE.md",
-        "docs/mera/ui-audit/overview-role-closure-comparison.jpg",
-        "docs/mera/ui-audit/ROLE-QA-RESTORATION.json"
-      ],
-      "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T16:17:45+01:00",
-          "checkpoint": 0,
-          "note": "Priority sections/date entry and handler/time integrated; browser overflow corrected. Staff/recent activity, full drilldowns/date-state acceptance incomplete; no checkpoint credit yet."
-        },
-        {
-          "at": "2026-11-18T16:32:27+01:00",
-          "checkpoint": 40,
-          "note": "Required overview sections implemented with permission-aware activity/known shift responsibility, accurate date-report validation and current/previous date browser checks. Complete states/visual comparison and positive-data integration remain pending."
-        },
-        {
-          "at": "2026-11-19T09:27:32+01:00",
-          "checkpoint": 60,
-          "note": "Actual positive alert/reference/branch and active queue drilldowns, expired-service correction, safe missing/timezone/hold states and handheld table review passed. Temporary13-row zero-value fixture exactly restored; full suite570pass/2skip, build and focused integration passed. Other populated alert/role/stale browser states remain."
-        },
-        {
-          "at": "2026-11-19T09:57:42+01:00",
-          "checkpoint": 80,
-          "note": "Reference/size/focus review corrected across overview stock/arrival/shift destinations, actual positive records and390/834layouts; paired main views inspected. Stock-only permission boundary and draft-preserving filters tested. Full suite584pass/2skip, build25focused/6integrated passed; exact3fixture rows restored. Full role/write-recovery/financial destination acceptance still pending, not complete."
-        },
-        {
-          "at": "2026-11-19T21:11:26+01:00",
-          "checkpoint": 100,
-          "note": "Lead-reviewed final1280/834/390overview captures309\u2013313, wrappedactionmeasurement, actualexactorder/stockdrilldowns pluspriorpositivearrivals/shifts evidence. Finalbuild/729pass2skip. Frozenacceptanceclosed; scopeunchanged."
-        }
-      ]
-    },
-    {
-      "id": "O3",
-      "workstream": "O",
-      "title": "Onboarding, branding and branch setup",
-      "weight": 4,
-      "checkpoint": 80,
-      "status": "BLOCKED",
-      "owner": "workspace",
-      "dependencies": [
-        "F4",
-        "F5"
-      ],
-      "acceptance": "Coherent steps, branding previews, resumable drafts and policy approvals; readable readiness/errors and branch management where real APIs allow.",
-      "evidence": [
-        "tests/mera-management-ui.test.tsx",
-        "src/mera/workspace/management.css",
-        "src/mera/workspace/SetupChecklist.tsx",
-        "docs/mera/ui-audit/SETUP-MOUNT.md",
-        "docs/mera/ui-audit/screenshots/35-setup-desktop.jpg",
-        "docs/mera/ui-audit/screenshots/36-setup-narrow.jpg",
-        "docs/mera/ui-audit/screenshots/37-setup-tablet.jpg",
-        "src/mera/workspace/BranchAdministration.tsx",
-        "src/mera/workspace/BusinessDetails.tsx",
-        "tests/mera-branch-administration.test.tsx",
-        "tests/mera-business-details.test.tsx",
-        "docs/mera/ui-audit/MENU-BRANCH-CHECKPOINT.md",
-        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md",
-        "docs/mera/ui-audit/WORKFLOW-ACCEPTANCE-BOARD.md",
-        "docs/mera/ui-audit/LITERAL-ACCEPTANCE-REVIEW.md",
-        "docs/mera/ui-audit/ORG-CLOSURE-AUDIT.md"
-      ],
-      "blockers": [
-        "Brand upload acceptance blocked: native file chooser setFiles requires extension Allow access to file URLs permission, currently unavailable. No branding write occurred. Browser origin3007 is also explicitly denied by Chrome tool security policy; no workaround authorized."
-      ],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T16:10:03+01:00",
-          "checkpoint": 0,
-          "note": "Bounded branch settings/readiness hierarchy and state pilot; remaining branch CRUD and onboarding grouping not complete."
-        },
-        {
-          "at": "2026-11-18T17:29:28+01:00",
-          "checkpoint": 0,
-          "note": "Setup grouped into essentials, collapsed operations/appearance/policies and publication-last; existing controls preserved and desktop/tablet/narrow reviewed. Task stillpartial: full branch management and complete save/failure/launch workflow acceptance remain."
-        },
-        {
-          "at": "2026-11-18T22:52:35+01:00",
-          "checkpoint": 60,
-          "note": "Verified27680f2 in isolated checkout:282 regression passes/2 skips, build and actual Mera PostgreSQL pass. Browser comparison and concrete scoped flows recorded. Full acceptance remains; staged next-phase source gets no extra credit."
-        },
-        {
-          "at": "2026-11-19T18:22:39+01:00",
-          "checkpoint": 60,
-          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
-        },
-        {
-          "at": "2026-11-19T19:41:09+01:00",
-          "checkpoint": 60,
-          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290\u2013293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
-        },
-        {
-          "at": "2026-11-19T21:22:54+01:00",
-          "checkpoint": 80,
-          "note": "Lead-approved literal acceptance audit reconciliation, not new implementation: reused actual checkpoint/browser evidence and meaningful component/realPG regression coverage; final738total736pass0fail2skip52.05s/build. No every-edgecase screenshot requirement. Finite outstanding checks remain on80tasks."
-        },
-        {
-          "at": "2026-11-19T21:33:18+01:00",
-          "checkpoint": 80,
-          "note": "Acceptance blocked by explicit browser/tool permission, not unfinished implementation or permission to bypass. Existing evidence/score retained; finite check documented."
-        }
-      ]
-    },
-    {
-      "id": "O4",
-      "workstream": "O",
-      "title": "Menu, categories, modifiers and stock management",
+      "id": "D3",
+      "workstream": "D",
+      "title": "Shared motion, accessibility and responsive foundations",
       "weight": 5,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "workspace",
-      "dependencies": [
-        "F4",
-        "F5"
-      ],
-      "acceptance": "Product-first browsing/detail; publish review, stock history/adjustment and structured options, stable IDs, honest retries and distinct permission states.",
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Shared motion, accessibility and responsive foundations implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
       "evidence": [
-        "src/mera/workspace/MenuManagement.tsx",
-        "src/mera/workspace/MenuPublication.tsx",
-        "tests/mera-menu-management.test.tsx",
-        "tests/mera-menu-publication.test.tsx",
-        "docs/mera/ui-audit/menu-management-comparison.jpg",
-        "docs/mera/ui-audit/MENU-BRANCH-CHECKPOINT.md",
-        "docs/mera/ui-audit/LITERAL-ACCEPTANCE-REVIEW.md"
+        "src/mera/ui/mera-foundations.css"
       ],
       "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T19:58:23+01:00",
-          "checkpoint": 0,
-          "note": "Menu-management and reservation correction source implemented; live interaction/size comparisons and final integration review in progress. No extra completion credit yet."
-        },
-        {
-          "at": "2026-11-18T22:52:35+01:00",
-          "checkpoint": 60,
-          "note": "Verified27680f2 in isolated checkout:282 regression passes/2 skips, build and actual Mera PostgreSQL pass. Browser comparison and concrete scoped flows recorded. Full acceptance remains; staged next-phase source gets no extra credit."
-        },
-        {
-          "at": "2026-11-19T21:22:54+01:00",
-          "checkpoint": 100,
-          "note": "Lead-approved literal acceptance audit reconciliation, not new implementation: reused actual checkpoint/browser evidence and meaningful component/realPG regression coverage; final738total736pass0fail2skip52.05s/build. No every-edgecase screenshot requirement. Finite outstanding checks remain on80tasks."
-        }
-      ]
+      "history": []
     },
     {
-      "id": "O5",
-      "workstream": "O",
-      "title": "Staff, invitations, scopes and custom roles",
-      "weight": 3,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "workspace",
-      "dependencies": [
-        "F4",
-        "F5"
-      ],
-      "acceptance": "Members-first tables, scopes/role details, invite/revoke and loading/errors; preserve owner/authority safeguards; missing reassignment APIs explicit.",
+      "id": "W1",
+      "workstream": "W",
+      "title": "Marketing composition and real product story",
+      "weight": 10,
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
+      "owner": "marketing_refresh",
+      "dependencies": [],
+      "acceptance": "Marketing composition and real product story implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
       "evidence": [
-        "docs/mera/ui-audit/STAFF-MANAGEMENT-MOUNT.md",
-        "docs/mera/ui-audit/staff-management-comparison.html",
-        "docs/mera/ui-audit/screenshots/64-people-narrow.jpg",
-        "tests/mera-role-management-ui.test.tsx",
-        "docs/mera/ui-audit/PEOPLE-CHECKPOINT.md",
-        "docs/mera/ui-audit/ACCESS-RECOVERY-CHECKPOINT.md",
-        "docs/mera/ui-audit/ACCESS-RECOVERY-WORKBOARD.md",
-        "docs/mera/ui-audit/access-recovery-comparison.jpg",
-        "docs/mera/ui-audit/LITERAL-ACCEPTANCE-REVIEW.md"
+        "src/mera/marketing/Marketing.tsx",
+        "src/mera/marketing/marketing.css"
       ],
       "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T23:41:52+01:00",
-          "checkpoint": 40,
-          "note": "Partial source hierarchy/read-state correction integrated; actual owner read, keyboard disclosure and desktop/narrow checked. Full membership/scopes and safe durable mutation workflow remain incomplete."
-        },
-        {
-          "at": "2026-11-19T09:12:02+01:00",
-          "checkpoint": 60,
-          "note": "Members-first searchable scope/status/review, current grant controls and session/tab access-write journal integrated. Browser185\u2013190 and paired comparison inspected; full suite560pass/2skip, build and19focused tests passed. Populated roles/invitations and full role/device/recovery matrix remain; no actual security write or email delivery."
-        },
-        {
-          "at": "2026-11-19T18:08:09+01:00",
-          "checkpoint": 60,
-          "note": "Access recovery ee6c4e8/f1a1010: five shared actor/org keyed operations with exact proof/retry/fenced stop, no private payload/token persistence, current-authority delayed-response guards. Full686pass/2skip, build,8new/97existingfocused, disposablePG; matched People desktop and390/834 read-only screenshots. Wider acceptance gates remain; no percentage increase."
-        },
-        {
-          "at": "2026-11-19T21:22:54+01:00",
-          "checkpoint": 100,
-          "note": "Lead-approved literal acceptance audit reconciliation, not new implementation: reused actual checkpoint/browser evidence and meaningful component/realPG regression coverage; final738total736pass0fail2skip52.05s/build. No every-edgecase screenshot requirement. Finite outstanding checks remain on80tasks."
-        }
-      ]
+      "history": []
     },
     {
-      "id": "O6",
-      "workstream": "O",
-      "title": "Transactions, shifts, reports and exports",
-      "weight": 4,
-      "checkpoint": 80,
-      "status": "BLOCKED",
-      "owner": "workspace",
-      "dependencies": [
-        "F4",
-        "F5"
-      ],
-      "acceptance": "List/detail hierarchy, payment origins, reviewed refunds and noncash outcomes, business-date reports/download states; no financial or recovery regression.",
-      "evidence": [
-        "docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
-        "docs/mera/ui-audit/EOD-REPORTING-CHECKPOINT.md",
-        "docs/mera/ui-audit/trading-day-report-comparison.html",
-        "docs/mera/ui-audit/screenshots/177-report-totals-tablet.jpg",
-        "docs/mera/ui-audit/SHIFT-RECOVERY-CHECKPOINT.md",
-        "docs/mera/ui-audit/shift-recovery-comparison.html",
-        "tests/mera-workspace-shift-recovery.test.tsx",
-        "docs/mera/ui-audit/SHIFT-QA-RESTORATION.json",
-        "docs/mera/ui-audit/LITERAL-ACCEPTANCE-REVIEW.md"
-      ],
-      "blockers": [
-        "Chrome organization policy blocks browser file-download acceptance; actual worker and authenticated route/CSV verified in disposable PostgreSQL integration.",
-        "Authoritative branch Mera-fee assessment source is unavailable; report explicitly does not invent zero fees.",
-        "Environmental acceptance exception: managed Chrome blocks file download. Actual permitted-device download remains required for100; authoritative authenticated worker/CSV route already verified. No bypass requested."
-      ],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-19T01:18:04+01:00",
-          "checkpoint": 40,
-          "note": "Finance/shift/export and integration/care partial correction. Actual zero-cash shift close and worker-completed CSV download passed; no real collections/refunds or full populated-care browser acceptance. See checkpoint."
-        },
-        {
-          "at": "2026-11-19T08:28:23+01:00",
-          "checkpoint": 60,
-          "note": "Populated dated EOD totals/products/current order states and scoped activity verified in browser; CSVv2 worker/download route passed PG gate. Browser download blocked by managed Chrome policy; broader finance/print/role matrices remain."
-        },
-        {
-          "at": "2026-11-19T10:39:08+01:00",
-          "checkpoint": 60,
-          "note": "Shift opening/closing recovery and action-before-queue hierarchy verified at10e1feb. Exact actor/key/amount/target journal, immutable original acknowledgment+stopfence, fresh targetdraftreset, safe logout; actualPGpassed, fullsuite610pass/2skip, final18focused/build. Browser222\u2013227 desktop/tablet/phone plus zero open/rejectedclose reload/stop/zero close verified. All92baselineQAhashes/settings unchanged,5immutable testrecords retained guardpreserved. Broad finance/role/accessibility acceptance remains; no new weighted credit."
-        },
-        {
-          "at": "2026-11-19T21:22:54+01:00",
-          "checkpoint": 80,
-          "note": "Lead-approved literal acceptance audit reconciliation, not new implementation: reused actual checkpoint/browser evidence and meaningful component/realPG regression coverage; final738total736pass0fail2skip52.05s/build. No every-edgecase screenshot requirement. Finite outstanding checks remain on80tasks."
-        }
-      ]
-    },
-    {
-      "id": "O7",
-      "workstream": "O",
-      "title": "Subscriptions, printing, QR and customer/support care",
-      "weight": 4,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "workspace",
-      "dependencies": [
-        "F4",
-        "F5"
-      ],
-      "acceptance": "Purpose-built compact screens/details for invoices/templates/jobs/QR/complaints/support/integrations with advanced configuration disclosed; genuine blocked states actionable.",
-      "evidence": [
-        "docs/mera/ui-audit/BILLING-MANAGEMENT-MOUNT.md",
-        "docs/mera/ui-audit/subscription-comparison.html",
-        "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
-        "docs/mera/ui-audit/FINANCE-MANAGEMENT-CHECKPOINT.md",
-        "docs/mera/ui-audit/PRINTING-CHECKPOINT.md",
-        "docs/mera/ui-audit/PRINT-RECOVERY-CHECKPOINT.md",
-        "docs/mera/ui-audit/LITERAL-ACCEPTANCE-REVIEW.md"
-      ],
-      "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-19T00:24:32+01:00",
-          "checkpoint": 0,
-          "note": "Subscription/invoices corrected and visually exercised, but broad O7 printing/QR/care/support/integrations acceptance is incomplete; no weighted completion credit for a single surface."
-        },
-        {
-          "at": "2026-11-19T01:03:29+01:00",
-          "checkpoint": 40,
-          "note": "Records/printing/help integration: actual browser comparisons and help reply/privacy loop, regression suite391passed/2skipped. Partial acceptance only; remaining task scope documented."
-        },
-        {
-          "at": "2026-11-19T01:18:04+01:00",
-          "checkpoint": 40,
-          "note": "Finance/shift/export and integration/care partial correction. Actual zero-cash shift close and worker-completed CSV download passed; no real collections/refunds or full populated-care browser acceptance. See checkpoint."
-        },
-        {
-          "at": "2026-11-19T08:45:26+01:00",
-          "checkpoint": 60,
-          "note": "Printing format/save/reload/draft and responsive milestone verified with prior subscription/QR/care integration; full suite545pass/2skip, actual PG snapshot/version/default-brand gates. No physical output or full populated queue/role acceptance."
-        },
-        {
-          "at": "2026-11-19T17:44:41+01:00",
-          "checkpoint": 60,
-          "note": "Template/reprint original replay/lookup/stop, shared nonsecret tab recovery and fresh duplicate metadata integrated at98e184d. Full675pass/2skip, studio25/parent78/finalwrapper8/build/disposablePG and matched receipt plus390/834 previews/nativevalidation. No preview write or physical print. No extra credit: broader acceptance, access/signup and external gates remain."
-        },
-        {
-          "at": "2026-11-19T21:22:54+01:00",
-          "checkpoint": 100,
-          "note": "Lead-approved literal acceptance audit reconciliation, not new implementation: reused actual checkpoint/browser evidence and meaningful component/realPG regression coverage; final738total736pass0fail2skip52.05s/build. No every-edgecase screenshot requirement. Finite outstanding checks remain on80tasks."
-        }
-      ]
-    },
-    {
-      "id": "P1",
-      "workstream": "P",
-      "title": "Original-style POS catalog and current order",
+      "id": "W2",
+      "workstream": "W",
+      "title": "Service modes, pricing disclosures and FAQ",
       "weight": 5,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "lead",
-      "dependencies": [
-        "F1"
-      ],
-      "acceptance": "Prior integrated photo catalog/basket retained. Updated shared header, role/repeated-transaction workflows and full state acceptance still required.",
+      "checkpoint": 40,
+      "status": "IN_PROGRESS",
+      "owner": "marketing_refresh",
+      "dependencies": [],
+      "acceptance": "Service modes, pricing disclosures and FAQ implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
       "evidence": [
-        "docs/mera/ui-audit/screenshots/06-mera-pos-after-empty.jpg",
-        "docs/mera/ui-audit/screenshots/07-mera-pos-tablet.jpg",
-        "docs/mera/ui-audit/screenshots/09-mera-pos-narrow-basket.jpg",
-        "tests/mera-ui-pilot.test.tsx",
-        "docs/mera/ui-audit/counter-comparison-current.jpg",
-        "docs/mera/ui-audit/LITERAL-ACCEPTANCE-REVIEW.md",
-        "docs/mera/ui-audit/ROLE-ACCEPTANCE-CLOSURE.md"
-      ],
-      "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 60,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T17:17:08+01:00",
-          "checkpoint": 80,
-          "note": "Lead inspected combined source/implementation comparisons. Four-screen visual gate passed; full operational workflow/state acceptance remains separately tracked. Build passed; regression236 pass/2 skip plus copy/recovery24 pass."
-        },
-        {
-          "at": "2026-11-19T21:22:54+01:00",
-          "checkpoint": 100,
-          "note": "Lead-approved literal acceptance audit reconciliation, not new implementation: reused actual checkpoint/browser evidence and meaningful component/realPG regression coverage; final738total736pass0fail2skip52.05s/build. No every-edgecase screenshot requirement. Finite outstanding checks remain on80tasks."
-        }
-      ]
-    },
-    {
-      "id": "P2",
-      "workstream": "P",
-      "title": "Order lists, details, responsibility and help",
-      "weight": 4,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "lead",
-      "dependencies": [
-        "F4",
-        "F5"
-      ],
-      "acceptance": "Scan reference/time/customer/table/source/status/payment/amount/handler and next action; timeline/details; assignment/privacy preserved.",
-      "evidence": [
-        "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
-        "docs/mera/ui-audit/ORDER-MANAGEMENT-CHECKPOINT.md",
-        "docs/mera/ui-audit/HELP-RECOVERY-CHECKPOINT.md",
-        "docs/mera/ui-audit/LITERAL-ACCEPTANCE-REVIEW.md"
-      ],
-      "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-19T01:03:29+01:00",
-          "checkpoint": 40,
-          "note": "Records/printing/help integration: actual browser comparisons and help reply/privacy loop, regression suite391passed/2skipped. Partial acceptance only; remaining task scope documented."
-        },
-        {
-          "at": "2026-11-19T16:23:48+01:00",
-          "checkpoint": 40,
-          "note": "Order history/timezone/shared timeline and waiter preparation facts integrated at8149ed2; full637pass/2skip, focused23pass, build and actual Chrome comparison. No additional checkpoint: help uncertain-write/draft recovery and broader state acceptance remain unfinished."
-        },
-        {
-          "at": "2026-11-19T16:37:52+01:00",
-          "checkpoint": 60,
-          "note": "Orders/history/help integrated and exercised: actor-bound exact help replay/lookup/stop; nonsecret reload marker; draft retention; full645pass/2skip and final91focused/build. ActualQA reply/privacy/responsive plus matched desktop comparison. Broader role/state/accessibility acceptance remains, no80/100claim."
-        },
-        {
-          "at": "2026-11-19T21:22:54+01:00",
-          "checkpoint": 100,
-          "note": "Lead-approved literal acceptance audit reconciliation, not new implementation: reused actual checkpoint/browser evidence and meaningful component/realPG regression coverage; final738total736pass0fail2skip52.05s/build. No every-edgecase screenshot requirement. Finite outstanding checks remain on80tasks."
-        }
-      ]
-    },
-    {
-      "id": "P3",
-      "workstream": "P",
-      "title": "Waiter tables, rounds, bills and handoffs",
-      "weight": 4,
-      "checkpoint": 80,
-      "status": "BLOCKED",
-      "owner": "lead",
-      "dependencies": [
-        "F4",
-        "F5"
-      ],
-      "acceptance": "Assigned work first, floor/current party, rounds, prepared handoff, split/partial payment and minimum/deposit outcomes without private-session regressions.",
-      "evidence": [
-        "docs/mera/ui-audit/TABLES-CHECKPOINT.md",
-        "docs/mera/ui-audit/screenshots/145-tables-after.jpg",
-        "docs/mera/ui-audit/screenshots/146-tables-phone.jpg",
-        "docs/mera/ui-audit/screenshots/147-tables-tablet.jpg",
-        "docs/mera/ui-audit/SERVICE-HANDOFF-CHECKPOINT.md",
-        "docs/mera/ui-audit/service-responsibility-comparison.html",
-        "docs/mera/ui-audit/screenshots/153-service-phone-final.jpg",
-        "docs/mera/ui-audit/screenshots/154-service-tablet.jpg",
-        "docs/mera/ui-audit/BILL-RECOVERY-CHECKPOINT.md",
-        "docs/mera/ui-audit/LITERAL-ACCEPTANCE-REVIEW.md"
-      ],
-      "blockers": [
-        "Finite floor-map selection/layout-reset browser check blocked: origin3007 explicitly denied by Chrome tool security policy (user declined); restored access requested, no workaround authorized."
-      ],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-19T02:06:13+01:00",
-          "checkpoint": 40,
-          "note": "Table/party/bill partial correction verified in actual browser. Assignment/handoff, minimum/deposit and permission/recovery acceptance remain."
-        },
-        {
-          "at": "2026-11-19T02:21:09+01:00",
-          "checkpoint": 60,
-          "note": "Actual local assignment/history/filter retention and partial prepared handoff passed; broader role, minimum/deposit/settlement and durable recovery acceptance remain."
-        },
-        {
-          "at": "2026-11-19T17:23:51+01:00",
-          "checkpoint": 60,
-          "note": "Bill split/merge durable exact replay/lookup/stop and nonsecret remount recovery integrated at4eeb5e6. Payment path/conservation preserved, conditional open-visit gates/counter splits verified. Full665pass/2skip, focused/build/disposablePG and read-only Chrome comparison/390/834 forms. No additional checkpoint: broader acceptance and other recovery gates remain."
-        },
-        {
-          "at": "2026-11-19T21:22:54+01:00",
-          "checkpoint": 80,
-          "note": "Lead-approved literal acceptance audit reconciliation, not new implementation: reused actual checkpoint/browser evidence and meaningful component/realPG regression coverage; final738total736pass0fail2skip52.05s/build. No every-edgecase screenshot requirement. Finite outstanding checks remain on80tasks."
-        },
-        {
-          "at": "2026-11-19T21:33:18+01:00",
-          "checkpoint": 80,
-          "note": "Acceptance blocked by explicit browser/tool permission, not unfinished implementation or permission to bypass. Existing evidence/score retained; finite check documented."
-        }
-      ]
-    },
-    {
-      "id": "P4",
-      "workstream": "P",
-      "title": "Kitchen and bar preparation",
-      "weight": 3,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "lead",
-      "dependencies": [
-        "F4",
-        "F5"
-      ],
-      "acceptance": "Dedicated station tickets with modifiers/notes/elapsed time/current actors and prominent versioned actions; no owner dashboard for these roles.",
-      "evidence": [
-        "docs/mera/ui-audit/PREPARATION-MOUNT.md",
-        "docs/mera/ui-audit/screenshots/56-preparation-partial-desktop.jpg",
-        "docs/mera/ui-audit/screenshots/57-preparation-ready-tablet.jpg",
-        "docs/mera/ui-audit/screenshots/58-preparation-ready-narrow.jpg",
-        "tests/mera-preparation.test.tsx",
-        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md",
-        "docs/mera/ui-audit/WORKFLOW-ACCEPTANCE-BOARD.md",
-        "docs/mera/ui-audit/ROLE-ACCEPTANCE-CLOSURE.md"
-      ],
-      "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T22:52:35+01:00",
-          "checkpoint": 0,
-          "note": "Dedicated preparation source and focused tests ready; main mount and live visual integration still pending, no completion credit."
-        },
-        {
-          "at": "2026-11-18T23:28:34+01:00",
-          "checkpoint": 60,
-          "note": "Integrated dedicated station view and verified local accepted\u2192preparing\u2192partial\u2192ready flow; restricted-role/live conflict and full accessibility checks pending."
-        },
-        {
-          "at": "2026-11-19T18:22:39+01:00",
-          "checkpoint": 60,
-          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
-        },
-        {
-          "at": "2026-11-19T19:41:09+01:00",
-          "checkpoint": 60,
-          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290\u2013293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
-        },
-        {
-          "at": "2026-11-19T20:41:27+01:00",
-          "checkpoint": 100,
-          "note": "Lead-reviewed role/menu acceptance at0e054fb; actual294\u2013307 plus prior source/size/state evidence;117focused checks/build passed; full rerun pending. Exact dimensions/limits in ROLE-ACCEPTANCE-CLOSURE.md. Scopeunchanged."
-        },
-        {
-          "at": "2026-11-19T21:11:26+01:00",
-          "checkpoint": 100,
-          "note": "Finalintegrated3edb270 build and731total729pass0fail2skip56.90s; actualstock/reportsrolechecks andisolatedfixture restoration supplementclosure. Noallgoalclaim."
-        }
-      ]
-    },
-    {
-      "id": "P5",
-      "workstream": "P",
-      "title": "Front desk reservations, arrivals and waitlist",
-      "weight": 4,
-      "checkpoint": 80,
-      "status": "BLOCKED",
-      "owner": "lead",
-      "dependencies": [
-        "F4",
-        "F5"
-      ],
-      "acceptance": "Readable timeline/list, capacity/table availability, arrivals/walk-ins/waitlist and seating conversion; preserve joining/deposit policies and error states.",
-      "evidence": [
-        "docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
-        "docs/mera/ui-audit/RESERVATION-RECOVERY-CHECKPOINT.md",
-        "docs/mera/ui-audit/reservation-recovery-comparison.html",
-        "tests/mera-workspace-reservation-recovery.test.tsx",
-        "docs/mera/ui-audit/RESERVATION-QA-RESTORATION.json",
-        "docs/mera/ui-audit/LITERAL-ACCEPTANCE-REVIEW.md"
-      ],
-      "blockers": [
-        "Finite arrival-to-table seating/private-code browser check blocked by explicit origin3007 Chrome tool security-policy denial; restored access pending."
-      ],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-19T01:50:36+01:00",
-          "checkpoint": 60,
-          "note": "Front-desk waitlist normal UI transitions and public/customization partial milestone. Actual paired/responsive captures, focus and lazy pricing navigation corrected; role/theme/production registration matrices remain partial."
-        },
-        {
-          "at": "2026-11-19T10:24:38+01:00",
-          "checkpoint": 60,
-          "note": "Staff request recovery slice verified at942d77e: original intent/key/actor-bound first POST, lookup/stop fence, sign-out privacy, native date fix, real synthetic QA booking and rejected-request reload/stop, responsive comparison. Full suite597pass/2skip, build,12focused/4parentintegration passes. No new weighted credit; broader front-desk/status/role acceptance remains. Two immutable synthetic QA audit events retained with guard preserved; all90existing hashes/settings unchanged."
-        },
-        {
-          "at": "2026-11-19T21:22:54+01:00",
-          "checkpoint": 80,
-          "note": "Lead-approved literal acceptance audit reconciliation, not new implementation: reused actual checkpoint/browser evidence and meaningful component/realPG regression coverage; final738total736pass0fail2skip52.05s/build. No every-edgecase screenshot requirement. Finite outstanding checks remain on80tasks."
-        },
-        {
-          "at": "2026-11-19T21:33:18+01:00",
-          "checkpoint": 80,
-          "note": "Acceptance blocked by explicit browser/tool permission, not unfinished implementation or permission to bypass. Existing evidence/score retained; finite check documented."
-        }
-      ]
-    },
-    {
-      "id": "C1",
-      "workstream": "C",
-      "title": "Mobile menu and persistent cart pilot",
-      "weight": 6,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "customer",
-      "dependencies": [
-        "F1"
-      ],
-      "acceptance": "Immediate branded menu, compact hierarchy/search/categories/availability/photos, persistent cart access and zero-results/empty/error states; mobile visual gate.",
-      "evidence": [
-        "src/mera/customer/CustomerExperience.tsx",
-        "tests/mera-customer-ui-correction.test.tsx",
-        "docs/mera/ui-audit/PILOT-CHECKPOINT-2026-11-18.md",
-        "docs/mera/ui-audit/screenshots/13-customer-narrow-menu.jpg",
-        "docs/mera/ui-audit/screenshots/14-customer-narrow-basket.jpg",
-        "docs/mera/ui-audit/screenshots/15-customer-tablet.jpg",
-        "docs/mera/ui-audit/customer-comparison-current.jpg",
-        "docs/mera/ui-audit/ROLE-ACCEPTANCE-CLOSURE.md"
-      ],
-      "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T16:10:03+01:00",
-          "checkpoint": 60,
-          "note": "Menu/cart integrated and exercised in local browser; overlap corrected. Full comparison/state acceptance pending."
-        },
-        {
-          "at": "2026-11-18T17:17:08+01:00",
-          "checkpoint": 80,
-          "note": "Lead inspected combined source/implementation comparisons. Four-screen visual gate passed; full operational workflow/state acceptance remains separately tracked. Build passed; regression236 pass/2 skip plus copy/recovery24 pass."
-        },
-        {
-          "at": "2026-11-19T20:41:27+01:00",
-          "checkpoint": 100,
-          "note": "Lead-reviewed role/menu acceptance at0e054fb; actual294\u2013307 plus prior source/size/state evidence;117focused checks/build passed; full rerun pending. Exact dimensions/limits in ROLE-ACCEPTANCE-CLOSURE.md. Scopeunchanged."
-        },
-        {
-          "at": "2026-11-19T21:11:26+01:00",
-          "checkpoint": 100,
-          "note": "Finalintegrated3edb270 build and731total729pass0fail2skip56.90s; actualstock/reportsrolechecks andisolatedfixture restoration supplementclosure. Noallgoalclaim."
-        }
-      ]
-    },
-    {
-      "id": "C2",
-      "workstream": "C",
-      "title": "Checkout, pending recovery, tracking and receipts",
-      "weight": 5,
-      "checkpoint": 80,
-      "status": "BLOCKED",
-      "owner": "customer",
-      "dependencies": [
-        "C1"
-      ],
-      "acceptance": "Transparent server totals, immutable uncertain intent, readable statuses and receipts/history; never imply client confirmation proves payment.",
-      "evidence": [
-        "tests/mera-customer-ui-correction.test.tsx",
-        "src/mera/customer/checkoutRecovery.ts",
-        "src/mera/customer/quoteClock.ts",
-        "tests/mera-customer-recovery.test.tsx",
-        "tests/mera-customer-quote-clock.test.js",
-        "docs/mera/ui-audit/screenshots/39-customer-unpaid-tracking.jpg",
-        "docs/mera/ui-audit/CUSTOMER-CHECKOUT-CHECKPOINT.md",
-        "docs/mera/ui-audit/customer-checkout-comparison.html",
-        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md",
-        "docs/mera/ui-audit/WORKFLOW-ACCEPTANCE-BOARD.md",
-        "docs/mera/ui-audit/LITERAL-ACCEPTANCE-REVIEW.md",
-        "docs/mera/ui-audit/CUSTOMER-FINAL-GATES.md"
-      ],
-      "blockers": [
-        "Existing synthetic paid receipt/print-preview acceptance blocked by explicit origin3007 Chrome tool security-policy denial; no real money or printer output required."
-      ],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T16:10:03+01:00",
-          "checkpoint": 0,
-          "note": "Exact checkout intent protection in review; no full workflow acceptance."
-        },
-        {
-          "at": "2026-11-18T17:29:28+01:00",
-          "checkpoint": 40,
-          "note": "Immutable tab-scoped checkout recovery, authoritative attempt resolution, conservative quote expiry and self-contained receipts implemented. Actual unpaid order submitted/tracked/reopened after reload in isolated preview, no payment/receipt-print action. Controlled uncertain-network and paid-print browser fixtures remain."
-        },
-        {
-          "at": "2026-11-19T03:51:33+01:00",
-          "checkpoint": 60,
-          "note": "Actual local native checkout, required/size/stock/custom-theme and unpaid tracking subset verified. Network/session/paid-print/full-theme matrix remains partial."
-        },
-        {
-          "at": "2026-11-19T18:22:39+01:00",
-          "checkpoint": 60,
-          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
-        },
-        {
-          "at": "2026-11-19T19:41:09+01:00",
-          "checkpoint": 60,
-          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290\u2013293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
-        },
-        {
-          "at": "2026-11-19T21:22:54+01:00",
-          "checkpoint": 80,
-          "note": "Lead-approved literal acceptance audit reconciliation, not new implementation: reused actual checkpoint/browser evidence and meaningful component/realPG regression coverage; final738total736pass0fail2skip52.05s/build. No every-edgecase screenshot requirement. Finite outstanding checks remain on80tasks."
-        },
-        {
-          "at": "2026-11-19T21:33:18+01:00",
-          "checkpoint": 80,
-          "note": "Acceptance blocked by explicit browser/tool permission, not unfinished implementation or permission to bypass. Existing evidence/score retained; finite check documented."
-        }
-      ]
-    },
-    {
-      "id": "C3",
-      "workstream": "C",
-      "title": "Visit joining, bills, rounds and help",
-      "weight": 4,
-      "checkpoint": 80,
-      "status": "BLOCKED",
-      "owner": "customer",
-      "dependencies": [
-        "C1"
-      ],
-      "acceptance": "Clear branch/table context and secure code flow, private bills/service/help with loading/expiry/recovery; no staff/admin jargon.",
-      "evidence": [
-        "src/mera/customer/HelpRequests.tsx",
-        "docs/mera/ui-audit/screenshots/40-customer-help-narrow.jpg",
-        "docs/mera/ui-audit/screenshots/41-customer-join-narrow.jpg",
-        "src/mera/customer/VisitSummary.tsx",
-        "tests/mera-customer-visit-refresh.test.tsx",
-        "docs/mera/ui-audit/SUBSCRIPTION-VISIT-PLATFORM-CHECKPOINT.md",
-        "docs/mera/ui-audit/screenshots/68-visit-bill-desktop.jpg",
-        "docs/mera/ui-audit/screenshots/70-visit-bill-narrow.jpg",
-        "docs/mera/ui-audit/RECORDS-PRINT-HELP-CHECKPOINT.md",
-        "docs/mera/ui-audit/LITERAL-ACCEPTANCE-REVIEW.md",
-        "docs/mera/ui-audit/HELP-DURABLE-CLOSURE.md"
-      ],
-      "blockers": [
-        "Joined table/bill-to-help navigation acceptance blocked by explicit origin3007 Chrome tool security-policy denial; restored access pending."
-      ],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T17:29:28+01:00",
-          "checkpoint": 0,
-          "note": "Visit/bill/help hierarchy and loading/privacy guards corrected; unit tests pass. Browser checked help empty form and private join form only. Successful private visit, multi-round bills and deposit fixture acceptance remain."
-        },
-        {
-          "at": "2026-11-19T00:24:32+01:00",
-          "checkpoint": 40,
-          "note": "Private table summary integrated and actual invalid-code/join/unpaid-round/canonical refresh verified at three widths; join/read scope races tested. Help/deposit/split/full state/comparison acceptance still incomplete."
-        },
-        {
-          "at": "2026-11-19T01:03:29+01:00",
-          "checkpoint": 60,
-          "note": "Records/printing/help integration: actual browser comparisons and help reply/privacy loop, regression suite391passed/2skipped. Partial acceptance only; remaining task scope documented."
-        },
-        {
-          "at": "2026-11-19T21:22:54+01:00",
-          "checkpoint": 80,
-          "note": "Lead-approved literal acceptance audit reconciliation, not new implementation: reused actual checkpoint/browser evidence and meaningful component/realPG regression coverage; final738total736pass0fail2skip52.05s/build. No every-edgecase screenshot requirement. Finite outstanding checks remain on80tasks."
-        },
-        {
-          "at": "2026-11-19T21:33:18+01:00",
-          "checkpoint": 80,
-          "note": "Acceptance blocked by explicit browser/tool permission, not unfinished implementation or permission to bypass. Existing evidence/score retained; finite check documented."
-        }
-      ]
-    },
-    {
-      "id": "C4",
-      "workstream": "C",
-      "title": "Reservations, activity and consent",
-      "weight": 3,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "customer",
-      "dependencies": [
-        "C1"
-      ],
-      "acceptance": "Readable enabled reservation workflow, acknowledgements, own activity and separate optional consent; honest deposit/review outcomes.",
-      "evidence": [
-        "docs/mera/ui-audit/screenshots/53-reservation-form-narrow.jpg",
-        "docs/mera/ui-audit/MENU-BRANCH-CHECKPOINT.md",
-        "docs/mera/ui-audit/RESERVATION-STAFF-CHECKPOINT.md",
-        "docs/mera/ui-audit/screenshots/66-reservation-cancelled-narrow.jpg",
-        "docs/mera/ui-audit/reservation-activity-comparison.html",
-        "tests/mera-customer-reservation-recovery.test.tsx",
-        "tests/mera-customer-activity.test.tsx",
-        "docs/mera/ui-audit/LITERAL-ACCEPTANCE-REVIEW.md",
-        "docs/mera/ui-audit/CUSTOMER-FINAL-GATES.md",
-        "docs/mera/ui-audit/CANCELLATION-DURABLE-CLOSURE.md",
-        "docs/mera/ui-audit/CANCELLATION-DURABLE-PROXY-EVIDENCE.json",
-        "docs/mera/ui-audit/screenshots/325-cancellation-unknown.jpg",
-        "docs/mera/ui-audit/screenshots/326-cancellation-reloaded-phone.jpg",
-        "docs/mera/ui-audit/screenshots/327-cancellation-reconciled-phone.jpg"
-      ],
-      "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T19:58:23+01:00",
-          "checkpoint": 0,
-          "note": "Menu-management and reservation correction source implemented; live interaction/size comparisons and final integration review in progress. No extra completion credit yet."
-        },
-        {
-          "at": "2026-11-18T22:52:35+01:00",
-          "checkpoint": 40,
-          "note": "Verified27680f2 in isolated checkout:282 regression passes/2 skips, build and actual Mera PostgreSQL pass. Browser comparison and concrete scoped flows recorded. Full acceptance remains; staged next-phase source gets no extra credit."
-        },
-        {
-          "at": "2026-11-18T23:41:52+01:00",
-          "checkpoint": 60,
-          "note": "Actual isolated browser request/reload/activity and canonical no-deposit cancellation verified; deposit/uncertain-path source+PG evidence retained, broader state/privacy/accessibility acceptance pending."
-        },
-        {
-          "at": "2026-11-19T21:22:54+01:00",
-          "checkpoint": 80,
-          "note": "Lead-approved literal acceptance audit reconciliation, not new implementation: reused actual checkpoint/browser evidence and meaningful component/realPG regression coverage; final738total736pass0fail2skip52.05s/build. No every-edgecase screenshot requirement. Finite outstanding checks remain on80tasks."
-        },
-        {
-          "at": "2026-11-19T21:33:18+01:00",
-          "checkpoint": 100,
-          "note": "Leadaccepted actual325unknowncancellation\u2192326reloadGETonlyoriginalreason/historycancelled\u2192327explicitretryresolvessame/no-refund; separateconsentvisible. Durableclosure sourcebcc76e7/full736pass2skip/build; scopeunchanged."
-        }
-      ]
-    },
-    {
-      "id": "C5",
-      "workstream": "C",
-      "title": "Customization dialogs and organization themes",
-      "weight": 2,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "customer",
-      "dependencies": [
-        "C1"
-      ],
-      "acceptance": "Required variants/modifiers/limits, keyboard focus/long-content/narrow dialogs, actual organization branding and photo fallback.",
-      "evidence": [
-        "tests/mera-customer-ui-correction.test.tsx",
-        "docs/mera/ui-audit/screenshots/22-customer-dialog-narrow.jpg",
-        "docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
-        "docs/mera/ui-audit/CUSTOMER-CHECKOUT-CHECKPOINT.md",
-        "docs/mera/ui-audit/customer-checkout-comparison.html",
-        "docs/mera/ui-audit/LITERAL-ACCEPTANCE-REVIEW.md"
-      ],
-      "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T16:32:27+01:00",
-          "checkpoint": 0,
-          "note": "Menu/cart dialog accessibility slice exercised, but long-option browser states and full theme acceptance incomplete; no full-task credit."
-        },
-        {
-          "at": "2026-11-19T01:50:36+01:00",
-          "checkpoint": 40,
-          "note": "Front-desk waitlist normal UI transitions and public/customization partial milestone. Actual paired/responsive captures, focus and lazy pricing navigation corrected; role/theme/production registration matrices remain partial."
-        },
-        {
-          "at": "2026-11-19T03:51:33+01:00",
-          "checkpoint": 60,
-          "note": "Actual local native checkout, required/size/stock/custom-theme and unpaid tracking subset verified. Network/session/paid-print/full-theme matrix remains partial."
-        },
-        {
-          "at": "2026-11-19T21:22:54+01:00",
-          "checkpoint": 100,
-          "note": "Lead-approved literal acceptance audit reconciliation, not new implementation: reused actual checkpoint/browser evidence and meaningful component/realPG regression coverage; final738total736pass0fail2skip52.05s/build. No every-edgecase screenshot requirement. Finite outstanding checks remain on80tasks."
-        }
-      ]
-    },
-    {
-      "id": "M1",
-      "workstream": "M",
-      "title": "Marketing homepage pilot",
-      "weight": 4,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "backend",
-      "dependencies": [
-        "F2"
-      ],
-      "acceptance": "Selected new enterprise Mera direction, credible product preview and responsive composition; four-surface visual gate.",
-      "evidence": [
-        "docs/mera/ui-audit/MARKETING-QA.md",
-        "docs/mera/ui-audit/marketing-comparison-final.jpg",
-        "docs/mera/ui-audit/screenshots/24-mera-home-selected-width-final.jpg",
-        "docs/mera/ui-audit/screenshots/29-mera-home-wide.jpg",
-        "docs/mera/ui-audit/screenshots/30-mera-home-narrow.jpg",
-        "docs/mera/ui-audit/screenshots/32-mera-home-tablet.jpg",
+        "src/mera/marketing/Marketing.tsx",
         "tests/mera-marketing-ui.test.tsx"
       ],
       "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T16:32:27+01:00",
-          "checkpoint": 0,
-          "note": "Selected-image implementation ready for lead comparison; no visual acceptance yet."
-        },
-        {
-          "at": "2026-11-18T17:08:29+01:00",
-          "checkpoint": 80,
-          "note": "Selected visual compared through four iterations; typography/rhythm/crop corrected. Desktop/tablet/narrow and primary navigation/CTA/console checked. Final integration acceptance pending Q1."
-        },
-        {
-          "at": "2026-11-18T17:17:08+01:00",
-          "checkpoint": 100,
-          "note": "Lead inspected combined source/implementation comparisons. Four-screen visual gate passed; full operational workflow/state acceptance remains separately tracked. Build passed; regression236 pass/2 skip plus copy/recovery24 pass."
-        }
-      ]
+      "history": []
     },
     {
-      "id": "M2",
-      "workstream": "M",
-      "title": "Marketing features, pricing, legal and signup",
-      "weight": 2,
-      "checkpoint": 80,
-      "status": "BLOCKED",
-      "owner": "backend",
-      "dependencies": [
-        "F2",
-        "M1"
-      ],
-      "acceptance": "Complete service/pricing/signup/support pages with honest configurable terms; real states, no invented delivery or legal completion.",
-      "evidence": [
-        "tests/mera-signup-ui.test.tsx",
-        "docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
-        "docs/mera/ui-audit/PUBLIC-JOURNEY-CHECKPOINT.md",
-        "docs/mera/ui-audit/public-journey-comparison.html",
-        "tests/mera-public-navigation.test.tsx",
-        "tests/mera-signup-recovery.test.tsx",
-        "docs/mera/ui-audit/PLATFORM-ACCEPTANCE-CLOSURE.md"
-      ],
-      "blockers": [
-        "Authoritative signup attempt recovery/token resend API remains missing; unknown creation/verification pauses for authorized account review.",
-        "Production owner registration needs authorized email delivery/sender setup and approved legal/commercial launch terms.",
-        "Authorized simulated registration/verification browser walkthrough and simulated credential entry remain pending; origin3007 is explicitly denied by Chrome tool security policy. No credential-entry workaround authorized."
-      ],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T16:10:03+01:00",
-          "checkpoint": 0,
-          "note": "Signup readiness/focus hardening passes targeted batch; remaining marketing/legal/pricing correction pending selected direction."
-        },
-        {
-          "at": "2026-11-19T01:50:36+01:00",
-          "checkpoint": 40,
-          "note": "Front-desk waitlist normal UI transitions and public/customization partial milestone. Actual paired/responsive captures, focus and lazy pricing navigation corrected; role/theme/production registration matrices remain partial."
-        },
-        {
-          "at": "2026-11-19T15:38:02+01:00",
-          "checkpoint": 60,
-          "note": "Public journey integrated at5b5816f: known section/skip/deep-link/history focus, mobilemenuclose\u2192headingfocus, actual signup ack/singleflight/readiness/refresh-safe nonsecret marker. Real2782\u00d71110 comparisons+390/834normalbrowser checks, build,25focused andfull630pass/2skip. No live credentials/accountmutation or dropped-response browser claim. M2only60 due missing authoritative signup recovery/provider/legal/mutation acceptance; scopeunchanged."
-        },
-        {
-          "at": "2026-11-19T21:20:48+01:00",
-          "checkpoint": 80,
-          "note": "Lead-reviewed actual317\u2013324 platform/MFA/denial/rebuilt audit; final738total736pass0fail2skip52.05s/build. M3closed; M2responsive/public states80withsimulatedregistrationwalkthroughremaining. No backend expansion."
-        },
-        {
-          "at": "2026-11-19T21:33:18+01:00",
-          "checkpoint": 80,
-          "note": "Acceptance blocked by explicit browser/tool permission, not unfinished implementation or permission to bypass. Existing evidence/score retained; finite check documented."
-        }
-      ]
-    },
-    {
-      "id": "M3",
-      "workstream": "M",
-      "title": "Mera platform administration",
-      "weight": 4,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "backend",
-      "dependencies": [
-        "F2",
-        "F4"
-      ],
-      "acceptance": "Selected Mera identity adapted to efficient authorized tables/drilldowns, MFA, directory/subscriptions/provider/fees/exceptions/support/audit; preserve security.",
-      "evidence": [
-        "src/mera/Platform.tsx",
-        "tests/mera-platform-ui.test.tsx",
-        "docs/mera/ui-audit/screenshots/38-platform-access-state.jpg",
-        "docs/mera/ui-audit/SUBSCRIPTION-VISIT-PLATFORM-CHECKPOINT.md",
-        "docs/mera/ui-audit/VISUAL-OPERATOR-FIXTURE.md",
-        "docs/mera/ui-audit/platform-review-comparison.html",
-        "docs/mera/ui-audit/screenshots/83-platform-directory-narrow-after.jpg",
-        "docs/mera/ui-audit/screenshots/84-platform-mfa-expired-narrow.jpg",
-        "tests/mera-response-dates.test.js",
-        "docs/mera/ui-audit/PLATFORM-ACCEPTANCE-CLOSURE.md",
-        "docs/mera/ui-audit/screenshots/323-platform-audit-reason-corrected.jpg",
-        "docs/mera/ui-audit/screenshots/324-platform-permission-denied.jpg"
-      ],
-      "blockers": [
-        "Authenticated platform visual acceptance requires an authorized platform operator with MFA; current browser session has organization access only."
-      ],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T17:29:28+01:00",
-          "checkpoint": 0,
-          "note": "Ivory/green platform styling, compact section directory/filter and accessible review dialog implemented;5 DOM regressions pass. Browser inspected access-denied state only: existing demo principal has organization scope, no platform-operator MFA session."
-        },
-        {
-          "at": "2026-11-19T00:24:32+01:00",
-          "checkpoint": 40,
-          "note": "Approved synthetic-only fixture used normal password/TOTP; actual denied/required/expired states, directory/filters/support/health/backups/audit reviewed. Dialog/mobile navigation/date defect corrected; broader audited workflows/accessibility acceptance pending."
-        },
-        {
-          "at": "2026-11-19T21:20:48+01:00",
-          "checkpoint": 100,
-          "note": "Lead-reviewed actual317\u2013324 platform/MFA/denial/rebuilt audit; final738total736pass0fail2skip52.05s/build. M3closed; M2responsive/public states80withsimulatedregistrationwalkthroughremaining. No backend expansion."
-        }
-      ]
-    },
-    {
-      "id": "Q1",
-      "workstream": "Q",
-      "title": "Four-surface reference comparison gate",
-      "weight": 3,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "lead",
-      "dependencies": [
-        "O1",
-        "P1",
-        "C1",
-        "M1"
-      ],
-      "acceptance": "Overview, POS, mobile menu/cart and marketing captured against actual selected references before broad rollout; correct P0/P1/P2.",
-      "evidence": [
-        "design-qa.md",
-        "docs/mera/ui-audit/MARKETING-QA.md",
-        "docs/mera/ui-audit/overview-comparison-current.jpg",
-        "docs/mera/ui-audit/counter-comparison-current.jpg",
-        "docs/mera/ui-audit/customer-comparison-current.jpg",
-        "docs/mera/ui-audit/marketing-comparison-final.jpg"
-      ],
-      "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-18T17:17:08+01:00",
-          "checkpoint": 100,
-          "note": "Lead inspected combined source/implementation comparisons. Four-screen visual gate passed; full operational workflow/state acceptance remains separately tracked. Build passed; regression236 pass/2 skip plus copy/recovery24 pass."
-        }
-      ]
-    },
-    {
-      "id": "Q2",
-      "workstream": "Q",
-      "title": "Cross-screen states, accessibility and responsiveness",
-      "weight": 3,
-      "checkpoint": 80,
-      "status": "BLOCKED",
-      "owner": "lead",
-      "dependencies": [
-        "F5",
-        "Q1"
-      ],
-      "acceptance": "All inventory states and desktop/tablet/narrow, no overflow, focus/contrast/labels/touch/long dialogs/loading/recovery; no certification without evidence.",
-      "evidence": [
-        "docs/mera/ui-audit/ACCESSIBILITY-CHECKPOINT.md",
-        "docs/mera/ui-audit/LITERAL-ACCEPTANCE-REVIEW.md"
-      ],
-      "blockers": [
-        "Finite remaining view/focus/size acceptance blocked by explicit origin3007 Chrome tool security-policy denial, plus file-upload permission and O6 managed-download exception. Previously accepted evidence remains valid."
-      ],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-19T16:49:57+01:00",
-          "checkpoint": 0,
-          "note": "Fresh audit corrected mobile selection/dismissal/roving-tab containment and per-order hint associations, with actual screenshot/keyboard/resize evidence. Full cross-screen state/role/accessibility matrix remains incomplete; no percentage credit."
-        },
-        {
-          "at": "2026-11-19T21:22:54+01:00",
-          "checkpoint": 80,
-          "note": "Lead-approved literal acceptance audit reconciliation, not new implementation: reused actual checkpoint/browser evidence and meaningful component/realPG regression coverage; final738total736pass0fail2skip52.05s/build. No every-edgecase screenshot requirement. Finite outstanding checks remain on80tasks."
-        },
-        {
-          "at": "2026-11-19T21:33:18+01:00",
-          "checkpoint": 80,
-          "note": "Acceptance blocked by explicit browser/tool permission, not unfinished implementation or permission to bypass. Existing evidence/score retained; finite check documented."
-        }
-      ]
-    },
-    {
-      "id": "Q3",
-      "workstream": "Q",
-      "title": "Functional integration and regression gate",
-      "weight": 3,
-      "checkpoint": 100,
-      "status": "VERIFIED",
-      "owner": "lead",
-      "dependencies": [
-        "Q1"
-      ],
-      "acceptance": "Role/scope denial, order/stock/payment/table privacy and uncertainty regressions across corrected screens; provider/hardware separately gated.",
-      "evidence": [
-        "docs/mera/ui-audit/ACCESSIBILITY-CHECKPOINT.md",
-        "docs/mera/ui-audit/BILL-RECOVERY-CHECKPOINT.md",
-        "docs/mera/ui-audit/PRINT-RECOVERY-CHECKPOINT.md",
-        "docs/mera/ui-audit/ACCESS-RECOVERY-CHECKPOINT.md",
-        "docs/mera/ui-audit/ACCESS-RECOVERY-WORKBOARD.md",
-        "docs/mera/ui-audit/access-recovery-comparison.jpg",
-        "docs/mera/ui-audit/UI-CLOSURE-WORKBOARD.md",
-        "docs/mera/ui-audit/WORKFLOW-ACCEPTANCE-BOARD.md",
-        "docs/mera/ui-audit/LITERAL-ACCEPTANCE-REVIEW.md"
-      ],
-      "blockers": [],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        },
-        {
-          "at": "2026-11-19T16:49:57+01:00",
-          "checkpoint": 40,
-          "note": "Current regression gate implemented/executed: npm test now includes TypeScript journal tests; final656pass/2skip, separate disposablePGpass, build and focused checks. Prior platform test diagnostic failure investigated/fixed without relaxing states. Broad operational acceptance and bill/reprint/access/signup recovery gaps remain."
-        },
-        {
-          "at": "2026-11-19T17:23:51+01:00",
-          "checkpoint": 40,
-          "note": "Bill split/merge durable exact replay/lookup/stop and nonsecret remount recovery integrated at4eeb5e6. Payment path/conservation preserved, conditional open-visit gates/counter splits verified. Full665pass/2skip, focused/build/disposablePG and read-only Chrome comparison/390/834 forms. No additional checkpoint: broader acceptance and other recovery gates remain."
-        },
-        {
-          "at": "2026-11-19T17:44:41+01:00",
-          "checkpoint": 40,
-          "note": "Template/reprint original replay/lookup/stop, shared nonsecret tab recovery and fresh duplicate metadata integrated at98e184d. Full675pass/2skip, studio25/parent78/finalwrapper8/build/disposablePG and matched receipt plus390/834 previews/nativevalidation. No preview write or physical print. No extra credit: broader acceptance, access/signup and external gates remain."
-        },
-        {
-          "at": "2026-11-19T18:08:09+01:00",
-          "checkpoint": 40,
-          "note": "Access recovery ee6c4e8/f1a1010: five shared actor/org keyed operations with exact proof/retry/fenced stop, no private payload/token persistence, current-authority delayed-response guards. Full686pass/2skip, build,8new/97existingfocused, disposablePG; matched People desktop and390/834 read-only screenshots. Wider acceptance gates remain; no percentage increase."
-        },
-        {
-          "at": "2026-11-19T18:22:39+01:00",
-          "checkpoint": 40,
-          "note": "UI closure e238eff/475ebe4: preparation validation/filter drafts, setup lifecycle, customer history/focus. Actual282\u2013288 captures and matched preparation comparison;704pass/2skip and build. No backend changes. Full matrix remains open."
-        },
-        {
-          "at": "2026-11-19T19:41:09+01:00",
-          "checkpoint": 40,
-          "note": "Fresh preparation start/partial/ready and customer unpaid checkout/history/reload verified in Chrome290\u2013293.707pass/2skip/build; fixture cleanup proven. Scope remains unchanged pending full role/state acceptance."
-        },
-        {
-          "at": "2026-11-19T21:22:54+01:00",
-          "checkpoint": 100,
-          "note": "Lead-approved literal acceptance audit reconciliation, not new implementation: reused actual checkpoint/browser evidence and meaningful component/realPG regression coverage; final738total736pass0fail2skip52.05s/build. No every-edgecase screenshot requirement. Finite outstanding checks remain on80tasks."
-        }
-      ]
-    },
-    {
-      "id": "Q4",
-      "workstream": "Q",
-      "title": "Final evidence, review and handoff",
-      "weight": 1,
+      "id": "W3",
+      "workstream": "W",
+      "title": "Marketing navigation, mobile and visual acceptance",
+      "weight": 5,
       "checkpoint": 0,
-      "status": "BLOCKED",
-      "owner": "lead",
-      "dependencies": [
-        "Q2",
-        "Q3"
-      ],
-      "acceptance": "Lead reviews every task, screenshots/tests linked, inventory complete, no unfinished UI counted complete, exact external production blockers recorded.",
+      "status": "IN_PROGRESS",
+      "owner": "marketing_refresh",
+      "dependencies": [],
+      "acceptance": "Marketing navigation, mobile and visual acceptance implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
       "evidence": [],
-      "blockers": [
-        "Final delivery acceptance remains pending the explicit browser/upload/download gates; do not mark whole goal complete. Root will commit/push evidence; no tool-policy workaround authorized."
-      ],
-      "history": [
-        {
-          "at": "2026-11-18T15:56:52+01:00",
-          "checkpoint": 0,
-          "note": "Version1 evidence-based baseline; prior functional implementation alone earns no correction credit."
-        }
-      ]
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "S1",
+      "workstream": "S",
+      "title": "Separate secure registration, sign-in and demo",
+      "weight": 7,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "owner_onboarding",
+      "dependencies": [],
+      "acceptance": "Separate secure registration, sign-in and demo implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "S2",
+      "workstream": "S",
+      "title": "Resumable nine-step owner configuration",
+      "weight": 10,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "owner_onboarding",
+      "dependencies": [],
+      "acceptance": "Resumable nine-step owner configuration implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "S3",
+      "workstream": "S",
+      "title": "Validation, subdomain, readiness and recovery",
+      "weight": 8,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "owner_onboarding",
+      "dependencies": [],
+      "acceptance": "Validation, subdomain, readiness and recovery implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "A1",
+      "workstream": "A",
+      "title": "Operator identity, navigation and record hierarchy",
+      "weight": 5,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Operator identity, navigation and record hierarchy implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "A2",
+      "workstream": "A",
+      "title": "Protected detail, filters, MFA and permission verification",
+      "weight": 5,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Protected detail, filters, MFA and permission verification implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "V1",
+      "workstream": "V",
+      "title": "Hosted role and remaining operational workflow checks",
+      "weight": 4,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Hosted role and remaining operational workflow checks implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "V2",
+      "workstream": "V",
+      "title": "Responsive screenshots, keyboard and reduced motion",
+      "weight": 3,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Responsive screenshots, keyboard and reduced motion implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
+    },
+    {
+      "id": "V3",
+      "workstream": "V",
+      "title": "Regression suite, deployment evidence and final review",
+      "weight": 3,
+      "checkpoint": 0,
+      "status": "IN_PROGRESS",
+      "owner": "lead",
+      "dependencies": [],
+      "acceptance": "Regression suite, deployment evidence and final review implemented, exercised, visually reviewed where applicable, tested and lead-accepted.",
+      "evidence": [],
+      "blockers": [],
+      "history": []
     }
   ],
   "screens": [
     {
-      "id": "WS-overview",
-      "route": "/mera/workspace#overview",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Owner/manager",
-      "taskIds": [
-        "O1",
-        "O2",
-        "O6"
-      ],
-      "task": "OperationalOverview",
-      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained. Dated report subset now verified: correct18Nov selection, populated19Nov quantities/money distinctions, reviewed-date export. See EOD-REPORTING-CHECKPOINT.md.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "reports.view",
-      "states": {
-        "loading": "UNVERIFIED for full correction",
-        "empty": "UNVERIFIED for full correction",
-        "error": "UNVERIFIED for full correction",
-        "permission": "UNVERIFIED for full correction",
-        "recovery": "UNVERIFIED for full correction"
-      },
-      "responsive": "Finalactual1280/834/390; longreferenceactions fit\u2264221.5pxcolumns; no documentoverflow.",
-      "visualReview": "O1/O2 acceptance closed: actual309/313desktop1280,310tablet834,311phone390 andmatchedcomparison inspected; exactorder/stockfocus andpriorarrivals/shifts evidence; ROLE-ACCEPTANCE-CLOSURE.md.",
-      "blockers": []
-    },
-    {
-      "id": "WS-onboarding",
-      "route": "/mera/workspace#onboarding",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Owner/admin",
-      "taskIds": [
-        "O3"
-      ],
-      "task": "BranchSettings/LaunchReadiness/policies/MediaUpload",
-      "functionalCoverage": "Existing APIs/UI workflows implemented; remaining acceptance is the finite browser check in LITERAL-ACCEPTANCE-REVIEW.md, not an assumed missing backend.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "organization.manage",
-      "states": {
-        "loading": "UNVERIFIED for full correction",
-        "empty": "UNVERIFIED for full correction",
-        "error": "UNVERIFIED for full correction",
-        "permission": "UNVERIFIED for full correction",
-        "recovery": "UNVERIFIED for full correction"
-      },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "Reviewed80: ORG-CLOSURE-AUDIT.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
-      "blockers": [
-        "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
-      ]
-    },
-    {
-      "id": "WS-menu",
-      "route": "/mera/workspace#menu",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Manager/stock",
-      "taskIds": [
-        "O4",
-        "F4"
-      ],
-      "task": "Categories/SharedMenus/CatalogOperations/variants/modifiers/StockMovements",
-      "functionalCoverage": "Defined task accepted; exact browser/test boundaries and separate launch gates recorded in LITERAL-ACCEPTANCE-REVIEW.md.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "menu.edit/stock.adjust",
-      "states": {
-        "loading": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "empty": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "error": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
-      },
-      "responsive": "Publication narrow CSS433 atChrome90%zoom, nooverflow; dialog233/235 matched2782\u00d71048. Other menu/stock responsive acceptance remains partial.",
-      "visualReview": "Accepted100 by lead literal audit: MENU-BRANCH-CHECKPOINT.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
-      "blockers": []
-    },
-    {
-      "id": "WS-orders",
-      "route": "/mera/workspace#orders",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Cashier/waiter/manager",
-      "taskIds": [
-        "P2"
-      ],
-      "task": "OrderHistory/OrderInstructions/RefundRequests",
-      "functionalCoverage": "Defined task accepted; exact browser/test boundaries and separate launch gates recorded in LITERAL-ACCEPTANCE-REVIEW.md.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "orders.view",
-      "states": {
-        "loading": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "empty": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "error": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
-      },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "Accepted100 by lead literal audit: HELP-RECOVERY-CHECKPOINT.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
-      "blockers": []
-    },
-    {
-      "id": "WS-counter",
-      "route": "/mera/workspace#counter",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Cashier",
-      "taskIds": [
-        "P1"
-      ],
-      "task": "StaffPos/StaffOrderItems",
-      "functionalCoverage": "Defined task accepted; exact browser/test boundaries and separate launch gates recorded in LITERAL-ACCEPTANCE-REVIEW.md.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "orders.create",
-      "states": {
-        "loading": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "empty": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "error": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
-      },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "Accepted100 by lead literal audit: ROLE-ACCEPTANCE-CLOSURE.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
-      "blockers": []
-    },
-    {
-      "id": "WS-preparation",
-      "route": "/mera/workspace#preparation",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Kitchen/bar",
-      "taskIds": [
-        "P4"
-      ],
-      "task": "Tickets/OrderInstructions/ItemFulfillment",
-      "functionalCoverage": "Existing UI/API consumers; see source and docs/mera/BOARD.md; integration gaps retained.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "orders.prepare",
-      "states": {
-        "loading": "UNVERIFIED for full correction",
-        "empty": "Browser active view empty after completed ticket; component regressions",
-        "error": "Actual kitchen GETfailure302; successful refresh retained typed2 before explicit save.",
-        "permission": "Separate normal kitchen/bar sessions limited to Orders/Preparation and own-station queues; order acceptance disabled.",
-        "recovery": "Actual failedread\u2192successfulrefresh preserves draft; exact version/body uncertain-write semantics covered by tests."
-      },
-      "responsive": "Actual303 width927;304 width433 at90%zoom; prior genuine834/390 evidence retained. No Android certification.",
-      "visualReview": "Reviewed role acceptance: kitchen/bar actual300\u2013304 plus prior56\u201358/282\u2013286; ROLE-ACCEPTANCE-CLOSURE.md; task P4 verified within defined scope.",
-      "blockers": []
-    },
-    {
-      "id": "WS-tables",
-      "route": "/mera/workspace#tables",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Waiter/front desk",
-      "taskIds": [
-        "P3"
-      ],
-      "task": "FloorMap/TableEditor/VisitTables/Bills/PrivateVisitAccess",
-      "functionalCoverage": "Existing APIs/UI workflows implemented; remaining acceptance is the finite browser check in LITERAL-ACCEPTANCE-REVIEW.md, not an assumed missing backend.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "tables.manage",
-      "states": {
-        "loading": "UNVERIFIED for full correction",
-        "empty": "UNVERIFIED for full correction",
-        "error": "UNVERIFIED for full correction",
-        "permission": "UNVERIFIED for full correction",
-        "recovery": "UNVERIFIED for full correction"
-      },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "Reviewed80: BILL-RECOVERY-CHECKPOINT.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
-      "blockers": [
-        "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
-      ],
-      "status": "IN_PROGRESS"
-    },
-    {
-      "id": "WS-reservations",
-      "route": "/mera/workspace#reservations",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Front desk",
-      "taskIds": [
-        "P5"
-      ],
-      "task": "ReservationSettlement/DepositOutcomes/minimum spend",
-      "functionalCoverage": "Existing APIs/UI workflows implemented; remaining acceptance is the finite browser check in LITERAL-ACCEPTANCE-REVIEW.md, not an assumed missing backend.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "reservations.manage",
-      "states": {
-        "loading": "UNVERIFIED for full correction",
-        "empty": "UNVERIFIED for full correction",
-        "error": "UNVERIFIED for full correction",
-        "permission": "UNVERIFIED for full correction",
-        "recovery": "Actual local filter/disclosure drafts retained and cleared without submitting. Unknown creation/status/financial write recovery remains pending."
-      },
-      "responsive": "Actual390px phone and834px tablet, no document overflow; explicit drilldownh1focus andscrollY0. Full role/device/accessibility matrix pending.",
-      "visualReview": "Reviewed80: RESERVATION-RECOVERY-CHECKPOINT.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
-      "blockers": [
-        "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
-      ]
-    },
-    {
-      "id": "WS-payments",
-      "route": "/mera/workspace#payments",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Cashier/manager",
-      "taskIds": [
-        "O6"
-      ],
-      "task": "Transactions/refunds/writeoff/recovery",
-      "functionalCoverage": "Existing APIs/UI workflows implemented; remaining acceptance is the finite browser check in LITERAL-ACCEPTANCE-REVIEW.md, not an assumed missing backend.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "payments.record/refunds.approve",
-      "states": {
-        "loading": "UNVERIFIED for full correction",
-        "empty": "UNVERIFIED for full correction",
-        "error": "UNVERIFIED for full correction",
-        "permission": "UNVERIFIED for full correction",
-        "recovery": "UNVERIFIED for full correction"
-      },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "Reviewed80: EOD-REPORTING-CHECKPOINT.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
-      "blockers": []
-    },
-    {
-      "id": "WS-shifts",
-      "route": "/mera/workspace#shifts",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Cashier/manager",
-      "taskIds": [
-        "O6"
-      ],
-      "task": "CashMovement/ShiftActions",
-      "functionalCoverage": "Existing APIs/UI workflows implemented; remaining acceptance is the finite browser check in LITERAL-ACCEPTANCE-REVIEW.md, not an assumed missing backend.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "shifts.manage",
-      "states": {
-        "loading": "UNVERIFIED for full correction",
-        "empty": "UNVERIFIED for full correction",
-        "error": "UNVERIFIED for full correction",
-        "permission": "UNVERIFIED for full correction",
-        "recovery": "Actual local filter/disclosure drafts retained and cleared without submitting. Unknown creation/status/financial write recovery remains pending."
-      },
-      "responsive": "Actual390px phone and834px tablet, no document overflow; explicit drilldownh1focus andscrollY0. Full role/device/accessibility matrix pending.",
-      "visualReview": "Reviewed80: EOD-REPORTING-CHECKPOINT.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
-      "blockers": []
-    },
-    {
-      "id": "WS-team",
-      "route": "/mera/workspace#team",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Owner/admin",
-      "taskIds": [
-        "O5"
-      ],
-      "task": "RoleManager/member list",
-      "functionalCoverage": "Defined task accepted; exact browser/test boundaries and separate launch gates recorded in LITERAL-ACCEPTANCE-REVIEW.md.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "members.manage",
-      "states": {
-        "loading": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "empty": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "error": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
-      },
-      "responsive": "Actual390px phone and834px tablet no document overflow; bounded staff table, keyboard reachable review; matched3091\u00d71233 desktop captures.",
-      "visualReview": "Accepted100 by lead literal audit: ACCESS-RECOVERY-CHECKPOINT.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
-      "blockers": []
-    },
-    {
-      "id": "WS-billing",
-      "route": "/mera/workspace#billing",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Owner",
-      "taskIds": [
-        "O7"
-      ],
-      "task": "Invoices/PolicyEditor/Reconciliation",
-      "functionalCoverage": "Defined task accepted; exact browser/test boundaries and separate launch gates recorded in LITERAL-ACCEPTANCE-REVIEW.md.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "billing.manage",
-      "states": {
-        "loading": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "empty": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "error": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
-      },
-      "responsive": "1440\u00d71000,834\u00d71194,390\u00d7844; no document overflow",
-      "visualReview": "Accepted100 by lead literal audit: PRINT-RECOVERY-CHECKPOINT.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
-      "blockers": []
-    },
-    {
-      "id": "WS-printing",
-      "route": "/mera/workspace#printing",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Manager",
-      "taskIds": [
-        "O7"
-      ],
-      "task": "PrintStudio/PrintDocument",
-      "functionalCoverage": "Defined task accepted; exact browser/test boundaries and separate launch gates recorded in LITERAL-ACCEPTANCE-REVIEW.md.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "menu.edit/orders.fulfill",
-      "states": {
-        "loading": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "empty": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "error": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
-      },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "Accepted100 by lead literal audit: PRINT-RECOVERY-CHECKPOINT.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
-      "blockers": []
-    },
-    {
-      "id": "WS-qr",
-      "route": "/mera/workspace#qr",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Manager",
-      "taskIds": [
-        "O7"
-      ],
-      "task": "QrCodes",
-      "functionalCoverage": "Defined task accepted; exact browser/test boundaries and separate launch gates recorded in LITERAL-ACCEPTANCE-REVIEW.md.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "qr.manage",
-      "states": {
-        "loading": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "empty": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "error": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
-      },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "Accepted100 by lead literal audit: PRINT-RECOVERY-CHECKPOINT.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
-      "blockers": []
-    },
-    {
-      "id": "WS-integrations",
-      "route": "/mera/workspace#integrations",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Owner/admin",
-      "taskIds": [
-        "O7"
-      ],
-      "task": "Integrations",
-      "functionalCoverage": "Defined task accepted; exact browser/test boundaries and separate launch gates recorded in LITERAL-ACCEPTANCE-REVIEW.md.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "organization.manage",
-      "states": {
-        "loading": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "empty": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "error": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
-      },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "Accepted100 by lead literal audit: PRINT-RECOVERY-CHECKPOINT.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
-      "blockers": []
-    },
-    {
-      "id": "WS-care",
-      "route": "/mera/workspace#care",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Owner/admin",
-      "taskIds": [
-        "O7"
-      ],
-      "task": "Complaints",
-      "functionalCoverage": "Defined task accepted; exact browser/test boundaries and separate launch gates recorded in LITERAL-ACCEPTANCE-REVIEW.md.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "organization.manage",
-      "states": {
-        "loading": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "empty": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "error": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
-      },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "Accepted100 by lead literal audit: PRINT-RECOVERY-CHECKPOINT.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
-      "blockers": []
-    },
-    {
-      "id": "WS-waitlist",
-      "route": "/mera/workspace#waitlist",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Front desk",
-      "taskIds": [
-        "P5"
-      ],
-      "task": "Waitlist",
-      "functionalCoverage": "Existing APIs/UI workflows implemented; remaining acceptance is the finite browser check in LITERAL-ACCEPTANCE-REVIEW.md, not an assumed missing backend.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "reservations.manage",
-      "states": {
-        "loading": "UNVERIFIED for full correction",
-        "empty": "Actual empty main branch129; isolated3007 synthetic waiting\u2192notified\u2192seated/cancelled history130\u2013132",
-        "error": "UNVERIFIED for full correction",
-        "permission": "UNVERIFIED for full correction",
-        "recovery": "UNVERIFIED for full correction"
-      },
-      "responsive": "Actual desktop and390\u00d7844/834\u00d71194 subset; exact per-screen sizes/states and pending variants in checkpoint",
-      "visualReview": "Reviewed80: RESERVATION-RECOVERY-CHECKPOINT.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
-      "blockers": [
-        "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
-      ]
-    },
-    {
-      "id": "WS-exports",
-      "route": "/mera/workspace#exports",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Reports/manager",
-      "taskIds": [
-        "O6"
-      ],
-      "task": "ExportJobs",
-      "functionalCoverage": "Existing APIs/UI workflows implemented; remaining acceptance is the finite browser check in LITERAL-ACCEPTANCE-REVIEW.md, not an assumed missing backend.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "reports.export",
-      "states": {
-        "loading": "UNVERIFIED for full correction",
-        "empty": "UNVERIFIED for full correction",
-        "error": "UNVERIFIED for full correction",
-        "permission": "UNVERIFIED for full correction",
-        "recovery": "Actual native-date failure found/fixed; selected date persisted through queue\u2192ready\u2192CSV download; unknown retries tested, full state matrix pending"
-      },
-      "responsive": "Actual390px export reflow; focused export permission/late/unknown guards passed.",
-      "visualReview": "Reviewed80: EOD-REPORTING-CHECKPOINT.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
-      "blockers": [
-        "Chrome organization download policy"
-      ]
-    },
-    {
-      "id": "WS-help",
-      "route": "/mera/workspace#help",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Staff",
-      "taskIds": [
-        "P2"
-      ],
-      "task": "HelpRequests",
-      "functionalCoverage": "Defined task accepted; exact browser/test boundaries and separate launch gates recorded in LITERAL-ACCEPTANCE-REVIEW.md.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "help.manage",
-      "states": {
-        "loading": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "empty": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "error": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
-      },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "Accepted100 by lead literal audit: HELP-RECOVERY-CHECKPOINT.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
-      "blockers": []
-    },
-    {
-      "id": "WS-support",
-      "route": "/mera/workspace#support",
-      "routeNote": "Section state; hash is an inventory locator, not yet a URL routing promise.",
-      "role": "Org-wide admin",
-      "taskIds": [
-        "O7"
-      ],
-      "task": "SupportCases",
-      "functionalCoverage": "Defined task accepted; exact browser/test boundaries and separate launch gates recorded in LITERAL-ACCEPTANCE-REVIEW.md.",
-      "source": "src/mera/workspace/OrganizationWorkspace.tsx",
-      "api": "/api/mera/v1/organizations/:organizationId/branches/:branchId (or organization-scoped endpoints)",
-      "permissions": "support.manage",
-      "states": {
-        "loading": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "empty": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "error": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
-      },
-      "responsive": "Prior pilot evidence only for overview/counter; full scope pending",
-      "visualReview": "Accepted100 by lead literal audit: PRINT-RECOVERY-CHECKPOINT.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
-      "blockers": []
-    },
-    {
-      "id": "CU-menu",
-      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: menu",
-      "role": "Guest/customer",
-      "taskIds": [
-        "C1"
-      ],
-      "task": "menu",
-      "source": "src/mera/customer/CustomerExperience.tsx",
-      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
-      "functionalCoverage": "C1 accepted: published menu/cart interactions and state regressions; wider customer tasks tracked separately.",
-      "states": {
-        "loading": "Existing component/integration state regressions; C1 lead-reviewed closure; see ROLE-ACCEPTANCE-CLOSURE.md.",
-        "empty": "Existing component/integration state regressions; C1 lead-reviewed closure; see ROLE-ACCEPTANCE-CLOSURE.md.",
-        "error": "Existing component/integration state regressions; C1 lead-reviewed closure; see ROLE-ACCEPTANCE-CLOSURE.md.",
-        "permission": "Existing component/integration state regressions; C1 lead-reviewed closure; see ROLE-ACCEPTANCE-CLOSURE.md.",
-        "recovery": "Existing component/integration state regressions; C1 lead-reviewed closure; see ROLE-ACCEPTANCE-CLOSURE.md."
-      },
-      "responsive": "Desktop/tablet/narrow inspected; exact dimensions/evidence in pilot checkpoint",
-      "visualReview": "Actual294\u2013299 responsive category/search-clear-focus/basket-focus/quantity/required-option checks plus prior source comparison; ROLE-ACCEPTANCE-CLOSURE.md.",
-      "blockers": []
-    },
-    {
-      "id": "CU-cart",
-      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: cart",
-      "role": "Guest/customer",
-      "taskIds": [
-        "C1"
-      ],
-      "task": "cart",
-      "source": "src/mera/customer/CustomerExperience.tsx",
-      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
-      "functionalCoverage": "C1 accepted: published menu/cart interactions and state regressions; wider customer tasks tracked separately.",
-      "states": {
-        "loading": "Existing component/integration state regressions; C1 lead-reviewed closure; see ROLE-ACCEPTANCE-CLOSURE.md.",
-        "empty": "Existing component/integration state regressions; C1 lead-reviewed closure; see ROLE-ACCEPTANCE-CLOSURE.md.",
-        "error": "Existing component/integration state regressions; C1 lead-reviewed closure; see ROLE-ACCEPTANCE-CLOSURE.md.",
-        "permission": "Existing component/integration state regressions; C1 lead-reviewed closure; see ROLE-ACCEPTANCE-CLOSURE.md.",
-        "recovery": "Existing component/integration state regressions; C1 lead-reviewed closure; see ROLE-ACCEPTANCE-CLOSURE.md."
-      },
-      "responsive": "Desktop/tablet/narrow inspected; exact dimensions/evidence in pilot checkpoint",
-      "visualReview": "Actual294\u2013299 responsive category/search-clear-focus/basket-focus/quantity/required-option checks plus prior source comparison; ROLE-ACCEPTANCE-CLOSURE.md.",
-      "blockers": []
-    },
-    {
-      "id": "CU-checkout",
-      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: checkout",
-      "role": "Guest/customer",
-      "taskIds": [
-        "C2"
-      ],
-      "task": "checkout",
-      "source": "src/mera/customer/CustomerExperience.tsx",
-      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
-      "functionalCoverage": "Existing APIs/UI workflows implemented; remaining acceptance is the finite browser check in LITERAL-ACCEPTANCE-REVIEW.md, not an assumed missing backend.",
-      "states": {
-        "loading": "UNVERIFIED",
-        "empty": "UNVERIFIED",
-        "error": "Actual sold-out checkout error within basket, focused alert; required-name native validation.",
-        "permission": "UNVERIFIED",
-        "recovery": "Actual check original/not-recorded and explicit stop of unreceived request; exact network/session retry covered by tests, wider browser matrix pending."
-      },
-      "responsive": "Actual checkout desktop,390\u00d7844 phone and834\u00d71194 tablet subset, document width equals viewport.",
-      "visualReview": "Reviewed80: CUSTOMER-FINAL-GATES.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
-      "blockers": [
-        "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
-      ]
-    },
-    {
-      "id": "CU-tracking-receipt-history",
-      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: tracking-receipt-history",
-      "role": "Guest/customer",
-      "taskIds": [
-        "C2"
-      ],
-      "task": "tracking-receipt-history",
-      "source": "src/mera/customer/CustomerExperience.tsx",
-      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
-      "functionalCoverage": "Existing APIs/UI workflows implemented; remaining acceptance is the finite browser check in LITERAL-ACCEPTANCE-REVIEW.md, not an assumed missing backend.",
-      "states": {
-        "loading": "UNVERIFIED",
-        "empty": "UNVERIFIED",
-        "error": "UNVERIFIED",
-        "permission": "UNVERIFIED",
-        "recovery": "UNVERIFIED"
-      },
-      "responsive": "Actual desktop unpaid tracking/receipt/history only; wider browser matrix pending.",
-      "visualReview": "Reviewed80: CUSTOMER-FINAL-GATES.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
-      "blockers": [
-        "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
-      ]
-    },
-    {
-      "id": "CU-table-visit-bills",
-      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: table-visit-bills",
-      "role": "Guest/customer",
-      "taskIds": [
-        "C3"
-      ],
-      "task": "table-visit-bills",
-      "source": "src/mera/customer/CustomerExperience.tsx",
-      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
-      "functionalCoverage": "Existing APIs/UI workflows implemented; remaining acceptance is the finite browser check in LITERAL-ACCEPTANCE-REVIEW.md, not an assumed missing backend.",
-      "states": {
-        "loading": "UNVERIFIED",
-        "empty": "UNVERIFIED",
-        "error": "UNVERIFIED",
-        "permission": "Actual invalid code kept bill private;401/403/404/scope races tested",
-        "recovery": "Manual refresh actual success; older poll exclusion/local errors/initial join races and original order uncertainty tested"
-      },
-      "responsive": "1440\u00d71000,834\u00d71194,390\u00d7844; no document overflow; narrow Enter item disclosure",
-      "visualReview": "Reviewed80: HELP-DURABLE-CLOSURE.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
-      "blockers": [
-        "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
-      ]
-    },
-    {
-      "id": "CU-help",
-      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: help",
-      "role": "Guest/customer",
-      "taskIds": [
-        "C3"
-      ],
-      "task": "help",
-      "source": "src/mera/customer/CustomerExperience.tsx",
-      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
-      "functionalCoverage": "Existing APIs/UI workflows implemented; remaining acceptance is the finite browser check in LITERAL-ACCEPTANCE-REVIEW.md, not an assumed missing backend.",
-      "states": {
-        "loading": "UNVERIFIED",
-        "empty": "UNVERIFIED",
-        "error": "UNVERIFIED",
-        "permission": "UNVERIFIED",
-        "recovery": "UNVERIFIED"
-      },
-      "responsive": "Actual1440\u00d71000/834\u00d71194/390\u00d7844; final mobile reply shortcut preserves draft/focus, private staff note absent",
-      "visualReview": "Reviewed80: HELP-DURABLE-CLOSURE.md and LITERAL-ACCEPTANCE-REVIEW.md; implemented/inspected subset accepted, finite named journey check remains.",
-      "blockers": [
-        "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
-      ]
-    },
-    {
-      "id": "CU-reservations",
-      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: reservations",
-      "role": "Guest/customer",
-      "taskIds": [
-        "C4"
-      ],
-      "task": "reservations",
-      "source": "src/mera/customer/CustomerExperience.tsx",
-      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
-      "functionalCoverage": "Enabled booking/activity/cancellation and separate consent accepted with existing reservation tests plus actual durable cancellation proof.",
-      "states": {
-        "loading": "UNVERIFIED",
-        "empty": "UNVERIFIED",
-        "error": "UNVERIFIED",
-        "permission": "UNVERIFIED",
-        "recovery": "Reservation journal same-session exact retry/abandon component+actualPG tests; normal browser reload proof, no live dropped-response claim"
-      },
-      "responsive": "1440\u00d71000 and390\u00d7844 activity reviewed; no narrow overflow; complete form/state/tablet acceptance pending",
-      "visualReview": "C4accepted100: actual325unknown cancellation,326reloadGETonlyretainsoriginal,327same-resultretry/no-refund; separateconsentvisible; CANCELLATION-DURABLE-CLOSURE.md.",
-      "blockers": []
-    },
-    {
-      "id": "CU-activity-consent",
-      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: activity-consent",
-      "role": "Guest/customer",
-      "taskIds": [
-        "C4"
-      ],
-      "task": "activity-consent",
-      "source": "src/mera/customer/CustomerExperience.tsx",
-      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
-      "functionalCoverage": "Enabled booking/activity/cancellation and separate consent accepted with existing reservation tests plus actual durable cancellation proof.",
-      "states": {
-        "loading": "UNVERIFIED",
-        "empty": "UNVERIFIED",
-        "error": "UNVERIFIED",
-        "permission": "UNVERIFIED",
-        "recovery": "Reservation journal same-session exact retry/abandon component+actualPG tests; normal browser reload proof, no live dropped-response claim"
-      },
-      "responsive": "1440\u00d71000 and390\u00d7844 activity reviewed; no narrow overflow; complete form/state/tablet acceptance pending",
-      "visualReview": "C4accepted100: actual325unknown cancellation,326reloadGETonlyretainsoriginal,327same-resultretry/no-refund; separateconsentvisible; CANCELLATION-DURABLE-CLOSURE.md.",
-      "blockers": []
-    },
-    {
-      "id": "CU-customization-theme",
-      "route": "/mera/menu/:slug/:branchId or /mera/store/:slug/:branchId :: customization-theme",
-      "role": "Guest/customer",
-      "taskIds": [
-        "C5",
-        "F4"
-      ],
-      "task": "customization-theme",
-      "source": "src/mera/customer/CustomerExperience.tsx",
-      "api": "/api/mera/v1/public/:slug/:branchId and guest-authorized order/visit endpoints",
-      "functionalCoverage": "Defined task accepted; exact browser/test boundaries and separate launch gates recorded in LITERAL-ACCEPTANCE-REVIEW.md.",
-      "states": {
-        "loading": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "empty": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "error": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "permission": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured.",
-        "recovery": "Accepted by existing meaningful UI/integration tests and cited actual screen evidence; not every state independently browser-captured."
-      },
-      "responsive": "Actual configured color/font theme desktop and390\u00d7844 phone dialog; full alternate identity/photo/tablet matrix pending. Shared dialog231/232 actual834/390CSS,560/362dialog widths, no documentoverflow; keyboardwrap/Escape/producttriggerreturn verified.",
-      "visualReview": "Accepted100 by lead literal audit: CUSTOMER-CHECKOUT-CHECKPOINT.md plus LITERAL-ACCEPTANCE-REVIEW.md; prior actual responsive/action captures and final736passingregressions reused, no new browser claim.",
-      "blockers": []
-    },
-    {
-      "id": "PUB-homepage",
+      "id": "marketing",
       "route": "/mera",
-      "role": "Prospective business",
+      "role": "Prospect",
       "taskIds": [
-        "M1"
+        "W1",
+        "W2",
+        "W3"
       ],
-      "task": "homepage",
-      "source": "src/mera/marketing/Marketing.tsx",
-      "api": "Public presentation",
-      "functionalCoverage": "Existing consumers; correction/complete workflow coverage pending",
-      "states": {
-        "loading": "UNVERIFIED",
-        "empty": "UNVERIFIED",
-        "error": "UNVERIFIED",
-        "permission": "UNVERIFIED",
-        "recovery": "UNVERIFIED"
-      },
-      "responsive": "NOT_VERIFIED",
-      "visualReview": "Selected option1 homepage source comparison accepted under M1; retain existing marketing checkpoint evidence; no new homepage capture claimed.",
-      "blockers": []
+      "task": "Product discovery and signup",
+      "visualReview": "Before captured; after pending",
+      "responsive": "Pending"
     },
     {
-      "id": "PUB-features-pricing-modes-support",
-      "route": "/mera#experience,#pricing,#modes,#support",
-      "role": "Prospective business",
-      "taskIds": [
-        "M2"
-      ],
-      "task": "features-pricing-modes-support",
-      "source": "src/mera/marketing/Marketing.tsx",
-      "api": "Configured disclosures",
-      "functionalCoverage": "Scoped implementation/focused regression plus actual browser subset; not complete acceptance. docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
-      "states": {
-        "loading": "UNVERIFIED",
-        "empty": "UNVERIFIED",
-        "error": "UNVERIFIED",
-        "permission": "UNVERIFIED",
-        "recovery": "UNVERIFIED"
-      },
-      "responsive": "Actual390CSSpx phone/834CSSpx tablet normal flow, no document horizontaloverflow; Pricingmobilemenu closes andH2focuses, policytopic/deeplink/reload/back and keyboardskip verified. Full state/accessibility acceptance remains partial.",
-      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md Actual236\u2013246 and same-tab2782\u00d71110 public-journey comparison inspected; PUBLIC-JOURNEY-CHECKPOINT.md records exact scope.",
-      "blockers": [
-        "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
-      ]
-    },
-    {
-      "id": "PUB-legal",
-      "route": "/mera/legal",
-      "role": "Public",
-      "taskIds": [
-        "M2"
-      ],
-      "task": "legal",
-      "source": "src/mera/marketing/Marketing.tsx",
-      "api": "Policy preparation",
-      "functionalCoverage": "Scoped implementation/focused regression plus actual browser subset; not complete acceptance. docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md",
-      "states": {
-        "loading": "UNVERIFIED",
-        "empty": "UNVERIFIED",
-        "error": "UNVERIFIED",
-        "permission": "UNVERIFIED",
-        "recovery": "UNVERIFIED"
-      },
-      "responsive": "Actual390CSSpx phone/834CSSpx tablet normal flow, no document horizontaloverflow; Pricingmobilemenu closes andH2focuses, policytopic/deeplink/reload/back and keyboardskip verified. Full state/accessibility acceptance remains partial.",
-      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md Actual236\u2013246 and same-tab2782\u00d71110 public-journey comparison inspected; PUBLIC-JOURNEY-CHECKPOINT.md records exact scope.",
-      "blockers": [
-        "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
-      ]
-    },
-    {
-      "id": "PUB-signup",
+      "id": "signup",
       "route": "/mera/signup",
+      "role": "New owner",
+      "taskIds": [
+        "S1",
+        "S3"
+      ],
+      "task": "Secure registration, separate demo",
+      "visualReview": "Before captured; after pending",
+      "responsive": "Pending"
+    },
+    {
+      "id": "owner",
+      "route": "/mera/workspace",
       "role": "Owner",
       "taskIds": [
-        "M2"
+        "S2",
+        "S3"
       ],
-      "task": "signup",
-      "source": "src/mera/Signup.tsx",
-      "api": "/api/mera/v1/identity",
-      "functionalCoverage": "Real simulated readiness, skip and blank nativevalidation browser verified; strict mutation acknowledgments/singleflight/unknown reload/nonsecret marker covered by25focusedpublic/signup checks. No browser account creation or real delivery claimed.",
-      "states": {
-        "loading": "UNVERIFIED",
-        "empty": "UNVERIFIED",
-        "error": "UNVERIFIED",
-        "permission": "Actual truthful development/simulated form; blocked registration path tested, no production account or provider activation",
-        "recovery": "Unconfirmed registration/verification and corrupt/unavailable marker pause across remount with no PII/token/password storage; tests pass, live mutation matrix/authoritative recovery endpoint pending."
-      },
-      "responsive": "Actual390CSSpx phone/834CSSpx tablet normal flow, no document horizontaloverflow; Pricingmobilemenu closes andH2focuses, policytopic/deeplink/reload/back and keyboardskip verified. Full state/accessibility acceptance remains partial.",
-      "visualReview": "Actual123\u2013143, paired comparison143 inspected. See docs/mera/ui-audit/FRONTDESK-PUBLIC-CHECKPOINT.md Actual236\u2013246 and same-tab2782\u00d71110 public-journey comparison inspected; PUBLIC-JOURNEY-CHECKPOINT.md records exact scope.",
-      "blockers": [
-        "Authoritative account recovery/resend unavailable; real registration remains blocked pending email/sender setup.",
-        "Finite remaining browser acceptance paused by explicit origin3007 tool security denial; see task-specific upload/download exceptions. No bypass authorized."
-      ]
+      "task": "Guided configuration",
+      "visualReview": "Pending",
+      "responsive": "Pending"
     },
     {
-      "id": "PUB-staff-login",
-      "route": "/mera/workspace (signed out)",
-      "role": "Staff",
+      "id": "platform",
+      "route": "/mera/platform",
+      "role": "Operator",
       "taskIds": [
-        "F5"
+        "A1",
+        "A2"
       ],
-      "task": "staff-login",
-      "source": "src/App.tsx",
-      "api": "/api/auth",
-      "functionalCoverage": "Existing consumers; correction/complete workflow coverage pending",
-      "states": {
-        "loading": "UNVERIFIED",
-        "empty": "UNVERIFIED",
-        "error": "UNVERIFIED",
-        "permission": "UNVERIFIED",
-        "recovery": "UNVERIFIED"
-      },
-      "responsive": "NOT_VERIFIED",
-      "visualReview": "AcceptedF5 normal sign-in/sign-out with actual7role sessions300\u2013312; ROLE-ACCEPTANCE-CLOSURE.md. Native account summary verified.",
-      "blockers": []
+      "task": "Authorized platform management",
+      "visualReview": "Pending",
+      "responsive": "Pending"
     },
     {
-      "id": "PUB-platform-auth",
-      "route": "/mera/platform (unverified)",
-      "role": "Platform operator",
+      "id": "operations",
+      "route": "/mera/workspace and customer routes",
+      "role": "Staff/guest",
       "taskIds": [
-        "M3"
+        "V1",
+        "V2",
+        "V3"
       ],
-      "task": "platform-auth",
-      "source": "src/mera/Platform.tsx",
-      "api": "/api/mera/v1/platform/auth",
-      "functionalCoverage": "Existing consumers; correction/complete workflow coverage pending",
-      "states": {
-        "loading": "UNVERIFIED",
-        "empty": "UNVERIFIED",
-        "error": "UNVERIFIED",
-        "permission": "Actual merchant denied and directory hidden",
-        "recovery": "Normal password/TOTP and fresh verification after real expiry; no fake session grants"
-      },
-      "responsive": "Desktop initial entry and390\u00d7844 expired state; full auth device/focus acceptance pending",
-      "visualReview": "M3accepted: actual317\u2013324 authorizeddirectory/scopedlookup/health/support/audit/dialog andpermissionloss; PLATFORM-ACCEPTANCE-CLOSURE.md.",
-      "blockers": []
-    },
-    {
-      "id": "PUB-platform-directory-support-finance-health",
-      "route": "/mera/platform (verified)",
-      "role": "MFA-verified operator",
-      "taskIds": [
-        "M3",
-        "F4"
-      ],
-      "task": "platform-directory-support-finance-health",
-      "source": "src/mera/Platform.tsx",
-      "api": "/api/mera/v1/platform",
-      "functionalCoverage": "Existing consumers; correction/complete workflow coverage pending",
-      "states": {
-        "loading": "UNVERIFIED",
-        "empty": "Actual filtered directory/support/backups empty; provider readiness blocked",
-        "error": "UNVERIFIED",
-        "permission": "UNVERIFIED",
-        "recovery": "Actual Escape/focus return and read-only filters; pending exact-write fences tested, real business changes not submitted Sharedfocusmigrationconsumer9tests pass includingpendingdismissalguard/return/isolationfallback; current protectedbrowser rerun pendingexistingQAcredentialartifact."
-      },
-      "responsive": "1440\u00d71000,834\u00d71194,390\u00d7844; no document overflow; narrow dialog356px/354px client+scroll",
-      "visualReview": "M3accepted: actual317\u2013324 authorizeddirectory/scopedlookup/health/support/audit/dialog andpermissionloss; PLATFORM-ACCEPTANCE-CLOSURE.md.",
-      "blockers": [
-        "Current protected-browser rerun needs existing isolated QA session/credential artifact; not recovered in designated temporary paths. No re-enrollment/reset performed."
-      ]
+      "task": "Preserved operational workflows and historical remaining gates",
+      "visualReview": "Historical evidence preserved; hosted pending",
+      "responsive": "Pending"
     }
   ],
   "overallPrdCoverage": {
@@ -2622,7 +584,19 @@
     {
       "at": "2026-11-19",
       "note": "Source bcc76e7: opt-in Mera PostgreSQL1/1 and POS PostgreSQL9/9 passed separately, including skipped standard-suite checks. User confirmed permission repair twice but browser still rejects origin3007 with saved/managed denial. No workaround;93% acceptance unchanged. Main preview restarted3003. See FINAL-INTEGRATION-STATUS.md."
+    },
+    {
+      "at": "2026-11-20",
+      "event": "Scope2 expanded staged deployment and Mera redesign. Scope1 archived intact at93%.",
+      "scopeWeight": 100,
+      "weightedPoints": 0,
+      "roundedCompletion": 0
     }
   ],
-  "baselineRevision": "e281670b8767bcd2f21254eb7042da4ec3e70fdd"
+  "dependencies": [
+    "Staging credentials and data must be synthetic; no production changes.",
+    "Real email delivery remains unavailable; no simulated verification on real signup.",
+    "Local QA3007 saved browser denial remains separate; current localhost3003 baseline inspection works.",
+    "Physical printer/provider verification remains outside UI acceptance."
+  ]
 }

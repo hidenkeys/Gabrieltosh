@@ -6,13 +6,15 @@
   font-display: swap;
 }
 .mera-marketing {
-  --mera-public-ink: #201e24;
-  --mera-public-muted: #55515a;
-  --mera-public-green: #10563e;
-  --mera-public-line: #e5dfd5;
+  --mera-public-ink: var(--mera-ink);
+  --mera-public-muted: var(--mera-muted);
+  --mera-public-green: var(--mera-forest);
+  --mera-public-line: var(--mera-border);
+  --mera-content: 1248px;
+  --mera-gutter: clamp(20px, 4.5vw, 72px);
   min-height: 100vh;
-  background: #fcf9f3;
-  color: var(--mera-public-ink);
+  color: var(--mera-ink);
+  background: var(--mera-paper);
   font-family: Inter, Arial, sans-serif;
 }
 .mera-marketing *,
@@ -23,27 +25,50 @@
 .mera-marketing a {
   color: inherit;
 }
-.mera-marketing .mera-wordmark {
-  font-family: "Mera Editorial", Georgia, serif;
-  font-size: clamp(42px, 5.5vw, 76px);
-  letter-spacing: -0.005em;
-  font-weight: 400;
-  line-height: 1;
-  text-decoration: none;
+.mera-marketing main {
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
-.mera-marketing .mera-wordmark span {
-  color: var(--mera-public-green);
+.mera-marketing h1,
+.mera-marketing h2,
+.mera-marketing h3 {
+  color: inherit;
+  font-family: Inter, Arial, sans-serif;
+  text-wrap: balance;
+}
+.mera-marketing h2 {
+  font-size: clamp(32px, 4vw, 54px);
+  line-height: 1.08;
+  font-weight: 600;
+  letter-spacing: -0.055em;
+  margin: 0 0 24px;
+}
+.mera-marketing p {
+  line-height: 1.65;
+}
+.mera-marketing .eyebrow {
+  margin: 0 0 24px;
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.13em;
+  font-weight: 700;
+  color: var(--mera-forest);
 }
 .mera-marketing .mera-marketing-header {
-  width: calc(100% - 48px);
-  max-width: 1392px;
-  min-height: 88px;
+  width: min(calc(100% - var(--mera-gutter) * 2), var(--mera-content));
+  min-height: 94px;
   margin: auto;
-  padding: 15px 24px;
   display: flex;
   align-items: center;
-  gap: 8%;
-  border-bottom: 1px solid var(--mera-public-line);
+  gap: 72px;
+  border-bottom: 1px solid var(--mera-border);
+}
+.mera-home-link {
+  display: inline-flex;
+  flex-shrink: 0;
+  text-decoration: none;
+  align-items: center;
 }
 .mera-marketing-header nav {
   display: flex;
@@ -51,398 +76,641 @@
   align-items: center;
   flex: 1;
   gap: 24px;
-  font-size: clamp(14px, 1.5vw, 19px);
+  font-size: 14px;
 }
 .mera-nav-links,
 .mera-nav-actions {
   display: flex;
   align-items: center;
-  gap: clamp(22px, 4.2vw, 60px);
+  gap: 32px;
 }
 .mera-marketing-header nav a {
   text-decoration: none;
+  padding-block: 12px;
+}
+.mera-marketing-header nav a:not(.primary):hover {
+  color: var(--mera-forest);
+  text-decoration: underline;
+  text-underline-offset: 6px;
 }
 .mera-marketing .primary,
 .mera-marketing .secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  min-height: 52px;
-  padding: 16px 23px;
-  border-radius: 11px;
-  font-family: inherit;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.2;
+  gap: 14px;
+  min-height: 48px;
+  padding: 14px 20px;
+  border: 1px solid var(--mera-forest);
+  border-radius: 6px;
+  font:
+    600 14px/1.3 Inter,
+    Arial,
+    sans-serif;
   text-decoration: none;
-  border: 1px solid var(--mera-public-green);
+  transition:
+    background-color var(--mera-fast) var(--mera-ease),
+    transform var(--mera-fast) var(--mera-ease),
+    box-shadow var(--mera-fast) var(--mera-ease);
 }
 .mera-marketing .primary {
-  background: var(--mera-public-green);
-  color: #fff;
+  background: var(--mera-forest);
+  color: white;
 }
 .mera-marketing .primary:hover {
-  background: #0b442f;
+  background: var(--mera-ink);
+  box-shadow: 0 3px 12px #152b2418;
+  transform: translateY(-1px);
+}
+.mera-marketing .primary:active,
+.mera-marketing .secondary:active {
+  transform: translateY(1px);
 }
 .mera-marketing .secondary {
   background: transparent;
-  color: var(--mera-public-ink);
-  border-color: #938b83;
+  color: var(--mera-ink);
+  border-color: var(--mera-border);
 }
 .mera-marketing .secondary:hover {
-  background: #f0ece3;
+  background: var(--mera-white);
 }
-.mera-marketing-header .primary {
-  min-height: 42px;
-  padding: 12px 20px;
-  font-size: 14px;
+.mera-marketing .primary svg,
+.mera-inline-link svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
 }
 .mera-marketing .mera-mobile-menu {
   display: none;
 }
-.mera-marketing main {
-  margin: 0;
-  width: 100%;
-  max-width: none;
-}
 .mera-marketing .mera-hero {
-  width: calc(100% - 72px);
-  max-width: 1368px;
+  width: min(calc(100% - var(--mera-gutter) * 2), var(--mera-content));
   margin: auto;
-  padding: 94px 0 52px;
-  min-height: 650px;
+  padding: 70px 0 64px;
   display: grid;
-  grid-template-columns: 40% 58%;
-  gap: 2%;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  column-gap: 40px;
+}
+.mera-hero-copy .eyebrow {
+  display: flex;
   align-items: center;
+  gap: 10px;
+}
+.mera-hero-copy .eyebrow > span {
+  width: 7px;
+  height: 7px;
+  background: var(--mera-forest);
+  border-radius: 50%;
 }
 .mera-hero h1 {
-  font-family: "Mera Editorial", Georgia, serif;
-  font-weight: 400;
-  font-size: clamp(48px, 6.35vw, 91px);
-  letter-spacing: -0.005em;
-  line-height: 1.03;
+  font-size: clamp(44px, 5.9vw, 80px);
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.065em;
   margin: 0;
 }
-.mera-heading-rule {
-  width: 72px;
-  height: 4px;
-  background: var(--mera-public-green);
-  margin: 34px 0;
+.mera-hero h1 em {
+  font-style: normal;
+  color: var(--mera-forest);
 }
-.mera-hero-copy {
-  padding-bottom: 16px;
-}
-.mera-hero-copy .mera-heading-rule {
-  margin-bottom: 30px;
-}
-.mera-hero-copy > p {
-  font-size: clamp(20px, 2.2vw, 30px);
-  line-height: 1.4;
-  letter-spacing: 0;
-  margin: 0;
+.mera-hero-description {
+  font-size: 18px;
+  max-width: 510px;
+  margin: 24px 0 0;
+  color: var(--mera-muted);
 }
 .mera-hero-actions {
-  display: flex;
-  gap: 15px;
-  margin-top: 52px;
-  flex-wrap: wrap;
-}
-.mera-hero-actions a {
-  font-size: clamp(15px, 1.65vw, 22px);
-  padding: 16px 20px;
-  min-height: 54px;
-}
-.mera-hero-actions svg {
-  width: 19px;
-  height: 19px;
-}
-.mera-product-preview {
-  display: block;
-  height: clamp(470px, 53.5vw, 770px);
-  overflow: hidden;
-  border: 1px solid var(--mera-public-line);
-  border-radius: 18px;
-  box-shadow: 0 6px 16px #3127190c;
-  background: #f8f7f4;
-}
-.mera-product-preview img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: left top;
-  transform: scale(1.24);
-  transform-origin: left top;
-}
-.mera-feature-strip {
-  width: calc(100% - 72px);
-  max-width: 1368px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1.06fr 1.06fr 0.8fr;
-  align-items: center;
-  padding: 43px 0 78px;
-}
-.mera-feature-strip a {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 25px;
-  min-height: 50px;
-  font-weight: 500;
-  font-size: clamp(18px, 2.1vw, 28px);
-  letter-spacing: -0.035em;
-  text-decoration: none;
-}
-.mera-feature-strip a + a {
-  border-left: 1px solid #d8d0c3;
-}
-.mera-feature-strip svg {
-  width: 43px;
-  height: 43px;
-  color: var(--mera-public-green);
-  stroke-width: 1.4;
-  flex-shrink: 0;
-}
-.mera-service-section {
-  padding: 70px max(5.1%, calc((100vw - 1294px) / 2)) 24px;
-  background: #f8f4ed;
-  display: grid;
-  grid-template-columns: 58% 39%;
-  gap: 5%;
-  align-items: center;
-  overflow: hidden;
-}
-.mera-service-preview {
-  width: 100%;
-  aspect-ratio: 0.96;
-  border-radius: 17px;
-  border: 1px solid var(--mera-public-line);
-  box-shadow: 0 6px 15px #3127190a;
-  overflow: hidden;
-  background: #f8f7f4;
-}
-.mera-service-preview img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: left top;
-}
-.mera-service-copy {
-  padding-bottom: 64px;
-}
-.mera-service-copy h2 {
-  font-family: "Mera Editorial", Georgia, serif;
-  font-size: clamp(47px, 6.4vw, 88px);
-  font-weight: 400;
-  letter-spacing: -0.005em;
-  line-height: 0.99;
-  margin: 0;
-}
-.mera-service-copy .mera-heading-rule {
-  margin: 26px 0 26px;
-  width: 65px;
-}
-.mera-service-copy > p {
-  font-size: clamp(19px, 2.1vw, 28px);
-  line-height: 1.4;
-  letter-spacing: 0;
-  margin: 0;
-}
-.mera-service-modes {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 36px;
-  padding: 70px max(5.1%, calc((100vw - 1294px) / 2));
-  background: #f8f4ed;
-}
-.mera-service-modes h3 {
-  font-size: 20px;
-  margin: 0 0 12px;
-}
-.mera-service-modes p {
-  font-size: 16px;
-  line-height: 1.65;
-  color: var(--mera-public-muted);
-}
-.mera-marketing .mera-pricing {
-  width: calc(100% - 72px);
-  max-width: 850px;
-  margin: 0 auto;
-  padding: 74px 0;
-}
-.mera-marketing .eyebrow {
-  color: var(--mera-public-green);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-}
-.mera-pricing h2,
-.mera-pricing h1 {
-  font-family: "Mera Editorial", Georgia, serif;
-  font-size: clamp(32px, 4vw, 52px);
-  font-weight: 400;
-  letter-spacing: -0.045em;
-  line-height: 1.12;
-  margin: 18px 0;
-}
-.mera-pricing > p,
-.mera-pricing section p {
-  line-height: 1.75;
-  color: var(--mera-public-muted);
-  margin: 16px 0;
-}
-.mera-price-card {
-  border: 1px solid var(--mera-public-line);
-  padding: 30px;
-  border-radius: 16px;
-  margin: 28px 0;
-  background: #fffdf9;
-}
-.mera-price-card > span {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--mera-public-green);
-}
-.mera-price-card strong {
-  display: block;
-  font-size: 42px;
-  margin: 20px 0;
-  letter-spacing: -0.04em;
-}
-.mera-price-card small {
-  font-size: 16px;
-  font-weight: 400;
-  letter-spacing: 0;
-}
-.mera-price-card p {
-  color: var(--mera-public-muted);
-  line-height: 1.7;
-}
-.mera-contact {
-  border-top: 1px solid var(--mera-public-line);
-}
-.mera-support-links {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin: 24px 0;
-}
-.mera-marketing .text-button {
-  display: inline-block;
-  color: var(--mera-public-green);
-  font-weight: 600;
-  line-height: 1.6;
-  padding: 8px 0;
-}
-.mera-marketing footer {
-  width: calc(100% - 72px);
-  max-width: 1368px;
-  padding: 34px 0;
-  margin: auto;
-  border-top: 1px solid var(--mera-public-line);
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 24px;
-  font-size: 14px;
-  color: var(--mera-public-muted);
+  margin-top: 28px;
 }
-.mera-marketing footer .mera-wordmark {
-  font-size: 42px;
-  color: var(--mera-public-ink);
+.mera-inline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding-block: 12px;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  text-underline-offset: 4px;
+  text-decoration: none;
+}
+.mera-inline-link:hover {
+  text-decoration: underline;
+}
+.mera-inline-link:hover svg {
+  transform: translateX(3px);
+}
+.mera-inline-link svg {
+  transition: transform var(--mera-fast) var(--mera-ease);
+}
+.mera-hero-note {
+  margin: 18px 0 0;
+  font-size: 12px;
+  color: var(--mera-muted);
+}
+.mera-hero-aside {
+  padding-top: 8px;
+  align-self: end;
+  padding-bottom: 8px;
+  border-top: 1px solid var(--mera-border);
+}
+.mera-section-number {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.mera-hero-aside p {
+  font-size: 25px;
+  letter-spacing: -0.045em;
+  line-height: 1.2;
+  margin: 24px 0;
+}
+.mera-hero-aside a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mera-border);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+.mera-hero-aside a:hover {
+  background: var(--mera-lime);
+}
+.mera-product-stage {
+  grid-column: 1/-1;
+  margin: 48px 0 0;
+  padding: 26px 26px 14px;
+  background: #e3e8da;
+  border: 1px solid #d1d9c8;
+  border-radius: 12px;
+}
+.mera-product-frame {
+  border: 1px solid #bec9ba;
+  border-radius: 7px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 18px 35px #152b2412;
+}
+.mera-preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 18px;
+  font-size: 11px;
+  color: var(--mera-muted);
+  background: #fff;
+  border-bottom: 1px solid var(--mera-border);
+}
+.mera-preview-toolbar span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--mera-ink);
+}
+.mera-preview-toolbar svg {
+  width: 14px;
+  height: 14px;
+}
+.mera-product-frame > a {
+  display: block;
+}
+.mera-product-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.mera-product-stage figcaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 14px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--mera-muted);
+}
+.mera-product-stage figcaption a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-underline-offset: 3px;
+}
+.mera-product-stage figcaption svg {
+  width: 12px;
+  height: 12px;
+}
+.mera-journey {
+  padding: 76px max(var(--mera-gutter), calc((100vw - var(--mera-content)) / 2));
+  background: var(--mera-forest);
+  color: white;
+}
+.mera-journey .eyebrow {
+  color: var(--mera-lime);
+}
+.mera-section-heading {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 80px;
+}
+.mera-section-heading .eyebrow {
+  grid-column: 1/-1;
+}
+.mera-section-heading > p:last-child {
+  max-width: 330px;
+  align-self: end;
+  justify-self: end;
+  margin: 0 0 24px;
+  color: #cfdbd3;
+  font-size: 16px;
+}
+.mera-journey-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 30px;
+  list-style: none;
+  padding: 0;
+  margin: 38px 0 0;
+}
+.mera-journey-steps li {
+  border-top: 1px solid #ffffff40;
+  padding-top: 24px;
+}
+.mera-journey-step-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 36px;
+  color: var(--mera-lime);
+}
+.mera-journey-step-top svg {
+  width: 26px;
+  height: 26px;
+  stroke-width: 1.5;
+}
+.mera-journey-step-top span {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.mera-journey-steps h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  letter-spacing: -0.025em;
+  font-weight: 600;
+}
+.mera-journey-steps p {
+  margin: 0;
+  font-size: 13px;
+  color: #cfdbd3;
+}
+.mera-modes-section {
+  width: min(calc(100% - var(--mera-gutter) * 2), var(--mera-content));
+  margin: auto;
+  padding: 88px 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px 88px;
+}
+.mera-modes-intro {
+  grid-column: 1;
+}
+.mera-modes-intro > p:last-child {
+  max-width: 400px;
+  color: var(--mera-muted);
+  font-size: 16px;
+}
+.mera-mode-selector {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+}
+.mera-mode-selector button {
+  border: 0;
+  border-top: 1px solid var(--mera-border);
+  background: transparent;
+  font:
+    500 16px/1.4 Inter,
+    Arial,
+    sans-serif;
+  color: var(--mera-muted);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--mera-fast) var(--mera-ease);
+}
+.mera-mode-selector button:last-child {
+  border-bottom: 1px solid var(--mera-border);
+}
+.mera-mode-selector button > svg {
+  width: 21px;
+  height: 21px;
+  flex-shrink: 0;
+}
+.mera-mode-selector button > svg:last-child {
+  margin-left: auto;
+  width: 17px;
+}
+.mera-mode-selector button[aria-pressed="true"] {
+  color: var(--mera-ink);
+  background: #e9edde;
+  font-weight: 600;
+}
+.mera-mode-selector button:hover {
+  background: #edf0e6;
+}
+.mera-mode-detail {
+  grid-column: 2;
+  grid-row: 1/3;
+  align-self: stretch;
+  padding: 42px;
+  background: var(--mera-white);
+  border: 1px solid var(--mera-border);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-radius: 6px;
+}
+.mera-mode-detail .mera-section-number {
+  color: var(--mera-muted);
+}
+.mera-mode-detail h3 {
+  font-size: clamp(26px, 3vw, 38px);
+  line-height: 1.15;
+  letter-spacing: -0.045em;
+  margin: 34px 0 20px;
+  font-weight: 600;
+}
+.mera-mode-detail > p {
+  margin: 0;
+  color: var(--mera-muted);
+  font-size: 15px;
+}
+.mera-mode-detail ul {
+  list-style: none;
+  padding: 0;
+  margin: 24px 0;
+}
+.mera-mode-detail li {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px 0;
+}
+.mera-mode-detail li svg {
+  width: 16px;
+  height: 16px;
+  color: var(--mera-forest);
+  flex-shrink: 0;
+}
+.mera-mode-detail .mera-inline-link {
+  align-self: start;
+}
+.mera-menu-story {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 80px;
+  padding: 72px max(var(--mera-gutter), calc((100vw - var(--mera-content)) / 2));
+  background: #ebece3;
+}
+.mera-menu-story-copy > p:not(.eyebrow) {
+  color: var(--mera-muted);
+  font-size: 16px;
+  max-width: 450px;
+}
+.mera-menu-story-copy ul {
+  padding-left: 18px;
+  color: var(--mera-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 28px 0;
+}
+.mera-menu-story-copy li {
+  padding: 5px 0;
+}
+.mera-menu-story-visual {
+  margin: 0;
+  width: 100%;
+  max-width: 500px;
+  justify-self: end;
+}
+.mera-menu-screen {
+  overflow: hidden;
+  border: 1px solid #d0d5c7;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 15px 35px #152b2410;
+}
+.mera-menu-screen img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.mera-menu-story-visual figcaption {
+  text-align: right;
+  margin-top: 14px;
+  font-size: 10px;
+  color: var(--mera-muted);
+}
+.mera-reporting-story {
+  width: min(calc(100% - var(--mera-gutter) * 2), var(--mera-content));
+  margin: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 88px;
+  padding: 88px 0;
+}
+.mera-reporting-story > div > p:not(.eyebrow) {
+  color: var(--mera-muted);
+  font-size: 16px;
+  max-width: 400px;
+}
+.mera-reporting-story dl {
+  margin: 0;
+}
+.mera-reporting-story dl > div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 22px;
+  padding: 24px 0;
+  border-top: 1px solid var(--mera-border);
+}
+.mera-reporting-story dt {
+  font-size: 14px;
+  font-weight: 600;
+}
+.mera-reporting-story dd {
+  margin: 0;
+  color: var(--mera-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.mera-faq {
+  width: min(calc(100% - var(--mera-gutter) * 2), var(--mera-content));
+  margin: auto;
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 70px;
+  padding: 80px 0;
+}
+.mera-faq details {
+  border-top: 1px solid var(--mera-border);
+}
+.mera-faq details:last-child {
+  border-bottom: 1px solid var(--mera-border);
+}
+.mera-faq summary {
+  padding: 22px 28px 22px 0;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.5;
+}
+.mera-faq details p {
+  margin: 0 0 24px;
+  color: var(--mera-muted);
+  font-size: 14px;
+}
+.mera-final-cta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 40px;
+  background: var(--mera-lime);
+  padding: 58px max(var(--mera-gutter), calc((100vw - var(--mera-content)) / 2));
+}
+.mera-final-cta h2 {
+  margin-bottom: 16px;
+}
+.mera-final-cta p:last-child {
+  margin-bottom: 0;
+}
+.mera-final-cta .primary {
+  flex-shrink: 0;
+}
+.mera-marketing footer {
+  width: min(calc(100% - var(--mera-gutter) * 2), var(--mera-content));
+  margin: auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 28px;
+  padding: 36px 0;
+  color: var(--mera-muted);
+  font-size: 12px;
+}
+.mera-marketing footer nav {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.mera-marketing footer nav a {
+  padding-block: 12px;
+  text-decoration: none;
+}
+.mera-marketing footer nav a:hover {
+  text-decoration: underline;
 }
 .mera-marketing a:focus-visible,
-.mera-marketing button:focus-visible {
-  outline: 3px solid var(--mera-public-green);
+.mera-marketing button:focus-visible,
+.mera-marketing summary:focus-visible,
+.mera-marketing [tabindex="-1"]:focus-visible {
+  outline: 3px solid currentColor;
   outline-offset: 5px;
 }
 .mera-marketing [id] {
-  scroll-margin-top: 24px;
+  scroll-margin-top: 28px;
 }
 .mera-marketing-skip {
   position: absolute;
-  left: 16px;
   top: -100px;
+  left: 16px;
   padding: 12px 18px;
-  background: #fff;
+  background: white;
   z-index: 10;
 }
 .mera-marketing-skip:focus {
   top: 12px;
 }
-@media (min-width: 1200px) {
-  .mera-marketing .mera-marketing-header {
-    min-height: 124px;
+@media (min-width: 1550px) {
+  .mera-marketing {
+    --mera-content: 1360px;
+  }
+  .mera-hero h1 {
+    font-size: 86px;
   }
 }
-@media (max-width: 850px) {
+@media (max-width: 1000px) {
   .mera-marketing .mera-marketing-header {
     gap: 40px;
-    padding-inline: 10px;
   }
   .mera-nav-links,
   .mera-nav-actions {
-    gap: 20px;
+    gap: 22px;
   }
   .mera-marketing .mera-hero {
-    width: calc(100% - 48px);
-    grid-template-columns: 42% 56%;
-    padding-top: 65px;
+    grid-template-columns: minmax(0, 1fr) 180px;
+    padding-top: 54px;
   }
   .mera-hero h1 {
-    font-size: 52px;
+    font-size: clamp(43px, 6.3vw, 62px);
   }
-  .mera-hero-actions {
-    margin-top: 32px;
-    gap: 10px;
+  .mera-modes-section,
+  .mera-reporting-story {
+    column-gap: 40px;
   }
-  .mera-hero-actions a {
-    padding: 14px;
-    font-size: 14px;
+  .mera-mode-detail {
+    padding: 28px;
   }
-  .mera-feature-strip {
-    width: calc(100% - 48px);
+  .mera-menu-story {
+    gap: 40px;
   }
-  .mera-feature-strip a {
-    gap: 14px;
-    font-size: 18px;
+  .mera-journey-steps {
+    gap: 20px;
   }
-  .mera-feature-strip svg {
-    width: 32px;
+  .mera-reporting-story dl > div {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 18px 0;
+  }
+  .mera-faq {
+    gap: 40px;
   }
 }
-@media (max-width: 650px) {
-  .mera-hero-copy,
-  .mera-service-copy {
-    padding-bottom: 0;
-  }
+@media (max-width: 760px) {
   .mera-marketing .mera-marketing-header {
     min-height: 78px;
-    width: calc(100% - 32px);
-    padding: 16px 4px;
     justify-content: space-between;
     position: relative;
-  }
-  .mera-marketing .mera-wordmark {
-    font-size: 48px;
   }
   .mera-marketing .mera-mobile-menu {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     min-height: 44px;
-    border: 1px solid var(--mera-public-line);
+    border: 1px solid var(--mera-border);
     background: transparent;
-    color: var(--mera-public-ink);
-    padding: 10px;
-    font: inherit;
-    font-size: 14px;
-    border-radius: 8px;
+    color: var(--mera-ink);
+    padding: 10px 12px;
+    font:
+      500 12px Inter,
+      Arial,
+      sans-serif;
+    border-radius: 5px;
+  }
+  .mera-mobile-menu svg {
+    width: 18px;
+    height: 18px;
   }
   .mera-marketing-header nav {
     display: none;
@@ -450,16 +718,17 @@
   .mera-marketing-header nav.is-open {
     display: flex;
     position: absolute;
-    z-index: 5;
     top: 100%;
     left: 0;
     right: 0;
-    background: #fcf9f3;
-    border: 1px solid var(--mera-public-line);
+    z-index: 5;
     padding: 20px;
+    background: var(--mera-paper);
+    border: 1px solid var(--mera-border);
+    border-radius: 0 0 6px 6px;
     flex-direction: column;
     align-items: stretch;
-    box-shadow: 0 8px 20px #30231610;
+    box-shadow: 0 16px 25px #152b2410;
   }
   .mera-nav-links,
   .mera-nav-actions {
@@ -467,107 +736,155 @@
     align-items: stretch;
     gap: 4px;
   }
-  .mera-nav-links a,
-  .mera-nav-actions > a:not(.primary) {
-    padding: 12px 0;
+  .mera-marketing-header nav a {
     min-height: 44px;
   }
   .mera-marketing .mera-hero {
-    width: calc(100% - 40px);
     grid-template-columns: 1fr;
-    gap: 42px;
-    padding: 54px 0 30px;
-    min-height: auto;
+    padding-top: 42px;
+    padding-bottom: 42px;
   }
   .mera-hero h1 {
-    font-size: clamp(46px, 10.9vw, 68px);
-    letter-spacing: -0.06em;
+    font-size: clamp(40px, 7.8vw, 58px);
   }
-  .mera-heading-rule {
-    margin: 26px 0;
-    width: 60px;
+  .mera-hero-description {
+    font-size: 16px;
+    max-width: 450px;
   }
-  .mera-hero-copy > p {
-    font-size: 21px;
+  .mera-hero-aside {
+    display: none;
   }
   .mera-hero-actions {
+    gap: 8px 20px;
+    margin-top: 24px;
+  }
+  .mera-product-stage {
+    margin-top: 30px;
+    padding: 12px 12px 10px;
+    border-radius: 8px;
+  }
+  .mera-preview-toolbar {
+    padding: 10px;
+    font-size: 9px;
+  }
+  .mera-preview-toolbar > span:last-child {
+    display: none;
+  }
+  .mera-product-stage figcaption {
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    font-size: 9px;
+  }
+  .mera-journey {
+    padding-block: 50px;
+  }
+  .mera-section-heading {
+    grid-template-columns: 1fr;
+  }
+  .mera-section-heading > p:last-child {
+    justify-self: start;
+    margin: 0;
+  }
+  .mera-journey-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 30px 24px;
     margin-top: 30px;
   }
-  .mera-hero-actions a {
-    padding: 15px 19px;
+  .mera-journey-step-top {
+    margin-bottom: 20px;
+  }
+  .mera-journey-steps h3 {
     font-size: 16px;
   }
-  .mera-product-preview {
-    height: auto;
-    aspect-ratio: 1.05;
-    border-radius: 12px;
-  }
-  .mera-feature-strip {
-    width: calc(100% - 40px);
+  .mera-modes-section {
     grid-template-columns: 1fr;
-    padding: 12px 0 38px;
+    padding-block: 54px;
+    gap: 22px;
   }
-  .mera-feature-strip a {
-    justify-content: flex-start;
-    padding: 18px 8px;
-    gap: 20px;
-    font-size: 20px;
+  .mera-mode-detail {
+    grid-column: 1;
+    grid-row: auto;
+    padding: 26px;
+    min-height: 410px;
   }
-  .mera-feature-strip a + a {
-    border-left: 0;
-    border-top: 1px solid var(--mera-public-line);
+  .mera-mode-detail h3 {
+    margin-top: 24px;
   }
-  .mera-service-section {
+  .mera-mode-selector button {
+    padding: 17px 8px;
+    font-size: 15px;
+  }
+  .mera-menu-story {
     grid-template-columns: 1fr;
-    gap: 38px;
-    padding: 40px 20px 16px;
+    padding-block: 50px;
+    gap: 30px;
   }
-  .mera-service-preview {
-    aspect-ratio: 1.02;
+  .mera-menu-story-visual {
+    max-width: 470px;
+    justify-self: center;
   }
-  .mera-service-copy {
-    padding: 0 4px;
-  }
-  .mera-service-copy h2 {
-    font-size: 54px;
-  }
-  .mera-service-copy p {
-    font-size: 20px;
-    max-width: 400px;
-  }
-  .mera-service-modes {
+  .mera-reporting-story {
     grid-template-columns: 1fr;
-    padding: 30px 24px 40px;
+    padding-block: 54px;
+    gap: 28px;
+  }
+  .mera-reporting-story dl > div {
+    grid-template-columns: 110px minmax(0, 1fr);
     gap: 18px;
   }
-  .mera-marketing .mera-pricing {
-    width: calc(100% - 40px);
-    padding: 44px 0;
+  .mera-faq {
+    grid-template-columns: 1fr;
+    padding-block: 54px;
+    gap: 20px;
   }
-  .mera-price-card {
-    padding: 22px;
-  }
-  .mera-price-card strong {
-    font-size: 36px;
-  }
-  .mera-price-card small {
-    display: block;
-    margin-top: 8px;
-  }
-  .mera-marketing footer {
-    width: calc(100% - 40px);
+  .mera-final-cta {
     align-items: flex-start;
     flex-direction: column;
-    gap: 18px;
+    padding-block: 46px;
+    gap: 28px;
+  }
+  .mera-marketing footer {
+    align-items: flex-start;
+    gap: 14px 24px;
+    padding-block: 28px;
+  }
+  .mera-marketing footer nav {
+    margin: 0;
+    width: 100%;
+    gap: 8px 22px;
+  }
+}
+@media (max-width: 380px) {
+  .mera-hero h1 {
+    font-size: 38px;
+  }
+  .mera-hero-actions .primary {
+    width: 100%;
+  }
+  .mera-journey-steps {
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+  .mera-journey-step-top {
+    margin-bottom: 14px;
+  }
+  .mera-reporting-story dl > div {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .mera-marketing {
-    scroll-behavior: auto;
+  .mera-marketing *,
+  .mera-marketing *::before,
+  .mera-marketing *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
   }
-}
-/* Programmatic section destinations remain visible to keyboard users. */
-.mera-marketing [tabindex="-1"]:focus-visible {
-  outline: 3px solid var(--mera-public-green);
-  outline-offset: 5px;
+  .mera-marketing .primary:hover,
+  .mera-marketing .primary:active,
+  .mera-marketing .secondary:active,
+  .mera-inline-link:hover svg {
+    transform: none;
+  }
 }

@@ -18,25 +18,36 @@ const { render, screen, fireEvent, cleanup, waitFor } =
   await import("@testing-library/react");
 const { default: Marketing, LegalInformation } =
   await import("../src/mera/marketing/Marketing");
-test("M1 selected homepage has genuine product imagery and working conversion routes", () => {
+test("M1 marketing connects signup, sign-in, demo and genuine product screenshots", () => {
   try {
     render(<Marketing />);
     assert.ok(
-      screen.getByRole("heading", { name: "Every service.One clear view." }),
+      screen.getByRole("heading", {
+        name: "The whole service.Beautifully connected.",
+      }),
     );
-    for (const link of screen.getAllByRole("link", { name: /Explore Mera/ }))
+    for (const link of screen.getAllByRole("link", {
+      name: /Get started|Start with your business/,
+    }))
       assert.equal(link.getAttribute("href"), "/mera/signup");
     assert.match(
-      screen.getByRole("link", { name: /View demo/ }).getAttribute("href") ||
-        "",
+      screen
+        .getByRole("link", { name: /Explore the menu demo/ })
+        .getAttribute("href") || "",
       /^\/mera\/menu\/bing-chun\//,
     );
     assert.equal(
       screen.getByRole("link", { name: "Sign in" }).getAttribute("href"),
       "/mera/workspace",
     );
-    assert.equal(screen.getAllByRole("img").length, 2);
-    for (const img of screen.getAllByRole("img"))
+    assert.equal(screen.getAllByRole("img", { name: "Mera" }).length, 2);
+    for (const logo of screen.getAllByRole("img", { name: "Mera" }))
+      assert.equal(logo.getAttribute("src"), "/mera/brand/mera-mark-dark.png");
+    const productImages = screen
+      .getAllByRole("img")
+      .filter((image) => image.getAttribute("alt") !== "Mera");
+    assert.equal(productImages.length, 2);
+    for (const img of productImages)
       assert.match(
         img.getAttribute("src") || "",
         /^\/mera\/bing-chun-(counter|menu)-preview\.jpg$/,
@@ -81,6 +92,71 @@ test("M2 legal information retains explicit approval and privacy boundaries", ()
     assert.equal(
       screen.getByRole("link", { name: "Return to Mera" }).getAttribute("href"),
       "/mera",
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("M1 service modes update one coherent detail panel without changing conversion destination", () => {
+  try {
+    render(<Marketing />);
+    const restaurant = screen.getByRole("button", { name: "Restaurants" });
+    const counter = screen.getByRole("button", { name: "Counter & takeaway" });
+    assert.equal(counter.getAttribute("aria-pressed"), "true");
+    fireEvent.click(restaurant);
+    assert.equal(restaurant.getAttribute("aria-pressed"), "true");
+    assert.equal(counter.getAttribute("aria-pressed"), "false");
+    assert.ok(
+      screen.getByRole("heading", {
+        name: "From the first booking to the last round.",
+      }),
+    );
+    assert.ok(screen.getByText("Private visits and shared bills"));
+    assert.equal(
+      screen
+        .getByRole("link", { name: "Set up your service" })
+        .getAttribute("href"),
+      "/mera/signup",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Lounges & clubs" }));
+    assert.ok(
+      screen.getByRole("heading", { name: "Keep the evening in view." }),
+    );
+    assert.equal(screen.queryByText("Private visits and shared bills"), null);
+    fireEvent.click(counter);
+    assert.ok(
+      screen.getByRole("heading", { name: "A good order. A clear handoff." }),
+    );
+  } finally {
+    cleanup();
+  }
+});
+test("M1 FAQ can be opened by keyboard and retains provider and branch-policy limits", () => {
+  try {
+    render(<Marketing />);
+    const summary = screen.getByText("How are payments handled?", {
+      selector: "summary",
+    });
+    fireEvent.keyDown(summary, { key: "Enter" });
+    assert.equal(summary.closest("details")?.open, true);
+    assert.ok(
+      screen.getByText(
+        /Integrated online collections require payment-provider approval/,
+      ),
+    );
+    fireEvent.keyDown(summary, { key: " " });
+    assert.equal(summary.closest("details")?.open, false);
+    const branchSummary = screen.getByText(
+      "Can Mera support more than one branch?",
+      { selector: "summary" },
+    );
+    fireEvent.keyDown(branchSummary, { key: "Enter" });
+    assert.equal(branchSummary.closest("details")?.open, true);
+    assert.ok(
+      screen.getByText(
+        /Additional-branch pricing and entitlement must be agreed/,
+      ),
     );
   } finally {
     cleanup();
