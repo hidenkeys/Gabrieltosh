@@ -18,10 +18,16 @@ Private mode-0600 before-state and ID manifest: `/private/tmp/mera-hosted-workfl
 
 ## Browser use
 
-The lead can create a synthetic reservation and seat it at this table, then join using the current private code through the customer UI. Keep joining codes out of permanent evidence. A customer submission of the complimentary product has a legitimate zero-total paid state, so its receipt can be inspected without recording money. Cancel browser print preview; this is not physical print validation.
+The lead can create a synthetic reservation and seat it at this table, then join using the current private code through the customer UI. Keep joining codes out of permanent evidence. A customer submission of the complimentary product has a legitimate zero-total paid state without recording money. **It does not create automatic receipt/sticker jobs:** current document eligibility requires a positive order total and a positive recorded payment. The fixture supports ordering, preparation and fulfillment checks, not actual paid-document generation. Receipt/sticker sample previews remain available; cancel browser print preview, which is not physical print validation.
 
 ## Retirement after browser checks
 
 No retirement has occurred. Do not remove active visit/reservation records or overwrite unrelated menu changes.
 
 The existing API has no table/product deletion endpoint. To retire fixtures through supported workflows, first resolve/close the synthetic visit with zero balance and no outstanding commitment, then mark the table unavailable with a test-completion reason. Set only the fixture product unavailable through the existing product-availability action, obtain a fresh publication preview, confirm the retained original products remain unchanged, and publish using that reviewed hash/version. Retain synthetic order/reservation/audit history; publication versions are monotonic and should not be rewound to version 1. A future cleanup needs its own explicit invocation after browser work is complete.
+
+## Coordinator browser execution update
+
+The coordinator reported seating **QA Browser Party**, joining the private visit and retaining guest access after reload. Synthetic order **M-42D4D851** returned total 0, recorded payments 0 and the UI label **Payment confirmed**. It was accepted, moved to preparing, and a prepared quantity of 1 made it ready. **Mark collected** was clicked, but its outcome was still pending when this update was recorded; collection/completion are not asserted here. Receipt studio refreshed to no print jobs, consistent with the current positive-total/positive-payment eligibility rule. This update records coordinator-reported browser outcomes, not a new browser pass by the document author.
+
+Subsequent coordinator confirmation supersedes the prior pending collection note: M-42D4D851 was collected and completed in the UI, and the downloaded trading-day CSV contains both history events, one completed order, quantity 1 of the complimentary sample and zero collections. See [HOSTED-WORKFLOW-PASS.md](HOSTED-WORKFLOW-PASS.md). Fixture retirement has not been asserted.
