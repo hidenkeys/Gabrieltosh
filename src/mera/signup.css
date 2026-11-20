@@ -358,3 +358,12 @@
     justify-content: flex-start;
   }
 }
+
+.mera-signup-card {
+  animation: mera-enter var(--mera-enter) var(--mera-ease) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mera-signup-card {
+    animation: none;
+  }
+}

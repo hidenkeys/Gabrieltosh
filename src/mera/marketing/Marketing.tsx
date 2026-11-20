@@ -1,472 +1,812 @@
-import { usePublicNavigation } from "./publicNavigation";
-import { PricingAndSupport, LegalInformationPage } from "./MarketingSecondary";
-import { MeraBrand } from "../ui/MeraBrand";
-import { Disclosure } from "../ui/OperationalPrimitives";
-import { useRef, useState } from "react";
 import {
-  ArrowDown,
   ArrowRight,
-  Check,
-  ChevronRight,
-  ClipboardList,
-  LayoutGrid,
-  Menu,
+  ArrowUpRight,
+  Compass,
+  Layers,
+  MessageSquare,
   QrCode,
-  ReceiptText,
-  Utensils,
-  X,
+  ShieldCheck,
 } from "lucide-react";
-const demo = "/mera/menu/bing-chun/20000000-0000-4000-8000-000000000001";
-const publicSections = [
-  "experience",
-  "modes",
-  "reporting",
-  "pricing",
-  "support",
-  "mera-main",
-  "questions",
-] as const;
-const serviceModes = [
+import type { ReactNode } from "react";
+import MarketingShell from "./MarketingShell";
+import { ProductDemonstration, TravelConcept } from "./ProductDemonstrations";
+import { PricingAndSupport, LegalInformationPage } from "./MarketingSecondary";
+import { Disclosure } from "../ui/OperationalPrimitives";
+import ProjectBrief from "../company/ProjectBrief";
+import TravelInterest from "../company/TravelInterest";
+const actualDemo = "/mera/menu/bing-chun/20000000-0000-4000-8000-000000000001";
+const offerings = [
   {
-    title: "Counter & takeaway",
-    label: "A good order. A clear handoff.",
-    description:
-      "Bring the menu, your counter team and preparation queue together. Build an order, record its payment and follow it through to collection.",
-    features: [
-      "Photo menus and item customizations",
-      "Staff-assisted and guest orders",
-      "Preparation and pickup status",
-    ],
-    icon: ReceiptText,
+    id: "qr",
+    number: "01",
+    title: "Mera QR",
+    type: "HOSPITALITY OPERATIONS",
+    status: "Explore the working product",
+    text: "Connect the menu, the team and the entire service. QR ordering, counters, tables, reservations and daily operations in one workspace.",
+    cta: "Explore Mera QR",
+    icon: QrCode,
   },
   {
-    title: "Restaurants",
-    label: "From the first booking to the last round.",
-    description:
-      "Give front desk, waiters and the kitchen a shared picture of service. Connect reservations to table visits, then keep additional rounds on the right bill.",
-    features: [
-      "Reservations, arrivals and table allocation",
-      "Private visits and shared bills",
-      "Kitchen and bar preparation",
-    ],
-    icon: Utensils,
+    id: "travel",
+    number: "02",
+    title: "MeraTravel Suite",
+    type: "TRAVEL BUSINESS SOFTWARE",
+    status: "Planned · coming soon",
+    text: "A new direction for travel-business technology. Help shape a more connected way to present services, organize enquiries and follow customer relationships.",
+    cta: "Discover the planned direction",
+    icon: Compass,
   },
   {
-    title: "Lounges & clubs",
-    label: "Keep the evening in view.",
-    description:
-      "Support table service and repeat orders with clear ownership. Configure the service policies that fit your venue, with deposits and minimum spend reviewed before launch.",
-    features: [
-      "Table visits and additional rounds",
-      "Assigned staff and service requests",
-      "Venue-specific readiness checks",
-    ],
-    icon: LayoutGrid,
+    id: "consultancy",
+    number: "03",
+    title: "MeraTech Consultancy",
+    type: "SOFTWARE BUILT AROUND YOUR NEEDS",
+    status: "Start with a project brief",
+    text: "For the problem that needs its own solution. Tell us what your business needs, who it serves and what stands in the way.",
+    cta: "Tell us about your project",
+    icon: Layers,
   },
 ];
-const questions = [
-  [
-    "Can customers browse without an account?",
-    "Yes. A guest can open the published menu from a QR code without signing in. Mera asks for the details needed when they place an order, reserve or join a private table visit.",
-  ],
-  [
-    "Can we keep our own branding?",
-    "Yes. Your organization can configure its logo, colors, menu presentation and receipt designs. Guests see your venue’s identity; staff keep a consistent operational workspace.",
-  ],
-  [
-    "How are payments handled?",
-    "Staff can record cash, external POS and manually verified transfers. Integrated online collections require payment-provider approval and approved commercial policies. This preview does not activate live collections or billing.",
-  ],
-  [
-    "Can Mera support more than one branch?",
-    "The workspace supports branch-specific staff access, stock and reporting. One branch is included in the proposed starting plan. Additional-branch pricing and entitlement must be agreed before launch.",
-  ],
-  [
-    "Do we need a dedicated device?",
-    "Mera is web-first and designed for desktop and handheld browsers. Changes need a working connection. Receipt and sticker printing depend on a supported setup and physical printer testing.",
-  ],
-];
-export default function Marketing() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [mode, setMode] = useState(0);
-  const menuButton = useRef<HTMLButtonElement>(null);
-  const navigate = usePublicNavigation(publicSections);
-  const selected = serviceModes[mode];
+function OfferingRows() {
   return (
-    <div
-      className="mera-marketing mera-identity"
-      onKeyDown={(event) => {
-        if (event.key === "Escape" && menuOpen) {
-          setMenuOpen(false);
-          menuButton.current?.focus();
-        }
-      }}
-    >
-      <a className="mera-marketing-skip" href="#mera-main" onClick={navigate}>
-        Skip to content
-      </a>
-      <header className="mera-marketing-header">
-        <a className="mera-home-link" href="/mera" aria-label="Mera home">
-          <MeraBrand />
-        </a>
-        <button
-          className="mera-mobile-menu"
-          ref={menuButton}
-          aria-expanded={menuOpen}
-          aria-controls="mera-public-navigation"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          {menuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
-          <span>{menuOpen ? "Close menu" : "Open menu"}</span>
-        </button>
-        <nav
-          id="mera-public-navigation"
-          className={menuOpen ? "is-open" : ""}
-          aria-label="Mera navigation"
-        >
-          <div className="mera-nav-links">
-            {[
-              ["experience", "Product"],
-              ["modes", "Solutions"],
-              ["pricing", "Pricing"],
-            ].map(([id, label]) => (
-              <a
-                key={id}
-                href={`#${id}`}
-                onClick={(event) => {
-                  if (navigate(event)) setMenuOpen(false);
-                }}
-              >
-                {label}
-              </a>
-            ))}
-          </div>
-          <div className="mera-nav-actions">
-            <a href="/mera/workspace">Sign in</a>
-            <a className="primary" href="/mera/signup">
-              Get started <ArrowRight aria-hidden="true" />
-            </a>
-          </div>
-        </nav>
-      </header>
-      <main id="mera-main">
-        <section className="mera-hero" aria-labelledby="mera-hero-title">
-          <div className="mera-hero-copy">
-            <p className="eyebrow">
-              <span aria-hidden="true" /> HOSPITALITY, CONNECTED
-            </p>
-            <h1 id="mera-hero-title">
-              The whole service.
-              <br />
-              <em>Beautifully connected.</em>
-            </h1>
-            <p className="mera-hero-description">
-              From the first scan to the final bill. Bring your menu, guests and
-              team into one clear operation.
-            </p>
-            <div className="mera-hero-actions">
-              <a className="primary" href="/mera/signup">
-                Start with your business <ArrowRight aria-hidden="true" />
-              </a>
-              <a className="mera-inline-link" href={demo}>
-                Explore the menu demo <ChevronRight aria-hidden="true" />
-              </a>
-            </div>
-            <p className="mera-hero-note">
-              For counters, restaurants, lounges and clubs.
-            </p>
-          </div>
-          <div className="mera-hero-aside">
-            <span className="mera-section-number">
-              01 / THE CONNECTED WORKSPACE
-            </span>
-            <p>
-              Less switching.
-              <br />
-              More service.
-            </p>
-            <a
-              href="#experience"
-              onClick={navigate}
-              aria-label="See how Mera connects service"
+    <div className="mt-offering-rows">
+      {offerings.map((item) => (
+        <article key={item.id}>
+          <span className="mt-offering-index">{item.number}</span>
+          <div className="mt-offering-name">
+            <span className="eyebrow">{item.type}</span>
+            <h3>{item.title}</h3>
+            <span
+              className={`mt-status ${item.id === "travel" ? "is-planned" : ""}`}
             >
-              <ArrowDown aria-hidden="true" />
+              {item.status}
+            </span>
+          </div>
+          <div>
+            <p>{item.text}</p>
+            <a className="mt-text-link" href={`/mera/${item.id}`}>
+              {item.cta}
+              <ArrowUpRight aria-hidden="true" />
             </a>
           </div>
-          <figure className="mera-product-stage">
-            <div className="mera-product-frame">
-              <div className="mera-preview-toolbar">
-                <span>
-                  <LayoutGrid aria-hidden="true" /> A workspace built for
-                  service
-                </span>
-                <span>Bing Chun · Surulere demo</span>
-              </div>
-              <a
-                href="/mera/bing-chun-counter-preview.jpg"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Open full-size Bing Chun counter screenshot in a new tab"
-              >
-                <img
-                  src="/mera/bing-chun-counter-preview.jpg"
-                  alt="Bing Chun counter workspace with a photo menu, category filters and current order panel"
-                  width="1778"
-                  height="1235"
-                  fetchPriority="high"
-                />
-              </a>
-            </div>
-            <figcaption>
-              <span>Actual product screen · demonstration workspace</span>
-              <a
-                href="/mera/bing-chun-counter-preview.jpg"
-                target="_blank"
-                rel="noreferrer"
-              >
-                View full-size screen <ArrowRight aria-hidden="true" />
-              </a>
-            </figcaption>
-          </figure>
-        </section>
-        <section
-          id="experience"
-          className="mera-journey"
-          aria-labelledby="mera-journey-title"
-        >
-          <div className="mera-section-heading">
-            <p className="eyebrow">ONE JOURNEY, EVERY HANDOFF</p>
-            <h2 id="mera-journey-title">
-              Good service flows.
+        </article>
+      ))}
+    </div>
+  );
+}
+function Home() {
+  return (
+    <MarketingShell>
+      <section className="mt-home-hero mt-container">
+        <div className="mt-home-promise">
+          <p className="eyebrow">MERATECH · TECHNOLOGY FOR REAL BUSINESS</p>
+          <h1>
+            Behind every
+            <br />
+            great experience,
+            <br />
+            <em>better systems.</em>
+          </h1>
+          <p>
+            We build products and bespoke software for the businesses that bring
+            people together.
+          </p>
+          <div className="mt-actions">
+            <a className="primary" href="/mera/products">
+              Explore our products <ArrowRight aria-hidden="true" />
+            </a>
+            <a className="mt-text-link" href="/mera/consultancy">
+              Build something with us <ArrowUpRight aria-hidden="true" />
+            </a>
+          </div>
+          <div className="mt-home-offerings">
+            <span>Mera QR</span>
+            <span>
+              MeraTravel Suite <small>Planned</small>
+            </span>
+            <span>Consultancy</span>
+          </div>
+        </div>
+        <div className="mt-home-demonstration">
+          <div className="mt-featured-product">
+            <span>MEET MERA QR</span>
+            <a href="/mera/qr">
+              Hospitality, connected <ArrowUpRight aria-hidden="true" />
+            </a>
+          </div>
+          <ProductDemonstration compact />
+        </div>
+      </section>
+      <section className="mt-company-statement">
+        <div className="mt-container">
+          <p className="eyebrow">ONE COMPANY. DISTINCT WAYS TO HELP.</p>
+          <h2>
+            Choose the product.
+            <br />
+            Or shape the solution.
+          </h2>
+          <p>
+            A hospitality platform you can explore today. A travel product we’re
+            planning. A consultancy for the work that needs a different
+            approach.
+          </p>
+        </div>
+      </section>
+      <section id="products" className="mt-container mt-section">
+        <div className="mt-heading-row">
+          <div>
+            <p className="eyebrow">OUR PRODUCTS & SERVICES</p>
+            <h2>
+              Built for the work
               <br />
-              Your systems should, too.
+              behind the scenes.
             </h2>
+          </div>
+          <p>
+            Each offering has a clear purpose.
+            <br />
+            Each starts with the people using it.
+          </p>
+        </div>
+        <OfferingRows />
+      </section>
+      <section className="mt-principles mt-container">
+        <div>
+          <p className="eyebrow">HOW WE THINK</p>
+          <h2>
+            Useful by design.
+            <br />
+            Grounded in your business.
+          </h2>
+        </div>
+        <dl>
+          <div>
+            <dt>Start with the work</dt>
+            <dd>
+              Understand the daily decisions, handoffs and exceptions before
+              choosing the technology.
+            </dd>
+          </div>
+          <div>
+            <dt>Keep the experience clear</dt>
+            <dd>
+              Give customers and teams the right information and a meaningful
+              next step.
+            </dd>
+          </div>
+          <div>
+            <dt>Build with responsibility</dt>
+            <dd>
+              Make permissions, payment readiness and operational boundaries
+              explicit.
+            </dd>
+          </div>
+        </dl>
+      </section>
+      <section id="pricing" className="mt-commercial-note mt-container">
+        <ShieldCheck aria-hidden="true" />
+        <div>
+          <h2>A considered start, not a hidden commitment.</h2>
+          <p>
+            Product terms and readiness are reviewed before launch. Exploring
+            MeraTech does not activate a subscription or live payments.
+          </p>
+        </div>
+        <a className="mt-text-link" href="/mera/qr#commercial">
+          Mera QR setup details <ArrowRight aria-hidden="true" />
+        </a>
+      </section>
+      <FinalAction />
+    </MarketingShell>
+  );
+}
+function Products() {
+  return (
+    <MarketingShell active="products">
+      <PageIntro
+        eyebrow="PRODUCTS & SERVICES"
+        title={
+          <>
+            The right technology.
+            <br />
+            For your next chapter.
+          </>
+        }
+        text="Explore what exists, see what’s planned, or start a conversation about a solution built for you."
+      />
+      <section className="mt-container mt-section mt-section-tight">
+        <OfferingRows />
+      </section>
+      <section className="mt-contrast-section">
+        <div className="mt-container mt-split">
+          <div>
+            <p className="eyebrow">A CLEAR DIFFERENCE</p>
+            <h2>
+              Working product.
+              <br />
+              Planned product.
+              <br />
+              Bespoke service.
+            </h2>
+          </div>
+          <div>
             <p>
-              Give guests an easy way in. Give every team member a clear next
-              step.
+              Mera QR is the existing hospitality platform. Its readiness checks
+              keep unconfigured services and live financial integrations clearly
+              separated.
+            </p>
+            <p>
+              MeraTravel Suite is planned. Registering interest does not create
+              a travel account or make a booking.
+            </p>
+            <p>
+              Consultancy begins with an enquiry. Scope, price and delivery
+              commitments require a separate review and agreement.
             </p>
           </div>
-          <ol className="mera-journey-steps">
+        </div>
+      </section>
+    </MarketingShell>
+  );
+}
+function QRProduct() {
+  return (
+    <MarketingShell active="products">
+      <section className="mt-product-hero mt-container">
+        <div>
+          <p className="eyebrow">MERA QR · HOSPITALITY OPERATIONS</p>
+          <h1>
+            From first scan.
+            <br />
+            To final handoff.
+          </h1>
+          <p>
+            Your menu, guests and team, connected through one service. Built for
+            counters, restaurants, lounges and clubs.
+          </p>
+          <div className="mt-actions">
+            <a className="primary" href="/mera/signup">
+              Set up Mera QR <ArrowRight aria-hidden="true" />
+            </a>
+            <a className="mt-text-link" href={actualDemo}>
+              Try the Bing Chun test menu <ArrowUpRight aria-hidden="true" />
+            </a>
+          </div>
+          <p className="mt-small-note">
+            The working demo uses Bing Chun, our explicit test business. The
+            illustrations below use fictional data.
+          </p>
+        </div>
+        <div className="mt-product-summary">
+          <QrCode aria-hidden="true" />
+          <span>ONE CONNECTED SERVICE</span>
+          <ol>
+            <li>Menu discovery</li>
+            <li>Orders & preparation</li>
+            <li>Tables & reservations</li>
+            <li>Payments & reporting</li>
+          </ol>
+        </div>
+      </section>
+      <nav
+        className="mt-product-jump mt-container"
+        aria-label="Mera QR page sections"
+      >
+        <a href="#experience">Walkthrough</a>
+        <a href="#modes">Service modes</a>
+        <a href="#commercial">Readiness</a>
+        <a href="#questions">Questions</a>
+      </nav>
+      <section
+        id="experience"
+        className="mt-container mt-section mt-section-tight"
+      >
+        <div className="mt-heading-row">
+          <div>
+            <p className="eyebrow">TAKE A CLOSER LOOK</p>
+            <h2>
+              Every role.
+              <br />A clearer view.
+            </h2>
+          </div>
+          <p>
+            Switch between illustrations to explore how the workflow fits
+            together. This demonstration doesn’t submit orders or move money.
+          </p>
+        </div>
+        <ProductDemonstration />
+      </section>
+      <section className="mt-qr-journey">
+        <div className="mt-container">
+          <div className="mt-heading-row">
+            <div>
+              <p className="eyebrow">THE SERVICE JOURNEY</p>
+              <h2>
+                Good service flows.
+                <br />
+                Keep it connected.
+              </h2>
+            </div>
+            <p>
+              Give guests a simple way in.
+              <br />
+              Give your team a clear way through.
+            </p>
+          </div>
+          <ol>
             {[
-              {
-                icon: QrCode,
-                title: "Scan & discover",
-                text: "A permanent QR opens your published menu, with the right branch and table context.",
-              },
-              {
-                icon: ClipboardList,
-                title: "Choose & order",
-                text: "Guests or staff select items, customize them and review the complete total.",
-              },
-              {
-                icon: Utensils,
-                title: "Prepare & serve",
-                text: "Kitchen and bar follow their tickets. Your team sees what is ready and who is responsible.",
-              },
-              {
-                icon: ReceiptText,
-                title: "Close & understand",
-                text: "Keep bills, payment records and receipts together. Review the day with clear reporting.",
-              },
-            ].map((step, index) => (
-              <li key={step.title}>
-                <div className="mera-journey-step-top">
-                  <step.icon aria-hidden="true" />
-                  <span>0{index + 1}</span>
-                </div>
-                <h3>{step.title}</h3>
-                <p>{step.text}</p>
+              [
+                "Scan & discover",
+                "A permanent QR resolves the venue, branch and optional table context.",
+              ],
+              [
+                "Choose & order",
+                "Guests or staff choose items, customize them and review the total.",
+              ],
+              [
+                "Prepare & serve",
+                "Station tickets and responsibility keep kitchen, bar and service aligned.",
+              ],
+              [
+                "Close & review",
+                "Payment records, receipts and reports make the outcome easier to understand.",
+              ],
+            ].map(([title, text], index) => (
+              <li key={title}>
+                <span>0{index + 1}</span>
+                <h3>{title}</h3>
+                <p>{text}</p>
               </li>
             ))}
           </ol>
-        </section>
-        <section
-          id="modes"
-          className="mera-modes-section"
-          aria-labelledby="mera-modes-title"
-        >
-          <div className="mera-modes-intro">
-            <p className="eyebrow">MADE FOR YOUR KIND OF SERVICE</p>
-            <h2 id="mera-modes-title">
-              Your place.
-              <br />
-              Your pace.
-            </h2>
-            <p>
-              Different venues, different rhythms. Build the operation around
-              the way you serve.
-            </p>
-          </div>
-          <div
-            className="mera-mode-selector"
-            role="group"
-            aria-label="Explore service modes"
-          >
-            {serviceModes.map((item, index) => (
-              <button
-                type="button"
-                key={item.title}
-                aria-pressed={mode === index}
-                aria-controls="mera-mode-detail"
-                onClick={() => setMode(index)}
-              >
-                <item.icon aria-hidden="true" />
-                <span>{item.title}</span>
-                <ArrowRight aria-hidden="true" />
-              </button>
-            ))}
-          </div>
-          <div
-            className="mera-mode-detail"
-            id="mera-mode-detail"
-            aria-live="polite"
-          >
-            <span className="mera-section-number">
-              0{mode + 1} / {selected.title.toUpperCase()}
-            </span>
-            <h3>{selected.label}</h3>
-            <p>{selected.description}</p>
-            <ul>
-              {selected.features.map((feature) => (
-                <li key={feature}>
-                  <Check aria-hidden="true" />
-                  {feature}
-                </li>
-              ))}
-            </ul>
-            <a className="mera-inline-link" href="/mera/signup">
-              Set up your service <ArrowRight aria-hidden="true" />
-            </a>
-          </div>
-        </section>
-        <section
-          className="mera-menu-story"
-          aria-labelledby="mera-menu-story-title"
-        >
-          <div className="mera-menu-story-copy">
-            <p className="eyebrow">YOUR BRAND, AT EVERY TOUCHPOINT</p>
-            <h2 id="mera-menu-story-title">Make the first impression yours.</h2>
-            <p>
-              Let your food and drinks do the talking. Build a photo-rich menu
-              with categories, sizes and choices, then publish it behind a QR
-              code that stays the same.
-            </p>
-            <ul>
-              <li>One place to manage menu and availability</li>
-              <li>Your logo, colors and guest-facing presentation</li>
-              <li>Branded receipt and preparation-label layouts</li>
-            </ul>
-            <a className="mera-inline-link" href={demo}>
-              Browse the real menu demo <ArrowRight aria-hidden="true" />
-            </a>
-          </div>
-          <figure className="mera-menu-story-visual">
-            <div className="mera-menu-screen">
-              <img
-                src="/mera/bing-chun-menu-preview.jpg"
-                alt="Bing Chun photo menu with drinks, smoothie and topping categories, item names and prices"
-                width="918"
-                height="1056"
-                loading="lazy"
-              />
-            </div>
-            <figcaption>Bing Chun Surulere · actual menu workspace</figcaption>
-          </figure>
-        </section>
-        <section
-          id="reporting"
-          className="mera-reporting-story"
-          aria-labelledby="mera-reporting-title"
-        >
+        </div>
+      </section>
+      <section id="modes" className="mt-container mt-section">
+        <div className="mt-heading-row">
           <div>
-            <p className="eyebrow">A CLEARER PICTURE OF YOUR BUSINESS</p>
-            <h2 id="mera-reporting-title">
-              Know what happened.
+            <p className="eyebrow">FIT THE WAY YOU SERVE</p>
+            <h2>
+              One platform.
               <br />
-              See what needs you.
+              Different rhythms.
+            </h2>
+          </div>
+          <p>
+            Combine the service modes your venue needs. Keep roles, branch
+            access and readiness explicit.
+          </p>
+        </div>
+        <div className="mt-service-modes">
+          {[
+            [
+              "Counter & takeaway",
+              "Photo menus, staff-assisted orders, preparation and collection.",
+            ],
+            [
+              "Restaurants",
+              "Reservations, arrivals, tables, additional rounds and private bills.",
+            ],
+            [
+              "Lounges & clubs",
+              "Table service and repeat orders, with venue policies reviewed before launch.",
+            ],
+          ].map(([title, text], index) => (
+            <article key={title}>
+              <span>0{index + 1}</span>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+      <section id="reporting" className="mt-contrast-section">
+        <div className="mt-container mt-split">
+          <div>
+            <p className="eyebrow">YOUR BRAND. YOUR OPERATION.</p>
+            <h2>
+              More than a<br />
+              digital menu.
             </h2>
             <p>
-              From today’s service to end-of-day review, keep the detail
-              connected to the decisions.
+              Bring the details around service into the same working picture.
             </p>
-            <a className="mera-inline-link" href="/mera/signup">
-              Explore your workspace setup <ArrowRight aria-hidden="true" />
-            </a>
           </div>
-          <dl>
-            <div>
-              <dt>Service</dt>
-              <dd>
-                Orders, preparation, arrivals and responsibility, in one
-                operational view.
-              </dd>
-            </div>
-            <div>
-              <dt>Sales</dt>
-              <dd>
-                Items sold, discounts and sales totals with their own clear
-                definitions.
-              </dd>
-            </div>
-            <div>
-              <dt>Collections</dt>
-              <dd>
-                Money received, payment methods and balances still outstanding.
-              </dd>
-            </div>
-            <div>
-              <dt>Accountability</dt>
-              <dd>
-                Staff activity, shifts and an audit history behind important
-                changes.
-              </dd>
-            </div>
+          <dl className="mt-feature-list">
+            {[
+              [
+                "Brand & menu",
+                "Configure your logo, colors, categories, item choices and receipt layouts.",
+              ],
+              [
+                "Finished-product stock",
+                "Manage counted sellable items or unlimited stock. Ingredient inventory is not included.",
+              ],
+              [
+                "Team & accountability",
+                "Assign roles and branch access. See who created, prepared and completed the work.",
+              ],
+              [
+                "Business visibility",
+                "Review sales, actual collections and outstanding balances as distinct measures.",
+              ],
+            ].map(([title, text]) => (
+              <div key={title}>
+                <dt>{title}</dt>
+                <dd>{text}</dd>
+              </div>
+            ))}
           </dl>
-        </section>
+        </div>
+      </section>
+      <section id="commercial">
         <PricingAndSupport />
-        <section
-          id="questions"
-          className="mera-faq"
-          aria-labelledby="mera-faq-title"
-        >
-          <div>
-            <p className="eyebrow">BEFORE YOU BEGIN</p>
-            <h2 id="mera-faq-title">A few useful answers.</h2>
-          </div>
-          <div>
-            {questions.map(([question, answer]) => (
-              <Disclosure key={question} summary={question}>
-                <p>{answer}</p>
-              </Disclosure>
-            ))}
-          </div>
-        </section>
-        <section className="mera-final-cta" aria-labelledby="mera-final-title">
-          <div>
-            <p className="eyebrow">YOUR NEXT CHAPTER OF SERVICE</p>
-            <h2 id="mera-final-title">Bring it all together.</h2>
-            <p>Start with your business. Make the workspace your own.</p>
-          </div>
-          <a className="primary" href="/mera/signup">
-            Get started with Mera <ArrowRight aria-hidden="true" />
-          </a>
-        </section>
-      </main>
-      <footer>
-        <a className="mera-home-link" href="/mera" aria-label="Mera home">
-          <MeraBrand />
-        </a>
-        <p>Built around the way you serve.</p>
-        <nav aria-label="Footer">
-          <a href="/mera/legal">Privacy & terms preparation</a>
-          <a href="#support" onClick={navigate}>
-            Support
-          </a>
-          <a href="/mera/platform">Platform sign in</a>
-        </nav>
-      </footer>
-    </div>
+      </section>
+      <section className="mt-container mt-faq" id="questions">
+        <div>
+          <p className="eyebrow">BEFORE YOU BEGIN</p>
+          <h2>A few useful answers.</h2>
+        </div>
+        <div>
+          {[
+            [
+              "Can guests browse without an account?",
+              "Yes. Published menus are accessible without signing in. Details are requested when needed to place an order, reserve or join a private table visit.",
+            ],
+            [
+              "Which payment methods are available?",
+              "The platform supports staff-recorded cash, external POS and manually verified transfers. Integrated online collections require verified provider access and approved policies; they are not enabled in this staging preview.",
+            ],
+            [
+              "Can we use our own branding?",
+              "Yes. Organization branding, published menu presentation and receipt layouts can be configured. Your venue’s identity leads the customer experience.",
+            ],
+            [
+              "Does it work without a connection?",
+              "Mera QR is web-first. Changes need a connection, and an interrupted submission must be reconciled before it is treated as confirmed. Physical printing requires a supported setup and hardware testing.",
+            ],
+          ].map(([question, answer]) => (
+            <Disclosure key={question} summary={question}>
+              <p>{answer}</p>
+            </Disclosure>
+          ))}
+        </div>
+      </section>
+      <FinalAction product />
+    </MarketingShell>
   );
+}
+function Travel() {
+  return (
+    <MarketingShell active="products">
+      <section className="mt-travel-hero mt-container">
+        <div>
+          <p className="eyebrow">MERATRAVEL SUITE</p>
+          <span className="mt-status is-planned">Planned · coming soon</span>
+          <h1>
+            A better business journey.
+            <br />
+            Worth shaping together.
+          </h1>
+          <p>
+            We’re exploring software for travel businesses: a clearer way to
+            present services, organize enquiries and follow customer
+            relationships.
+          </p>
+          <a className="primary" href="#travel-interest">
+            Register your interest <ArrowRight aria-hidden="true" />
+          </a>
+          <p className="mt-small-note">
+            Not an available application. No launch date, pricing or
+            integrations are being promised.
+          </p>
+        </div>
+        <TravelConcept />
+      </section>
+      <section className="mt-travel-intent mt-container">
+        <div>
+          <p className="eyebrow">HELP INFORM THE DIRECTION</p>
+          <h2>
+            What would make
+            <br />
+            your work easier?
+          </h2>
+          <p>
+            Tell us the kind of travel business you run and the problem you
+            would most like to solve.
+          </p>
+          <p>
+            Registering interest is not a subscription, a booking or a
+            commitment to buy.
+          </p>
+        </div>
+        <section id="travel-interest" aria-label="MeraTravel product interest">
+          <TravelInterest />
+        </section>
+      </section>
+    </MarketingShell>
+  );
+}
+function Consultancy() {
+  return (
+    <MarketingShell active="consultancy">
+      <PageIntro
+        eyebrow="MERATECH CONSULTANCY"
+        title={
+          <>
+            Your business challenge.
+            <br />A considered solution.
+          </>
+        }
+        text="When your needs don’t fit a ready-made product, start with the problem. We help shape bespoke software around your users, systems and goals."
+      />
+      <section className="mt-consultancy-process mt-container">
+        <div>
+          <p className="eyebrow">FROM NEED TO NEXT STEP</p>
+          <h2>Clarity before complexity.</h2>
+          <p>
+            A project brief starts a review. It is not a quotation, an accepted
+            project or a delivery promise.
+          </p>
+        </div>
+        <ol>
+          {[
+            ["Discover", "Understand the problem, users and constraints."],
+            ["Define", "Agree the scope and the outcomes that matter."],
+            [
+              "Design & build",
+              "Shape, implement and test the agreed experience.",
+            ],
+            [
+              "Put it to work",
+              "Plan implementation and the support your solution needs.",
+            ],
+          ].map(([title, text], index) => (
+            <li key={title}>
+              <span>0{index + 1}</span>
+              <div>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+      <section className="mt-project-brief-section" id="project-brief">
+        <div className="mt-container">
+          <div className="mt-heading-row">
+            <div>
+              <p className="eyebrow">TELL US WHAT YOU NEED</p>
+              <h2>Start with your brief.</h2>
+            </div>
+            <p>
+              New software or an existing system. A clear plan or an early idea.
+              Share enough context to make the next conversation useful.
+            </p>
+          </div>
+          <ProjectBrief />
+        </div>
+      </section>
+    </MarketingShell>
+  );
+}
+function About() {
+  return (
+    <MarketingShell active="about">
+      <PageIntro
+        eyebrow="ABOUT MERATECH"
+        title={
+          <>
+            Technology should
+            <br />
+            understand the work.
+          </>
+        }
+        text="MeraTech brings product thinking and software development to hospitality, travel and the business needs around them."
+      />
+      <section className="mt-about-principle">
+        <div className="mt-container">
+          <p className="eyebrow">OUR STARTING POINT</p>
+          <h2>
+            Better experiences begin
+            <br />
+            behind the scenes.
+          </h2>
+          <p>
+            The customer sees an order, a visit or an enquiry. Behind it sit
+            people, decisions and handoffs. We build technology that helps those
+            parts work together.
+          </p>
+        </div>
+      </section>
+      <section className="mt-container mt-section">
+        <div className="mt-heading-row">
+          <div>
+            <p className="eyebrow">WHAT WE’RE BUILDING</p>
+            <h2>
+              A clear purpose
+              <br />
+              for each offering.
+            </h2>
+          </div>
+          <p>
+            We distinguish working software, future direction and bespoke
+            project work so you can choose the right next step.
+          </p>
+        </div>
+        <OfferingRows />
+      </section>
+      <FinalAction />
+    </MarketingShell>
+  );
+}
+function Contact() {
+  return (
+    <MarketingShell active="contact">
+      <PageIntro
+        eyebrow="CONTACT MERATECH"
+        title={
+          <>
+            Start the right
+            <br />
+            conversation.
+          </>
+        }
+        text="Choose what you need and share the details that will make the next conversation useful."
+      />
+      <section className="mt-contact-choices mt-container">
+        {[
+          {
+            title: "A bespoke software project",
+            text: "Share the problem, intended users and what you need your solution to do.",
+            href: "/mera/consultancy#project-brief",
+            cta: "Write a project brief",
+            icon: Layers,
+          },
+          {
+            title: "MeraTravel product interest",
+            text: "Help inform the planned product and record your interest in its direction.",
+            href: "/mera/travel#travel-interest",
+            cta: "Register interest",
+            icon: Compass,
+          },
+          {
+            title: "Getting started with Mera QR",
+            text: "Explore the working product, its setup journey and current readiness.",
+            href: "/mera/qr",
+            cta: "Explore Mera QR",
+            icon: QrCode,
+          },
+          {
+            title: "Support for your organization",
+            text: "Existing Mera QR teams can create and follow support cases in their workspace.",
+            href: "/mera/workspace",
+            cta: "Open your workspace",
+            icon: MessageSquare,
+          },
+        ].map((item) => (
+          <article key={item.title}>
+            <item.icon aria-hidden="true" />
+            <div>
+              <h2>{item.title}</h2>
+              <p>{item.text}</p>
+              <a className="mt-text-link" href={item.href}>
+                {item.cta}
+                <ArrowRight aria-hidden="true" />
+              </a>
+            </div>
+          </article>
+        ))}
+      </section>
+    </MarketingShell>
+  );
+}
+function SignInRouting() {
+  return (
+    <MarketingShell>
+      <PageIntro
+        eyebrow="PRODUCT SIGN-IN"
+        title={
+          <>
+            The right workspace.
+            <br />
+            The right access.
+          </>
+        }
+        text="Choose your existing workspace. New business registration and platform operator access are separate journeys."
+      />
+      <section className="mt-entry-choices mt-container">
+        <article>
+          <QrCode aria-hidden="true" />
+          <p className="eyebrow">MERA QR</p>
+          <h2>Owner & staff workspace</h2>
+          <p>
+            Sign in with your existing account. Access follows your
+            organization, branch and assigned role.
+          </p>
+          <a className="primary" href="/mera/workspace">
+            Sign in to Mera QR <ArrowRight aria-hidden="true" />
+          </a>
+          <a className="mt-text-link" href="/mera/signup">
+            New business? Start registration
+          </a>
+        </article>
+        <article>
+          <Compass aria-hidden="true" />
+          <p className="eyebrow">MERATRAVEL SUITE</p>
+          <h2>Planned, not launched.</h2>
+          <p>
+            There is no Travel application account to sign into yet. You can
+            register interest in the planned product.
+          </p>
+          <a className="mt-text-link" href="/mera/travel#travel-interest">
+            Register product interest <ArrowRight aria-hidden="true" />
+          </a>
+        </article>
+      </section>
+      <div className="mt-operator-entry mt-container">
+        <ShieldCheck aria-hidden="true" />
+        <p>Authorized Mera operator?</p>
+        <a href="/mera/platform/sign-in">
+          Open platform sign-in <ArrowUpRight aria-hidden="true" />
+        </a>
+      </div>
+    </MarketingShell>
+  );
+}
+function PageIntro({
+  eyebrow,
+  title,
+  text,
+}: {
+  eyebrow: string;
+  title: ReactNode;
+  text: string;
+}) {
+  return (
+    <section className="mt-page-intro mt-container">
+      <p className="eyebrow">{eyebrow}</p>
+      <h1>{title}</h1>
+      <p>{text}</p>
+    </section>
+  );
+}
+function FinalAction({ product = false }: { product?: boolean }) {
+  return (
+    <section className="mt-final-action">
+      <div className="mt-container">
+        <div>
+          <p className="eyebrow">
+            {product
+              ? "YOUR NEXT CHAPTER OF SERVICE"
+              : "LET’S MAKE THE NEXT STEP USEFUL"}
+          </p>
+          <h2>
+            {product
+              ? "Bring your service together."
+              : "A product. A possibility. A project."}
+          </h2>
+        </div>
+        <a
+          className="primary"
+          href={product ? "/mera/signup" : "/mera/contact"}
+        >
+          {product ? "Start with Mera QR" : "Find your next step"}
+          <ArrowRight aria-hidden="true" />
+        </a>
+      </div>
+    </section>
+  );
+}
+export default function Marketing() {
+  const page = window.location.pathname.replace(/\/$/, "");
+  if (page === "/mera/products") return <Products />;
+  if (page === "/mera/qr") return <QRProduct />;
+  if (page === "/mera/travel") return <Travel />;
+  if (page === "/mera/consultancy") return <Consultancy />;
+  if (page === "/mera/about") return <About />;
+  if (page === "/mera/contact") return <Contact />;
+  if (page === "/mera/sign-in") return <SignInRouting />;
+  return <Home />;
 }
 export function LegalInformation() {
   return <LegalInformationPage />;

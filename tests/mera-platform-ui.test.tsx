@@ -423,7 +423,7 @@ test("shared reason retains native service-form validation while disclosures pre
     cleanup();
   }
 });
-test("compact platform chooser reaches all five sections and shares desktop navigation state", async () => {
+test("compact platform chooser reaches all seven sections and shares desktop navigation state", async () => {
   globalThis.fetch = (async (input: any) => {
     if (String(input).endsWith("/auth"))
       return Response.json({ enrolled: true, verified: true });
@@ -438,7 +438,15 @@ test("compact platform chooser reaches all five sections and shares desktop navi
     )) as HTMLSelectElement;
     assert.deepEqual(
       Array.from(chooser.options).map((option) => option.value),
-      ["organizations", "support", "health", "backups", "audit"],
+      [
+        "organizations",
+        "support",
+        "health",
+        "backups",
+        "audit",
+        "consultancy",
+        "travel_interest",
+      ],
     );
     fireEvent.change(chooser, { target: { value: "audit" } });
     assert.ok(screen.getByRole("heading", { name: "Operator audit" }));

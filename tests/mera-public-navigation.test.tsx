@@ -30,37 +30,26 @@ test.afterEach(() => {
   window.history.replaceState(null, "", "/mera");
   scrolls.length = 0;
 });
-test("homepage skip link focuses the main heading and header section links close the menu with focus at their actual destination", () => {
+test("company skip link and QR section links focus their actual destinations", () => {
+  window.history.replaceState(null, "", "/mera/qr");
   render(<Marketing />);
   fireEvent.click(screen.getByRole("link", { name: "Skip to content" }));
   assert.equal(
     document.activeElement,
     screen.getByRole("heading", { level: 1 }),
   );
-  assert.equal(window.location.hash, "#mera-main");
-  assert.equal(scrolls.at(-1), document.getElementById("mera-main"));
+  assert.equal(window.location.hash, "#mt-main");
   for (const [name, id] of [
-    ["Product", "experience"],
-    ["Solutions", "modes"],
-    ["Pricing", "pricing"],
+    ["Walkthrough", "experience"],
+    ["Service modes", "modes"],
+    ["Readiness", "commercial"],
+    ["Questions", "questions"],
   ]) {
-    fireEvent.click(screen.getByRole("button", { name: "Open menu" }));
     fireEvent.click(screen.getByRole("link", { name, exact: true }));
     const section = document.getElementById(id)!;
     assert.equal(
       document.activeElement,
       section.querySelector("h1,h2,h3") || section,
-    );
-    assert.equal(
-      section.contains(document.activeElement) ||
-        document.activeElement === section,
-      true,
-    );
-    assert.equal(
-      screen
-        .getByRole("button", { name: "Open menu" })
-        .getAttribute("aria-expanded"),
-      "false",
     );
     assert.equal(window.location.hash, "#" + id);
     assert.equal(scrolls.at(-1), section);
@@ -71,7 +60,9 @@ test("lazy homepage pricing fragment and legal policy fragment are resolved afte
   const first = render(<Marketing />);
   assert.equal(
     document.activeElement,
-    screen.getByRole("heading", { name: "A clear starting point." }),
+    screen.getByRole("heading", {
+      name: "A considered start, not a hidden commitment.",
+    }),
   );
   first.unmount();
   window.history.replaceState(null, "", "/mera/legal#payments-policies");
@@ -99,12 +90,13 @@ test("lazy homepage pricing fragment and legal policy fragment are resolved afte
   );
 });
 test("hashchange and history navigation focus only allowed mounted page sections", () => {
+  window.history.replaceState(null, "", "/mera/qr");
   render(<Marketing />);
-  window.history.pushState(null, "", "/mera#support");
+  window.history.pushState(null, "", "/mera/qr#questions");
   fireEvent(window, new window.Event("hashchange"));
   assert.equal(
     document.activeElement,
-    document.getElementById("support")?.querySelector("h2,h3"),
+    document.getElementById("questions")?.querySelector("h2,h3"),
   );
   window.history.replaceState(null, "", "/mera#modes");
   fireEvent(window, new window.Event("popstate"));
@@ -139,7 +131,7 @@ test("modified new-tab clicks are not intercepted, do not close the mobile menu 
     event.preventDefault();
   };
   document.addEventListener("click", observe, { once: true });
-  fireEvent.click(screen.getByRole("link", { name: "Pricing", exact: true }), {
+  fireEvent.click(screen.getByRole("link", { name: "Products", exact: true }), {
     ctrlKey: true,
   });
   assert.equal(intercepted, false);

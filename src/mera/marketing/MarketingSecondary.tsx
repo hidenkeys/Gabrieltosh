@@ -1,131 +1,62 @@
 import { usePublicNavigation } from "./publicNavigation";
-import { Disclosure } from "../ui/OperationalPrimitives";
 import { MeraBrand } from "../ui/MeraBrand";
+import { ArrowRight } from "lucide-react";
 
+/** Commercial terms remain unpublished until an approved policy exists. */
 export function PricingAndSupport() {
   return (
-    <>
-      <section
-        id="pricing"
-        className="mera-secondary-pricing"
-        aria-labelledby="mera-plan-title"
-      >
-        <div className="mera-secondary-section-heading">
-          <p className="eyebrow">TRANSPARENT BY DESIGN</p>
-          <h2 id="mera-plan-title">A clear starting point.</h2>
-          <p>
-            Start with one organization and one branch. Review the commercial
-            terms before you launch.
-          </p>
-        </div>
-        <div className="mera-secondary-plan-grid">
-          <article className="mera-secondary-plan">
-            <span className="mera-secondary-proposal">
-              PROPOSED STARTING PLAN
-            </span>
-            <p className="mera-secondary-price">
-              <strong>₦13,500</strong>
-              <span> / organization / month</span>
-            </p>
-            <p>One branch included. Commercial terms are pending approval.</p>
-            <ul>
-              <li>Your organization and its service team</li>
-              <li>One branch in the proposed starting plan</li>
-              <li>Menu, orders and daily operations in one workspace</li>
-            </ul>
-            <a className="primary" href="/mera/signup">
-              Explore onboarding
-            </a>
-            <small>
-              Additional-branch pricing is configurable and not yet approved;
-              unlimited branches are not included.
-            </small>
-          </article>
-          <div className="mera-secondary-fees">
-            <h3>Understand the collection fee.</h3>
-            <p>
-              A proposed <strong>0.1%</strong> fee applies only to confirmed
-              Mera-integrated collections.
-            </p>
-            <div
-              className="mera-secondary-table"
-              role="region"
-              aria-label="Proposed collection fee by payment method"
-              tabIndex={0}
-            >
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">Payment method</th>
-                    <th scope="col">Proposed collection fee</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Confirmed Mera-integrated collection</td>
-                    <td>0.1%</td>
-                  </tr>
-                  <tr>
-                    <td>Recorded cash</td>
-                    <td>No collection fee</td>
-                  </tr>
-                  <tr>
-                    <td>External POS</td>
-                    <td>No collection fee</td>
-                  </tr>
-                  <tr>
-                    <td>Manually recorded external transfer</td>
-                    <td>No collection fee</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <Disclosure
-              className="mera-secondary-disclosure"
-              summary="Commercial choices still to be agreed"
-            >
-              <p>
-                Who pays the fee, its calculation basis, rounding, refund
-                treatment, trial and grace periods must be approved before live
-                billing. No recurring debit or live collection is enabled by
-                this preview.
-              </p>
-            </Disclosure>
-            <p className="mera-secondary-readiness">
-              Owner verification, payment-provider approval and service policies
-              need review before launch. Exploring onboarding does not activate
-              billing.
-            </p>
-          </div>
-        </div>
-      </section>
-      <section
-        id="support"
-        className="mera-secondary-support"
-        aria-labelledby="mera-support-title"
-      >
+    <section id="pricing" className="mt-commercial-section">
+      <div className="mt-container mt-split">
         <div>
-          <p className="eyebrow">HERE FOR YOUR OPERATION</p>
-          <h2 id="mera-support-title">Support, in your workspace.</h2>
+          <p className="eyebrow">A CONSIDERED START</p>
+          <h2>
+            Review your setup.
+            <br />
+            Understand the terms.
+          </h2>
           <p>
-            Existing merchants can create and follow in-app support cases from
-            their organization workspace.
+            Review the subscription and branch terms that apply to your business
+            before launch. Choose a setup that fits your operation.
           </p>
-        </div>
-        <div className="mera-secondary-support-actions">
-          <a className="primary" href="/mera/workspace">
-            Open your workspace
+          <a className="primary" href="/mera/signup">
+            Explore Mera QR setup <ArrowRight aria-hidden="true" />
           </a>
-          <a className="text-button" href="/mera/legal">
-            Review policy preparation
-          </a>
-          <p>
-            Messages and replies stay in Mera. Email, SMS and push delivery
-            remain unavailable.
-          </p>
         </div>
-      </section>
-    </>
+        <div className="mt-readiness-list">
+          <article>
+            <span>01</span>
+            <div>
+              <h3>Organization readiness</h3>
+              <p>
+                Configure the menu, team and service policies your business
+                needs.
+              </p>
+            </div>
+          </article>
+          <article>
+            <span>02</span>
+            <div>
+              <h3>Payment readiness</h3>
+              <p>
+                Manual payment records are distinct from integrated collections.
+                Provider approval and approved commercial policies are required
+                before live financial services.
+              </p>
+            </div>
+          </article>
+          <article>
+            <span>03</span>
+            <div>
+              <h3>Review before launch</h3>
+              <p>
+                Confirm the applicable subscription, fees and launch
+                requirements. Exploring setup does not activate billing.
+              </p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
   );
 }
 const policySections = [
@@ -153,13 +84,13 @@ export function LegalInformationPage() {
         Skip to policy information
       </a>
       <header className="mera-secondary-header">
-        <a className="mera-home-link" href="/mera" aria-label="Mera home">
+        <a className="mera-home-link" href="/mera" aria-label="MeraTech home">
           <MeraBrand />
         </a>
         <nav aria-label="Public information">
-          <a href="/mera#experience">Product</a>
-          <a href="/mera#pricing">Pricing</a>
-          <a href="/mera/workspace">Sign in</a>
+          <a href="/mera/products">Products</a>
+          <a href="/mera/qr#commercial">Mera QR</a>
+          <a href="/mera/sign-in">Sign in</a>
         </nav>
       </header>
       <main id="mera-policy-main" className="mera-legal-main">
@@ -226,7 +157,7 @@ export function LegalInformationPage() {
               </p>
             </section>
             <a className="secondary" href="/mera">
-              Return to Mera
+              Return to MeraTech
             </a>
           </div>
         </div>

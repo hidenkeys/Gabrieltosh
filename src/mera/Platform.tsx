@@ -1,11 +1,14 @@
 import { useEffect, useState, useRef } from "react";
 import { workspaceApi, formatMoney, WorkspaceError } from "./workspace/api";
 import { useDialogFocus } from "./ui/useDialogFocus";
+import PlatformCompanyInbox from "./company/PlatformCompanyInbox";
 import { MeraBrand } from "./ui/MeraBrand";
 import {
   Activity,
   ArrowUpRight,
   Building2,
+  BriefcaseBusiness,
+  Plane,
   DatabaseBackup,
   LifeBuoy,
   ListChecks,
@@ -30,8 +33,14 @@ const platformIcons = [
   Activity,
   DatabaseBackup,
   ListChecks,
+  BriefcaseBusiness,
+  Plane,
 ];
 const platformDescriptions: Record<string, string> = {
+  consultancy:
+    "Review project briefs, assign a handler and track discovery or proposals.",
+  travel_interest:
+    "Review interest in the planned MeraTravel Suite and keep follow-up notes.",
   organizations: "Find a business, review its setup and manage service access.",
   support: "Review organization requests and keep responses with their cases.",
   health: "Review operational signals, integrations and provider readiness.",
@@ -45,6 +54,8 @@ const platformSections = [
   ["health", "Service health"],
   ["backups", "Backups"],
   ["audit", "Audit log"],
+  ["consultancy", "Consultancy enquiries"],
+  ["travel_interest", "Travel interest"],
 ];
 
 export default function Platform() {
@@ -421,7 +432,12 @@ export default function Platform() {
               {[
                 {
                   label: "BUSINESS OPERATIONS",
-                  ids: ["organizations", "support"],
+                  ids: [
+                    "organizations",
+                    "support",
+                    "consultancy",
+                    "travel_interest",
+                  ],
                 },
                 {
                   label: "PLATFORM ASSURANCE",
@@ -547,6 +563,14 @@ export default function Platform() {
                   ))}
                 </select>
               </label>
+              {["consultancy", "travel_interest"].includes(panel) &&
+                auth?.userId && (
+                  <PlatformCompanyInbox
+                    key={`${auth.userId}:${panel}`}
+                    actorId={auth.userId}
+                    kind={panel as "consultancy" | "travel_interest"}
+                  />
+                )}
               <section
                 className="mera-stat-grid"
                 aria-label="Organization overview"

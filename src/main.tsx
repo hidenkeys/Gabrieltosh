@@ -3,7 +3,12 @@ import { createRoot } from "react-dom/client";
 const App = React.lazy(() => import("./App"));
 import "./styles.css";
 import "./mera/ui/mera-foundations.css";
+import "./mera/ui/mera-entry.css";
+import { MeraLoading, MeraSiteEntry } from "./mera/ui/MeraEntry";
+import { MeraBrand } from "./mera/ui/MeraBrand";
 import "./mera/platform.css";
+import "./mera/company/company-inbox.css";
+import "./mera/company/company-forms.css";
 import "./mera/signup.css";
 import "./mera/mera-signin.css";
 const MeraSignIn = React.lazy(() => import("./mera/MeraSignIn"));
@@ -61,7 +66,7 @@ if (window.location.pathname.startsWith("/mera")) {
         ? "Menu & guest services · Mera"
         : window.location.pathname.startsWith("/mera/legal")
           ? "Policy preparation · Mera"
-          : "Mera · Hospitality, connected";
+          : "MeraTech · Technology for hospitality and travel";
 }
 
 class WorkspaceBoundary extends React.Component<
@@ -79,7 +84,7 @@ class WorkspaceBoundary extends React.Component<
     return this.state.failed ? (
       <div className="workspace-recovery" role="alert">
         {window.location.pathname.startsWith("/mera") ? (
-          <p className="mera-wordmark">mera.</p>
+          <MeraBrand />
         ) : (
           <img src="/brand/brand-logo.png" alt="Bing Chun" />
         )}
@@ -102,28 +107,31 @@ createRoot(document.getElementById("root")!).render(
     <WorkspaceBoundary>
       <React.Suspense
         fallback={
-          <main style={{ padding: 40 }} role="status">
-            <h1>
-              {/^\/mera\/(menu|store)\//.test(window.location.pathname)
+          <MeraLoading
+            title={
+              /^\/mera\/(menu|store)\//.test(window.location.pathname)
                 ? "Opening the menu…"
-                : window.location.pathname === "/mera" ||
-                    window.location.pathname === "/mera/"
-                  ? "Loading Mera…"
-                  : window.location.pathname === "/mera/legal"
-                    ? "Opening policy information…"
-                    : window.location.pathname === "/mera/signup"
-                      ? "Opening registration…"
-                      : window.location.pathname === "/mera/platform"
-                        ? "Opening platform administration…"
-                        : "Opening your workspace…"}
-            </h1>
-            <p>Connecting to the current service.</p>
-          </main>
+                : "Opening MeraTech…"
+            }
+            description="Preparing this page."
+            onRetry={() => window.location.reload()}
+          />
         }
       >
-        {window.location.pathname === "/mera" ||
-        window.location.pathname === "/mera/" ? (
-          <Marketing />
+        {[
+          "/mera",
+          "/mera/",
+          "/mera/products",
+          "/mera/qr",
+          "/mera/travel",
+          "/mera/consultancy",
+          "/mera/about",
+          "/mera/contact",
+          "/mera/sign-in",
+        ].includes(window.location.pathname) ? (
+          <MeraSiteEntry>
+            <Marketing />
+          </MeraSiteEntry>
         ) : window.location.pathname === "/mera/legal" ? (
           <LegalInformation />
         ) : window.location.pathname === "/mera/signup" ? (

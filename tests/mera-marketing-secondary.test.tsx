@@ -20,7 +20,7 @@ const { PricingAndSupport, LegalInformationPage } =
   await import("../src/mera/marketing/MarketingSecondary");
 const { default: Signup } = await import("../src/mera/Signup");
 
-test("M2 fee comparison preserves proposed terms and never presents manual payments as chargeable", () => {
+test("commercial information offers readiness review without unapproved prices or payment writes", () => {
   let reads = 0;
   globalThis.fetch = (async () => {
     reads++;
@@ -28,46 +28,22 @@ test("M2 fee comparison preserves proposed terms and never presents manual payme
   }) as any;
   try {
     render(<PricingAndSupport />);
-    assert.ok(screen.getByText("PROPOSED STARTING PLAN"));
-    assert.ok(screen.getByText("₦13,500"));
-    assert.ok(screen.getByText(/unlimited branches are not included/));
-    const rows = screen.getAllByRole("row");
-    for (const payment of [
-      "Recorded cash",
-      "External POS",
-      "Manually recorded external transfer",
-    ]) {
-      const row = rows.find((row) => row.textContent?.includes(payment));
-      assert.ok(row);
-      assert.match(row.textContent || "", /No collection fee/);
-    }
-    assert.equal(
-      screen
-        .getByRole("region", {
-          name: "Proposed collection fee by payment method",
-        })
-        .getAttribute("tabindex"),
-      "0",
-    );
-    const summary = screen.getByText("Commercial choices still to be agreed", {
-      selector: "summary",
-    });
-    fireEvent.keyDown(summary, { key: "Enter" });
-    assert.equal(summary.closest("details")?.open, true);
+    assert.ok(screen.getByRole("heading", { name: "Payment readiness" }));
     assert.ok(
-      screen.getByText(/No recurring debit or live collection is enabled/),
+      screen.getByText(
+        /Manual payment records are distinct from integrated collections/,
+      ),
+    );
+    assert.ok(screen.getByText(/Exploring setup does not activate billing/));
+    assert.doesNotMatch(
+      document.body.textContent || "",
+      /₦|13,500|unlimited branches/,
     );
     assert.equal(
       screen
-        .getByRole("link", { name: "Explore onboarding" })
+        .getByRole("link", { name: "Explore Mera QR setup" })
         .getAttribute("href"),
       "/mera/signup",
-    );
-    assert.equal(
-      screen
-        .getByRole("link", { name: "Open your workspace" })
-        .getAttribute("href"),
-      "/mera/workspace",
     );
     assert.equal(reads, 0);
   } finally {
@@ -110,9 +86,9 @@ test("M2 blocked signup offers proposed pricing and existing workspace without c
     });
     assert.equal(
       screen
-        .getByRole("link", { name: "Review proposed pricing" })
+        .getByRole("link", { name: "Discuss plans and terms" })
         .getAttribute("href"),
-      "/mera#pricing",
+      "/mera/qr#commercial",
     );
     assert.equal(
       screen
@@ -137,9 +113,9 @@ test("M2 a pricing fragment from another page reaches its section after the lazy
     reached.push(this.id);
   };
   try {
-    window.history.replaceState({}, "", "/mera#pricing");
+    window.history.replaceState({}, "", "/mera/qr#commercial");
     const view = render(<Marketing />);
-    assert.deepEqual(reached, ["pricing"]);
+    assert.deepEqual(reached, ["commercial"]);
     view.unmount();
     reached.length = 0;
     window.history.replaceState({}, "", "/mera#unrecognized");

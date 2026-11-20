@@ -216,7 +216,7 @@ export default function Signup() {
         Skip to owner setup
       </a>
       <header className="mera-signup-header">
-        <a className="mera-signup-home" href="/mera" aria-label="Mera home">
+        <a className="mera-signup-home" href="/mera" aria-label="MeraTech home">
           <MeraBrand />
         </a>
         <div className="mera-signup-access">
@@ -231,7 +231,7 @@ export default function Signup() {
           className="mera-signup-introduction"
           aria-labelledby="owner-start-title"
         >
-          <p className="eyebrow">YOUR BUSINESS, CONNECTED</p>
+          <p className="eyebrow">MERA QR · YOUR BUSINESS, CONNECTED</p>
           <h1 id="owner-start-title">
             Make room for <br />
             better service.
@@ -269,8 +269,8 @@ export default function Signup() {
             <Users size={20} aria-hidden="true" />
             <span>From the first counter to the last table.</span>
           </div>
-          <a className="mera-signup-price-link" href="/mera#pricing">
-            Review proposed pricing <ArrowRight size={15} aria-hidden="true" />
+          <a className="mera-signup-price-link" href="/mera/qr#commercial">
+            Discuss plans and terms <ArrowRight size={15} aria-hidden="true" />
           </a>
         </section>
         <section

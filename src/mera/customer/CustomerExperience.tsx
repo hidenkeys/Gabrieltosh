@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { MeraLoading } from "../ui/MeraEntry";
 import { brandingStyle } from "../branding";
 import {
   orderStateLabel,
@@ -1332,6 +1333,7 @@ export default function CustomerExperience({
       if (generation === checkoutGeneration.current) setBusy(false);
     }
   }
+  if (!menu) return <MeraLoading retryLabel="Refresh menu" title="Opening the menu…" description="Finding your venue and its current menu." error={error} onRetry={() => void load()} />;
   return (
     <div
       className={"mera-customer" + (tab === "menu" ? " mc-menu-view" : "")}

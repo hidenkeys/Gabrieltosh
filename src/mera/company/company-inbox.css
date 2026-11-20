@@ -1,0 +1,172 @@
+.mera-company-inbox {
+  min-width: 0;
+}
+.mera-company-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) 1fr 1fr auto;
+  gap: 14px;
+  align-items: end;
+  margin: 20px 0;
+}
+.mera-company-inbox label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.mera-company-inbox :is(input, select, textarea) {
+  width: 100%;
+  min-width: 0;
+}
+.mera-company-table {
+  overflow: auto;
+  border: 1px solid var(--mera-border);
+  border-radius: 12px;
+  background: white;
+}
+.mera-company-table table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+  min-width: 760px;
+}
+.mera-company-table :is(th, td) {
+  padding: 16px;
+  border-bottom: 1px solid var(--mera-border);
+  vertical-align: top;
+}
+.mera-company-table th {
+  background: var(--mera-paper);
+  font-size: 12px;
+}
+.mera-company-inbox small {
+  display: block;
+  color: var(--mera-muted);
+  margin-top: 5px;
+}
+.mera-company-pagination,
+.mera-company-detail-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 20px 0;
+}
+.mera-company-detail-heading p {
+  margin: 4px 0;
+  color: var(--mera-muted);
+  font-size: 13px;
+}
+.mera-company-detail-heading h2 {
+  margin: 4px 0;
+  font-size: 23px;
+}
+.mera-company-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.mera-company-detail-grid .mera-panel {
+  margin: 0 0 20px;
+  padding: 24px;
+}
+.mera-company-inbox dl {
+  margin: 0;
+}
+.mera-company-inbox dl > div {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--mera-border);
+}
+.mera-company-inbox dt {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--mera-muted);
+  margin-bottom: 6px;
+}
+.mera-company-inbox dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.mera-company-update fieldset {
+  display: grid;
+  gap: 15px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.mera-company-update textarea {
+  min-height: 85px;
+  resize: vertical;
+}
+.mera-company-update > p,
+.mera-company-private-note {
+  font-size: 12px;
+  color: var(--mera-muted);
+  line-height: 1.6;
+}
+.mera-company-history article {
+  padding: 15px 0;
+  border-top: 1px solid var(--mera-border);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.mera-company-history p {
+  white-space: pre-wrap;
+}
+.mera-company-recovery {
+  padding: 20px;
+  background: #fff5df;
+  border: 1px solid #bc9746;
+  border-radius: 12px;
+  margin: 16px 0;
+}
+.mera-company-recovery p {
+  font-size: 14px;
+}
+.mera-company-detail-grid h3 {
+  font-size: 16px;
+  margin: 0 0 16px;
+}
+.mera-company-detail-grid dl + h3 {
+  margin-top: 24px;
+}
+@media (max-width: 1050px) {
+  .mera-company-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+  .mera-company-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .mera-company-filters {
+    grid-template-columns: 1fr;
+  }
+  .mera-company-detail-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .mera-company-detail-heading > div {
+    order: -1;
+    width: 100%;
+  }
+  .mera-company-detail-grid .mera-panel {
+    padding: 18px;
+  }
+  .mera-company-pagination {
+    font-size: 12px;
+    gap: 8px;
+  }
+}
+
+.mera-company-detail-grid > * {
+  min-width: 0;
+}
+.mera-company-inbox :is(a, td, p) {
+  overflow-wrap: anywhere;
+}

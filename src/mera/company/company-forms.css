@@ -1,0 +1,385 @@
+.mera-company-form {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.7fr) minmax(0, 1.3fr);
+  border: 1px solid var(--mera-border);
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--mera-white);
+  color: var(--mera-ink);
+  text-align: left;
+}
+.mera-company-form * {
+  box-sizing: border-box;
+}
+.mera-company-guide {
+  padding: 38px;
+  background: var(--mera-paper);
+  border-right: 1px solid var(--mera-border);
+}
+.mera-company-eyebrow {
+  font-size: 10px !important;
+  letter-spacing: 0.14em;
+  font-weight: 800;
+  color: var(--mera-forest);
+  margin: 0 0 16px !important;
+}
+.mera-company-guide h2 {
+  font:
+    750 clamp(25px, 3vw, 36px)/1.12 Inter,
+    Arial,
+    sans-serif !important;
+  letter-spacing: -0.045em;
+  margin: 0 0 20px !important;
+}
+.mera-company-form p {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--mera-muted);
+}
+.mera-company-guide ol {
+  list-style: none;
+  padding: 24px 0;
+  margin: 0;
+  display: grid;
+  gap: 25px;
+}
+.mera-company-guide li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mera-muted);
+}
+.mera-company-guide li > span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--mera-border);
+  border-radius: 50%;
+  font-size: 11px;
+  flex: none;
+}
+.mera-company-guide li[aria-current="step"] {
+  color: var(--mera-forest);
+}
+.mera-company-guide li[aria-current="step"] > span {
+  background: var(--mera-forest);
+  color: #fff;
+  border-color: var(--mera-forest);
+}
+.mera-company-guide li small {
+  display: block;
+  font-weight: 400;
+  font-size: 12px;
+  margin-top: 5px;
+}
+.mera-company-guide-note {
+  padding-top: 22px;
+  border-top: 1px solid var(--mera-border);
+  font-size: 12px !important;
+}
+.mera-company-form form {
+  padding: 38px;
+  min-width: 0;
+}
+.mera-company-form header {
+  margin-bottom: 25px;
+}
+.mera-company-form h3 {
+  font-size: 26px;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  margin: 0 0 10px;
+}
+.mera-company-form h3:focus,
+.mera-company-form h2:focus {
+  outline: none;
+}
+.mera-company-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  animation: mera-enter var(--mera-enter) var(--mera-ease) both;
+}
+.mera-company-fields .wide {
+  grid-column: 1/-1;
+}
+.mera-company-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.mera-company-field label {
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.mera-company-field label > span {
+  font-weight: 400;
+  color: var(--mera-muted);
+  font-size: 11px;
+  margin-left: auto;
+}
+.mera-company-form input:not([type="checkbox"]),
+.mera-company-form select,
+.mera-company-form textarea {
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  background: #fff;
+  color: var(--mera-ink);
+  border: 1px solid #b6c1b8;
+  border-radius: 7px;
+  padding: 11px 12px;
+  min-height: 44px;
+}
+.mera-company-form textarea {
+  resize: vertical;
+}
+.mera-company-form [aria-invalid="true"] {
+  border-color: #a6382c !important;
+}
+.mera-company-form :is(input, textarea, select, button, a):focus-visible {
+  outline: 3px solid #719b79;
+  outline-offset: 3px;
+}
+.mera-company-field small,
+.mera-company-field p {
+  font-size: 12px;
+  margin: 0;
+  line-height: 1.5;
+}
+.mera-company-error {
+  color: #9f3025 !important;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.mera-company-form footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--mera-border);
+}
+.mera-company-form button,
+.mera-company-confirmation > a {
+  display: inline-flex;
+  gap: 9px;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+  border: 1px solid var(--mera-border);
+  border-radius: 7px;
+  padding: 11px 18px;
+  background: transparent;
+  color: var(--mera-forest);
+  font:
+    700 12px Inter,
+    Arial,
+    sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background var(--mera-fast),
+    transform var(--mera-fast);
+}
+.mera-company-form button.primary {
+  background: var(--mera-forest);
+  color: #fff;
+  border-color: var(--mera-forest);
+}
+.mera-company-form button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px #153f3212;
+}
+.mera-company-form button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.mera-company-review {
+  margin: 0;
+  display: grid;
+  gap: 17px;
+}
+.mera-company-form dl div {
+  display: grid;
+  gap: 5px;
+}
+.mera-company-form dt {
+  font-size: 11px;
+  color: var(--mera-muted);
+}
+.mera-company-form dd {
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.mera-company-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  font-size: 12px;
+  line-height: 1.65;
+}
+.mera-company-consent input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin: 2px 0 0;
+  accent-color: var(--mera-forest);
+}
+.mera-company-consent a {
+  color: var(--mera-forest);
+  text-underline-offset: 3px;
+}
+.mera-company-storage-note {
+  font-size: 11px !important;
+  line-height: 1.6 !important;
+  display: flex;
+  gap: 9px;
+  margin: 0 !important;
+}
+.mera-company-storage-note svg {
+  flex: none;
+  margin-top: 2px;
+}
+.mera-company-files {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 7px;
+}
+.mera-company-files li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.mera-company-files button {
+  padding: 8px;
+  flex: none;
+}
+.mera-company-confirmation,
+.mera-company-recovery {
+  grid-column: 1/-1;
+  padding: 48px;
+  max-width: 800px;
+  animation: mera-enter var(--mera-enter) var(--mera-ease) both;
+}
+.mera-company-confirmation h2,
+.mera-company-recovery h2 {
+  font:
+    750 30px/1.15 Inter,
+    Arial,
+    sans-serif;
+  letter-spacing: -0.035em;
+}
+.mera-company-confirmation > svg,
+.mera-company-recovery > svg {
+  margin-bottom: 22px;
+  color: var(--mera-forest);
+}
+.mera-company-reference {
+  font-weight: 800;
+  font-size: 20px !important;
+  color: var(--mera-forest) !important;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+.mera-company-recovery dl {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  background: var(--mera-paper);
+  border-radius: 9px;
+}
+.mera-company-travel .mera-company-guide {
+  display: flex;
+  flex-direction: column;
+}
+.mera-company-travel .mera-company-guide-note {
+  margin-top: auto;
+  padding-top: 25px;
+}
+@media (max-width: 760px) {
+  .mera-company-form {
+    grid-template-columns: 1fr;
+    border-radius: 12px;
+  }
+  .mera-company-guide {
+    border-right: 0;
+    border-bottom: 1px solid var(--mera-border);
+    padding: 24px;
+  }
+  .mera-company-guide h2 {
+    font-size: 25px !important;
+  }
+  .mera-company-guide ol {
+    display: flex;
+    gap: 10px;
+    padding: 10px 0 0;
+    justify-content: space-between;
+  }
+  .mera-company-guide li {
+    gap: 6px;
+    font-size: 11px;
+    flex: 1;
+    align-items: flex-start;
+  }
+  .mera-company-guide li > span {
+    width: 26px;
+    height: 26px;
+  }
+  .mera-company-guide li small {
+    display: none;
+  }
+  .mera-company-guide li > div {
+    padding-top: 3px;
+  }
+  .mera-company-guide-note {
+    display: none;
+  }
+  .mera-company-form form {
+    padding: 25px 20px;
+  }
+  .mera-company-fields {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .mera-company-form footer button {
+    flex: 1;
+  }
+  .mera-company-confirmation,
+  .mera-company-recovery {
+    padding: 30px 22px;
+  }
+  .mera-company-travel .mera-company-guide-note {
+    display: block;
+    font-size: 11px !important;
+  }
+  .mera-company-form h3 {
+    font-size: 23px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mera-company-form * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .mera-company-form button:hover {
+    transform: none !important;
+  }
+}

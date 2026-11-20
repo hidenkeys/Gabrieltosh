@@ -1,0 +1,98 @@
+.mera-site-entry {
+  min-width: 0;
+}
+.mera-site-entry--first header .mera-brand {
+  animation: mera-mark-introduction 600ms
+    var(--mera-ease, cubic-bezier(0.2, 0.7, 0.2, 1)) both;
+}
+@keyframes mera-mark-introduction {
+  from {
+    opacity: 0.3;
+    transform: translateY(4px);
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    clip-path: inset(0);
+  }
+}
+.mera-entry {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 32px 24px;
+  background: var(--mera-paper);
+}
+.mera-entry-content {
+  width: min(100%, 420px);
+}
+.mera-entry .mera-brand {
+  width: 112px;
+  margin-bottom: 40px;
+}
+.mera-entry h1 {
+  font:
+    650 clamp(24px, 4vw, 32px)/1.15 Inter,
+    sans-serif;
+  letter-spacing: -0.035em;
+  margin: 0 0 14px;
+}
+.mera-entry p {
+  color: var(--mera-muted);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+.mera-entry a {
+  display: block;
+  width: fit-content;
+  color: var(--mera-forest);
+  font-size: 13px;
+  margin-top: 28px;
+  padding-block: 12px;
+}
+.mera-entry button {
+  border: 0;
+  border-radius: 6px;
+  background: var(--mera-forest);
+  color: white;
+  padding: 13px 20px;
+  min-height: 44px;
+  cursor: pointer;
+  font:
+    600 14px Inter,
+    sans-serif;
+}
+.mera-entry-progress {
+  display: block;
+  width: 100%;
+  height: 3px;
+  overflow: hidden;
+  background: var(--mera-border);
+}
+.mera-entry-progress::after {
+  content: "";
+  display: block;
+  height: 100%;
+  width: 35%;
+  background: var(--mera-forest);
+  animation: mera-resolving 1.2s ease-in-out infinite alternate;
+}
+@keyframes mera-resolving {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(185%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mera-site-entry--first header .mera-brand,
+  .mera-entry-progress::after {
+    animation: none;
+    transform: none;
+    clip-path: none;
+    opacity: 1;
+  }
+}
