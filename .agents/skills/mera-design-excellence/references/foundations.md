@@ -50,3 +50,13 @@ The marketing/platform implementation agent applied this skill to the real `Mark
 - `docs/mera/staging-redesign/screenshots/05-platform-before.png`: opened; authenticated **before** directory with two synthetic staging organizations. It documents the old wordmark, serif heading and horizontal section strip. It does not verify the new sidebar, protected workflows or responsive result.
 
 Focused current implementation checks passed: marketing behavior5/5, public navigation5/5, platform UI10/10 and Mera sign-in3/3. These cover functional contracts and focus/error behavior, not visual or hosted acceptance. Record later hosted captures and actual viewport sizes separately; do not infer them from image dimensions or historical screenshots.
+
+## Consolidated company implementation
+
+- `marketing/MarketingShell.tsx` and `ProductDemonstrations.tsx` (under `src/mera/`): real company navigation and accessible fictional Juniper House scene controls. `marketing/Marketing.tsx` dispatches explicit company/product routes. Screenshot13 is the hosted new parent homepage at1440CSS pixels and was opened by the lead. It replaces universal Bing Chun imagery; no earlier target-match approval is claimed.
+- `src/mera/ui/MeraEntry.tsx`, `mera-entry.css`: nonblocking session-mark entrance plus real bounded loading/error/retry presentation. Customer menu uses it only before venue data resolves.
+- `src/mera/company/ProjectBrief.tsx`, `TravelInterest.tsx`, `CompanySubmission.tsx`, `submissionRecovery.ts`, `company-forms.css`: actual public submissions, bounded private temporary recovery and confirmed references. Screenshot11/12 are local mobile/tablet checkpoints;14/15 are hosted real confirmation states.
+- `src/mera/company/PlatformCompanyInbox.tsx`, `companyUpdateRecovery.ts`, `company-inbox.css`: MFA-mounted private enquiry/interest list/detail/update with actor-scoped exact-request recovery. Automated checks passed; protected rendered acceptance is pending Chrome extension-popup clearance.
+- `server/mera/company-leads.js`, `shared/mera-company-contracts.js`: durable private submission and operator contract. This reference identifies working integration, not permission to redesign unrelated backend modules.
+
+Current full regression evidence:780tests,777passed,0failed,3opt-in PostgreSQL skips. New company PostgreSQL integration separately passed4tests. Deployment and browser evidence remain distinct. Shared operational form margins required a company-only reset; do not change global Bing Chun labels to fix a Mera page.

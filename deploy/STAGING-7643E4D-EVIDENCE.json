@@ -1,0 +1,116 @@
+{
+  "at": "2026-11-20T07:40:55.956Z",
+  "origin": "https://mera-web-staging.up.railway.app",
+  "checks": [
+    {
+      "path": "/api/health",
+      "status": 200
+    },
+    {
+      "path": "/",
+      "status": 302
+    },
+    {
+      "path": "/mera",
+      "status": 301
+    },
+    {
+      "path": "/mera/",
+      "status": 200
+    },
+    {
+      "path": "/robots.txt",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/context",
+      "status": 401
+    },
+    {
+      "path": "/api/mera/v1/platform",
+      "status": 401
+    },
+    {
+      "path": "/api/products",
+      "status": 404
+    },
+    {
+      "path": "/api/mera/v1/identity/capabilities",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/public/bing-chun/20000000-0000-4000-8000-000000000001/menu",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/public/staging-setup/20000000-0000-4000-8000-000000000002/menu",
+      "status": 404
+    },
+    {
+      "path": "/api/mera/v1/public/bing-chun/20000000-0000-4000-8000-000000000002/menu",
+      "status": 404
+    },
+    {
+      "path": "/api/login",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/context",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/platform",
+      "status": 403
+    },
+    {
+      "path": "/api/logout",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/context",
+      "status": 401
+    }
+  ],
+  "secureCookie": {
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "strict"
+  },
+  "sourceRevision": "7643e4d6cb5d10ab5fc9cff758a84a96ec56f1ee",
+  "webDeploymentId": "6fce394d-57d3-49d6-950d-1726492e2bca",
+  "jobsDeploymentId": "73a27a12-11ff-4726-a45d-38cc98d7a11c",
+  "deploymentStatuses": "SUCCESS",
+  "companyLeadPersistence": {
+    "readOnly": true,
+    "references": [
+      {
+        "reference": "ENQ-F1EB6449AFE9",
+        "kind": "consultancy",
+        "status": "received",
+        "version": 1
+      },
+      {
+        "reference": "TRV-2295561BF625",
+        "kind": "travel_interest",
+        "status": "received",
+        "version": 1
+      },
+      {
+        "reference": "TRV-DF5096F10E58",
+        "kind": "travel_interest",
+        "status": "received",
+        "version": 1
+      }
+    ]
+  },
+  "scope": {
+    "projectId": "242b97ee-5c3d-4991-8613-ff3a2628732b",
+    "environmentId": "1d313de7-1669-4ded-a6c8-4fe3581abee4",
+    "name": "staging"
+  },
+  "newSubmissions": 0,
+  "limitations": [
+    "API and read-only database evidence do not replace browser checks.",
+    "No external email, live payment or physical printer verification."
+  ]
+}

@@ -2,15 +2,15 @@
 
 Goal: Deliver a coherent MeraTech parent website, Mera QR onboarding, planned Travel interest and functional consultancy with verified Railway staging, preserving hospitality operations.
 
-Scope **3.0** · revision `91c88c6 + reviewed UI integration` · updated 2026-11-20
+Scope **3.0** · revision `7643e4d` · updated 2026-11-20
 
-**UI correction: 54% complete | 46% remaining.** Weighted evidence: 54.6/100. This is checklist completion, not a time estimate.
+**UI correction: 59% complete | 41% remaining.** Weighted evidence: 59.4/100. This is checklist completion, not a time estimate.
 
 Consolidated MeraTech brief supersedes marketing direction and adds company/product pages, real consultancy and Travel interest plus entry motion. Scope1 historical93% and scope2 historical47.4% remain archived intact. Existing staging and working shared foundations retain only applicable evidence; prior marketing implementation earns no new website credit.
 
 ## Current milestone
 
-Company pages, public submissions and private operator inbox integrated. First local desktop/mobile/tablet review performed; final corrections and staging release in progress. Hosted acceptance and remaining operational checks are still pending.
+Reviewed company implementation deployed to isolated staging. Full suite777passed/0failed/3opt-in skips;17hosted checks pass; browser consultancy and Travel receipts verified and persisted across redeploy. Protected inbox and remaining operational browser checks wait for Chrome extension-popup dismissal; no completion claimed.
 
 ## Measurement
 
@@ -20,23 +20,23 @@ Weights are frozen in the current versioned scope. Checkpoints:0 planned/not imp
 
 | Workstream | Weight | Verified completion | Owner |
 | --- | ---: | ---: | --- |
-| Reassessment, skill, tokens and actual brand | 15% | 65% | lead |
-| Railway staging and hosted configuration | 15% | 93% | staging |
+| Reassessment, skill, tokens and actual brand | 15% | 78% | lead |
+| Railway staging and hosted configuration | 15% | 100% | staging |
 | Parent website, products, demonstrations and motion | 25% | 55% | marketing_refresh / lead |
 | Mera QR signup and owner onboarding | 20% | 40% | owner_onboarding |
 | Consultancy, interest and platform administration | 15% | 60% | staging / owner_onboarding / lead |
-| Responsive, regression and delivery verification | 10% | 0% | lead |
+| Responsive, regression and delivery verification | 10% | 18% | lead |
 
 ## Task board
 
 | ID | Task | Weight | Checkpoint | Status / owner | Evidence |
 | --- | --- | ---: | ---: | --- | --- |
-| F1 | Company architecture, source audit and updated design skill | 5% | 60% | IN_PROGRESS · lead | [SKILL.md](.agents/skills/mera-design-excellence/SKILL.md), [company-architecture.md](.agents/skills/mera-design-excellence/references/company-architecture.md), [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md) |
+| F1 | Company architecture, source audit and updated design skill | 5% | 100% | VERIFIED · lead | [SKILL.md](.agents/skills/mera-design-excellence/SKILL.md), [company-architecture.md](.agents/skills/mera-design-excellence/references/company-architecture.md), [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md) |
 | F2 | Original logo variants across company and product contexts | 4% | 80% | IN_PROGRESS · lead | [MeraBrand.tsx](src/mera/ui/MeraBrand.tsx), [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md) |
 | F3 | Scoped design foundations and accessible shared motion | 6% | 60% | IN_PROGRESS · lead | [mera-foundations.css](src/mera/ui/mera-foundations.css), [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md) |
 | R1 | Isolated services, migrations and synthetic credentials | 5% | 100% | VERIFIED · staging | [STAGING-BASELINE-EVIDENCE.json](deploy/STAGING-BASELINE-EVIDENCE.json) |
 | R2 | HTTPS routing, sessions, worker and private database verification | 5% | 100% | VERIFIED · staging | [STAGING-AD02976-EVIDENCE.json](deploy/STAGING-AD02976-EVIDENCE.json) |
-| R3 | Persistent assets, safe releases and rollback documentation | 5% | 80% | IN_PROGRESS · staging | [STAGING-AD02976-EVIDENCE.json](deploy/STAGING-AD02976-EVIDENCE.json), [RAILWAY-STAGING.md](deploy/RAILWAY-STAGING.md) |
+| R3 | Persistent assets, safe releases and rollback documentation | 5% | 100% | VERIFIED · staging | [STAGING-AD02976-EVIDENCE.json](deploy/STAGING-AD02976-EVIDENCE.json), [RAILWAY-STAGING.md](deploy/RAILWAY-STAGING.md), [STAGING-7643E4D-EVIDENCE.json](deploy/STAGING-7643E4D-EVIDENCE.json) |
 | W1 | MeraTech parent homepage and offering hierarchy | 7% | 60% | IN_PROGRESS · marketing_refresh / lead | [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md) |
 | W2 | Mera QR and planned Travel with truthful interface demonstrations | 7% | 60% | IN_PROGRESS · marketing_refresh / lead | [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md) |
 | W3 | Products, consultancy, about, contact, sign-in and policy navigation | 6% | 40% | IN_PROGRESS · marketing_refresh / lead | [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md) |
@@ -50,7 +50,7 @@ Weights are frozen in the current versioned scope. Checkpoints:0 planned/not imp
 | C4 | MFA-protected enquiry and interest operator workflows | 4% | 60% | IN_PROGRESS · staging / owner_onboarding / lead | [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md) |
 | Q1 | Rendered mobile/tablet/laptop/wide review and accessibility | 4% | 0% | IN_PROGRESS · lead | Pending |
 | Q2 | Branding, CSV, floor/seating, private visits and receipt checks | 3% | 0% | IN_PROGRESS · lead | Pending |
-| Q3 | Final regressions, deployed revision and manual testing evidence | 3% | 0% | IN_PROGRESS · lead | Pending |
+| Q3 | Final regressions, deployed revision and manual testing evidence | 3% | 60% | IN_PROGRESS · lead | [SCOPE3-INTEGRATION.md](docs/mera/staging-redesign/SCOPE3-INTEGRATION.md), [STAGING-7643E4D-EVIDENCE.json](deploy/STAGING-7643E4D-EVIDENCE.json), [REMAINING-BROWSER-CHECKS.md](docs/mera/staging-redesign/REMAINING-BROWSER-CHECKS.md) |
 
 Task acceptance criteria, dependency IDs, change history and blockers are in [MERA_UI_PROGRESS.json](MERA_UI_PROGRESS.json). Every implemented surface/workflow is mapped below; section locators do not claim new browser routes.
 

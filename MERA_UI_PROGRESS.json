@@ -3,9 +3,9 @@
   "scopeVersion": "3.0",
   "frozenAt": "2026-11-20 consolidated brief",
   "lastUpdated": "2026-11-20",
-  "revision": "91c88c6 + reviewed UI integration",
+  "revision": "7643e4d",
   "baselineNote": "Consolidated MeraTech brief supersedes marketing direction and adds company/product pages, real consultancy and Travel interest plus entry motion. Scope1 historical93% and scope2 historical47.4% remain archived intact. Existing staging and working shared foundations retain only applicable evidence; prior marketing implementation earns no new website credit.",
-  "currentMilestone": "Company pages, public submissions and private operator inbox integrated. First local desktop/mobile/tablet review performed; final corrections and staging release in progress. Hosted acceptance and remaining operational checks are still pending.",
+  "currentMilestone": "Reviewed company implementation deployed to isolated staging. Full suite777passed/0failed/3opt-in skips;17hosted checks pass; browser consultancy and Travel receipts verified and persisted across redeploy. Protected inbox and remaining operational browser checks wait for Chrome extension-popup dismissal; no completion claimed.",
   "clarifications": [
     {
       "at": "2026-11-18T15:56:52+01:00",
@@ -291,8 +291,8 @@
       "workstream": "F",
       "title": "Company architecture, source audit and updated design skill",
       "weight": 5,
-      "checkpoint": 60,
-      "status": "IN_PROGRESS",
+      "checkpoint": 100,
+      "status": "VERIFIED",
       "owner": "lead",
       "dependencies": [],
       "acceptance": "Company architecture, source audit and updated design skill implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
@@ -375,14 +375,15 @@
       "workstream": "R",
       "title": "Persistent assets, safe releases and rollback documentation",
       "weight": 5,
-      "checkpoint": 80,
-      "status": "IN_PROGRESS",
+      "checkpoint": 100,
+      "status": "VERIFIED",
       "owner": "staging",
       "dependencies": [],
       "acceptance": "Persistent assets, safe releases and rollback documentation implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
       "evidence": [
         "deploy/STAGING-AD02976-EVIDENCE.json",
-        "deploy/RAILWAY-STAGING.md"
+        "deploy/RAILWAY-STAGING.md",
+        "deploy/STAGING-7643E4D-EVIDENCE.json"
       ],
       "blockers": [],
       "history": []
@@ -601,12 +602,16 @@
       "workstream": "Q",
       "title": "Final regressions, deployed revision and manual testing evidence",
       "weight": 3,
-      "checkpoint": 0,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [],
       "acceptance": "Final regressions, deployed revision and manual testing evidence implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
-      "evidence": [],
+      "evidence": [
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md",
+        "deploy/STAGING-7643E4D-EVIDENCE.json",
+        "docs/mera/staging-redesign/REMAINING-BROWSER-CHECKS.md"
+      ],
       "blockers": [],
       "history": []
     }
