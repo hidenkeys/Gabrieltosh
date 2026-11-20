@@ -388,3 +388,49 @@ test("silent storage write failure prevents dispatch instead of losing recovery 
     dom.window.Storage.prototype.setItem = original;
   }
 });
+test("refresh exposes concurrent saved status, version, handler and follow-up while preserving operator edits", async () => {
+  reset();
+  const mock = server();
+  await open();
+  fireEvent.change(screen.getByLabelText("Status"), {
+    target: { value: "reviewing" },
+  });
+  fireEvent.change(screen.getByLabelText("Add internal note"), {
+    target: { value: "Unsaved operator note" },
+  });
+  mock.set({
+    ...mock.get(),
+    version: 4,
+    status: "proposal",
+    assignedHandlerId: actor,
+    assignedHandlerName: "QA Operator",
+    followUp: {
+      stage: "proposal",
+      dueAt: "2026-11-25T12:00:00.000Z",
+      summary: "Concurrent saved plan",
+    },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Refresh details" }));
+  await screen.findByText("Version 4");
+  const summary = screen.getByRole("region", {
+    name: "Latest saved follow-up",
+  });
+  assert.match(summary.textContent!, /Saved statusproposal/);
+  assert.match(summary.textContent!, /Saved handlerQA Operator/);
+  assert.match(summary.textContent!, /Saved next stageproposal/);
+  assert.match(summary.textContent!, /UTC/);
+  assert.match(summary.textContent!, /Concurrent saved plan/);
+  assert.match(
+    summary.textContent!,
+    /Your edits differ from the saved details/,
+  );
+  assert.equal(
+    (screen.getByLabelText("Status") as HTMLSelectElement).value,
+    "reviewing",
+  );
+  assert.equal(
+    (screen.getByLabelText("Add internal note") as HTMLTextAreaElement).value,
+    "Unsaved operator note",
+  );
+  assert.equal(mock.requests.filter((r) => r.method === "PATCH").length, 0);
+});

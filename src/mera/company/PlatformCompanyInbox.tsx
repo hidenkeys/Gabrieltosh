@@ -496,6 +496,77 @@ export default function PlatformCompanyInbox({
                 }}
               >
                 <h3>Manage follow-up</h3>
+                <section
+                  className="mera-company-saved-summary"
+                  aria-label="Latest saved follow-up"
+                >
+                  <header>
+                    <h4>Latest saved details</h4>
+                    <span>Version {detail.version}</span>
+                  </header>
+                  <dl>
+                    <div>
+                      <dt>Saved status</dt>
+                      <dd>{human(detail.status)}</dd>
+                    </div>
+                    <div>
+                      <dt>Saved handler</dt>
+                      <dd>
+                        {detail.assignedHandlerName ||
+                          handlers.find(
+                            (person) => person.id === detail.assignedHandlerId,
+                          )?.name ||
+                          (detail.assignedHandlerId
+                            ? "Assigned handler unavailable"
+                            : "Unassigned")}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Saved next stage</dt>
+                      <dd>
+                        {detail.followUp?.stage &&
+                        detail.followUp.stage !== "none"
+                          ? human(detail.followUp.stage)
+                          : "None"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Saved follow-up date</dt>
+                      <dd>
+                        {detail.followUp?.dueAt
+                          ? new Date(detail.followUp.dueAt).toLocaleString(
+                              undefined,
+                              { timeZone: "UTC" },
+                            ) + " UTC"
+                          : "Not scheduled"}
+                      </dd>
+                    </div>
+                    {detail.followUp?.summary && (
+                      <div className="mera-company-saved-summary-wide">
+                        <dt>Saved follow-up summary</dt>
+                        <dd>{detail.followUp.summary}</dd>
+                      </div>
+                    )}
+                  </dl>
+                  <p>
+                    Refreshing updates these saved details and keeps your edits
+                    below. Review both before saving.
+                  </p>
+                  {(draft.status !== detail.status ||
+                    (draft.assignedHandlerId || null) !==
+                      (detail.assignedHandlerId || null) ||
+                    draft.followUp.stage !==
+                      (detail.followUp?.stage || "none") ||
+                    (draft.followUp.dueAt || null) !==
+                      (detail.followUp?.dueAt || null) ||
+                    draft.followUp.summary !==
+                      (detail.followUp?.summary || "")) && (
+                    <p className="mera-company-draft-difference" role="status">
+                      Your edits differ from the saved details. Saving will
+                      apply the values in the form below.
+                    </p>
+                  )}
+                </section>
                 <fieldset disabled={busy || !!pending || !!recovery.error}>
                   <label>
                     Status

@@ -9,12 +9,15 @@
   margin: 20px 0;
 }
 .mera-company-inbox label {
+  margin: 0;
+  color: var(--mera-ink);
   display: grid;
   gap: 7px;
   font-size: 13px;
   font-weight: 650;
 }
 .mera-company-inbox :is(input, select, textarea) {
+  margin: 0;
   width: 100%;
   min-width: 0;
 }
@@ -169,4 +172,60 @@
 }
 .mera-company-inbox :is(a, td, p) {
   overflow-wrap: anywhere;
+}
+
+.mera-company-saved-summary {
+  margin: 0 0 22px;
+  padding: 16px;
+  border: 1px solid var(--mera-border);
+  border-radius: 8px;
+  background: var(--mera-paper);
+}
+.mera-company-saved-summary header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.mera-company-saved-summary h4 {
+  margin: 0;
+  font-size: 13px;
+}
+.mera-company-saved-summary header > span {
+  color: var(--mera-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.mera-company-saved-summary dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.mera-company-saved-summary dl > div {
+  border: 0;
+  padding: 5px 0;
+}
+.mera-company-saved-summary .mera-company-saved-summary-wide {
+  grid-column: 1 / -1;
+}
+.mera-company-saved-summary dt {
+  font-size: 11px;
+  margin-bottom: 3px;
+}
+.mera-company-saved-summary dd {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.mera-company-saved-summary p {
+  margin: 12px 0 0;
+  color: var(--mera-muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.mera-company-saved-summary .mera-company-draft-difference {
+  border-top: 1px solid var(--mera-border);
+  padding-top: 10px;
+  color: var(--mera-forest);
+  font-weight: 650;
 }
