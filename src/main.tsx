@@ -5,6 +5,8 @@ import "./styles.css";
 import "./mera/ui/mera-foundations.css";
 import "./mera/platform.css";
 import "./mera/signup.css";
+import "./mera/mera-signin.css";
+const MeraSignIn = React.lazy(() => import("./mera/MeraSignIn"));
 const Signup = React.lazy(() => import("./mera/Signup"));
 import "./mera/marketing/marketing.css";
 import "./mera/customer/customer.css";
@@ -130,6 +132,8 @@ createRoot(document.getElementById("root")!).render(
           <CustomerExperience />
         ) : window.location.pathname === "/mera/platform" ? (
           <Platform />
+        ) : window.location.pathname === "/mera/platform/sign-in" ? (
+          <MeraSignIn mode="operator" />
         ) : (
           <App />
         )}

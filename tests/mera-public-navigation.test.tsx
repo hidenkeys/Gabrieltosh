@@ -71,7 +71,7 @@ test("lazy homepage pricing fragment and legal policy fragment are resolved afte
   const first = render(<Marketing />);
   assert.equal(
     document.activeElement,
-    screen.getByRole("heading", { name: "A plan that fitsyour operation." }),
+    screen.getByRole("heading", { name: "A clear starting point." }),
   );
   first.unmount();
   window.history.replaceState(null, "", "/mera/legal#payments-policies");

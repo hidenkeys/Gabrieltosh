@@ -1,0 +1,30 @@
+{
+  "recordedAt": "2026-11-20T06:42:04Z",
+  "sourceRevision": "405d8a07c3359407fa8fb46792019ec28b1123e4",
+  "origin": "https://mera-web-staging.up.railway.app",
+  "workspaceId": "316c834e-d625-468b-9bd5-3dc90264e894",
+  "projectId": "242b97ee-5c3d-4991-8613-ff3a2628732b",
+  "environmentId": "1d313de7-1669-4ded-a6c8-4fe3581abee4",
+  "deployments": {
+    "web": { "id": "983fc3d7-3061-4d7b-9658-4f0b2ab8e3e1", "status": "SUCCESS", "healthcheck": "/api/health passed" },
+    "jobs": { "id": "fe8cf134-ea71-4d53-8fd8-b87d71270b1f", "status": "SUCCESS", "runtime": "Mera durable-job worker started." },
+    "postgres": { "id": "46a29f3e-f1ae-41c5-8126-d612b4ec3086", "status": "SUCCESS", "publicDomains": 0, "tcpProxies": 0, "volumeId": "76b86a01-ebf2-4067-9639-14ae0952932c" }
+  },
+  "apiSmoke": {
+    "at": "2026-11-20T06:39:48.575Z",
+    "requestsPassed": 17,
+    "checks": ["DB health", "root and canonical marketing redirects", "marketing HTML", "noindex headers and robots", "unauthenticated context/platform denied", "legacy unscoped products denied", "real signup capability blocked", "published synthetic menu and ordering entitlement", "unpublished draft menu denied", "wrong organization/branch combination denied", "synthetic owner password login", "two explicitly scoped organization memberships", "demo mode false", "owner denied platform administration", "logout revoked session"],
+    "cookie": { "secure": true, "httpOnly": true, "sameSite": "strict" },
+    "financialProviders": "blocked",
+    "visualBrowserClaim": false
+  },
+  "repeatRelease": {
+    "result": "passed",
+    "before": { "users": 2, "organizations": 2, "branches": 2, "products": 34, "assets": 0 },
+    "after": { "users": 2, "organizations": 2, "branches": 2, "products": 34, "assets": 0 }
+  },
+  "platformQaOperator": { "id": "857cba1e-4a65-4cfb-92df-6fd13fdc519c", "username": "staging.operator", "method": "explicit guarded one-off SSH script with private stdin", "mfaRequired": true, "merchantMemberships": 0, "credentialsRecordedHere": false },
+  "assetPersistence": { "beforeRedeploy": "authenticated upload and exact byte read-back passed", "assetId": "cba154c3-0b6d-49b7-9b78-f089c8cfbe6e", "bytes": 159715, "sha256": "b0effb678d247758fd25e989e0b49792cc37b294b4580062b2480d4cd78d9850", "afterRedeploy": "pending next deployed slice", "browserChooser": "not tested by this API check" },
+  "initialBuildFailure": { "deploymentId": "1bb5fa93-1091-41ef-9101-936275b29f9c", "reason": "npm ci in build phase collided with Railpack Vite cache mount (EBUSY)", "resolution": "npm ci moved to install override; build only npm run build; cache mounts disabled", "databaseChangedByFailedBuild": false },
+  "limitations": ["Actual browser review is recorded separately by the lead", "No physical printing", "No live money or wallet provider", "Real signup blocked until verified email delivery", "Custom domains/wildcard tenant DNS unverified", "Hosted backups disabled, no recovery-readiness claim"]
+}

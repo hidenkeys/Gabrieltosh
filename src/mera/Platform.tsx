@@ -488,7 +488,7 @@ export default function Platform() {
               role="alert"
               className="info-box"
             >
-              {error} <a href="/mera/workspace">Organization sign-in</a>
+              {error} <a href="/mera/platform/sign-in">Operator sign-in</a>
             </div>
           )}
           {!auth && !error && <p role="status">Verifying operator access…</p>}

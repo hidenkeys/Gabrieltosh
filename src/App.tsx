@@ -2,6 +2,8 @@ import { store } from "./brand";
 import { ProductImage } from "./ProductImage";
 import { CustomerMenu } from "./CustomerMenu";
 import OrganizationWorkspace from "./mera/workspace/OrganizationWorkspace";
+import MeraSignIn from "./mera/MeraSignIn";
+import { MeraBrand } from "./mera/ui/MeraBrand";
 import React, { useEffect, useState, useCallback } from "react";
 import {
   LayoutGrid,
@@ -256,19 +258,11 @@ export default function App() {
   if (loading)
     return (
       <div className="loading">
-        <img
-          className="brand-logo"
-          src={
-            window.location.pathname.startsWith("/mera/")
-              ? "/mera-icon.svg"
-              : store.logo
-          }
-          alt={
-            window.location.pathname.startsWith("/mera/")
-              ? "Mera"
-              : "Bing Chun mascot"
-          }
-        />
+        {window.location.pathname.startsWith("/mera/") ? (
+          <MeraBrand />
+        ) : (
+          <img className="brand-logo" src={store.logo} alt="Bing Chun mascot" />
+        )}
         <p>Opening your workspace…</p>
       </div>
     );
@@ -528,6 +522,7 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [show, setShow] = useState(false);
+  if (mera) return <MeraSignIn mode="organization" onSignedIn={onLogin} />;
   return (
     <div className="login-page">
       <section className="login-art">

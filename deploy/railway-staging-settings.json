@@ -7,7 +7,7 @@
     "mera-web": {
       "build": {
         "builder": "RAILPACK",
-        "buildCommand": "npm ci --include=dev && npm run build"
+        "buildCommand": "npm run build"
       },
       "deploy": {
         "preDeployCommand": [
@@ -18,18 +18,28 @@
         "healthcheckTimeout": 120,
         "restartPolicyType": "ON_FAILURE",
         "restartPolicyMaxRetries": 3
+      },
+      "variables": {
+        "RAILPACK_NODE_NPM_INSTALL": "npm ci --include=dev"
       }
     },
     "mera-jobs": {
       "build": {
         "builder": "RAILPACK",
-        "buildCommand": "npm ci --omit=dev"
+        "buildCommand": "node --check scripts/mera-worker.js"
       },
       "deploy": {
         "startCommand": "npm run worker:mera",
         "restartPolicyType": "ON_FAILURE",
         "restartPolicyMaxRetries": 3
+      },
+      "variables": {
+        "RAILPACK_NODE_NPM_INSTALL": "npm ci --omit=dev"
       }
     }
+  },
+  "buildVariables": {
+    "RAILPACK_NODE_VERSION": "22",
+    "RAILPACK_DISABLE_CACHES": "*"
   }
 }

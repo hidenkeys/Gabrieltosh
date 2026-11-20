@@ -22,10 +22,10 @@ The nine-step guide is navigated by a vertical list on desktop and a labelled se
 
 ## Checks actually run
 
-- 19 signup/owner component behavioral tests passed: existing recovery invariants, normal/demo separation, password visibility, guide draft retention, saved position restore, focus movement, exact-step retry, scoped-user preservation and organization creation/unknown outcome.
+- 20 signup/owner component behavioral tests passed: existing recovery invariants, normal/demo separation, password visibility, guide draft retention, saved position restore, focus movement, exact-step retry, scoped-user preservation organization creation/unknown outcome and explicit owner-verification denial.
 - 1 actual HTTP route test passed: unauthenticated denial, format/reserved names, canonical/alias claims, case normalization and response privacy.
 - 98 focused setup/business/workspace/presentation/owner integration tests passed. This batch overlaps the owner tests above; counts must not be summed as unique tests.
-- TypeScript `--noEmit` passed before final narrow copy edits; the lead runs the integrated build and regression gate.
+- TypeScript `--noEmit` passed for the integrated slice; the lead runs the build and full regression gate.
 - Existing source screenshot `240-public-signup-after.jpg` was opened for before-state inspection; it showed the previous generic cream/serif signup layout. No new browser screenshots or rendered acceptance are claimed here.
 
 ## Remaining external/visual gates

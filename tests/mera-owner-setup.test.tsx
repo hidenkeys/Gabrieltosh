@@ -223,3 +223,53 @@ test("unknown organization creation persists a nonprivate lock across remount an
     window.sessionStorage.clear();
   }
 });
+test("explicit owner verification rejection preserves the security requirement without claiming uncertain creation", async () => {
+  window.sessionStorage.clear();
+  globalThis.fetch = (async () => Response.json({ available: true })) as any;
+  try {
+    render(
+      <CreateOrganization
+        actorId="unverified"
+        actorName="Owner"
+        disabled={false}
+        demo={false}
+        save={async () => {
+          throw Object.assign(
+            new Error("A verified owner identity is required."),
+            { status: 403, code: "OWNER_VERIFICATION_REQUIRED" },
+          );
+        }}
+        onCreated={async () => {}}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Organization name"), {
+      target: { value: "New venue" },
+    });
+    fireEvent.change(screen.getByLabelText("Requested Mera address"), {
+      target: { value: "new-venue" },
+    });
+    fireEvent.change(screen.getByLabelText("First branch name"), {
+      target: { value: "Main" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Check address" }));
+    await screen.findByText(/Available now/);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create organization" }),
+    );
+    assert.match(
+      (await screen.findByRole("alert")).textContent || "",
+      /verified owner identity is required/,
+    );
+    assert.equal(
+      window.sessionStorage.getItem("mera:organization-create:v1:unverified"),
+      null,
+    );
+    assert.equal(
+      screen.queryByRole("heading", { name: "Check your existing access" }),
+      null,
+    );
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
+  }
+});
