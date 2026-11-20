@@ -598,3 +598,18 @@
     animation: none;
   }
 }
+
+/* Keep native service-mode choices on one touch-sized row in owner setup. */
+.mera-owner-setup .mw-form fieldset > label:has(> input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+.mera-owner-setup .mw-form fieldset > label > input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+}
