@@ -1741,7 +1741,7 @@ export default function CustomerExperience({
                     >
                       Your basket
                     </h2>
-                    <span>
+                    <span key={basketQuantity}>
                       {basketQuantity} {basketQuantity === 1 ? "item" : "items"}
                     </span>
                   </div>
@@ -1949,7 +1949,7 @@ export default function CustomerExperience({
                               ? "Items estimate"
                               : "Total"}
                       </span>
-                      <span>{money(currentQuote?.total ?? total)}</span>
+                      <span key={String(currentQuote?.total ?? total)}>{money(currentQuote?.total ?? total)}</span>
                     </div>
                     {menu.pricingPolicy?.enabled && !currentQuote && (
                       <p>
@@ -2749,7 +2749,7 @@ export default function CustomerExperience({
                   {basketQuantity} {basketQuantity === 1 ? "item" : "items"}
                 </small>
               </span>
-              <strong>{money(currentQuote?.total ?? total)}</strong>
+              <strong key={String(currentQuote?.total ?? total)}>{money(currentQuote?.total ?? total)}</strong>
             </button>
           </div>
         )}

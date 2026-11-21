@@ -1,0 +1,586 @@
+/*
+ * Customer experience v2 — the guest's menu, basket and order tracking.
+ * Loaded last so it wins the cascade over the earlier customer sheets.
+ *
+ * The venue's own branding stays in charge of colour: --mc-primary, --mc-accent
+ * and --mc-link come from the venue. Mera supplies the paper, the type and the
+ * motion. The basket is the "order ticket" from the marketing site.
+ */
+.mera-customer {
+  --mc-paper: #f7f6f0;
+  --mc-bone: #fcfbf6;
+  --mc-ink: #16211c;
+  --mc-muted: #56635c;
+  --mc-line: #e0e4db;
+  --mc-tint: color-mix(in srgb, var(--mc-accent, #83ddf7) 14%, #f7f6f0);
+  --mc-display: "Mera Display", "Instrument Sans", system-ui, sans-serif;
+  --mc-text: "Mera Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mc-enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --mc-move: cubic-bezier(0.25, 1, 0.5, 1);
+  background: var(--mc-paper);
+  color: var(--mc-ink);
+  font-family: var(--mc-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.mera-customer button,
+.mera-customer input,
+.mera-customer select,
+.mera-customer textarea {
+  font-family: inherit;
+}
+.mera-customer button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 160ms var(--mc-move),
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 220ms var(--mc-move);
+}
+.mera-customer button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.mera-customer button:disabled {
+  cursor: not-allowed;
+}
+
+/* ---- Header: stays with the guest, gains a surface once content moves under it ---- */
+.mera-customer .mc-top {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: color-mix(in srgb, var(--mc-bone) 88%, transparent);
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  backdrop-filter: saturate(1.4) blur(14px);
+  border-bottom: 1px solid var(--mc-line);
+}
+.mera-customer .mc-brand {
+  font-family: var(--mc-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.mera-customer .mc-brand small {
+  display: block;
+  font-family: var(--mc-text);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: var(--mc-muted);
+}
+.mera-customer .mc-top a {
+  color: var(--mc-muted);
+  text-decoration-color: color-mix(in srgb, var(--mc-muted) 40%, transparent);
+  text-underline-offset: 3px;
+}
+
+/* ---- Hero: the venue name leads, set large ---- */
+.mera-customer .mc-hero {
+  margin: 28px 0 20px;
+  padding: 0 0 20px;
+  border-bottom: 1px solid var(--mc-line);
+}
+.mera-customer .mc-hero h1 {
+  font-family: var(--mc-display);
+  font-size: clamp(2.5rem, 6vw, 4.25rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+  margin: 0 0 10px;
+  color: var(--mc-ink);
+}
+.mera-customer .mc-hero p {
+  font-size: 1.0625rem;
+  line-height: 1.45;
+  color: var(--mc-muted);
+  max-width: 46ch;
+}
+.mera-customer .mc-hero .mc-address {
+  font-size: 0.875rem;
+}
+.mera-customer .mc-hero img.mc-uploaded-cover {
+  width: 132px;
+  height: 96px;
+  flex-basis: 132px;
+  border-radius: 16px;
+}
+
+/* ---- Service tabs: one segmented control, the active segment in the venue's colour ---- */
+.mera-customer nav.mc-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mc-ink) 6%, var(--mc-paper));
+  margin-bottom: 20px;
+  max-width: 100%;
+}
+.mera-customer nav.mc-tabs button {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mc-ink);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.mera-customer nav.mc-tabs button[aria-pressed="true"] {
+  background: var(--mc-primary, var(--mc-ink));
+  color: var(--mc-primary-foreground, #fff);
+  box-shadow: 0 2px 10px
+    color-mix(in srgb, var(--mc-primary, var(--mc-ink)) 28%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .mera-customer nav.mc-tabs button[aria-pressed="false"]:hover {
+    background: color-mix(in srgb, var(--mc-ink) 8%, transparent);
+  }
+}
+
+/* ---- Search and categories ---- */
+.mera-customer .mc-search {
+  min-height: 48px;
+  border: 1.5px solid var(--mc-line);
+  border-radius: 14px;
+  background: var(--mc-bone);
+  font-size: 1rem;
+  transition:
+    border-color 180ms ease,
+    box-shadow 220ms var(--mc-move);
+}
+.mera-customer .mc-search:focus {
+  border-color: var(--mc-link, var(--mc-primary, #1558c9));
+  box-shadow: 0 0 0 4px
+    color-mix(in srgb, var(--mc-link, #1558c9) 14%, transparent);
+  outline: none;
+}
+.mera-customer .mc-search:focus-visible {
+  outline: none;
+}
+.mera-customer .mc-categories button {
+  min-height: 40px;
+  border: 1.5px solid var(--mc-line);
+  border-radius: 999px;
+  background: var(--mc-bone);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0 16px;
+}
+.mera-customer .mc-categories button[aria-pressed="true"] {
+  background: var(--mc-ink);
+  border-color: var(--mc-ink);
+  color: var(--mc-bone);
+}
+@media (hover: hover) and (pointer: fine) {
+  .mera-customer .mc-categories button[aria-pressed="false"]:hover {
+    border-color: var(--mc-ink);
+  }
+}
+
+/* ---- Products: the photography is the point; everything else is quiet ---- */
+.mera-customer .mc-products {
+  gap: 16px;
+}
+.mera-customer .mc-product {
+  border: 1px solid var(--mc-line);
+  border-radius: 20px;
+  background: var(--mc-bone);
+  box-shadow: none;
+  transition:
+    transform 260ms var(--mc-move),
+    box-shadow 260ms var(--mc-move),
+    border-color 200ms ease;
+}
+.mera-customer .mc-product > img {
+  background: var(--mc-tint);
+  transition: transform 480ms var(--mc-enter);
+}
+.mera-customer .mc-product {
+  isolation: isolate;
+}
+.mera-customer .mc-product h3 {
+  font-family: var(--mc-display);
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+.mera-customer .mc-product p {
+  color: var(--mc-muted);
+}
+.mera-customer .mc-product .mc-price {
+  font-family: var(--mc-display);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--mc-ink);
+  font-variant-numeric: tabular-nums;
+}
+.mera-customer .mc-product button {
+  border-radius: 999px;
+  font-weight: 650;
+  min-height: 46px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .mera-customer .mc-product:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--mc-ink) 22%, var(--mc-line));
+    box-shadow: 0 14px 30px -16px
+      color-mix(in srgb, var(--mc-ink) 40%, transparent);
+  }
+  .mera-customer .mc-product:hover > img {
+    transform: scale(1.045);
+  }
+  .mera-customer .mc-product > img {
+    transform-origin: 50% 60%;
+  }
+}
+/* The photo scales inside its frame instead of spilling out of it. */
+.mera-customer .mc-product {
+  overflow: hidden;
+}
+
+/* ---- The basket is the guest's order ticket ---- */
+.mera-customer .mc-cart {
+  border: 1px solid var(--mc-line);
+  border-radius: 24px;
+  background: var(--mc-bone);
+  padding: 22px 22px 24px;
+  box-shadow: 0 24px 40px -30px
+    color-mix(in srgb, var(--mc-ink) 45%, transparent);
+  top: 84px;
+}
+.mera-customer .mc-basket-heading {
+  position: relative;
+  border-bottom: 0;
+  padding-bottom: 18px;
+  margin-bottom: 4px;
+}
+.mera-customer .mc-basket-heading h2 {
+  font-family: var(--mc-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+/* Perforation between the ticket's header and its contents. */
+.mera-customer .mc-basket-heading::after {
+  content: "";
+  position: absolute;
+  left: -22px;
+  right: -22px;
+  bottom: 0;
+  height: 0;
+  border-top: 2px dashed var(--mc-line);
+}
+.mera-customer .mc-basket-heading::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  right: -22px;
+  bottom: -11px;
+  height: 22px;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle 11px at 0 50%,
+      var(--mc-paper) 10.5px,
+      transparent 11px
+    ),
+    radial-gradient(
+      circle 11px at 100% 50%,
+      var(--mc-paper) 10.5px,
+      transparent 11px
+    );
+}
+.mera-customer .mc-basket-heading span {
+  display: inline-block;
+  min-width: 2.2ch;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: var(--mc-tint);
+  color: var(--mc-ink);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  animation: mc-bump 380ms var(--mc-enter);
+}
+.mera-customer .mc-cart h3 {
+  font-family: var(--mc-display);
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.mera-customer .mc-checkout-items,
+.mera-customer .mc-checkout-review {
+  border: 0;
+}
+.mera-customer .mc-basket-empty {
+  margin: 8px 0 0;
+  padding: 16px;
+  border: 1.5px dashed var(--mc-line);
+  border-radius: 14px;
+  color: var(--mc-muted);
+  font-size: 0.9375rem;
+  text-align: center;
+}
+.mera-customer .mc-line {
+  border-bottom: 1px dashed var(--mc-line);
+  padding: 14px 0;
+  animation: mc-line-in 320ms var(--mc-enter);
+}
+.mera-customer .mc-line strong {
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+.mera-customer .mc-line-controls {
+  gap: 4px;
+}
+.mera-customer .mc-line-controls button {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mc-ink) 7%, var(--mc-paper));
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.mera-customer .mc-line-controls span {
+  min-width: 2.4ch;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.mera-customer .mc-line-controls b {
+  font-family: var(--mc-display);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+.mera-customer .mc-checkout-details {
+  border: 0;
+  padding: 0;
+}
+.mera-customer .mc-checkout-details legend {
+  padding: 0 0 10px;
+}
+.mera-customer .mc-checkout-details legend,
+.mera-customer .mc-panel legend {
+  font-family: var(--mc-display);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.mera-customer .mc-panel input,
+.mera-customer .mc-panel select,
+.mera-customer .mc-panel textarea {
+  min-height: 46px;
+  border: 1.5px solid var(--mc-line);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 1rem;
+  transition:
+    border-color 180ms ease,
+    box-shadow 220ms var(--mc-move);
+}
+.mera-customer .mc-panel textarea {
+  min-height: 84px;
+}
+.mera-customer .mc-panel input:focus,
+.mera-customer .mc-panel select:focus,
+.mera-customer .mc-panel textarea:focus {
+  border-color: var(--mc-link, var(--mc-primary, #1558c9));
+  box-shadow: 0 0 0 4px
+    color-mix(in srgb, var(--mc-link, #1558c9) 14%, transparent);
+  outline: none;
+}
+.mera-customer .mc-panel label {
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--mc-ink);
+}
+.mera-customer .mc-total {
+  align-items: baseline;
+  font-family: var(--mc-display);
+  font-size: 1.5rem;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.mera-customer .mc-total span:last-child {
+  animation: mc-bump 380ms var(--mc-enter);
+}
+.mera-customer .mc-cart .mc-primary,
+.mera-customer .mc-primary {
+  min-height: 52px;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+}
+.mera-customer .mc-primary:disabled {
+  background: color-mix(in srgb, var(--mc-ink) 12%, var(--mc-paper));
+  color: color-mix(in srgb, var(--mc-ink) 55%, var(--mc-paper));
+}
+@media (hover: hover) and (pointer: fine) {
+  .mera-customer .mc-primary:hover:not(:disabled),
+  .mera-customer .mc-product button:hover:not(:disabled) {
+    box-shadow: 0 8px 20px -8px
+      color-mix(in srgb, var(--mc-primary, var(--mc-ink)) 70%, transparent);
+    transform: translateY(-1px);
+  }
+}
+.mera-customer .mc-secondary {
+  border-radius: 999px;
+  border-color: var(--mc-line) !important;
+  background: var(--mc-bone);
+  min-height: 44px;
+  font-weight: 600;
+}
+
+/* ---- Panels on the other tabs (orders, reservations, help) ---- */
+.mera-customer .mc-panel {
+  border: 1px solid var(--mc-line);
+  border-radius: 24px;
+  background: var(--mc-bone);
+}
+.mera-customer .mc-panel h2 {
+  font-family: var(--mc-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.mera-customer .mc-state {
+  background: var(--mc-tint);
+  color: var(--mc-ink);
+  font-weight: 650;
+}
+.mera-customer .mc-alert {
+  border-radius: 16px;
+}
+.mera-customer .mc-footer {
+  color: var(--mc-muted);
+  border-top-color: var(--mc-line);
+}
+
+/* ---- Customisation dialog: opens from the button that was pressed ---- */
+.mera-customer .mc-modal-backdrop {
+  background: color-mix(in srgb, var(--mc-ink) 52%, transparent);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  animation: mc-fade 200ms ease-out;
+}
+.mera-customer .mc-modal {
+  border-radius: 24px;
+  background: var(--mc-bone);
+  animation: mc-rise 340ms var(--mc-enter);
+}
+.mera-customer .mc-modal h2 {
+  font-family: var(--mc-display);
+  letter-spacing: -0.03em;
+}
+
+/* ---- Mobile: a floating basket pill replaces the fixed bar ---- */
+@media (max-width: 700px) {
+  .mera-customer .mc-hero h1 {
+    font-size: 2.5rem;
+  }
+  .mera-customer nav.mc-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-radius: 999px;
+    width: 100%;
+    -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
+    mask-image: linear-gradient(90deg, #000 88%, transparent);
+  }
+  .mera-customer nav.mc-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .mera-customer nav.mc-tabs button {
+    flex: none;
+    padding: 0 16px;
+  }
+  .mera-customer .mc-cart {
+    top: auto;
+  }
+  .mera-customer .mc-basket-heading::before,
+  .mera-customer .mc-basket-heading::after {
+    left: -16px;
+    right: -16px;
+  }
+  .mera-customer .mc-mobile-basket {
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    animation: mc-rise 420ms var(--mc-enter) 200ms backwards;
+  }
+  .mera-customer .mc-mobile-basket button {
+    min-height: 56px;
+    border-radius: 999px;
+    padding: 0 22px;
+    background: var(--mc-primary, var(--mc-ink));
+    color: var(--mc-primary-foreground, #fff);
+    box-shadow:
+      0 18px 30px -12px
+        color-mix(in srgb, var(--mc-primary, var(--mc-ink)) 60%, transparent),
+      0 2px 6px color-mix(in srgb, var(--mc-ink) 20%, transparent);
+    font-family: var(--mc-display);
+    font-weight: 650;
+  }
+  .mera-customer .mc-mobile-basket small {
+    color: inherit;
+    opacity: 0.78;
+    font-family: var(--mc-text);
+  }
+  .mera-customer .mc-mobile-basket strong {
+    animation: mc-bump 380ms var(--mc-enter);
+  }
+  .mera-customer.mc-menu-view {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ---- The one page-load moment: the venue's name and tagline rise in ---- */
+.mera-customer .mc-hero > div > * {
+  animation: mc-rise 640ms var(--mc-enter) backwards;
+}
+.mera-customer .mc-hero > div > :nth-child(2) {
+  animation-delay: 70ms;
+}
+.mera-customer .mc-hero > div > :nth-child(3) {
+  animation-delay: 130ms;
+}
+
+@keyframes mc-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+@keyframes mc-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes mc-bump {
+  40% {
+    transform: scale(1.18);
+  }
+}
+@keyframes mc-line-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mera-customer *,
+  .mera-customer *::before,
+  .mera-customer *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+  .mera-customer button:active:not(:disabled) {
+    transform: none;
+  }
+}
