@@ -1,7 +1,12 @@
 import { randomUUID, createHash, createHmac } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { getEmailReadiness, sendMeraEmail } from "./email-provider.js";
+import {
+  getEmailReadiness,
+  getEmailRecipientPolicy,
+  isEmailRecipientAllowed,
+  sendMeraEmail,
+} from "./email-provider.js";
 const hash = (v) => createHash("sha256").update(v).digest("hex");
 const fail = (message, status = 400, code = "IDENTITY_ERROR") =>
   Object.assign(new Error(message), { status, code });
@@ -10,7 +15,7 @@ export function providerIdentityReady(env = process.env) {
     env.MERA_OWNER_VERIFICATION_ENABLED === "true" &&
     typeof env.MERA_IDENTITY_TOKEN_SECRET === "string" &&
     env.MERA_IDENTITY_TOKEN_SECRET.length >= 32 &&
-    !!env.MERA_EMAIL_ALLOWED_RECIPIENTS &&
+    ["public", "allowlist"].includes(getEmailRecipientPolicy(env).policy) &&
     getEmailReadiness(env).configured
   );
 }
@@ -148,13 +153,9 @@ export function mountProviderIdentity(
     limit(req);
     requireReady();
     const input = registration.parse(req.body);
-    if (
-      !env.MERA_EMAIL_ALLOWED_RECIPIENTS.split(",").some(
-        (v) => v.trim().toLowerCase() === input.email,
-      )
-    )
+    if (!isEmailRecipientAllowed(input.email, env))
       throw fail(
-        "Registration is restricted to approved staging recipients.",
+        "Registration is restricted to approved recipients.",
         403,
         "RECIPIENT_NOT_ALLOWED",
       );

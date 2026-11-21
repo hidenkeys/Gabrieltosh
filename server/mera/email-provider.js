@@ -33,18 +33,48 @@ function allowedRecipients(env) {
     value.trim(),
   );
 }
+// Public delivery is explicit. With no policy, preserve legacy transport semantics:
+// an existing allowlist remains restrictive; no allowlist remains unrestricted.
+export function getEmailRecipientPolicy(env = process.env) {
+  const selected = env.MERA_EMAIL_RECIPIENT_POLICY;
+  if (selected !== undefined && !["public", "allowlist"].includes(selected))
+    return { policy: "invalid", allowed: [] };
+  if (selected === "public") return { policy: "public", allowed: null };
+  const allowed = allowedRecipients(env);
+  if (allowed === null)
+    return selected === "allowlist"
+      ? { policy: "invalid", allowed: [] }
+      : { policy: "unrestricted", allowed: null };
+  if (
+    !allowed.length ||
+    allowed.length > 50 ||
+    allowed.some((value) => !mailbox(value))
+  )
+    return { policy: "invalid", allowed: [] };
+  return { policy: "allowlist", allowed };
+}
+export function isEmailRecipientAllowed(to, env = process.env) {
+  const policy = getEmailRecipientPolicy(env);
+  return (
+    mailbox(to) &&
+    policy.policy !== "invalid" &&
+    (!policy.allowed ||
+      policy.allowed.some((value) => value.toLowerCase() === to.toLowerCase()))
+  );
+}
 // Readiness confirms explicit transport configuration, not domain verification.
 export function getEmailReadiness(env = process.env) {
   if (env.MERA_EMAIL_ENABLED !== "true")
     return { configured: false, reason: "disabled" };
-  const allowed = allowedRecipients(env);
-  if (
-    allowed !== null &&
-    (!allowed.length ||
-      allowed.length > 50 ||
-      allowed.some((value) => !mailbox(value)))
-  )
-    return { configured: false, reason: "invalid_recipient_allowlist" };
+  if (getEmailRecipientPolicy(env).policy === "invalid")
+    return {
+      configured: false,
+      reason:
+        env.MERA_EMAIL_RECIPIENT_POLICY !== undefined &&
+        !["public", "allowlist"].includes(env.MERA_EMAIL_RECIPIENT_POLICY)
+          ? "invalid_recipient_policy"
+          : "invalid_recipient_allowlist",
+    };
   if (!env.RESEND_API_KEY || !env.MERA_EMAIL_FROM || !env.MERA_PUBLIC_ORIGIN)
     return { configured: false, reason: "missing_configuration" };
   if (
@@ -105,11 +135,7 @@ export async function sendMeraEmail(
     )
   )
     throw failure("EMAIL_INVALID_INPUT", "not_sent");
-  const allowed = allowedRecipients(env);
-  if (
-    allowed &&
-    !allowed.some((value) => value.toLowerCase() === to.toLowerCase())
-  )
+  if (!isEmailRecipientAllowed(to, env))
     throw failure("EMAIL_RECIPIENT_NOT_ALLOWED", "not_sent");
   if (typeof fetchImpl !== "function")
     throw failure("EMAIL_UNAVAILABLE", "not_sent");

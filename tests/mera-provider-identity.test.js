@@ -16,7 +16,7 @@ const env = {
   MERA_PUBLIC_ORIGIN: "https://staging.example.invalid",
   RESEND_API_KEY: "re_synthetic_key_123456",
 };
-async function fixture(sendEmail) {
+async function fixture(sendEmail, overrides = {}) {
   const memory = newDb();
   memory.public.none(
     "CREATE TABLE users(id TEXT PRIMARY KEY,name TEXT,username TEXT UNIQUE,password_hash TEXT,role TEXT,active BOOLEAN)",
@@ -39,7 +39,7 @@ async function fixture(sendEmail) {
   const routes = new Map();
   mountProviderIdentity(
     { post: (path, fn) => routes.set(path, fn) },
-    { db, limit: () => {}, env: { ...env }, sendEmail },
+    { db, limit: () => {}, env: { ...env, ...overrides }, sendEmail },
   );
   return {
     db,
@@ -211,4 +211,87 @@ test("stale sending becomes explicitly retryable and accepted outcome never regr
     (await f.call("recover", { requestKey: body.requestKey })).retryAllowed,
     true,
   );
+});
+
+test("public signup permits a new recipient, blocks organization creation before verification, then creates scoped owner organization", async () => {
+  let sent;
+  const f = await fixture(
+    async (mail) => {
+      sent = mail;
+      return { accepted: true, provider: "resend", id: randomUUID() };
+    },
+    { MERA_EMAIL_RECIPIENT_POLICY: "public" },
+  );
+  const body = { ...input(), email: "another-owner@example.invalid" };
+  assert.equal((await f.call("register", body)).emailDelivery, "accepted");
+  assert.equal(sent.to, body.email);
+  const user = (await f.db.query("SELECT * FROM users")).rows[0];
+  assert.equal(user.active, false);
+  const { readFile } = await import("node:fs/promises");
+  const schema = await readFile(
+    new URL("../server/mera/schema.sql", import.meta.url),
+    "utf8",
+  );
+  await f.db.query(schema.split("\n").slice(0, 3).join("\n"));
+  await f.db.query(
+    "CREATE TABLE mera_slug_claims(slug TEXT PRIMARY KEY,organization_id TEXT NOT NULL REFERENCES mera_organizations(id))",
+  );
+  const { createMeraRouter } = await import("../server/mera/index.js");
+  const router = createMeraRouter(f.db);
+  const create = router.stack.find(
+    (layer) =>
+      layer.route?.path === "/organizations" && layer.route.methods.post,
+  ).route.stack[0].handle;
+  const previous = process.env.MERA_DEMO;
+  process.env.MERA_DEMO = "false";
+  let result;
+  const req = {
+    user,
+    body: {
+      name: "Public signup test venue",
+      slug: "public-signup-test",
+      branchName: "First branch",
+    },
+  };
+  const res = {
+    status() {
+      return this;
+    },
+    json(value) {
+      result = value;
+    },
+  };
+  try {
+    await assert.rejects(
+      create(req, res),
+      (error) => error.code === "OWNER_VERIFICATION_REQUIRED",
+    );
+    assert.equal(
+      (await f.db.query("SELECT * FROM mera_organizations")).rows.length,
+      0,
+    );
+    const token = sent.text.match(/#verify=([a-f0-9]{64})/)[1];
+    assert.equal((await f.call("verify", { token })).realEmailVerified, true);
+    const active = (await f.db.query("SELECT * FROM users")).rows[0];
+    assert.equal(active.active, true);
+    await create({ ...req, user: active }, res);
+    assert.ok(result.organizationId);
+    assert.ok(result.branchId);
+    const member = (await f.db.query("SELECT * FROM mera_memberships")).rows[0];
+    assert.equal(member.user_id, active.id);
+    assert.equal(member.organization_id, result.organizationId);
+    assert.equal(member.role, "owner");
+    assert.equal(member.organization_wide, true);
+    const branch = (await f.db.query("SELECT * FROM mera_branches")).rows[0];
+    assert.equal(branch.organization_id, result.organizationId);
+    assert.equal(branch.settings.orderingPaused, true);
+    assert.equal(
+      (await f.db.query("SELECT * FROM mera_organizations")).rows[0]
+        .subscription.billingEnabled,
+      false,
+    );
+  } finally {
+    if (previous === undefined) delete process.env.MERA_DEMO;
+    else process.env.MERA_DEMO = previous;
+  }
 });

@@ -27,8 +27,10 @@ function recovery() {
 }
 export default function ProviderSignup({
   verificationToken,
+  recipientPolicy = "allowlist",
 }: {
   verificationToken?: string;
+  recipientPolicy?: "public" | "allowlist";
 }) {
   const [initial] = useState(recovery),
     [key, setKey] = useState(initial.key),
@@ -224,8 +226,9 @@ export default function ProviderSignup({
       <p className="mera-signup-badge">Mera QR owner account</p>
       <h2>Create your owner account</h2>
       <p>
-        We’ll send a verification link before your account can sign in. Staging
-        registration is restricted to approved recipients.
+        We’ll send a verification link before your account can sign in.
+        {recipientPolicy !== "public" &&
+          " Registration is restricted to approved recipients."}
       </p>
       {error && <p role="alert">{error}</p>}
       <form

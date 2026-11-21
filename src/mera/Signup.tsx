@@ -311,7 +311,14 @@ export default function Signup() {
           )}
           {checking && <p role="status">Checking registration readiness…</p>}
           {(providerToken || capabilities?.registration === "provider") && (
-            <ProviderSignup verificationToken={providerToken} />
+            <ProviderSignup
+              verificationToken={providerToken}
+              recipientPolicy={
+                capabilities?.recipientPolicy === "public"
+                  ? "public"
+                  : "allowlist"
+              }
+            />
           )}
           {locked && (
             <section aria-label="Account reconciliation required">

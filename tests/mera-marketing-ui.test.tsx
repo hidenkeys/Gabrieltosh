@@ -135,3 +135,61 @@ test("legal preparation retains honest approval boundaries and parent navigation
     "/mera",
   );
 });
+
+test("homepage order illustration routes station tickets, waits for both stations and resets without network writes", () => {
+  window.history.replaceState(null, "", "/mera");
+  let writes = 0;
+  globalThis.fetch = (async () => {
+    writes++;
+    throw Error("Illustration must remain local");
+  }) as any;
+  render(<Marketing />);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Remove one Citrus cooler" }),
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Remove one Garden sandwich" }),
+  );
+  assert.equal(
+    (
+      screen.getByRole("button", {
+        name: "Add an item to send",
+      }) as HTMLButtonElement
+    ).disabled,
+    true,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Add Citrus cooler" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add Garden sandwich" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add Iced coffee" }));
+  fireEvent.click(screen.getByRole("button", { name: "Send order · 3 items" }));
+  const tickets = Array.from(
+    document.querySelectorAll(".mx-ticket:not(.mx-ticket--seed)"),
+  );
+  assert.equal(tickets.length, 2);
+  const kitchen = tickets.find(
+    (ticket) =>
+      ticket.querySelector("header strong")?.textContent === "Kitchen",
+  )!;
+  const bar = tickets.find(
+    (ticket) => ticket.querySelector("header strong")?.textContent === "Bar",
+  )!;
+  assert.match(kitchen.textContent || "", /Garden sandwich/);
+  assert.doesNotMatch(kitchen.textContent || "", /Citrus cooler|Iced coffee/);
+  assert.match(bar.textContent || "", /Citrus cooler/);
+  assert.match(bar.textContent || "", /Iced coffee/);
+  fireEvent.click(kitchen.querySelector("button")!);
+  assert.ok(screen.getByText("Being prepared."));
+  fireEvent.click(kitchen.querySelector("button")!);
+  assert.ok(screen.getByText("Being prepared."));
+  assert.equal(screen.queryByText("Ready to serve at your table."), null);
+  fireEvent.click(bar.querySelector("button")!);
+  fireEvent.click(bar.querySelector("button")!);
+  assert.ok(screen.getByText("Ready to serve at your table."));
+  fireEvent.click(screen.getByRole("button", { name: "Start again" }));
+  assert.ok(screen.getByRole("button", { name: "Send order · 2 items" }));
+  assert.equal(
+    document.querySelectorAll(".mx-ticket:not(.mx-ticket--seed)").length,
+    0,
+  );
+  assert.equal(writes, 0);
+});

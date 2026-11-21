@@ -1,3 +1,4 @@
+import { getEmailRecipientPolicy } from "./email-provider.js";
 import {
   mountProviderIdentity,
   providerIdentityReady,
@@ -27,7 +28,9 @@ export async function requireVerifiedOwner(req, db) {
   ).rows[0];
   if (!identity)
     throw fail(
-      "A verified owner identity is required before creating an organization. Email verification delivery is not configured.",
+      providerIdentityReady()
+        ? "Verify your owner email before creating an organization."
+        : "A verified owner identity is required before creating an organization. Email verification delivery is unavailable.",
       403,
       "OWNER_VERIFICATION_REQUIRED",
     );
@@ -60,6 +63,8 @@ export function mountMeraIdentity(router, { db }) {
           : "blocked",
       emailDelivery:
         !simulated() && providerIdentityReady() ? "provider" : "blocked",
+      recipientPolicy:
+        getEmailRecipientPolicy().policy === "public" ? "public" : "allowlist",
       persistentCustomerIdentity: "blocked",
       reason:
         "Verified email delivery and sender authorization are required for production registration.",

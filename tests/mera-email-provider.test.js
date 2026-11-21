@@ -192,3 +192,51 @@ test("explicit enable gate and optional staging recipient allowlist fail closed"
   );
   assert.equal(calls, 1);
 });
+
+test("explicit public recipient policy permits normal email while allowlist and invalid modes remain restrictive", async () => {
+  const publicEnv = {
+    ...env,
+    MERA_EMAIL_RECIPIENT_POLICY: "public",
+    MERA_EMAIL_ALLOWED_RECIPIENTS: "old-restricted@example.invalid",
+  };
+  let calls = 0;
+  const result = await sendMeraEmail(
+    { ...input, to: "new-owner@example.invalid" },
+    {
+      env: publicEnv,
+      fetchImpl: async () => {
+        calls++;
+        return { ok: true, json: async () => ({ id }) };
+      },
+    },
+  );
+  assert.equal(result.accepted, true);
+  assert.equal(calls, 1);
+  for (const policy of ["PUBLIC", "", "public\n", "all"])
+    assert.equal(
+      getEmailReadiness({ ...env, MERA_EMAIL_RECIPIENT_POLICY: policy })
+        .configured,
+      false,
+    );
+  assert.equal(
+    getEmailReadiness({ ...env, MERA_EMAIL_RECIPIENT_POLICY: "allowlist" })
+      .configured,
+    false,
+  );
+  await assert.rejects(
+    sendMeraEmail(
+      { ...input, to: "new-owner@example.invalid" },
+      {
+        env: { ...publicEnv, MERA_EMAIL_RECIPIENT_POLICY: "allowlist" },
+        fetchImpl: async () => {
+          throw Error("must not dispatch");
+        },
+      },
+    ),
+    { code: "EMAIL_RECIPIENT_NOT_ALLOWED", outcome: "not_sent" },
+  );
+  assert.equal(
+    getEmailReadiness({ ...publicEnv, MERA_EMAIL_ENABLED: "false" }).configured,
+    false,
+  );
+});

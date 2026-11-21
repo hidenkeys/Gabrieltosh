@@ -168,3 +168,15 @@ test("invalid verification acknowledgement does not activate or clear another re
   );
   assert.ok(sessionStorage.getItem(key));
 });
+
+test("public signup removes approved-recipient restriction without weakening verification copy", () => {
+  reset();
+  render(<ProviderSignup recipientPolicy="public" />);
+  assert.equal(screen.queryByText(/restricted to approved recipients/), null);
+  assert.ok(
+    screen.getByText(/verification link before your account can sign in/),
+  );
+  cleanup();
+  render(<ProviderSignup recipientPolicy="allowlist" />);
+  assert.ok(screen.getByText(/restricted to approved recipients/));
+});
