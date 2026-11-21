@@ -613,3 +613,30 @@
   margin: 0;
   padding: 0;
 }
+
+/* Keep owner verification guidance readable beside the business details form. */
+.mera-create-organization .mera-owner-verification {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.mera-create-organization .mera-owner-verification > h3 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.mera-create-organization .mera-owner-verification > p {
+  margin: 0;
+  line-height: 1.5;
+}
+.mera-create-organization .mera-owner-verification a {
+  color: var(--mera-forest);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.mera-create-organization .mera-owner-verification > button {
+  justify-self: start;
+  max-width: 100%;
+}

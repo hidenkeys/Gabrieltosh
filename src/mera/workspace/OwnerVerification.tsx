@@ -141,7 +141,7 @@ export default function OwnerVerification({
   const delivery = status?.delivery;
   return (
     <section
-      className="mera-owner-note"
+      className="mera-owner-note mera-owner-verification"
       aria-label="Owner email verification"
       aria-busy={busy}
     >

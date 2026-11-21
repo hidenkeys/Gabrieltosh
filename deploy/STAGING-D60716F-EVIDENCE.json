@@ -1,0 +1,41 @@
+{
+  "at": "2026-11-21T17:33:28.639Z",
+  "sourceRevision": "d60716fcc9a5c68e20bb2b3a9b3c5095bd2b5615",
+  "webDeploymentId": "bdcf0f9d-94ac-4d99-98e0-6a757a51d4e0",
+  "jobsDeploymentId": "787f69ec-79db-4260-a8d6-ad9e482cc93a",
+  "deploymentStatuses": "SUCCESS",
+  "checks": [
+    {
+      "path": "/api/health",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/identity/capabilities",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/identity/owner-status",
+      "status": 401
+    },
+    {
+      "path": "/api/mera/v1/platform/company-leads",
+      "status": 401
+    }
+  ],
+  "capabilities": {
+    "registration": "provider",
+    "emailDelivery": "provider",
+    "recipientPolicy": "public",
+    "persistentCustomerIdentity": "blocked",
+    "reason": "Verified email delivery and sender authorization are required for production registration."
+  },
+  "validation": {
+    "focusedIntegrationTests": 45,
+    "build": "passed"
+  },
+  "preservation": "Runtime variables, secrets, records and operator browser sessions retained; no sends or accounts created by deployment checks.",
+  "limitations": [
+    "Focused database tests use pg-mem and do not establish real concurrent row-lock behavior.",
+    "Browser resend, delivery and organization setup verification coordinated separately."
+  ]
+}

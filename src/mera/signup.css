@@ -367,3 +367,25 @@
     animation: none;
   }
 }
+
+/* Provider recovery is a sequence of messages and explicit actions. */
+.mera-signup .mera-provider-signup {
+  display: grid;
+  gap: 14px;
+}
+.mera-signup .mera-provider-signup > p,
+.mera-signup .mera-provider-signup > h2 {
+  margin: 0;
+}
+.mera-signup .mera-provider-signup > button {
+  margin-top: 0;
+  justify-self: start;
+  max-width: 100%;
+}
+.mera-signup .mera-provider-signup > form {
+  display: grid;
+  gap: 14px;
+}
+.mera-signup .mera-provider-signup > form > label {
+  margin: 0;
+}
