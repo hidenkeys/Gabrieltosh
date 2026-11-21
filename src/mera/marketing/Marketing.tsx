@@ -1,5 +1,4 @@
 import {
-  ArrowRight,
   ArrowUpRight,
   Compass,
   Layers,
@@ -10,6 +9,7 @@ import {
 import type { ReactNode } from "react";
 import MarketingShell from "./MarketingShell";
 import { ProductDemonstration, TravelConcept } from "./ProductDemonstrations";
+import { OrderThread } from "./OrderThread";
 import { PricingAndSupport, LegalInformationPage } from "./MarketingSecondary";
 import { Disclosure } from "../ui/OperationalPrimitives";
 import ProjectBrief from "../company/ProjectBrief";
@@ -18,172 +18,152 @@ const actualDemo = "/mera/menu/bing-chun/20000000-0000-4000-8000-000000000001";
 const offerings = [
   {
     id: "qr",
-    number: "01",
+    tone: "live",
     title: "Mera QR",
-    type: "HOSPITALITY OPERATIONS",
-    status: "Explore the working product",
-    text: "Connect the menu, the team and the entire service. QR ordering, counters, tables, reservations and daily operations in one workspace.",
+    kind: "Hospitality operations",
+    status: "Working product",
+    text: "Connect the menu, the team and the entire service in one workspace.",
+    points: [
+      "QR menus and ordering",
+      "Counters, tables and reservations",
+      "Kitchen and bar tickets",
+      "Reports and daily operations",
+    ],
     cta: "Explore Mera QR",
-    icon: QrCode,
   },
   {
     id: "travel",
-    number: "02",
+    tone: "planned",
     title: "MeraTravel Suite",
-    type: "TRAVEL BUSINESS SOFTWARE",
-    status: "Planned · coming soon",
-    text: "A new direction for travel-business technology. Help shape a more connected way to present services, organize enquiries and follow customer relationships.",
+    kind: "Travel business software",
+    status: "Planned, coming soon",
+    text: "A new direction for travel-business technology, shaped with the businesses it is for.",
+    points: [
+      "Present your services",
+      "Organize enquiries",
+      "Follow customer relationships",
+    ],
     cta: "Discover the planned direction",
-    icon: Compass,
   },
   {
     id: "consultancy",
-    number: "03",
+    tone: "open",
     title: "MeraTech Consultancy",
-    type: "SOFTWARE BUILT AROUND YOUR NEEDS",
+    kind: "Software built around your needs",
     status: "Start with a project brief",
     text: "For the problem that needs its own solution. Tell us what your business needs, who it serves and what stands in the way.",
+    points: [
+      "Start from your problem",
+      "Software shaped around your users",
+      "Built and put to work with you",
+    ],
     cta: "Tell us about your project",
-    icon: Layers,
   },
 ];
-function OfferingRows() {
+/** Offerings hang like order tickets on a rail; size and fill encode status. */
+function OfferingRail() {
   return (
-    <div className="mt-offering-rows">
+    <ul className="mx-rail">
       {offerings.map((item) => (
-        <article key={item.id}>
-          <span className="mt-offering-index">{item.number}</span>
-          <div className="mt-offering-name">
-            <span className="eyebrow">{item.type}</span>
-            <h3>{item.title}</h3>
-            <span
-              className={`mt-status ${item.id === "travel" ? "is-planned" : ""}`}
-            >
-              {item.status}
-            </span>
-          </div>
-          <div>
+        <li key={item.id} className="mx-slip-wrap" data-tone={item.tone}>
+          <article className="mx-slip">
+            <header>
+              <h3>{item.title}</h3>
+              <span className="mx-slip-status">{item.status}</span>
+            </header>
+            <p className="mx-slip-kind">{item.kind}</p>
             <p>{item.text}</p>
-            <a className="mt-text-link" href={`/mera/${item.id}`}>
+            <ul>
+              {item.points.map((point) => (
+                <li key={point}>{point}</li>
+              ))}
+            </ul>
+            <a className="mx-link" href={`/mera/${item.id}`}>
               {item.cta}
-              <ArrowUpRight aria-hidden="true" />
             </a>
-          </div>
-        </article>
+          </article>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 function Home() {
   return (
     <MarketingShell>
-      <section className="mt-home-hero mt-container">
-        <div className="mt-home-promise">
-          <p className="eyebrow">MERATECH · TECHNOLOGY FOR REAL BUSINESS</p>
-          <h1>
-            Behind every
-            <br />
-            great experience,
-            <br />
-            <em>better systems.</em>
-          </h1>
-          <p>
-            We build products and bespoke software for the businesses that bring
-            people together.
-          </p>
-          <div className="mt-actions">
-            <a className="primary" href="/mera/products">
-              Explore our products <ArrowRight aria-hidden="true" />
-            </a>
-            <a className="mt-text-link" href="/mera/consultancy">
-              Build something with us <ArrowUpRight aria-hidden="true" />
-            </a>
-          </div>
-          <div className="mt-home-offerings">
-            <span>Mera QR</span>
-            <span>
-              MeraTravel Suite <small>Planned</small>
+      <section className="mx-hero mt-container">
+        <div className="mx-hero-top">
+          <h1 className="mx-hero-title">
+            <span className="mx-line">
+              <span>Behind every</span>
+            </span>{" "}
+            <span className="mx-line">
+              <span>great experience,</span>
+            </span>{" "}
+            <span className="mx-line">
+              <span>better systems.</span>
             </span>
-            <span>Consultancy</span>
+          </h1>
+          <div className="mx-hero-aside">
+            <p>
+              We build products and bespoke software for the businesses that
+              bring people together.
+            </p>
+            <div className="mt-actions">
+              <a className="primary" href="/mera/products">
+                Explore our products
+              </a>
+              <a className="mx-link" href="/mera/consultancy">
+                Build something with us
+              </a>
+            </div>
           </div>
         </div>
-        <div className="mt-home-demonstration">
-          <div className="mt-featured-product">
-            <span>MEET MERA QR</span>
-            <a href="/mera/qr">
-              Hospitality, connected <ArrowUpRight aria-hidden="true" />
-            </a>
-          </div>
-          <ProductDemonstration compact />
-        </div>
+        <OrderThread />
       </section>
-      <section className="mt-company-statement">
-        <div className="mt-container">
-          <p className="eyebrow">ONE COMPANY. DISTINCT WAYS TO HELP.</p>
-          <h2>
-            Choose the product.
-            <br />
-            Or shape the solution.
-          </h2>
+      <section id="products" className="mx-section mt-container">
+        <div className="mx-heading">
+          <h2>Built for the work behind the scenes.</h2>
           <p>
-            A hospitality platform you can explore today. A travel product we’re
-            planning. A consultancy for the work that needs a different
+            A hospitality platform you can explore today. A travel product
+            we’re planning. A consultancy for the work that needs a different
             approach.
           </p>
         </div>
+        <OfferingRail />
       </section>
-      <section id="products" className="mt-container mt-section">
-        <div className="mt-heading-row">
-          <div>
-            <p className="eyebrow">OUR PRODUCTS & SERVICES</p>
-            <h2>
-              Built for the work
-              <br />
-              behind the scenes.
-            </h2>
-          </div>
-          <p>
-            Each offering has a clear purpose.
-            <br />
-            Each starts with the people using it.
-          </p>
-        </div>
-        <OfferingRows />
-      </section>
-      <section className="mt-principles mt-container">
-        <div>
-          <p className="eyebrow">HOW WE THINK</p>
+      <section className="mx-principles">
+        <div className="mt-container">
           <h2>
             Useful by design.
             <br />
             Grounded in your business.
           </h2>
+          <dl>
+            <div>
+              <dt>Start with the work</dt>
+              <dd>
+                Understand the daily decisions, handoffs and exceptions before
+                choosing the technology.
+              </dd>
+            </div>
+            <div>
+              <dt>Keep the experience clear</dt>
+              <dd>
+                Give customers and teams the right information and a meaningful
+                next step.
+              </dd>
+            </div>
+            <div>
+              <dt>Build with responsibility</dt>
+              <dd>
+                Make permissions, payment readiness and operational boundaries
+                explicit.
+              </dd>
+            </div>
+          </dl>
         </div>
-        <dl>
-          <div>
-            <dt>Start with the work</dt>
-            <dd>
-              Understand the daily decisions, handoffs and exceptions before
-              choosing the technology.
-            </dd>
-          </div>
-          <div>
-            <dt>Keep the experience clear</dt>
-            <dd>
-              Give customers and teams the right information and a meaningful
-              next step.
-            </dd>
-          </div>
-          <div>
-            <dt>Build with responsibility</dt>
-            <dd>
-              Make permissions, payment readiness and operational boundaries
-              explicit.
-            </dd>
-          </div>
-        </dl>
       </section>
-      <section id="pricing" className="mt-commercial-note mt-container">
+      <section id="pricing" className="mx-note mt-container">
         <ShieldCheck aria-hidden="true" />
         <div>
           <h2>A considered start, not a hidden commitment.</h2>
@@ -192,8 +172,8 @@ function Home() {
             MeraTech does not activate a subscription or live payments.
           </p>
         </div>
-        <a className="mt-text-link" href="/mera/qr#commercial">
-          Mera QR setup details <ArrowRight aria-hidden="true" />
+        <a className="mx-link" href="/mera/qr#commercial">
+          Mera QR setup details
         </a>
       </section>
       <FinalAction />
@@ -204,7 +184,6 @@ function Products() {
   return (
     <MarketingShell active="products">
       <PageIntro
-        eyebrow="PRODUCTS & SERVICES"
         title={
           <>
             The right technology.
@@ -214,21 +193,18 @@ function Products() {
         }
         text="Explore what exists, see what’s planned, or start a conversation about a solution built for you."
       />
-      <section className="mt-container mt-section mt-section-tight">
-        <OfferingRows />
+      <section className="mx-section mx-section-tight mt-container">
+        <OfferingRail />
       </section>
-      <section className="mt-contrast-section">
-        <div className="mt-container mt-split">
-          <div>
-            <p className="eyebrow">A CLEAR DIFFERENCE</p>
-            <h2>
-              Working product.
-              <br />
-              Planned product.
-              <br />
-              Bespoke service.
-            </h2>
-          </div>
+      <section className="mx-contrast">
+        <div className="mt-container mx-split">
+          <h2>
+            Working product.
+            <br />
+            Planned product.
+            <br />
+            Bespoke service.
+          </h2>
           <div>
             <p>
               Mera QR is the existing hospitality platform. Its readiness checks
@@ -249,12 +225,55 @@ function Products() {
     </MarketingShell>
   );
 }
+/** A stylised table tent. It is a picture of a QR card, not a scannable code. */
+const tentSize = 15;
+const tentCells = (() => {
+  const cells: [number, number][] = [];
+  let seed = 11;
+  for (let y = 0; y < tentSize; y++)
+    for (let x = 0; x < tentSize; x++) {
+      const finder =
+        (x < 7 && y < 7) ||
+        (x >= tentSize - 7 && y < 7) ||
+        (x < 7 && y >= tentSize - 7);
+      if (finder) continue;
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      if ((seed >> 16) & 1) cells.push([x, y]);
+    }
+  return cells;
+})();
+function TableTent() {
+  const finders: [number, number][] = [
+    [0, 0],
+    [tentSize - 7, 0],
+    [0, tentSize - 7],
+  ];
+  return (
+    <figure className="mx-tent" aria-hidden="true">
+      <div className="mx-tent-card">
+        <span>Table 04</span>
+        <svg viewBox={`0 0 ${tentSize} ${tentSize}`} focusable="false">
+          {finders.map(([x, y]) => (
+            <g key={`${x}-${y}`}>
+              <rect x={x} y={y} width="7" height="7" />
+              <rect x={x + 1} y={y + 1} width="5" height="5" className="gap" />
+              <rect x={x + 2} y={y + 2} width="3" height="3" />
+            </g>
+          ))}
+          {tentCells.map(([x, y]) => (
+            <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" />
+          ))}
+        </svg>
+        <strong>Scan to see the menu</strong>
+      </div>
+    </figure>
+  );
+}
 function QRProduct() {
   return (
     <MarketingShell active="products">
-      <section className="mt-product-hero mt-container">
+      <section className="mx-qr-hero mt-container">
         <div>
-          <p className="eyebrow">MERA QR · HOSPITALITY OPERATIONS</p>
           <h1>
             From first scan.
             <br />
@@ -266,10 +285,11 @@ function QRProduct() {
           </p>
           <div className="mt-actions">
             <a className="primary" href="/mera/signup">
-              Set up Mera QR <ArrowRight aria-hidden="true" />
+              Set up Mera QR
             </a>
-            <a className="mt-text-link" href={actualDemo}>
-              Try the Bing Chun test menu <ArrowUpRight aria-hidden="true" />
+            <a className="mx-link" href={actualDemo}>
+              Try the Bing Chun test menu
+              <ArrowUpRight aria-hidden="true" />
             </a>
           </div>
           <p className="mt-small-note">
@@ -277,38 +297,20 @@ function QRProduct() {
             illustrations below use fictional data.
           </p>
         </div>
-        <div className="mt-product-summary">
-          <QrCode aria-hidden="true" />
-          <span>ONE CONNECTED SERVICE</span>
-          <ol>
-            <li>Menu discovery</li>
-            <li>Orders & preparation</li>
-            <li>Tables & reservations</li>
-            <li>Payments & reporting</li>
-          </ol>
-        </div>
+        <TableTent />
       </section>
-      <nav
-        className="mt-product-jump mt-container"
-        aria-label="Mera QR page sections"
-      >
+      <nav className="mx-jump mt-container" aria-label="Mera QR page sections">
         <a href="#experience">Walkthrough</a>
         <a href="#modes">Service modes</a>
         <a href="#commercial">Readiness</a>
         <a href="#questions">Questions</a>
       </nav>
-      <section
-        id="experience"
-        className="mt-container mt-section mt-section-tight"
-      >
-        <div className="mt-heading-row">
-          <div>
-            <p className="eyebrow">TAKE A CLOSER LOOK</p>
-            <h2>
-              Every role.
-              <br />A clearer view.
-            </h2>
-          </div>
+      <section id="experience" className="mx-section mx-section-tight mt-container">
+        <div className="mx-heading">
+          <h2>
+            Every role.
+            <br />A clearer view.
+          </h2>
           <p>
             Switch between illustrations to explore how the workflow fits
             together. This demonstration doesn’t submit orders or move money.
@@ -316,24 +318,21 @@ function QRProduct() {
         </div>
         <ProductDemonstration />
       </section>
-      <section className="mt-qr-journey">
+      <section className="mx-journey">
         <div className="mt-container">
-          <div className="mt-heading-row">
-            <div>
-              <p className="eyebrow">THE SERVICE JOURNEY</p>
-              <h2>
-                Good service flows.
-                <br />
-                Keep it connected.
-              </h2>
-            </div>
+          <div className="mx-heading">
+            <h2>
+              Good service flows.
+              <br />
+              Keep it connected.
+            </h2>
             <p>
               Give guests a simple way in.
               <br />
               Give your team a clear way through.
             </p>
           </div>
-          <ol>
+          <ol className="mx-steps">
             {[
               [
                 "Scan & discover",
@@ -353,7 +352,7 @@ function QRProduct() {
               ],
             ].map(([title, text], index) => (
               <li key={title}>
-                <span>0{index + 1}</span>
+                <span className="mx-step-no">{index + 1}</span>
                 <h3>{title}</h3>
                 <p>{text}</p>
               </li>
@@ -361,22 +360,19 @@ function QRProduct() {
           </ol>
         </div>
       </section>
-      <section id="modes" className="mt-container mt-section">
-        <div className="mt-heading-row">
-          <div>
-            <p className="eyebrow">FIT THE WAY YOU SERVE</p>
-            <h2>
-              One platform.
-              <br />
-              Different rhythms.
-            </h2>
-          </div>
+      <section id="modes" className="mx-section mt-container">
+        <div className="mx-heading">
+          <h2>
+            One platform.
+            <br />
+            Different rhythms.
+          </h2>
           <p>
             Combine the service modes your venue needs. Keep roles, branch
             access and readiness explicit.
           </p>
         </div>
-        <div className="mt-service-modes">
+        <ul className="mx-modes">
           {[
             [
               "Counter & takeaway",
@@ -390,19 +386,17 @@ function QRProduct() {
               "Lounges & clubs",
               "Table service and repeat orders, with venue policies reviewed before launch.",
             ],
-          ].map(([title, text], index) => (
-            <article key={title}>
-              <span>0{index + 1}</span>
+          ].map(([title, text]) => (
+            <li key={title}>
               <h3>{title}</h3>
               <p>{text}</p>
-            </article>
+            </li>
           ))}
-        </div>
+        </ul>
       </section>
-      <section id="reporting" className="mt-contrast-section">
-        <div className="mt-container mt-split">
+      <section id="reporting" className="mx-features">
+        <div className="mt-container mx-split">
           <div>
-            <p className="eyebrow">YOUR BRAND. YOUR OPERATION.</p>
             <h2>
               More than a<br />
               digital menu.
@@ -411,7 +405,7 @@ function QRProduct() {
               Bring the details around service into the same working picture.
             </p>
           </div>
-          <dl className="mt-feature-list">
+          <dl>
             {[
               [
                 "Brand & menu",
@@ -441,11 +435,8 @@ function QRProduct() {
       <section id="commercial">
         <PricingAndSupport />
       </section>
-      <section className="mt-container mt-faq" id="questions">
-        <div>
-          <p className="eyebrow">BEFORE YOU BEGIN</p>
-          <h2>A few useful answers.</h2>
-        </div>
+      <section className="mx-faq mt-container" id="questions">
+        <h2>A few useful answers.</h2>
         <div>
           {[
             [
@@ -478,10 +469,9 @@ function QRProduct() {
 function Travel() {
   return (
     <MarketingShell active="products">
-      <section className="mt-travel-hero mt-container">
+      <section className="mx-travel mt-container">
         <div>
-          <p className="eyebrow">MERATRAVEL SUITE</p>
-          <span className="mt-status is-planned">Planned · coming soon</span>
+          <span className="mx-status">Planned, coming soon</span>
           <h1>
             A better business journey.
             <br />
@@ -492,9 +482,11 @@ function Travel() {
             present services, organize enquiries and follow customer
             relationships.
           </p>
-          <a className="primary" href="#travel-interest">
-            Register your interest <ArrowRight aria-hidden="true" />
-          </a>
+          <div className="mt-actions">
+            <a className="primary" href="#travel-interest">
+              Register your interest
+            </a>
+          </div>
           <p className="mt-small-note">
             Not an available application. No launch date, pricing or
             integrations are being promised.
@@ -502,9 +494,8 @@ function Travel() {
         </div>
         <TravelConcept />
       </section>
-      <section className="mt-travel-intent mt-container">
+      <section className="mx-travel-intent mt-container">
         <div>
-          <p className="eyebrow">HELP INFORM THE DIRECTION</p>
           <h2>
             What would make
             <br />
@@ -530,7 +521,6 @@ function Consultancy() {
   return (
     <MarketingShell active="consultancy">
       <PageIntro
-        eyebrow="MERATECH CONSULTANCY"
         title={
           <>
             Your business challenge.
@@ -539,9 +529,8 @@ function Consultancy() {
         }
         text="When your needs don’t fit a ready-made product, start with the problem. We help shape bespoke software around your users, systems and goals."
       />
-      <section className="mt-consultancy-process mt-container">
+      <section className="mx-process mt-container">
         <div>
-          <p className="eyebrow">FROM NEED TO NEXT STEP</p>
           <h2>Clarity before complexity.</h2>
           <p>
             A project brief starts a review. It is not a quotation, an accepted
@@ -562,7 +551,7 @@ function Consultancy() {
             ],
           ].map(([title, text], index) => (
             <li key={title}>
-              <span>0{index + 1}</span>
+              <span className="mx-step-no">{index + 1}</span>
               <div>
                 <h3>{title}</h3>
                 <p>{text}</p>
@@ -571,13 +560,10 @@ function Consultancy() {
           ))}
         </ol>
       </section>
-      <section className="mt-project-brief-section" id="project-brief">
+      <section className="mx-brief" id="project-brief">
         <div className="mt-container">
-          <div className="mt-heading-row">
-            <div>
-              <p className="eyebrow">TELL US WHAT YOU NEED</p>
-              <h2>Start with your brief.</h2>
-            </div>
+          <div className="mx-heading">
+            <h2>Start with your brief.</h2>
             <p>
               New software or an existing system. A clear plan or an early idea.
               Share enough context to make the next conversation useful.
@@ -593,7 +579,6 @@ function About() {
   return (
     <MarketingShell active="about">
       <PageIntro
-        eyebrow="ABOUT MERATECH"
         title={
           <>
             Technology should
@@ -603,9 +588,8 @@ function About() {
         }
         text="MeraTech brings product thinking and software development to hospitality, travel and the business needs around them."
       />
-      <section className="mt-about-principle">
+      <section className="mx-about">
         <div className="mt-container">
-          <p className="eyebrow">OUR STARTING POINT</p>
           <h2>
             Better experiences begin
             <br />
@@ -618,22 +602,19 @@ function About() {
           </p>
         </div>
       </section>
-      <section className="mt-container mt-section">
-        <div className="mt-heading-row">
-          <div>
-            <p className="eyebrow">WHAT WE’RE BUILDING</p>
-            <h2>
-              A clear purpose
-              <br />
-              for each offering.
-            </h2>
-          </div>
+      <section className="mx-section mt-container">
+        <div className="mx-heading">
+          <h2>
+            A clear purpose
+            <br />
+            for each offering.
+          </h2>
           <p>
             We distinguish working software, future direction and bespoke
             project work so you can choose the right next step.
           </p>
         </div>
-        <OfferingRows />
+        <OfferingRail />
       </section>
       <FinalAction />
     </MarketingShell>
@@ -643,7 +624,6 @@ function Contact() {
   return (
     <MarketingShell active="contact">
       <PageIntro
-        eyebrow="CONTACT MERATECH"
         title={
           <>
             Start the right
@@ -653,7 +633,7 @@ function Contact() {
         }
         text="Choose what you need and share the details that will make the next conversation useful."
       />
-      <section className="mt-contact-choices mt-container">
+      <ul className="mx-choices mt-container">
         {[
           {
             title: "A bespoke software project",
@@ -684,19 +664,18 @@ function Contact() {
             icon: MessageSquare,
           },
         ].map((item) => (
-          <article key={item.title}>
+          <li key={item.title}>
             <item.icon aria-hidden="true" />
             <div>
               <h2>{item.title}</h2>
               <p>{item.text}</p>
-              <a className="mt-text-link" href={item.href}>
-                {item.cta}
-                <ArrowRight aria-hidden="true" />
-              </a>
             </div>
-          </article>
+            <a className="mx-link" href={item.href}>
+              {item.cta}
+            </a>
+          </li>
         ))}
-      </section>
+      </ul>
     </MarketingShell>
   );
 }
@@ -704,7 +683,6 @@ function SignInRouting() {
   return (
     <MarketingShell>
       <PageIntro
-        eyebrow="PRODUCT SIGN-IN"
         title={
           <>
             The right workspace.
@@ -714,57 +692,51 @@ function SignInRouting() {
         }
         text="Choose your existing workspace. New business registration and platform operator access are separate journeys."
       />
-      <section className="mt-entry-choices mt-container">
+      <section className="mx-entry mt-container">
         <article>
           <QrCode aria-hidden="true" />
-          <p className="eyebrow">MERA QR</p>
-          <h2>Owner & staff workspace</h2>
+          <h2>Mera QR owner & staff workspace</h2>
           <p>
             Sign in with your existing account. Access follows your
             organization, branch and assigned role.
           </p>
-          <a className="primary" href="/mera/workspace">
-            Sign in to Mera QR <ArrowRight aria-hidden="true" />
-          </a>
-          <a className="mt-text-link" href="/mera/signup">
-            New business? Start registration
-          </a>
+          <div className="mt-actions">
+            <a className="primary" href="/mera/workspace">
+              Sign in to Mera QR
+            </a>
+            <a className="mx-link" href="/mera/signup">
+              New business? Start registration
+            </a>
+          </div>
         </article>
         <article>
           <Compass aria-hidden="true" />
-          <p className="eyebrow">MERATRAVEL SUITE</p>
-          <h2>Planned, not launched.</h2>
+          <h2>MeraTravel Suite is planned, not launched.</h2>
           <p>
             There is no Travel application account to sign into yet. You can
             register interest in the planned product.
           </p>
-          <a className="mt-text-link" href="/mera/travel#travel-interest">
-            Register product interest <ArrowRight aria-hidden="true" />
-          </a>
+          <div className="mt-actions">
+            <a className="mx-link" href="/mera/travel#travel-interest">
+              Register product interest
+            </a>
+          </div>
         </article>
       </section>
-      <div className="mt-operator-entry mt-container">
+      <div className="mx-operator mt-container">
         <ShieldCheck aria-hidden="true" />
         <p>Authorized Mera operator?</p>
-        <a href="/mera/platform/sign-in">
-          Open platform sign-in <ArrowUpRight aria-hidden="true" />
+        <a className="mx-link" href="/mera/platform/sign-in">
+          Open platform sign-in
+          <ArrowUpRight aria-hidden="true" />
         </a>
       </div>
     </MarketingShell>
   );
 }
-function PageIntro({
-  eyebrow,
-  title,
-  text,
-}: {
-  eyebrow: string;
-  title: ReactNode;
-  text: string;
-}) {
+function PageIntro({ title, text }: { title: ReactNode; text: string }) {
   return (
-    <section className="mt-page-intro mt-container">
-      <p className="eyebrow">{eyebrow}</p>
+    <section className="mx-intro mt-container">
       <h1>{title}</h1>
       <p>{text}</p>
     </section>
@@ -772,26 +744,18 @@ function PageIntro({
 }
 function FinalAction({ product = false }: { product?: boolean }) {
   return (
-    <section className="mt-final-action">
+    <section className="mx-cta">
       <div className="mt-container">
-        <div>
-          <p className="eyebrow">
-            {product
-              ? "YOUR NEXT CHAPTER OF SERVICE"
-              : "LET’S MAKE THE NEXT STEP USEFUL"}
-          </p>
-          <h2>
-            {product
-              ? "Bring your service together."
-              : "A product. A possibility. A project."}
-          </h2>
-        </div>
+        <h2>
+          {product
+            ? "Bring your service together."
+            : "A product. A possibility. A project."}
+        </h2>
         <a
           className="primary"
           href={product ? "/mera/signup" : "/mera/contact"}
         >
           {product ? "Start with Mera QR" : "Find your next step"}
-          <ArrowRight aria-hidden="true" />
         </a>
       </div>
     </section>

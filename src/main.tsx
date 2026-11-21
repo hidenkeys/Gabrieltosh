@@ -14,6 +14,7 @@ import "./mera/mera-signin.css";
 const MeraSignIn = React.lazy(() => import("./mera/MeraSignIn"));
 const Signup = React.lazy(() => import("./mera/Signup"));
 import "./mera/marketing/marketing.css";
+import "./mera/marketing/marketing-v2.css";
 import "./mera/customer/customer.css";
 import "./mera/workspace/workspace.css";
 import "./mera/workspace/management.css";

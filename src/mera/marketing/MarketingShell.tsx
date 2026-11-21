@@ -1,5 +1,11 @@
-import { useRef, useState, type ReactNode } from "react";
-import { ArrowRight, Menu, X } from "lucide-react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
+import { Menu, X } from "lucide-react";
 import { MeraBrand } from "../ui/MeraBrand";
 import { usePublicNavigation } from "./publicNavigation";
 const sections = [
@@ -15,6 +21,12 @@ const sections = [
   "support",
   "questions",
 ] as const;
+const links = [
+  ["products", "Products"],
+  ["consultancy", "Consultancy"],
+  ["about", "About"],
+  ["contact", "Contact"],
+];
 export default function MarketingShell({
   children,
   active = "",
@@ -23,8 +35,20 @@ export default function MarketingShell({
   active?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
+  const sentinel = useRef<HTMLDivElement>(null);
   const navigate = usePublicNavigation(sections);
+  // The header only gains a surface once the page has moved under it.
+  useEffect(() => {
+    const target = sentinel.current;
+    if (!target || typeof IntersectionObserver === "undefined") return;
+    const watcher = new IntersectionObserver(([entry]) =>
+      setScrolled(!entry.isIntersecting),
+    );
+    watcher.observe(target);
+    return () => watcher.disconnect();
+  }, []);
   return (
     <div
       className="mera-marketing mera-identity mt-site"
@@ -38,47 +62,50 @@ export default function MarketingShell({
       <a className="mera-marketing-skip" href="#mt-main" onClick={navigate}>
         Skip to content
       </a>
-      <header className="mt-header">
-        <a className="mt-company-brand" href="/mera" aria-label="MeraTech home">
-          <MeraBrand />
-          <span>MeraTech</span>
-        </a>
-        <button
-          className="mt-mobile-toggle"
-          type="button"
-          ref={trigger}
-          aria-controls="mt-navigation"
-          aria-expanded={open}
-          onClick={() => setOpen(!open)}
-        >
-          {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
-          <span>{open ? "Close menu" : "Open menu"}</span>
-        </button>
-        <nav
-          id="mt-navigation"
-          className={open ? "is-open" : ""}
-          aria-label="MeraTech navigation"
-        >
-          <div>
-            {[
-              ["products", "Products"],
-              ["consultancy", "Consultancy"],
-              ["about", "About"],
-              ["contact", "Contact"],
-            ].map(([path, label]) => (
-              <a
-                key={path}
-                href={`/mera/${path}`}
-                aria-current={active === path ? "page" : undefined}
-              >
-                {label}
-              </a>
-            ))}
-          </div>
-          <a className="mt-signin-link" href="/mera/sign-in">
-            Sign in <ArrowRight aria-hidden="true" />
+      <div ref={sentinel} className="mx-sentinel" aria-hidden="true" />
+      <header
+        className="mx-header"
+        data-scrolled={scrolled ? "" : undefined}
+        data-open={open ? "" : undefined}
+      >
+        <div className="mx-header-inner">
+          <a className="mx-brand" href="/mera" aria-label="MeraTech home">
+            <MeraBrand />
+            <span>MeraTech</span>
           </a>
-        </nav>
+          <button
+            className="mx-menu-button"
+            type="button"
+            ref={trigger}
+            aria-controls="mt-navigation"
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+          >
+            {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+            <span>{open ? "Close menu" : "Open menu"}</span>
+          </button>
+          <nav
+            id="mt-navigation"
+            className={`mx-nav ${open ? "is-open" : ""}`}
+            aria-label="MeraTech navigation"
+          >
+            <div className="mx-nav-links">
+              {links.map(([path, label], index) => (
+                <a
+                  key={path}
+                  href={`/mera/${path}`}
+                  style={{ "--i": index } as CSSProperties}
+                  aria-current={active === path ? "page" : undefined}
+                >
+                  {label}
+                </a>
+              ))}
+            </div>
+            <a className="mx-signin" href="/mera/sign-in">
+              Sign in
+            </a>
+          </nav>
+        </div>
       </header>
       <main
         id="mt-main"
@@ -98,14 +125,10 @@ export default function MarketingShell({
       >
         {children}
       </main>
-      <footer className="mt-footer">
-        <div className="mt-footer-top">
+      <footer className="mx-footer">
+        <div className="mx-footer-top mt-container">
           <div>
-            <a
-              className="mt-company-brand"
-              href="/mera"
-              aria-label="MeraTech home"
-            >
+            <a className="mx-brand" href="/mera" aria-label="MeraTech home">
               <MeraBrand tone="light" />
               <span>MeraTech</span>
             </a>
@@ -116,20 +139,20 @@ export default function MarketingShell({
             </p>
           </div>
           <nav aria-label="Products and services">
-            <span>WHAT WE DO</span>
+            <span>What we do</span>
             <a href="/mera/qr">Mera QR</a>
-            <a href="/mera/travel">MeraTravel Suite · planned</a>
+            <a href="/mera/travel">MeraTravel Suite (planned)</a>
             <a href="/mera/consultancy">MeraTech Consultancy</a>
           </nav>
           <nav aria-label="Company">
-            <span>COMPANY</span>
+            <span>Company</span>
             <a href="/mera/about">About</a>
             <a href="/mera/contact">Contact</a>
             <a href="/mera/sign-in">Product sign-in</a>
           </nav>
         </div>
-        <div className="mt-footer-bottom">
-          <span>MeraTech · Built around real work.</span>
+        <div className="mx-footer-base mt-container">
+          <span>MeraTech. Built around real work.</span>
           <a href="/mera/legal">Privacy & terms preparation</a>
           <a href="/mera/platform/sign-in">Platform operator sign-in</a>
         </div>

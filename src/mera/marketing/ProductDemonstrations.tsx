@@ -8,7 +8,14 @@ import {
   Utensils,
 } from "lucide-react";
 
-const examples = [
+type Order = {
+  reference: string;
+  table: string;
+  items: string[];
+  station: "Kitchen" | "Bar";
+  status: "Preparing" | "Ready";
+};
+const startingOrders: Order[] = [
   {
     reference: "JH-014",
     table: "Table 04",
@@ -79,22 +86,47 @@ export function ProductDemonstration({
   initialScene?: string;
   compact?: boolean;
 }) {
-  const [scene, setScene] = useState(
-    scenes.some((item) => item.id === initialScene) ? initialScene : "menu",
-  );
+  const first = scenes.some((item) => item.id === initialScene)
+    ? initialScene
+    : "menu";
+  const [view, setView] = useState({ scene: first, direction: "forward" });
+  const [orders, setOrders] = useState(startingOrders);
   const sceneId = useId();
+  const scene = view.scene;
   const current = scenes.find((item) => item.id === scene) || scenes[0];
+  const choose = (id: string) =>
+    setView((previous) => ({
+      scene: id,
+      direction:
+        scenes.findIndex((item) => item.id === id) >=
+        scenes.findIndex((item) => item.id === previous.scene)
+          ? "forward"
+          : "back",
+    }));
+  const toggle = (reference: string) =>
+    setOrders((list) =>
+      list.map((order) =>
+        order.reference === reference
+          ? {
+              ...order,
+              status: order.status === "Ready" ? "Preparing" : "Ready",
+            }
+          : order,
+      ),
+    );
+  const ready = orders.filter((order) => order.status === "Ready");
+  const preparing = orders.filter((order) => order.status === "Preparing");
   return (
     <section
-      className={`mt-demo ${compact ? "mt-demo-compact" : ""}`}
+      className={`mx-demo ${compact ? "mx-demo-compact" : ""}`}
       aria-label="Mera QR illustrative product demonstration"
     >
-      <div className="mt-demo-label">
-        <span>PRODUCT WALKTHROUGH</span>
+      <div className="mx-demo-bar">
+        <span>Product walkthrough</span>
         <span>Illustrative data</span>
       </div>
       <div
-        className="mt-demo-controls"
+        className="mx-demo-tabs"
         role="group"
         aria-label="Choose a product illustration"
       >
@@ -104,39 +136,39 @@ export function ProductDemonstration({
             type="button"
             aria-pressed={scene === item.id}
             aria-controls={sceneId}
-            onClick={() => setScene(item.id)}
+            onClick={() => choose(item.id)}
           >
             <item.icon aria-hidden="true" />
             <span>{item.label}</span>
           </button>
         ))}
       </div>
-      <div className="mt-demo-window">
-        <div className="mt-demo-venue">
-          <span className="mt-demo-venue-symbol" aria-hidden="true">
+      <div className="mx-demo-frame">
+        <div className="mx-demo-venue">
+          <span className="mx-demo-mark" aria-hidden="true">
             <Coffee />
           </span>
           <div>
             <strong>Juniper House</strong>
             <span>Fictional demonstration venue</span>
           </div>
-          <span className="mt-demo-context">{current.label}</span>
+          <span className="mx-demo-context">{current.label}</span>
         </div>
         <div
-          className="mt-demo-scene"
+          className="mx-demo-scene"
           id={sceneId}
           key={scene}
+          data-direction={view.direction}
           role="region"
           aria-label={`${current.label} illustration`}
         >
           {scene === "menu" && (
             <>
-              <div className="mt-demo-menu-title">
-                <span>YOUR TABLE, YOUR CHOICE</span>
+              <div className="mx-demo-heading">
                 <h3>Something good starts here.</h3>
                 <p>An example of a venue’s published menu.</p>
               </div>
-              <div className="mt-demo-menu-items">
+              <ul className="mx-demo-menu">
                 {[
                   {
                     name: "Citrus cooler",
@@ -154,51 +186,52 @@ export function ProductDemonstration({
                     category: "Drinks",
                   },
                 ].map((item) => (
-                  <article key={item.name}>
+                  <li key={item.name}>
                     <span>{item.category}</span>
-                    <div>
-                      <strong>{item.name}</strong>
-                      <p>{item.description}</p>
-                    </div>
-                  </article>
+                    <strong>{item.name}</strong>
+                    <p>{item.description}</p>
+                  </li>
                 ))}
-              </div>
-              <p className="mt-demo-footnote">
+              </ul>
+              <p className="mx-demo-footnote">
                 Illustration only. Use the actual demo to browse and order.
               </p>
             </>
           )}
           {scene === "orders" && (
             <>
-              <div className="mt-demo-title">
+              <div className="mx-demo-heading">
                 <h3>Service in progress</h3>
-                <span>{examples.length} example orders</span>
+                <p>{orders.length} example orders</p>
               </div>
-              <ul className="mt-demo-order-list">
-                {examples.map((order) => (
+              <ul className="mx-demo-orders">
+                {orders.map((order) => (
                   <li key={order.reference}>
                     <div>
                       <strong>{order.reference}</strong>
                       <span>{order.table}</span>
                     </div>
-                    <p>{order.items.join(" · ")}</p>
+                    <p>{order.items.join(", ")}</p>
                     <span
-                      className={`mt-demo-status ${order.status === "Ready" ? "is-ready" : ""}`}
+                      className={`mx-demo-status ${order.status === "Ready" ? "is-ready" : ""}`}
                     >
                       {order.status}
                     </span>
                   </li>
                 ))}
               </ul>
+              <p className="mx-demo-footnote">
+                Open Preparation to move an order along.
+              </p>
             </>
           )}
           {scene === "tables" && (
             <>
-              <div className="mt-demo-title">
+              <div className="mx-demo-heading">
                 <h3>A room with context</h3>
-                <span>Example floor</span>
+                <p>Example floor</p>
               </div>
-              <div className="mt-demo-floor">
+              <div className="mx-demo-floor">
                 {[
                   { name: "01", status: "Available", seats: "2 seats" },
                   { name: "02", status: "Occupied", seats: "2 guests" },
@@ -206,18 +239,18 @@ export function ProductDemonstration({
                   { name: "04", status: "Occupied", seats: "3 guests" },
                 ].map((table) => (
                   <div
-                    className={`mt-demo-table ${table.status === "Occupied" ? "is-occupied" : ""}`}
+                    className={`mx-demo-table ${table.status === "Occupied" ? "is-occupied" : ""}`}
                     key={table.name}
                   >
-                    <span>TABLE</span>
+                    <span>Table</span>
                     <strong>{table.name}</strong>
                     <span>{table.seats}</span>
                     <b>{table.status}</b>
                   </div>
                 ))}
               </div>
-              <div className="mt-demo-reservation">
-                <span>UPCOMING RESERVATION</span>
+              <div className="mx-demo-reservation">
+                <span>Upcoming reservation</span>
                 <strong>Evening party · 4 guests</strong>
                 <p>
                   Future bookings remain separate from current table occupancy.
@@ -227,13 +260,13 @@ export function ProductDemonstration({
           )}
           {scene === "preparation" && (
             <>
-              <div className="mt-demo-title">
+              <div className="mx-demo-heading">
                 <h3>At the pass</h3>
-                <span>Kitchen & bar examples</span>
+                <p>Kitchen & bar examples</p>
               </div>
-              <div className="mt-demo-tickets">
-                {examples.slice(0, 2).map((order) => (
-                  <article key={order.reference}>
+              <div className="mx-demo-tickets">
+                {orders.slice(0, 2).map((order) => (
+                  <article key={order.reference} data-ready={order.status === "Ready"}>
                     <header>
                       <span>{order.station}</span>
                       <b>{order.status}</b>
@@ -250,6 +283,14 @@ export function ProductDemonstration({
                         ? "Ready for the service team"
                         : "Assigned to preparation"}
                     </p>
+                    <button
+                      type="button"
+                      onClick={() => toggle(order.reference)}
+                    >
+                      {order.status === "Ready"
+                        ? `Move ${order.reference} back`
+                        : `Mark ${order.reference} ready`}
+                    </button>
                   </article>
                 ))}
               </div>
@@ -257,43 +298,47 @@ export function ProductDemonstration({
           )}
           {scene === "overview" && (
             <>
-              <div className="mt-demo-title">
+              <div className="mx-demo-heading">
                 <h3>The service picture</h3>
-                <span>From this sample dataset</span>
+                <p>From this sample dataset</p>
               </div>
-              <div className="mt-demo-metrics">
+              <div className="mx-demo-metrics">
                 <div>
                   <span>Active orders</span>
-                  <strong>{examples.length}</strong>
+                  <strong>{orders.length}</strong>
                 </div>
                 <div>
                   <span>Preparing</span>
-                  <strong>
-                    {
-                      examples.filter((order) => order.status === "Preparing")
-                        .length
-                    }
-                  </strong>
+                  <strong>{preparing.length}</strong>
                 </div>
                 <div>
                   <span>Ready</span>
-                  <strong>
-                    {
-                      examples.filter((order) => order.status === "Ready")
-                        .length
-                    }
-                  </strong>
+                  <strong>{ready.length}</strong>
                 </div>
               </div>
               <h4>Needs the team’s attention</h4>
-              <ul className="mt-demo-attention">
-                <li>
-                  <Check aria-hidden="true" />
-                  <div>
-                    <strong>JH-015 is ready</strong>
-                    <span>Counter pickup · iced coffee</span>
-                  </div>
-                </li>
+              <ul className="mx-demo-attention">
+                {ready.length ? (
+                  ready.map((order) => (
+                    <li key={order.reference}>
+                      <Check aria-hidden="true" />
+                      <div>
+                        <strong>{order.reference} is ready</strong>
+                        <span>
+                          {order.table} · {order.items.join(", ")}
+                        </span>
+                      </div>
+                    </li>
+                  ))
+                ) : (
+                  <li>
+                    <Check aria-hidden="true" />
+                    <div>
+                      <strong>No orders waiting for service</strong>
+                      <span>Ready orders appear here for the team.</span>
+                    </div>
+                  </li>
+                )}
                 <li>
                   <LayoutGrid aria-hidden="true" />
                   <div>
@@ -304,14 +349,14 @@ export function ProductDemonstration({
                   </div>
                 </li>
               </ul>
-              <p className="mt-demo-footnote">
+              <p className="mx-demo-footnote">
                 Sales and actual collections are reported separately in Mera QR.
               </p>
             </>
           )}
         </div>
       </div>
-      <div className="mt-demo-caption" aria-live="polite">
+      <div className="mx-demo-caption" aria-live="polite">
         <strong>{current.title}</strong>
         <p>{current.caption}</p>
       </div>
@@ -321,37 +366,37 @@ export function ProductDemonstration({
 export function TravelConcept() {
   return (
     <figure
-      className="mt-travel-concept"
+      className="mx-concept"
       aria-label="Planned MeraTravel product concept"
     >
       <figcaption>
-        <span>MERATRAVEL SUITE</span>
-        <strong>Planned concept · not an available application</strong>
+        <span>MeraTravel Suite</span>
+        <strong>Planned concept, not an available application</strong>
       </figcaption>
-      <div className="mt-travel-concept-body">
-        <span className="mt-concept-label">THE DIRECTION WE’RE EXPLORING</span>
+      <div className="mx-concept-body">
         <h3>
           A clearer journey
           <br />
           behind every journey.
         </h3>
+        <p>The direction we’re exploring</p>
         <ol>
           <li>
-            <span>01</span>
+            <span>1</span>
             <div>
               <strong>Present your offering</strong>
               <p>A place for travel businesses to explain their services.</p>
             </div>
           </li>
           <li>
-            <span>02</span>
+            <span>2</span>
             <div>
               <strong>Organize enquiries</strong>
               <p>Keep customer needs and trip context together.</p>
             </div>
           </li>
           <li>
-            <span>03</span>
+            <span>3</span>
             <div>
               <strong>Follow the relationship</strong>
               <p>A more connected view of the work around each customer.</p>
