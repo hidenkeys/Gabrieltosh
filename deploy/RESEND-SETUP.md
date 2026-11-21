@@ -1,8 +1,10 @@
 # MeraTech Resend setup
 
-Status: preparation only. No MeraTech key, sender, forwarding rule or live delivery has been verified yet.
+Status on 21 November 2026: configured and deployed to staging. Resend confirms delivery of the direct Gmail test, the incoming inbox test, and the automatically forwarded Gmail copy. The signed webhook returned HTTP 200 on its first attempt. See `STAGING-6DB5812-EVIDENCE.json` for deployment and provider IDs. Gmail folder placement and live attachment rendering are not asserted.
 
-The logged-in Resend workspace was inspected on 20 November 2026. Its only verified domain was `notify.zidihq.com`; existing Zidi credentials must remain separate. A new `MeraTech Staging` sending-only key form was prepared, but not submitted. Sender domain, forwarding destination and test recipient await the owner's choice.
+The owner approved temporary use of `notify.zidihq.com`, inbound forwarding to `letimapro23@gmail.com`, staging deployment and test emails. The dedicated `MeraTech Staging` key has sending-only access to that domain; existing Zidi credentials remain separate. The sender/reply address is `meratech@notify.zidihq.com`.
+
+Railway manages this domain's DNS despite its Name.com nameservers. Added only MX `notify` → `receive-euw1.forge.rmta.net`, priority 10, TTL 300; Resend shows it verified. Existing root-domain Zoho MX records are preserved. Inbox ID: `2cd7a3e7-fc63-4627-9672-fab561bab98b`. Webhook ID: `01886694-5483-4c77-bc30-835b7e9932bc`, listening only for `inbox.email.received` at `https://mera-web-staging.up.railway.app/api/mera/webhooks/resend-inbox`.
 
 ## Staging configuration
 
@@ -22,7 +24,7 @@ The provider adapter validates configuration and uses the fixed Resend HTTPS end
 1. Select and verify a MeraTech sending domain, or explicitly approve temporary use of an existing verified domain. DNS changes must not replace an existing mailbox's MX records unintentionally.
 2. Create the domain-restricted credential and store it only in the authorized staging service. Browser credential creation needs confirmation at the action step.
 3. Connect real owner registration to durable verification challenges and provider delivery. Existing simulator responses must never establish a provider-verified identity. Configuring a key alone does not unblock registration.
-4. Specify forwarding semantics: website enquiry notifications or inbound mail forwarding. Inbound forwarding additionally needs receiving configuration, verified webhook handling, recipient allowlisting, duplicate/loop protection, and appropriate receiving access. A sending-only key is not sufficient for reading inbound content.
+4. Specify forwarding semantics: website enquiry notifications or inbound mail forwarding. Inbound forwarding additionally needs receiving configuration, verified webhook handling, recipient allowlisting, duplicate/loop protection, and appropriate receiving access. The native Inboxes forward endpoint supports the domain-restricted sending key and preserves original content/attachments without retrieving message bodies into this application. Full-access reading credentials are unnecessary for this implementation.
 5. Send one explicitly addressed test, verify provider delivery evidence, then exercise the normal verification link. Do not retroactively email existing synthetic submissions.
 6. Commit, push, deploy to the existing isolated Railway staging environment and verify actual hosted behavior before claiming completion.
 
@@ -32,3 +34,9 @@ The provider adapter validates configuration and uses the fixed Resend HTTPS end
 - [API-key permissions](https://resend.com/docs/dashboard/api-keys/introduction)
 - [Receiving email](https://resend.com/docs/dashboard/receiving/introduction)
 - [Forward received emails](https://resend.com/docs/dashboard/receiving/forward-emails)
+
+## Incoming forwarding runtime
+
+`MERA_INBOUND_FORWARDING_ENABLED=true` and `RESEND_INBOX_WEBHOOK_SECRET` enable the signed incoming webhook. Only the approved inbox is forwarded, only to the approved Gmail recipient. The journal stores identifiers and outcomes, not message content. Forwarding uses stable provider idempotency keys and a bounded retry window; unresolved old sends require review. See `docs/mera/staging-redesign/INBOUND-FORWARDING.md` for the detailed contract.
+
+Owner registration also requires `MERA_OWNER_VERIFICATION_ENABLED=true`, a persistent random `MERA_IDENTITY_TOKEN_SECRET`, and an explicit recipient allowlist. Initial staging email verification is limited to the approved test Gmail address. No existing account is silently marked verified, and a test email alone does not activate an owner identity.
