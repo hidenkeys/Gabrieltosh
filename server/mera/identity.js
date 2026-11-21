@@ -1,3 +1,7 @@
+import {
+  mountProviderIdentity,
+  providerIdentityReady,
+} from "./provider-identity.js";
 import { randomUUID, randomBytes, createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import bcrypt from "bcryptjs";
@@ -46,10 +50,16 @@ export function mountMeraIdentity(router, { db }) {
         "RATE_LIMITED",
       );
   }
+  mountProviderIdentity(router, { db, limit });
   router.get("/identity/capabilities", (_req, res) =>
     res.json({
-      registration: simulated() ? "simulator" : "blocked",
-      emailDelivery: "blocked",
+      registration: simulated()
+        ? "simulator"
+        : providerIdentityReady()
+          ? "provider"
+          : "blocked",
+      emailDelivery:
+        !simulated() && providerIdentityReady() ? "provider" : "blocked",
       persistentCustomerIdentity: "blocked",
       reason:
         "Verified email delivery and sender authorization are required for production registration.",
@@ -102,17 +112,15 @@ export function mountMeraIdentity(router, { db }) {
         );
       throw e;
     }
-    res
-      .status(201)
-      .json({
-        status: "verification_required",
-        simulation: true,
-        emailSent: false,
-        verificationToken: token,
-        expiresInSeconds: 3600,
-        notice:
-          "Development-only token. No email has been sent and no real contact verification is claimed.",
-      });
+    res.status(201).json({
+      status: "verification_required",
+      simulation: true,
+      emailSent: false,
+      verificationToken: token,
+      expiresInSeconds: 3600,
+      notice:
+        "Development-only token. No email has been sent and no real contact verification is claimed.",
+    });
   });
   router.post("/identity/verify", async (req, res) => {
     if (!simulated())
@@ -128,7 +136,7 @@ export function mountMeraIdentity(router, { db }) {
     const result = await db.transaction(async (c) => {
       const challenge = (
         await c.query(
-          "SELECT * FROM mera_identity_challenges WHERE token_hash=$1 FOR UPDATE",
+          "SELECT * FROM mera_identity_challenges WHERE token_hash=$1 AND mode='simulator' FOR UPDATE",
           [hash(token)],
         )
       ).rows[0];

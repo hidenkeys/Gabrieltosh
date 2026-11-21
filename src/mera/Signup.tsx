@@ -1,3 +1,4 @@
+import ProviderSignup from "./ProviderSignup";
 import { MeraBrand } from "./ui/MeraBrand";
 import {
   ArrowRight,
@@ -37,6 +38,20 @@ const verificationPending: SignupMarker = {
 };
 export default function Signup() {
   const navigate = usePublicNavigation(sections);
+  const [providerToken] = useState(() => {
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    return fragment.has("verify")
+      ? fragment.get("verify") || "invalid"
+      : undefined;
+  });
+  useEffect(() => {
+    if (providerToken)
+      window.history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
+      );
+  }, [providerToken]);
   const demo = new URLSearchParams(window.location.search).get("demo") === "1";
   const [showPassword, setShowPassword] = useState(false);
   const mounted = useRef(false),
@@ -68,7 +83,9 @@ export default function Signup() {
     workspaceApi("/identity/capabilities")
       .then((value) => {
         if (!active) return;
-        if (!["blocked", "simulator"].includes(value.registration)) {
+        if (
+          !["blocked", "simulator", "provider"].includes(value.registration)
+        ) {
           setError(
             "Registration readiness could not be confirmed. Please try again.",
           );
@@ -293,6 +310,9 @@ export default function Signup() {
             </button>
           )}
           {checking && <p role="status">Checking registration readiness…</p>}
+          {(providerToken || capabilities?.registration === "provider") && (
+            <ProviderSignup verificationToken={providerToken} />
+          )}
           {locked && (
             <section aria-label="Account reconciliation required">
               <h2 tabIndex={-1}>Signup status needs checking</h2>
@@ -314,8 +334,9 @@ export default function Signup() {
               <a href="/mera/legal">Review policy information</a>
             </section>
           )}
-          {(capabilities?.registration === "blocked" ||
-            (capabilities?.registration === "simulator" && !demo)) &&
+          {!providerToken &&
+            (capabilities?.registration === "blocked" ||
+              (capabilities?.registration === "simulator" && !demo)) &&
             !locked && (
               <>
                 <div className="mera-signup-state-icon">
