@@ -1,0 +1,269 @@
+/*
+ * Account entry v2 — owner registration and operator sign-in.
+ * Loaded after signup.css / mera-signin.css. Same ivory and forest as the
+ * marketing site; the card reuses the ticket perforation.
+ */
+.mera-signup,
+.mera-signin {
+  --ax-display: "Mera Display", "Instrument Sans", system-ui, sans-serif;
+  --ax-text: "Mera Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ax-enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --ax-move: cubic-bezier(0.25, 1, 0.5, 1);
+  font-family: var(--ax-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Headings carry the personality. */
+.mera-signup h1,
+.mera-signin h1 {
+  font-family: var(--ax-display);
+  font-weight: 700;
+  font-size: clamp(2.5rem, 5.2vw, 4.5rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  max-width: 11ch;
+}
+.mera-signup h2,
+.mera-signin h2 {
+  font-family: var(--ax-display);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+/* Programmatic focus lands on the heading; it is not a control, so no box. */
+.mera-signup h1[tabindex="-1"]:focus,
+.mera-signup h2[tabindex="-1"]:focus,
+.mera-signin h1[tabindex="-1"]:focus,
+.mera-signin h2[tabindex="-1"]:focus {
+  outline: none;
+}
+
+/* Labels in plain sentence case; capitals add noise, not information. */
+.mera-signup .eyebrow,
+.mera-signup-badge,
+.mera-signin .eyebrow {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--mera-muted);
+}
+.mera-signup-badge {
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Introduction copy */
+.mera-signup-introduction > p:not(.eyebrow),
+.mera-signin-intro > p:not(.eyebrow) {
+  font-size: 1.125rem;
+  line-height: 1.55;
+}
+
+/* Steps are a real sequence, so they stay numbered and become a connected line. */
+.mera-signup .mera-account-steps {
+  gap: 0;
+  margin: 36px 0 28px;
+}
+.mera-account-steps li {
+  position: relative;
+  padding-bottom: 24px;
+}
+.mera-account-steps li:last-child {
+  padding-bottom: 0;
+}
+.mera-account-steps li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 15.25px;
+  top: 36px;
+  bottom: 4px;
+  width: 1.5px;
+  background: var(--mera-border);
+}
+.mera-account-steps li > span {
+  position: relative;
+  z-index: 1;
+  background: var(--mera-paper);
+  font-family: var(--ax-display);
+  font-size: 0.8125rem;
+}
+.mera-account-steps li[aria-current] > span {
+  background: var(--mera-forest);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--mera-lime) 70%, transparent);
+}
+.mera-account-steps strong {
+  font-family: var(--ax-display);
+  font-size: 1rem;
+  letter-spacing: -0.015em;
+}
+.mera-account-steps small {
+  font-size: 0.875rem;
+}
+
+/* The card is a ticket; the demo entry sits below its perforation. */
+.mera-signup-card,
+.mera-signin-panel {
+  position: relative;
+  border-radius: 24px;
+  box-shadow: 0 30px 50px -36px
+    color-mix(in srgb, var(--mera-ink) 45%, transparent);
+}
+.mera-signup-state-icon {
+  border-radius: 14px;
+}
+.mera-signup-demo-entry {
+  position: relative;
+  border-top: 2px dashed var(--mera-border);
+  margin-top: 32px;
+  padding-top: 28px;
+}
+.mera-signup-demo-entry::before {
+  content: "";
+  position: absolute;
+  left: -36px;
+  right: -36px;
+  top: -12px;
+  height: 22px;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle 11px at 0 50%,
+      var(--mera-paper) 10.5px,
+      transparent 11px
+    ),
+    radial-gradient(
+      circle 11px at 100% 50%,
+      var(--mera-paper) 10.5px,
+      transparent 11px
+    );
+}
+.mera-signup-demo-entry strong,
+.mera-signup-readiness strong {
+  font-family: var(--ax-display);
+  font-size: 1rem;
+  letter-spacing: -0.015em;
+}
+.mera-signup-readiness {
+  border-left-width: 4px;
+  border-radius: 2px;
+}
+
+/* Controls */
+.mera-signup-card label,
+.mera-signin-form-label {
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+.mera-signup input,
+.mera-signin input {
+  min-height: 50px;
+  border: 1.5px solid #c3ccc4;
+  border-radius: 12px;
+  font-size: 1rem;
+  transition:
+    border-color 180ms ease,
+    box-shadow 220ms var(--ax-move);
+}
+.mera-signup input:focus,
+.mera-signin input:focus {
+  border-color: var(--mera-forest);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--mera-forest) 14%, transparent);
+  outline: none;
+}
+.mera-signup .primary,
+.mera-signup .secondary,
+.mera-signin-submit {
+  min-height: 50px;
+  border-radius: 999px;
+  font-family: var(--ax-text);
+  font-size: 0.9375rem;
+  font-weight: 650;
+  transition:
+    transform 160ms var(--ax-move),
+    background-color 180ms ease,
+    box-shadow 220ms var(--ax-move);
+}
+.mera-signup .primary:active:not(:disabled),
+.mera-signup .secondary:active:not(:disabled),
+.mera-signin-submit:active:not(:disabled) {
+  transform: scale(0.97);
+}
+@media (hover: hover) and (pointer: fine) {
+  .mera-signup .primary:hover:not(:disabled),
+  .mera-signin-submit:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px -10px
+      color-mix(in srgb, var(--mera-forest) 75%, transparent);
+  }
+  .mera-signup .secondary:hover:not(:disabled) {
+    border-color: var(--mera-forest);
+  }
+}
+.mera-signup [role="alert"],
+.mera-signin-error {
+  border-radius: 14px;
+}
+
+/* One load moment: the introduction and the card rise in. */
+.mera-signup-introduction > *,
+.mera-signin-intro > * {
+  animation: ax-rise 640ms var(--ax-enter) backwards;
+}
+.mera-signup-introduction > :nth-child(2),
+.mera-signin-intro > :nth-child(2) {
+  animation-delay: 60ms;
+}
+.mera-signup-introduction > :nth-child(3),
+.mera-signin-intro > :nth-child(3) {
+  animation-delay: 120ms;
+}
+.mera-signup-card,
+.mera-signin-panel {
+  animation: ax-rise 720ms var(--ax-enter) 120ms backwards;
+}
+@keyframes ax-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@media (max-width: 1000px) {
+  .mera-signup-demo-entry::before {
+    left: -26px;
+    right: -26px;
+  }
+}
+@media (max-width: 720px) {
+  .mera-signup h1,
+  .mera-signin h1 {
+    font-size: 2.5rem;
+    max-width: 14ch;
+  }
+  .mera-signup-demo-entry::before {
+    left: -20px;
+    right: -20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mera-signup *,
+  .mera-signin * {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.mera-signin h1 {
+  max-width: 14ch;
+}
+.mera-signin-context {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+.mera-signin-form-label,
+.mera-signin label {
+  color: var(--mera-ink);
+}
