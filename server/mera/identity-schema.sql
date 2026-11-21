@@ -3,3 +3,7 @@ CREATE TABLE IF NOT EXISTS mera_identity_challenges(id TEXT PRIMARY KEY,user_id 
 
 ALTER TABLE mera_identity_challenges ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'simulator';
 CREATE TABLE IF NOT EXISTS mera_owner_registration_requests(request_key TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),challenge_id TEXT NOT NULL REFERENCES mera_identity_challenges(id),name TEXT NOT NULL,email TEXT NOT NULL,token_hash TEXT NOT NULL,config_hash TEXT NOT NULL,expires_at TIMESTAMPTZ NOT NULL,delivery_status TEXT NOT NULL,attempted_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP);
+
+ALTER TABLE mera_owner_registration_requests ADD COLUMN IF NOT EXISTS parent_request_key TEXT;
+ALTER TABLE mera_owner_registration_requests ADD COLUMN IF NOT EXISTS superseded_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS mera_owner_registration_user_created ON mera_owner_registration_requests(user_id,created_at);

@@ -223,3 +223,133 @@ test("email link pasted into mounted signup tab captures new hash, removes it an
   await screen.findByRole("heading", { name: "Your email is verified." });
   assert.deepEqual(posts, [{ token }, { token: secondToken }]);
 });
+
+test("expired accepted request supports deliberate resend and preserves exact intent across unknown result and remount", async () => {
+  reset();
+  const original = "10000000-0000-4000-8000-000000000002";
+  sessionStorage.setItem(key, original);
+  const calls: any[] = [];
+  const ack = (requestKey: string) => ({
+    requestKey,
+    status: "verification_required",
+    simulation: false,
+    emailDelivery: "accepted",
+    expiresAt: "2026-12-01T12:00:00Z",
+    retryAllowed: false,
+    verified: false,
+    expired: true,
+    canResend: true,
+  });
+  globalThis.fetch = async (url, options) => {
+    const body = JSON.parse(String(options?.body));
+    calls.push({ url: String(url), body });
+    if (String(url).endsWith("/recover")) return reply(ack(original));
+    if (calls.filter((c) => c.url.endsWith("/resend")).length === 1)
+      throw Error("connection lost");
+    return reply({ ...ack(body.resendKey), expired: false, canResend: false });
+  };
+  render(<ProviderSignup />);
+  assert.equal(calls.length, 0);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Check original request" }),
+  );
+  await screen.findByText(/Your verification link has expired/);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Resend verification email" }),
+  );
+  await screen.findByRole("alert");
+  const sent = calls.at(-1).body;
+  assert.equal(sent.requestKey, original);
+  cleanup();
+  render(<ProviderSignup />);
+  assert.equal(calls.length, 2);
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: "Retry same verification email request",
+    }),
+  );
+  await screen.findByRole("heading", { name: "Check your email" });
+  assert.deepEqual(calls.at(-1).body, sent);
+  assert.equal(sessionStorage.getItem(key), sent.resendKey);
+  assert.equal(sessionStorage.getItem("mera:owner-provider-resend:v1"), null);
+});
+
+test("lost-browser verification recovery checks credentials explicitly without sending email and clears password", async () => {
+  reset();
+  window.history.replaceState(null, "", "/mera/signup?resend=1");
+  const calls: any[] = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url: String(url), body: JSON.parse(String(options?.body)) });
+    return reply({
+      requestKey: "10000000-0000-4000-8000-000000000003",
+      status: "verification_required",
+      simulation: false,
+      emailDelivery: "accepted",
+      expiresAt: "2026-12-01T12:00:00Z",
+      retryAllowed: false,
+      verified: false,
+      expired: true,
+      canResend: true,
+    });
+  };
+  render(<ProviderSignup />);
+  assert.equal(calls.length, 0);
+  fireEvent.change(screen.getByLabelText("Email address"), {
+    target: { value: "owner@example.invalid" },
+  });
+  fireEvent.change(screen.getByLabelText("Password"), {
+    target: { value: "Synthetic-password-123" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Check owner account" }));
+  await screen.findByRole("button", { name: "Resend verification email" });
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].url, /recover-account$/);
+  assert.ok(!JSON.stringify(sessionStorage).includes("Synthetic-password"));
+  assert.ok(!JSON.stringify(sessionStorage).includes("owner@example.invalid"));
+});
+
+test("accepted email exposes disabled resend during cooldown and refresh enables it without sending", async () => {
+  reset();
+  const original = "10000000-0000-4000-8000-000000000004";
+  sessionStorage.setItem(key, original);
+  let checks = 0;
+  globalThis.fetch = async (url) => {
+    assert.match(String(url), /provider\/recover$/);
+    checks++;
+    return reply({
+      requestKey: original,
+      status: "verification_required",
+      simulation: false,
+      emailDelivery: "accepted",
+      expiresAt: "2026-12-01T12:00:00Z",
+      retryAllowed: false,
+      verified: false,
+      canResend: checks > 1,
+      resendAvailableAt: "2026-12-01T11:01:00Z",
+      reason: checks > 1 ? null : "cooldown",
+    });
+  };
+  render(<ProviderSignup />);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Check original request" }),
+  );
+  const resend = await screen.findByRole("button", {
+    name: "Resend verification email",
+  });
+  assert.equal((resend as HTMLButtonElement).disabled, true);
+  fireEvent.click(resend);
+  assert.equal(checks, 1);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Check original request" }),
+  );
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(
+    (
+      screen.getByRole("button", {
+        name: "Resend verification email",
+      }) as HTMLButtonElement
+    ).disabled,
+    false,
+  );
+  assert.equal(checks, 2);
+});

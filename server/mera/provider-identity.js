@@ -56,7 +56,8 @@ function ack(row) {
         (row.delivery_status === "sending" &&
           row.attempted_at &&
           Date.now() - new Date(row.attempted_at).getTime() >= 30000)) &&
-      new Date(row.expires_at) > new Date(),
+      new Date(row.expires_at) > new Date() &&
+      !row.superseded_at,
     requestKey: row.request_key,
   };
 }
@@ -79,9 +80,170 @@ export function mountProviderIdentity(
         [key],
       )
     ).rows[0];
+  async function receipt(row, client = db) {
+    const identity = (
+      await client.query(
+        "SELECT * FROM mera_owner_identities WHERE user_id=$1",
+        [row.user_id],
+      )
+    ).rows[0];
+    const verified =
+      !!identity?.verified_at && identity.verification_mode === "provider";
+    const latest = (
+      await client.query(
+        "SELECT created_at FROM mera_owner_registration_requests WHERE user_id=$1 ORDER BY created_at DESC,request_key DESC LIMIT 1",
+        [row.user_id],
+      )
+    ).rows[0];
+    const count = Number(
+      (
+        await client.query(
+          "SELECT COUNT(*) AS count FROM mera_owner_registration_requests WHERE user_id=$1 AND created_at>=$2",
+          [
+            row.user_id,
+            new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          ],
+        )
+      ).rows[0].count,
+    );
+    const available = new Date(new Date(latest.created_at).getTime() + 60000);
+    const reason = verified
+      ? "verified"
+      : !providerIdentityReady(env) || !isEmailRecipientAllowed(row.email, env)
+        ? "provider_unavailable"
+        : count >= 5
+          ? "daily_limit"
+          : available > new Date()
+            ? "cooldown"
+            : null;
+    return {
+      ...ack(row),
+      verified,
+      expired: new Date(row.expires_at) <= new Date(),
+      superseded: !!row.superseded_at,
+      retryAllowed: !verified && !row.superseded_at && ack(row).retryAllowed,
+      canResend: reason === null,
+      resendAvailableAt: reason === "cooldown" ? available.toISOString() : null,
+      reason,
+    };
+  }
+  async function resend(originalKey, resendKey, actorId = null) {
+    requireReady();
+    const original = await read(originalKey);
+    if (!original || (actorId && original.user_id !== actorId))
+      throw fail(
+        "An existing owner verification request is required.",
+        403,
+        "OWNER_IDENTITY_REQUIRED",
+      );
+    const outcome = await db.transaction(async (c) => {
+      const identity = (
+        await c.query(
+          "SELECT * FROM mera_owner_identities WHERE user_id=$1 FOR UPDATE",
+          [original.user_id],
+        )
+      ).rows[0];
+      if (!identity)
+        throw fail(
+          "An existing owner identity is required.",
+          403,
+          "OWNER_IDENTITY_REQUIRED",
+        );
+      const prior = (
+        await c.query(
+          "SELECT * FROM mera_owner_registration_requests WHERE request_key=$1",
+          [resendKey],
+        )
+      ).rows[0];
+      if (prior) {
+        if (
+          prior.user_id !== original.user_id ||
+          prior.parent_request_key !== originalKey
+        )
+          throw fail(
+            "This resend key belongs to a different request.",
+            409,
+            "IDEMPOTENCY_CONFLICT",
+          );
+        return { row: prior, replayed: true };
+      }
+      const eligibility = await receipt(original, c);
+      if (identity.verified_at && identity.verification_mode === "provider")
+        throw fail(
+          "Your owner email is already verified. Continue to your workspace.",
+          409,
+          "OWNER_ALREADY_VERIFIED",
+        );
+      if (!isEmailRecipientAllowed(identity.email, env))
+        throw fail(
+          "Email sending is unavailable for this recipient.",
+          403,
+          "RECIPIENT_NOT_ALLOWED",
+        );
+      if (eligibility.reason === "daily_limit")
+        throw fail(
+          "The daily verification-email limit has been reached. Try again later.",
+          429,
+          "RESEND_LIMIT",
+        );
+      if (eligibility.reason === "cooldown")
+        throw fail(
+          "Wait at least one minute between verification emails, then check again.",
+          429,
+          "RESEND_COOLDOWN",
+        );
+      const challengeId = randomUUID(),
+        tokenHash = hash(tokenFor(challengeId, env));
+      await c.query(
+        "UPDATE mera_identity_challenges SET expires_at=CURRENT_TIMESTAMP WHERE user_id=$1 AND mode='provider' AND consumed_at IS NULL",
+        [original.user_id],
+      );
+      await c.query(
+        "UPDATE mera_owner_registration_requests SET superseded_at=CURRENT_TIMESTAMP WHERE user_id=$1 AND superseded_at IS NULL",
+        [original.user_id],
+      );
+      await c.query(
+        "INSERT INTO mera_identity_challenges(id,user_id,token_hash,expires_at,mode) VALUES($1,$2,$3,CURRENT_TIMESTAMP+INTERVAL '1 hour','provider')",
+        [challengeId, original.user_id, tokenHash],
+      );
+      await c.query(
+        "INSERT INTO mera_owner_registration_requests(request_key,user_id,challenge_id,name,email,token_hash,config_hash,expires_at,delivery_status,parent_request_key) VALUES($1,$2,$3,$4,$5,$6,$7,CURRENT_TIMESTAMP+INTERVAL '1 hour','pending',$8)",
+        [
+          resendKey,
+          original.user_id,
+          challengeId,
+          original.name,
+          identity.email,
+          tokenHash,
+          configHash(env),
+          originalKey,
+        ],
+      );
+      return {
+        row: (
+          await c.query(
+            "SELECT * FROM mera_owner_registration_requests WHERE request_key=$1",
+            [resendKey],
+          )
+        ).rows[0],
+        replayed: false,
+      };
+    });
+    if (outcome.replayed) {
+      const priorReceipt = await receipt(outcome.row);
+      return priorReceipt.retryAllowed ? deliver(resendKey) : priorReceipt;
+    }
+    return deliver(resendKey);
+  }
   async function deliver(key) {
     requireReady();
     const attempt = await db.transaction(async (c) => {
+      const reference = await read(key);
+      if (reference)
+        await c.query(
+          "SELECT user_id FROM mera_owner_identities WHERE user_id=$1 FOR UPDATE",
+          [reference.user_id],
+        );
       const row = (
         await c.query(
           "SELECT * FROM mera_owner_registration_requests WHERE request_key=$1 FOR UPDATE",
@@ -93,7 +255,17 @@ export function mountProviderIdentity(
           "The original request could not be found. Do not create another account; review your original request.",
           404,
         );
-      if (row.delivery_status === "accepted") return { row, send: false };
+      const identity = (
+        await c.query("SELECT * FROM mera_owner_identities WHERE user_id=$1", [
+          row.user_id,
+        ])
+      ).rows[0];
+      if (
+        row.delivery_status === "accepted" ||
+        row.superseded_at ||
+        (identity?.verified_at && identity.verification_mode === "provider")
+      )
+        return { row, send: false };
       if (new Date(row.expires_at) <= new Date())
         throw fail(
           "This verification request expired. Its delivery outcome needs account review; no new email was sent.",
@@ -120,7 +292,7 @@ export function mountProviderIdentity(
       );
       return { row: { ...row, delivery_status: "sending" }, send: true };
     });
-    if (!attempt.send) return ack(attempt.row);
+    if (!attempt.send) return receipt(attempt.row);
     let status = "unknown";
     try {
       const token = tokenFor(attempt.row.challenge_id, env);
@@ -147,7 +319,7 @@ export function mountProviderIdentity(
       "UPDATE mera_owner_registration_requests SET delivery_status=$2 WHERE request_key=$1 AND delivery_status<>'accepted'",
       [key, status],
     );
-    return ack(await read(key));
+    return receipt(await read(key));
   }
   router.post("/identity/provider/register", async (req, res) => {
     limit(req);
@@ -177,7 +349,7 @@ export function mountProviderIdentity(
           409,
           "IDEMPOTENCY_CONFLICT",
         );
-      return res.json(ack(existing));
+      return res.json(await receipt(existing));
     }
     const userId = randomUUID(),
       challengeId = randomUUID(),
@@ -230,12 +402,167 @@ export function mountProviderIdentity(
         "The original request is not confirmed. Keep its recovery reference and review the account before registering again.",
         404,
       );
-    res.json(ack(row));
+    res.json(await receipt(row));
   });
   router.post("/identity/provider/retry", async (req, res) => {
     limit(req);
     const { requestKey } = keySchema.parse(req.body);
     res.json(await deliver(requestKey));
+  });
+  router.post("/identity/provider/recover-account", async (req, res) => {
+    limit(req);
+    const input = z
+      .object({
+        email: z
+          .string()
+          .trim()
+          .email()
+          .max(254)
+          .transform((value) => value.toLowerCase()),
+        password: z.string().min(1).max(128),
+      })
+      .strict()
+      .parse(req.body);
+    const identity = (
+      await db.query(
+        "SELECT i.user_id,u.password_hash FROM mera_owner_identities i JOIN users u ON u.id=i.user_id WHERE i.email=$1",
+        [input.email],
+      )
+    ).rows[0];
+    // Always run bcrypt, including unknown identities, before the same generic denial.
+    const fallback =
+      "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6Ttx19lwA9cYBqAVYO8JvW4XK9yCe";
+    const matches = await bcrypt.compare(
+      input.password,
+      identity?.password_hash || fallback,
+    );
+    if (!identity || !matches)
+      throw fail(
+        "The owner account could not be verified. Check your email and password.",
+        401,
+        "INVALID_CREDENTIALS",
+      );
+    const latest = (
+      await db.query(
+        "SELECT * FROM mera_owner_registration_requests WHERE user_id=$1 ORDER BY created_at DESC,request_key DESC LIMIT 1",
+        [identity.user_id],
+      )
+    ).rows[0];
+    if (!latest)
+      throw fail(
+        "The owner account could not be verified. Check your email and password.",
+        401,
+        "INVALID_CREDENTIALS",
+      );
+    res.json(await receipt(latest));
+  });
+  router.post("/identity/provider/resend", async (req, res) => {
+    limit(req);
+    const input = z
+      .object({ requestKey: z.string().uuid(), resendKey: z.string().uuid() })
+      .strict()
+      .parse(req.body);
+    res.json(await resend(input.requestKey, input.resendKey));
+  });
+  const requireActor = (req) => {
+    if (!req.user)
+      throw fail(
+        "Sign in to check your owner account.",
+        401,
+        "SIGN_IN_REQUIRED",
+      );
+    const expected = req.get?.("X-Mera-Actor-Id");
+    if (expected && expected !== req.user.id)
+      throw fail(
+        "The signed-in account changed. Refresh before continuing.",
+        403,
+        "ACTOR_CHANGED",
+      );
+  };
+  async function ownerStatus(req) {
+    requireActor(req);
+    const identity = (
+      await db.query("SELECT * FROM mera_owner_identities WHERE user_id=$1", [
+        req.user.id,
+      ])
+    ).rows[0];
+    if (!identity) {
+      const operator = (
+        await db.query(
+          "SELECT user_id FROM mera_platform_members WHERE user_id=$1 AND active=true",
+          [req.user.id],
+        )
+      ).rows[0];
+      return {
+        state: operator ? "platform_operator" : "no_owner_identity",
+        canResend: false,
+        reason: operator
+          ? "Use a verified business-owner account to create an organization. Platform access does not verify owner email."
+          : "This account has no owner email identity. Sign in with your registered business-owner account.",
+      };
+    }
+    const latest = (
+      await db.query(
+        "SELECT * FROM mera_owner_registration_requests WHERE user_id=$1 ORDER BY created_at DESC,request_key DESC LIMIT 1",
+        [req.user.id],
+      )
+    ).rows[0];
+    const delivery = latest ? await receipt(latest) : null;
+    const verified =
+      !!identity.verified_at && identity.verification_mode === "provider";
+    return {
+      state: verified ? "verified" : "unverified",
+      email: identity.email,
+      canResend: delivery?.canResend || false,
+      ...(delivery
+        ? {
+            delivery,
+            resendAvailableAt: delivery.resendAvailableAt,
+            reason: delivery.reason,
+          }
+        : {
+            reason:
+              "No provider verification request is available for this account.",
+          }),
+    };
+  }
+  router.get("/identity/owner-status", async (req, res) =>
+    res.json(await ownerStatus(req)),
+  );
+  router.post("/identity/owner-resend", async (req, res) => {
+    requireActor(req);
+    limit(req);
+    const { resendKey } = z
+      .object({ resendKey: z.string().uuid() })
+      .strict()
+      .parse(req.body);
+    // Replays resolve their own recorded parent, even after a new latest request exists.
+    const prior = await read(resendKey);
+    if (prior && prior.user_id !== req.user.id)
+      throw fail(
+        "This resend request belongs to another account.",
+        403,
+        "ACTOR_CHANGED",
+      );
+    const latest = (
+      await db.query(
+        "SELECT * FROM mera_owner_registration_requests WHERE user_id=$1 ORDER BY created_at DESC,request_key DESC LIMIT 1",
+        [req.user.id],
+      )
+    ).rows[0];
+    if (!latest)
+      throw fail(
+        "Use your registered business-owner account. No owner verification email is available for this account.",
+        403,
+        "OWNER_IDENTITY_REQUIRED",
+      );
+    res.json(
+      await resend(
+        prior?.parent_request_key || latest.request_key,
+        resendKey,
+        req.user.id,
+      ),
+    );
   });
   router.post("/identity/provider/verify", async (req, res) => {
     limit(req);
@@ -245,6 +572,17 @@ export function mountProviderIdentity(
       .strict()
       .parse(req.body);
     const result = await db.transaction(async (c) => {
+      const candidate = (
+        await c.query(
+          "SELECT * FROM mera_identity_challenges WHERE token_hash=$1 AND mode='provider'",
+          [hash(token)],
+        )
+      ).rows[0];
+      if (candidate)
+        await c.query(
+          "SELECT user_id FROM mera_owner_identities WHERE user_id=$1 FOR UPDATE",
+          [candidate.user_id],
+        );
       const row = (
         await c.query(
           "SELECT * FROM mera_identity_challenges WHERE token_hash=$1 AND mode='provider' FOR UPDATE",

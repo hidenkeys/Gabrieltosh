@@ -35,24 +35,37 @@ export async function requireVerifiedOwner(req, db) {
       "OWNER_VERIFICATION_REQUIRED",
     );
 }
-export function mountMeraIdentity(router, { db }) {
+export function createIdentityLimiter() {
   const attempts = new Map();
   function limit(req) {
+    const path = req.path || "";
+    const bucket = path.endsWith("/recover")
+      ? "read"
+      : path.endsWith("/recover-account")
+        ? "credentials"
+        : path.endsWith("/verify")
+          ? "verify"
+          : "send";
+    const maximum = bucket === "read" ? 30 : bucket === "send" ? 5 : 10;
     const now = Date.now(),
-      key = req.ip || "unknown";
+      key = (req.ip || "unknown") + ":" + bucket;
     for (const [id, v] of attempts) if (v.until <= now) attempts.delete(id);
     if (!attempts.has(key)) {
       if (attempts.size >= 10000)
         throw fail("Registration is busy. Retry shortly.", 503);
       attempts.set(key, { count: 0, until: now + 900000 });
     }
-    if (++attempts.get(key).count > 5)
+    if (++attempts.get(key).count > maximum)
       throw fail(
-        "Too many registration attempts. Wait fifteen minutes.",
+        "Too many attempts. Wait fifteen minutes.",
         429,
         "RATE_LIMITED",
       );
   }
+  return limit;
+}
+export function mountMeraIdentity(router, { db }) {
+  const limit = createIdentityLimiter();
   mountProviderIdentity(router, { db, limit });
   router.get("/identity/capabilities", (_req, res) =>
     res.json({

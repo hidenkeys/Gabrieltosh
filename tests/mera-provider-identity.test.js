@@ -2,7 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { newDb } from "pg-mem";
 import { randomUUID, createHash } from "node:crypto";
-import { migrateMeraIdentity } from "../server/mera/identity.js";
+import {
+  migrateMeraIdentity,
+  createIdentityLimiter,
+} from "../server/mera/identity.js";
 import {
   mountProviderIdentity,
   providerIdentityReady,
@@ -38,15 +41,20 @@ async function fixture(sendEmail, overrides = {}) {
   await migrateMeraIdentity(db);
   const routes = new Map();
   mountProviderIdentity(
-    { post: (path, fn) => routes.set(path, fn) },
+    {
+      post: (path, fn) => routes.set(path, fn),
+      get: (path, fn) => routes.set(path, fn),
+    },
     { db, limit: () => {}, env: { ...env, ...overrides }, sendEmail },
   );
   return {
     db,
-    call: async (path, body) => {
+    call: async (path, body, actor = null, expectedActor = null) => {
       let result;
-      await routes.get("/identity/provider/" + path)(
-        { body },
+      await routes.get(
+        path.startsWith("/") ? path : "/identity/provider/" + path,
+      )(
+        { body, user: actor, get: () => expectedActor },
         {
           status() {
             return this;
@@ -294,4 +302,218 @@ test("public signup permits a new recipient, blocks organization creation before
     if (previous === undefined) delete process.env.MERA_DEMO;
     else process.env.MERA_DEMO = previous;
   }
+});
+
+const ageRequests = (f) =>
+  f.db.query("UPDATE mera_owner_registration_requests SET created_at=$1", [
+    new Date(Date.now() - 120000).toISOString(),
+  ]);
+const tokenFrom = (mail) => mail.text.match(/#verify=([a-f0-9]{64})/)[1];
+test("resend rotates expired challenge, exact replay is stable, and verified owner cannot rotate", async () => {
+  const mails = [];
+  const f = await fixture(async (mail) => {
+    mails.push(mail);
+    return { accepted: true, provider: "resend", id: randomUUID() };
+  });
+  const original = input();
+  await f.call("register", original);
+  const resendKey = randomUUID();
+  await assert.rejects(
+    f.call("resend", { requestKey: original.requestKey, resendKey }),
+    (e) => e.code === "RESEND_COOLDOWN",
+  );
+  await ageRequests(f);
+  await f.db.query("UPDATE mera_identity_challenges SET expires_at=$1", [
+    new Date(Date.now() - 1000).toISOString(),
+  ]);
+  const next = await f.call("resend", {
+    requestKey: original.requestKey,
+    resendKey,
+  });
+  assert.equal(next.requestKey, resendKey);
+  assert.equal(next.emailDelivery, "accepted");
+  assert.equal(mails.length, 2);
+  assert.notEqual(tokenFrom(mails[0]), tokenFrom(mails[1]));
+  await assert.rejects(f.call("verify", { token: tokenFrom(mails[0]) }));
+  assert.equal(
+    (await f.call("recover", { requestKey: original.requestKey })).superseded,
+    true,
+  );
+  await f.call("resend", { requestKey: original.requestKey, resendKey });
+  assert.equal(mails.length, 2);
+  await assert.rejects(
+    f.call("resend", { requestKey: resendKey, resendKey }),
+    (e) => e.code === "IDEMPOTENCY_CONFLICT",
+  );
+  await f.call("verify", { token: tokenFrom(mails[1]) });
+  await assert.rejects(
+    f.call("resend", { requestKey: resendKey, resendKey: randomUUID() }),
+    (e) => e.code === "OWNER_ALREADY_VERIFIED",
+  );
+  assert.equal((await f.db.query("SELECT * FROM users")).rows.length, 1);
+});
+test("uncertain authenticated resend replays exact delivery without rotating or duplicating account", async () => {
+  const mails = [];
+  let uncertain = true;
+  const f = await fixture(async (mail) => {
+    mails.push(mail);
+    if (mails.length > 1 && uncertain) throw Error("timeout");
+    return { accepted: true, provider: "resend", id: randomUUID() };
+  });
+  await f.call("register", input());
+  await ageRequests(f);
+  const owner = (await f.db.query("SELECT * FROM users")).rows[0],
+    resendKey = randomUUID();
+  const unknown = await f.call(
+    "/identity/owner-resend",
+    { resendKey },
+    owner,
+    owner.id,
+  );
+  assert.equal(unknown.emailDelivery, "unknown");
+  assert.equal(unknown.retryAllowed, true);
+  uncertain = false;
+  const accepted = await f.call(
+    "/identity/owner-resend",
+    { resendKey },
+    owner,
+    owner.id,
+  );
+  assert.equal(accepted.emailDelivery, "accepted");
+  assert.deepEqual(mails[1], mails[2]);
+  await f.call("/identity/owner-resend", { resendKey }, owner, owner.id);
+  assert.equal(mails.length, 3);
+  assert.equal(
+    (await f.db.query("SELECT * FROM mera_identity_challenges")).rows.length,
+    2,
+  );
+});
+test("owner status and recovery bind to authenticated identity or correct inactive account credentials", async () => {
+  const mails = [];
+  const f = await fixture(async (mail) => {
+    mails.push(mail);
+    return { accepted: true, provider: "resend", id: randomUUID() };
+  });
+  await f.db.query(
+    "CREATE TABLE mera_platform_members(user_id TEXT,active BOOLEAN)",
+  );
+  const body = input();
+  await f.call("register", body);
+  const owner = (await f.db.query("SELECT * FROM users")).rows[0];
+  await assert.rejects(
+    f.call("/identity/owner-status", {}),
+    (e) => e.code === "SIGN_IN_REQUIRED",
+  );
+  await assert.rejects(
+    f.call("/identity/owner-status", {}, owner, "another"),
+    (e) => e.code === "ACTOR_CHANGED",
+  );
+  const status = await f.call("/identity/owner-status", {}, owner);
+  assert.equal(status.state, "unverified");
+  assert.equal(status.email, body.email);
+  await f.db.query("INSERT INTO mera_platform_members VALUES('operator',true)");
+  const operator = await f.call(
+    "/identity/owner-status",
+    {},
+    { id: "operator" },
+  );
+  assert.equal(operator.state, "platform_operator");
+  assert.equal(operator.email, undefined);
+  assert.equal(
+    (await f.call("/identity/owner-status", {}, { id: "staff" })).state,
+    "no_owner_identity",
+  );
+  await assert.rejects(
+    f.call(
+      "/identity/owner-resend",
+      { resendKey: randomUUID() },
+      { id: "operator" },
+    ),
+    (e) => e.code === "OWNER_IDENTITY_REQUIRED",
+  );
+  for (const credentials of [
+    { email: body.email, password: "wrong" },
+    { email: "missing@example.invalid", password: body.password },
+  ])
+    await assert.rejects(
+      f.call("recover-account", credentials),
+      (e) => e.code === "INVALID_CREDENTIALS" && e.status === 401,
+    );
+  const recovered = await f.call("recover-account", {
+    email: body.email.toUpperCase(),
+    password: body.password,
+  });
+  assert.equal(recovered.requestKey, body.requestKey);
+  assert.equal(mails.length, 1);
+  assert.equal((await f.db.query("SELECT * FROM users")).rows[0].active, false);
+  await f.call("verify", { token: tokenFrom(mails[0]) });
+  assert.equal(
+    (await f.call("/identity/owner-status", {}, owner)).state,
+    "verified",
+  );
+});
+test("resend rolling day limit and cross-account keys prevent extra delivery", async () => {
+  let sends = 0;
+  const f = await fixture(
+    async () => {
+      sends++;
+      return { accepted: true, provider: "resend", id: randomUUID() };
+    },
+    { MERA_EMAIL_RECIPIENT_POLICY: "public" },
+  );
+  const first = input();
+  await f.call("register", first);
+  let key = first.requestKey;
+  for (let i = 0; i < 4; i++) {
+    await ageRequests(f);
+    const next = randomUUID();
+    await f.call("resend", { requestKey: key, resendKey: next });
+    key = next;
+  }
+  await ageRequests(f);
+  assert.equal(
+    (await f.call("recover", { requestKey: key })).reason,
+    "daily_limit",
+  );
+  await assert.rejects(
+    f.call("resend", { requestKey: key, resendKey: randomUUID() }),
+    (e) => e.code === "RESEND_LIMIT",
+  );
+  const other = { ...input(), email: "other@example.invalid" };
+  await f.call("register", other);
+  await assert.rejects(
+    f.call("resend", { requestKey: other.requestKey, resendKey: key }),
+    (e) => e.code === "IDEMPOTENCY_CONFLICT",
+  );
+  const otherUser = (
+    await f.db.query("SELECT * FROM users WHERE username=$1", [other.email])
+  ).rows[0];
+  await assert.rejects(
+    f.call("/identity/owner-resend", { resendKey: key }, otherUser),
+    (e) => e.code === "ACTOR_CHANGED",
+  );
+  assert.equal(sends, 6);
+});
+
+test("identity rate buckets allow recovery journey and bound credential guessing independently", () => {
+  const limit = createIdentityLimiter();
+  const hit = (path) =>
+    limit({ ip: "synthetic", path: "/identity/provider/" + path });
+  hit("register");
+  for (let i = 0; i < 20; i++) hit("recover");
+  hit("recover-account");
+  hit("resend");
+  hit("verify");
+  for (let i = 0; i < 9; i++) hit("recover-account");
+  assert.throws(
+    () => hit("recover-account"),
+    (e) => e.code === "RATE_LIMITED",
+  );
+  hit("verify");
+  hit("recover");
+  for (let i = 0; i < 3; i++) hit("retry");
+  assert.throws(
+    () => hit("resend"),
+    (e) => e.code === "RATE_LIMITED",
+  );
 });

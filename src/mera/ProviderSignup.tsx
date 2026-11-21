@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { workspaceApi } from "./workspace/api";
 const storageKey = "mera:owner-provider-registration:v1";
+const resendStorageKey = "mera:owner-provider-resend:v1";
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function providerAck(value: any, key: string) {
   return (
@@ -20,9 +21,16 @@ function recovery() {
   try {
     const key = sessionStorage.getItem(storageKey);
     if (key && !uuid.test(key)) throw Error();
-    return { key, blocked: false };
+    const raw = sessionStorage.getItem(resendStorageKey);
+    const pending = raw ? JSON.parse(raw) : null;
+    if (
+      pending &&
+      (!uuid.test(pending.requestKey) || !uuid.test(pending.resendKey))
+    )
+      throw Error();
+    return { key: pending?.requestKey || key, pending, blocked: false };
   } catch {
-    return { key: null, blocked: true };
+    return { key: null, pending: null, blocked: true };
   }
 }
 export default function ProviderSignup({
@@ -35,6 +43,10 @@ export default function ProviderSignup({
   const [initial] = useState(recovery),
     [key, setKey] = useState(initial.key),
     [blocked, setBlocked] = useState(initial.blocked);
+  const [pendingResend, setPendingResend] = useState<any>(initial.pending);
+  const [recoveryMode, setRecoveryMode] = useState(
+    () => new URLSearchParams(window.location.search).get("resend") === "1",
+  );
   const [name, setName] = useState(""),
     [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
@@ -45,7 +57,15 @@ export default function ProviderSignup({
     [verified, setVerified] = useState(false),
     [verifyUnknown, setVerifyUnknown] = useState(false);
   const flight = useRef(false);
-  async function action(kind: "register" | "recover" | "retry" | "verify") {
+  async function action(
+    kind:
+      | "register"
+      | "recover"
+      | "retry"
+      | "verify"
+      | "resend"
+      | "recover-account",
+  ) {
     if (flight.current || (blocked && kind !== "verify")) return;
     flight.current = true;
     setBusy(true);
@@ -65,6 +85,25 @@ export default function ProviderSignup({
         }
         setKey(requestKey);
         body = { requestKey, name, email, password };
+        setPassword("");
+      } else if (kind === "resend") {
+        const intent = pendingResend || {
+          requestKey,
+          resendKey: crypto.randomUUID(),
+        };
+        const encoded = JSON.stringify(intent);
+        sessionStorage.setItem(resendStorageKey, encoded);
+        if (sessionStorage.getItem(resendStorageKey) !== encoded) {
+          setBlocked(true);
+          throw Error(
+            "Safe recovery is unavailable. No email request was sent.",
+          );
+        }
+        setPendingResend(intent);
+        body = intent;
+        requestKey = intent.resendKey;
+      } else if (kind === "recover-account") {
+        body = { email, password };
         setPassword("");
       } else if (kind === "verify") {
         body = { token: verificationToken };
@@ -89,10 +128,29 @@ export default function ProviderSignup({
         // Keep an unrelated original registration recovery reference intact.
         // The email token may have been opened in a tab used for another request.
       } else {
-        if (!providerAck(result, requestKey!))
+        if (kind === "recover-account") requestKey = result?.requestKey;
+        if (!uuid.test(requestKey || "") || !providerAck(result, requestKey!))
           throw Error(
             "The response could not be confirmed. Check the original request below before doing anything else.",
           );
+        if (kind === "resend" || kind === "recover-account") {
+          sessionStorage.setItem(storageKey, requestKey!);
+          if (sessionStorage.getItem(storageKey) !== requestKey) {
+            setBlocked(true);
+            throw Error(
+              "Preserve this tab: the email request was accepted, but browser recovery could not be saved.",
+            );
+          }
+          setKey(requestKey!);
+          if (
+            kind === "resend" &&
+            (result.emailDelivery === "accepted" || result.verified === true)
+          ) {
+            sessionStorage.removeItem(resendStorageKey);
+            setPendingResend(null);
+          }
+          setRecoveryMode(false);
+        }
         setAck(result);
       }
     } catch (e: any) {
@@ -116,7 +174,7 @@ export default function ProviderSignup({
       setBusy(false);
     }
   }
-  if (verificationToken)
+  if (verificationToken && !recoveryMode)
     return (
       <div className="mera-provider-signup">
         <p className="mera-signup-badge">Mera QR owner account</p>
@@ -151,6 +209,13 @@ export default function ProviderSignup({
             >
               {busy ? "Checking verification…" : "Verify email"}
             </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => setRecoveryMode(true)}
+            >
+              Resend verification email
+            </button>
           </>
         )}
       </div>
@@ -165,6 +230,49 @@ export default function ProviderSignup({
         </p>
       </div>
     );
+  if (recoveryMode && !key)
+    return (
+      <div className="mera-provider-signup">
+        <p className="mera-signup-badge">Mera QR owner account</p>
+        <h2>Find your verification request</h2>
+        <p>
+          Enter your owner account email and password. Checking your account
+          does not send an email.
+        </p>
+        {error && <p role="alert">{error}</p>}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void action("recover-account");
+          }}
+        >
+          <label>
+            Email address
+            <input
+              type="email"
+              autoComplete="username"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </label>
+          <label>
+            Password
+            <input
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
+          <button className="primary" disabled={busy}>
+            Check owner account
+          </button>
+        </form>
+        <a href="/mera/workspace?setup=1">Already verified? Sign in</a>
+      </div>
+    );
   if (key)
     return (
       <div className="mera-provider-signup">
@@ -177,8 +285,8 @@ export default function ProviderSignup({
         {ack?.emailDelivery === "accepted" ? (
           <p>
             The email provider accepted your verification email. Inbox delivery
-            is not yet confirmed. Open its link and choose Verify email within
-            one hour of registration.
+            is not yet confirmed. Open its link and choose Verify email before
+            the link expires. If it has expired, request a new email below.
           </p>
         ) : (
           <p>
@@ -193,12 +301,48 @@ export default function ProviderSignup({
         <button
           type="button"
           className="secondary"
-          disabled={busy}
+          disabled={busy || !!pendingResend}
           onClick={() => void action("recover")}
         >
           {busy ? "Checking…" : "Check original request"}
         </button>
-        {ack?.retryAllowed && (
+        {ack?.verified ? (
+          <p>Your email is already verified. Sign in to continue.</p>
+        ) : (
+          <>
+            {ack?.expired && (
+              <p>
+                Your verification link has expired. Request a new email below.
+              </p>
+            )}
+            {ack?.reason === "daily_limit" && (
+              <p>The daily email limit has been reached. Try again later.</p>
+            )}
+            {ack?.reason === "provider_unavailable" && (
+              <p>Email delivery is currently unavailable.</p>
+            )}
+            {ack?.resendAvailableAt && !ack.canResend && (
+              <p>
+                Another email can be requested after{" "}
+                {new Date(ack.resendAvailableAt).toLocaleTimeString()}. Check
+                the original request to refresh availability.
+              </p>
+            )}
+            {(ack || pendingResend) && (
+              <button
+                type="button"
+                className="primary"
+                disabled={busy || (!ack?.canResend && !pendingResend)}
+                onClick={() => void action("resend")}
+              >
+                {pendingResend
+                  ? "Retry same verification email request"
+                  : "Resend verification email"}
+              </button>
+            )}
+          </>
+        )}
+        {ack?.retryAllowed && !pendingResend && (
           <button
             type="button"
             className="primary"
@@ -210,6 +354,9 @@ export default function ProviderSignup({
         )}
         {ack &&
           !ack.retryAllowed &&
+          !ack.canResend &&
+          !ack.verified &&
+          !ack.reason &&
           ack.emailDelivery !== "accepted" &&
           ack.emailDelivery !== "sending" && (
             <p>
@@ -231,6 +378,13 @@ export default function ProviderSignup({
           " Registration is restricted to approved recipients."}
       </p>
       {error && <p role="alert">{error}</p>}
+      <button
+        type="button"
+        className="secondary"
+        onClick={() => setRecoveryMode(true)}
+      >
+        Resend verification email
+      </button>
       <form
         onSubmit={(e) => {
           e.preventDefault();
