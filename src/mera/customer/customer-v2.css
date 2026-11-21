@@ -456,6 +456,128 @@
   border-top-color: var(--mc-line);
 }
 
+/* ---- Order tracking: the reference reads as a stamp, the receipt as a slip ---- */
+.mera-customer .mc-tracking-panel > p:has(> b) {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 14px 0 12px;
+  color: var(--mc-muted);
+}
+.mera-customer .mc-tracking-panel > p > b {
+  padding: 6px 14px;
+  border: 1.5px dashed var(--mc-ink);
+  border-radius: 10px;
+  font-family: var(--mc-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--mc-ink);
+  font-variant-numeric: tabular-nums;
+}
+.mera-customer .mc-tracking-panel .mc-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 6px 6px 0;
+  padding: 7px 13px;
+  font-size: 0.8125rem;
+}
+.mera-customer .mc-tracking-panel .mc-state:first-of-type::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mc-primary, var(--mc-ink));
+  box-shadow: 0 0 0 0
+    color-mix(in srgb, var(--mc-primary, #1558c9) 55%, transparent);
+  animation: mc-live 2.4s ease-out infinite;
+}
+.mera-customer .mc-receipt {
+  margin: 16px 0;
+  padding: 20px;
+  border: 1px solid var(--mc-line);
+  border-radius: 16px;
+  background: #fff;
+}
+.mera-customer .mc-receipt h3 {
+  font-family: var(--mc-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+}
+.mera-customer .mc-receipt .mc-line {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 12px;
+  border-bottom: 1px dashed var(--mc-line);
+}
+.mera-customer .mc-receipt .mc-line strong {
+  grid-column: 1;
+}
+.mera-customer .mc-receipt .mc-line small {
+  grid-column: 1;
+}
+.mera-customer .mc-receipt .mc-line p {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  margin: 0;
+  font-family: var(--mc-display);
+  font-weight: 650;
+  color: var(--mc-ink);
+  font-variant-numeric: tabular-nums;
+}
+.mera-customer .mc-history {
+  position: relative;
+  margin: 18px 0 4px;
+}
+.mera-customer .mc-history li {
+  position: relative;
+  padding: 0 0 18px 26px;
+  border: 0;
+  font-weight: 600;
+}
+.mera-customer .mc-history li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 5px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--mc-primary, var(--mc-ink));
+}
+.mera-customer .mc-history li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 19px;
+  bottom: 2px;
+  width: 1.5px;
+  background: var(--mc-line);
+}
+.mera-customer .mc-history small {
+  font-weight: 400;
+  color: var(--mc-muted);
+}
+.mera-customer .mc-panel p,
+.mera-customer .mc-note,
+.mera-customer .mc-checkout-hint,
+.mera-customer .mc-line small {
+  color: var(--mc-muted);
+}
+.mera-customer .mc-reservation-panel label {
+  margin: 8px 0;
+}
+@keyframes mc-live {
+  70%,
+  100% {
+    box-shadow: 0 0 0 9px transparent;
+  }
+}
+
 /* ---- Customisation dialog: opens from the button that was pressed ---- */
 .mera-customer .mc-modal-backdrop {
   background: color-mix(in srgb, var(--mc-ink) 52%, transparent);
