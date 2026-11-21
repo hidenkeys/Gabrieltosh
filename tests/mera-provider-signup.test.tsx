@@ -180,3 +180,46 @@ test("public signup removes approved-recipient restriction without weakening ver
   render(<ProviderSignup recipientPolicy="allowlist" />);
   assert.ok(screen.getByText(/restricted to approved recipients/));
 });
+
+test("email link pasted into mounted signup tab captures new hash, removes it and waits for explicit verification", async () => {
+  reset();
+  sessionStorage.setItem(key, "10000000-0000-4000-8000-000000000001");
+  const posts: any[] = [];
+  globalThis.fetch = async (url, options) => {
+    if (options?.method === "POST") {
+      posts.push(JSON.parse(String(options.body)));
+      return reply({
+        verified: true,
+        realEmailVerified: true,
+        simulation: false,
+      });
+    }
+    return reply({
+      registration: "provider",
+      emailDelivery: "provider",
+      recipientPolicy: "public",
+    });
+  };
+  render(<Signup />);
+  await screen.findByRole("heading", { name: "Check your original request" });
+  window.location.hash = "verify=" + token;
+  await screen.findByRole("button", { name: "Verify email" });
+  assert.equal(window.location.hash, "");
+  assert.equal(posts.length, 0);
+  assert.ok(!JSON.stringify(sessionStorage).includes(token));
+  fireEvent.click(screen.getByRole("button", { name: "Verify email" }));
+  await screen.findByRole("heading", { name: "Your email is verified." });
+  assert.deepEqual(posts, [{ token }]);
+  const secondToken = "b".repeat(64);
+  window.location.hash = "verify=" + secondToken;
+  await screen.findByRole("button", { name: "Verify email" });
+  assert.equal(
+    screen.queryByRole("heading", { name: "Your email is verified." }),
+    null,
+  );
+  assert.equal(posts.length, 1);
+  assert.equal(window.location.hash, "");
+  fireEvent.click(screen.getByRole("button", { name: "Verify email" }));
+  await screen.findByRole("heading", { name: "Your email is verified." });
+  assert.deepEqual(posts, [{ token }, { token: secondToken }]);
+});

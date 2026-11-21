@@ -38,20 +38,30 @@ const verificationPending: SignupMarker = {
 };
 export default function Signup() {
   const navigate = usePublicNavigation(sections);
-  const [providerToken] = useState(() => {
+  const [providerToken, setProviderToken] = useState(() => {
     const fragment = new URLSearchParams(window.location.hash.slice(1));
     return fragment.has("verify")
       ? fragment.get("verify") || "invalid"
       : undefined;
   });
   useEffect(() => {
-    if (providerToken)
+    const captureVerificationLink = () => {
+      const fragment = new URLSearchParams(window.location.hash.slice(1));
+      if (!fragment.has("verify")) return;
+      // Email links can be opened in an already-mounted signup tab. Keep the
+      // token only in component memory and never consume it on navigation.
+      setProviderToken(fragment.get("verify") || "invalid");
       window.history.replaceState(
         null,
         "",
         window.location.pathname + window.location.search,
       );
-  }, [providerToken]);
+    };
+    captureVerificationLink();
+    window.addEventListener("hashchange", captureVerificationLink);
+    return () =>
+      window.removeEventListener("hashchange", captureVerificationLink);
+  }, []);
   const demo = new URLSearchParams(window.location.search).get("demo") === "1";
   const [showPassword, setShowPassword] = useState(false);
   const mounted = useRef(false),
@@ -312,6 +322,7 @@ export default function Signup() {
           {checking && <p role="status">Checking registration readiness…</p>}
           {(providerToken || capabilities?.registration === "provider") && (
             <ProviderSignup
+              key={providerToken || "registration"}
               verificationToken={providerToken}
               recipientPolicy={
                 capabilities?.recipientPolicy === "public"
