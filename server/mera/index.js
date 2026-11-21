@@ -1,3 +1,4 @@
+import { migrateInboundForwarding } from "./inbound-forwarding.js";
 import { migrateCompanyLeads, mountCompanyLeads } from "./company-leads.js";
 import {withAccessLock,authorizeAccessTarget,beginAccessOperation,recordAccessOperation,recordAccess,mountMeraAccessAttempts} from "./access-attempts.js";
 import {assertExpectedPrintActor,beginPrintStudioOperation,recordPrintStudioOperation,cleanReprintJob,mountMeraPrintStudioAttempts} from "./print-studio-attempts.js";
@@ -107,6 +108,7 @@ export async function migrateMera(db) {
   );
   await migrateMeraPlatform(db);
   await migrateMeraIdentity(db);
+  await migrateInboundForwarding(db);
   await migrateMeraAssets(db);
   await migrateMeraQueries(db);
   await migrateMeraAliases(db);
