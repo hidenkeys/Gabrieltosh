@@ -176,6 +176,7 @@ import "./mera/workspace/item-fulfillment.css";
 import "./mera/customer/checkout.css";
 import "./mera/customer/customer-v2.css";
 import "./mera/account-v2.css";
+import "./mera/workspace/workspace-v2.css";
 
 import "./mera/workspace/reporting.css";
 

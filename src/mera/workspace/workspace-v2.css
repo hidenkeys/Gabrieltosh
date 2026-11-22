@@ -1,0 +1,268 @@
+/*
+ * Workspace v2 — the owner and staff operating surface.
+ * Loaded last. A working tool, so this changes type, surfaces and motion and
+ * leaves layout alone. The organization's own colour (--brand) stays the accent.
+ */
+.mera-workspace {
+  --wx-paper: #f7f6f0;
+  --wx-bone: #fcfbf6;
+  --wx-ink: #16211c;
+  --wx-muted: #5a665f;
+  --wx-line: #e2e5dc;
+  --wx-display: "Mera Display", "Instrument Sans", system-ui, sans-serif;
+  --wx-text: "Mera Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --wx-enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --wx-move: cubic-bezier(0.25, 1, 0.5, 1);
+  --wx-accent: var(--brand, #2f7df6);
+  --wx-tint: color-mix(in srgb, var(--wx-accent) 10%, var(--wx-bone));
+  background: var(--wx-paper);
+  color: var(--wx-ink);
+  font-family: var(--wx-text);
+  -webkit-font-smoothing: antialiased;
+}
+.mera-workspace button,
+.mera-workspace input,
+.mera-workspace select,
+.mera-workspace textarea {
+  font-family: inherit;
+}
+
+/* ---- Type ---- */
+.mera-workspace .mw-heading h1 {
+  font-family: var(--wx-display);
+  font-size: clamp(2rem, 4vw, 2.875rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+.mera-workspace .mw-heading p {
+  font-size: 0.9375rem;
+  color: var(--wx-muted);
+  max-width: 62ch;
+}
+.mera-workspace .mw-card h2,
+.mera-workspace .mw-overview-section-heading h2 {
+  font-family: var(--wx-display);
+  font-size: 1.1875rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.mera-workspace .mw-card h3 {
+  font-family: var(--wx-display);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.mera-workspace .mw-card p,
+.mera-workspace .mw-card small {
+  color: var(--wx-muted);
+}
+/* Labels in sentence case; capitals add noise, not information. */
+.mera-workspace .mw-eyebrow {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--wx-muted);
+}
+.mera-workspace .mw-pill {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.75rem;
+  font-weight: 650;
+  padding: 5px 11px;
+}
+
+/* ---- Header ---- */
+.mera-workspace header.mw-header {
+  border-bottom-color: var(--wx-line);
+}
+.mera-workspace .mw-header select,
+.mera-workspace .mw-header .secondary {
+  border-radius: 12px;
+}
+
+/* ---- Side navigation: the active place is marked, and the mark moves with you ---- */
+.mera-workspace .mw-side-nav {
+  background: var(--wx-bone);
+  border-right-color: var(--wx-line);
+}
+.mera-workspace .mw-side-links .nav-label {
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--wx-muted);
+}
+.mera-workspace .mw-side-links .nav-item {
+  position: relative;
+  border-radius: 12px;
+  color: var(--wx-ink);
+  font-size: 0.9375rem;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    transform 160ms var(--wx-move);
+}
+.mera-workspace .mw-side-links .nav-item svg {
+  transition: transform 260ms var(--wx-move);
+}
+.mera-workspace .mw-side-links .nav-item.active {
+  background: var(--wx-tint);
+  color: var(--brand-dark, var(--wx-accent));
+  font-weight: 650;
+}
+.mera-workspace .mw-side-links .nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: -18px;
+  top: 9px;
+  bottom: 9px;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--wx-accent);
+  animation: wx-mark 360ms var(--wx-enter);
+}
+.mera-workspace .mw-side-links .nav-item:active {
+  transform: scale(0.98);
+}
+@media (hover: hover) and (pointer: fine) {
+  .mera-workspace .mw-side-links .nav-item:not(.active):hover {
+    background: color-mix(in srgb, var(--wx-ink) 6%, transparent);
+  }
+  .mera-workspace .mw-side-links .nav-item:hover svg {
+    transform: translateX(2px);
+  }
+}
+
+/* ---- Surfaces ---- */
+.mera-workspace .mw-card {
+  background: var(--wx-bone);
+  border-color: var(--wx-line);
+  border-radius: 18px;
+}
+/* Figures are the thing people read at a glance. */
+.mera-workspace .mw-stat {
+  display: flex;
+  flex-direction: column;
+}
+.mera-workspace .mw-stat strong,
+.mera-workspace .metric-grid strong {
+  font-family: var(--wx-display);
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  margin: 12px 0 10px;
+}
+.mera-workspace .mw-stat small {
+  color: var(--wx-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.mera-workspace .mw-note {
+  border-radius: 14px;
+  background: var(--wx-tint);
+  border-color: color-mix(in srgb, var(--wx-accent) 22%, var(--wx-line));
+}
+.mera-workspace .mw-empty {
+  color: var(--wx-muted);
+}
+.mera-workspace table {
+  font-variant-numeric: tabular-nums;
+}
+.mera-workspace table th {
+  font-weight: 650;
+  color: var(--wx-muted);
+}
+@media (hover: hover) and (pointer: fine) {
+  .mera-workspace table tbody tr {
+    transition: background-color 140ms ease;
+  }
+  .mera-workspace table tbody tr:hover {
+    background: color-mix(in srgb, var(--wx-accent) 5%, transparent);
+  }
+}
+
+/* ---- Controls ---- */
+.mera-workspace button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 160ms var(--wx-move),
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 220ms var(--wx-move);
+}
+.mera-workspace button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.mera-workspace .primary,
+.mera-workspace .secondary {
+  border-radius: 12px;
+  font-weight: 650;
+}
+.mera-workspace .secondary {
+  background: var(--wx-bone);
+  border-color: var(--wx-line);
+}
+@media (hover: hover) and (pointer: fine) {
+  .mera-workspace .primary:hover:not(:disabled) {
+    box-shadow: 0 8px 18px -8px
+      color-mix(in srgb, var(--wx-accent) 70%, transparent);
+    transform: translateY(-1px);
+  }
+  .mera-workspace .secondary:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--wx-ink) 40%, var(--wx-line));
+  }
+}
+.mera-workspace input,
+.mera-workspace select,
+.mera-workspace textarea {
+  border-radius: 10px;
+  transition:
+    border-color 180ms ease,
+    box-shadow 220ms var(--wx-move);
+}
+.mera-workspace input:focus,
+.mera-workspace select:focus,
+.mera-workspace textarea:focus {
+  border-color: var(--wx-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--wx-accent) 16%, transparent);
+}
+.mera-workspace :focus-visible {
+  outline: 3px solid var(--wx-accent);
+  outline-offset: 2px;
+}
+
+/* ---- Moving between places: the heading and first row settle in once ---- */
+.mera-workspace .mw-heading {
+  animation: wx-rise 420ms var(--wx-enter) backwards;
+}
+.mera-workspace .mw-heading + * {
+  animation: wx-rise 480ms var(--wx-enter) 60ms backwards;
+}
+.mera-workspace [role="dialog"],
+.mera-workspace .mw-account-panel {
+  animation: wx-rise 260ms var(--wx-enter);
+}
+@keyframes wx-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes wx-mark {
+  from {
+    transform: scaleY(0.2);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mera-workspace *,
+  .mera-workspace *::before,
+  .mera-workspace *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
