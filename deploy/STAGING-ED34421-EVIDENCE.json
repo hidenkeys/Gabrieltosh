@@ -1,0 +1,27 @@
+{
+  "at": "2026-11-20T10:45:57.982Z",
+  "origin": "https://mera-web-staging.up.railway.app",
+  "sourceRevision": "ed344219ec92349cfcf04d49053f2ffe367791ed",
+  "webDeploymentId": "4ceaada0-5bac-40df-989f-bf57a0dc2062",
+  "jobsDeploymentId": "6b471cc0-36ed-4599-bfdb-998164891358",
+  "deploymentStatuses": "SUCCESS",
+  "checks": [
+    {
+      "path": "/api/health",
+      "status": 200
+    },
+    {
+      "path": "/mera/",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/platform/company-leads",
+      "status": 401
+    }
+  ],
+  "newSubmissions": 0,
+  "preservation": "Existing secrets, service configuration, database and synthetic records retained.",
+  "limitations": [
+    "Browser verification coordinated separately; no email, payment or physical printer claims."
+  ]
+}

@@ -193,6 +193,13 @@ export default function MeraSignIn({
               <ArrowRight aria-hidden="true" />
             </button>
           </form>
+          {!operator && (
+            <p className="mera-signin-help">
+              <a href="/mera/signup?resend=1">
+                Resend owner verification email
+              </a>
+            </p>
+          )}
           <p className="mera-signin-help">
             {operator
               ? "Need operator access or an authenticator reset? Contact your authorized platform administrator."

@@ -1,0 +1,49 @@
+{
+  "at": "2026-11-21T17:40:08.999Z",
+  "sourceRevision": "23e8b7e5a4b579cdebc7bbd7e46fca43ebbf9c77",
+  "webDeploymentId": "dcb18386-956c-4413-84fd-60490628d9af",
+  "jobsDeploymentId": "2039dd59-600b-4147-8789-04d9adc46864",
+  "deploymentStatuses": "SUCCESS",
+  "checks": [
+    {
+      "path": "/api/health",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/identity/capabilities",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/identity/owner-status",
+      "status": 401
+    }
+  ],
+  "capabilities": {
+    "registration": "provider",
+    "emailDelivery": "provider",
+    "recipientPolicy": "public",
+    "persistentCustomerIdentity": "blocked",
+    "reason": "Verified email delivery and sender authorization are required for production registration."
+  },
+  "build": "passed",
+  "preservation": "Scoped UI spacing only; runtime configuration, credentials, records and browser sessions preserved. No send or account requests made.",
+  "limitations": [
+    "Final desktop spacing screenshot review remains with coordinator."
+  ],
+  "coordinatorBrowserVerification": {
+    "initialEmail": {
+      "gmailMessageId": "1a1ff2e6aa9e2848",
+      "label": "INBOX"
+    },
+    "credentialRecovery": "New-tab email/password recovery caused no additional email; message count remained1.",
+    "explicitResend": "Provider accepted replacement; cooldown displayed.",
+    "replacementEmail": {
+      "gmailMessageId": "1a1ff2ff3302eb0a",
+      "label": "INBOX"
+    },
+    "previousToken": "Explicitly rejected after rotation.",
+    "replacementVerification": "Explicit Verify email succeeded.",
+    "screenshot": "/private/tmp/mera-resend-verified.png",
+    "source": "Lead coordinator observed live browser and Gmail checks; tokens/passwords excluded."
+  }
+}

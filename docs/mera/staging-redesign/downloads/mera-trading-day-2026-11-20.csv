@@ -1,0 +1,59 @@
+"Mera EOD export format","v2"
+"Branch","Surulere · Staging"
+"Trading date","2026-11-20"
+"Timezone","Africa/Lagos"
+"Trading cutoff minutes after midnight",0
+"Window starts (inclusive)","2026-11-19T23:00:00.000Z"
+"Window ends (exclusive)","2026-11-20T23:00:00.000Z"
+"Currency","NGN"
+"Money representation","Major currency units; source amounts are integer kobo"
+
+"Metric","Value","Unit"
+"Order value (current non-cancelled orders placed this day)",0,"NGN"
+"Historical Gross Sales",0,"NGN"
+"Historical Net Sales",0,"NGN"
+"Recognized bill totals including tax",0,"NGN"
+"Recognized sales returns",0,"NGN"
+"Net recognized bill totals including tax",0,"NGN"
+"Recognized Tax",0,"NGN"
+"Refunded Tax",0,"NGN"
+"Net revenue excluding tax",0,"NGN"
+"Sales Revenue Ex Tax",0,"NGN"
+"Net tax liability",0,"NGN"
+"Non Product Income",0,"NGN"
+"Non Product Income Ex Tax",0,"NGN"
+"Discounts",0,"NGN"
+"Service Charges",0,"NGN"
+"Deposits",0,"NGN"
+"Deposit Returns",0,"NGN"
+"Deposit Forfeitures",0,"NGN"
+"Reservation liability at trading-day end",0,"NGN"
+"Payments and deposits received",0,"NGN"
+"Refunds and deposit returns paid",0,"NGN"
+"Receivable write-offs (not collections)",0,"NGN"
+"Current outstanding on orders placed this day",0,"NGN"
+"Orders",1,"count"
+"Recognition basis","immutable_collected_at"
+"Tax breakdown","recorded"
+"Mera fees","Unavailable"
+"Mera fee explanation","No authoritative branch-scoped Mera fee assessment records are available in this report."
+
+"Current state of orders placed on this trading day","Count"
+"Completed",1
+
+"Recognized products","Quantity","Recorded item value (NGN)"
+"QA complimentary sample — Sample",1,0
+
+"Payment method","Receipts including deposits (NGN)"
+"Cash",0
+"External POS",0
+"External transfer",0
+
+"Staff activity basis","recorded_order_history_events_on_trading_day"
+"Recorded actor name","Actor type","Order history events","Action","Action count"
+"Identity unavailable","unknown",1,"submitted",1
+"Staging business owner","unknown",5,"accepted",1
+"Staging business owner","unknown",5,"preparing",1
+"Staging business owner","unknown",5,"ready",1
+"Staging business owner","unknown",5,"collected",1
+"Staging business owner","unknown",5,"completed",1

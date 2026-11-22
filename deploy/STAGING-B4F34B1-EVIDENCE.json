@@ -1,0 +1,46 @@
+{
+  "at": "2026-11-21T17:03:05.077Z",
+  "sourceRevision": "b4f34b12ee71ec2e2ee65b23afd1e01df484c834",
+  "webDeploymentId": "82d101a3-6956-4111-b4dd-1fb2191157f3",
+  "jobsDeploymentId": "375a71d3-c366-4a50-9ed2-2571c7b0a0ad",
+  "deploymentStatuses": "SUCCESS",
+  "checks": [
+    {
+      "path": "/api/health",
+      "status": 200
+    },
+    {
+      "path": "/mera/",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/identity/capabilities",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/platform/company-leads",
+      "status": 401
+    },
+    {
+      "path": "/api/mera/webhooks/resend-inbox",
+      "status": 401
+    }
+  ],
+  "capabilities": {
+    "registration": "provider",
+    "emailDelivery": "provider",
+    "recipientPolicy": "public",
+    "persistentCustomerIdentity": "blocked",
+    "reason": "Verified email delivery and sender authorization are required for production registration."
+  },
+  "validation": {
+    "ownerAgentFocusedTests": 31,
+    "independentOwnerEmailSignupTests": 35,
+    "marketingAgentFocusedTests": 17,
+    "build": "passed"
+  },
+  "changes": "Only web MERA_EMAIL_RECIPIENT_POLICY=public changed; existing mail secrets, records and sessions retained.",
+  "limitations": [
+    "No email or account created during deployment; coordinator performs browser signup verification separately."
+  ]
+}

@@ -3,9 +3,9 @@
   "scopeVersion": "3.0",
   "frozenAt": "2026-11-20 consolidated brief",
   "lastUpdated": "2026-11-20",
-  "revision": "7643e4d",
+  "revision": "9901897",
   "baselineNote": "Consolidated MeraTech brief supersedes marketing direction and adds company/product pages, real consultancy and Travel interest plus entry motion. Scope1 historical93% and scope2 historical47.4% remain archived intact. Existing staging and working shared foundations retain only applicable evidence; prior marketing implementation earns no new website credit.",
-  "currentMilestone": "Reviewed company implementation deployed to isolated staging. Full suite777passed/0failed/3opt-in skips;17hosted checks pass; browser consultancy and Travel receipts verified and persisted across redeploy. Protected inbox and remaining operational browser checks wait for Chrome extension-popup dismissal; no completion claimed.",
+  "currentMilestone": "Hosted operational workflow verified through completed order and downloaded CSV; owner resume/draft continuity and operator saved details checked. Homepage mobile correction9901897 deployed and visually verified. Homepage, QR product, Travel interest and consultancy initial-step layouts reviewed at four widths. Broader state/accessibility review remains; Chrome file upload explicitly blocked, positive-paid documents/provider readiness/hardware unverified.",
   "clarifications": [
     {
       "at": "2026-11-18T15:56:52+01:00",
@@ -238,6 +238,27 @@
       "scopeWeight": 100,
       "weightedPoints": 30.8,
       "roundedCompletion": 30
+    },
+    {
+      "at": "2026-11-20",
+      "event": "Hosted operational workflow and operator layout pass; scope3 unchanged",
+      "scopeWeight": 100,
+      "weightedPoints": 68.8,
+      "roundedCompletion": 68
+    },
+    {
+      "at": "2026-11-20",
+      "event": "Deployed homepage correction and QR/consultancy matrix reviewed; state coverage remains partial",
+      "scopeWeight": 100,
+      "weightedPoints": 71.0,
+      "roundedCompletion": 71
+    },
+    {
+      "at": "2026-11-20",
+      "event": "Travel four-width review accepted alongside actual interest receipt/operator evidence; no scope change",
+      "scopeWeight": 100,
+      "weightedPoints": 73.0,
+      "roundedCompletion": 73
     }
   ],
   "dependencies": [
@@ -393,13 +414,14 @@
       "workstream": "W",
       "title": "MeraTech parent homepage and offering hierarchy",
       "weight": 7,
-      "checkpoint": 60,
+      "checkpoint": 80,
       "status": "IN_PROGRESS",
       "owner": "marketing_refresh / lead",
       "dependencies": [],
       "acceptance": "MeraTech parent homepage and offering hierarchy implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
       "evidence": [
-        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md",
+        "docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md"
       ],
       "blockers": [],
       "history": []
@@ -409,13 +431,14 @@
       "workstream": "W",
       "title": "Mera QR and planned Travel with truthful interface demonstrations",
       "weight": 7,
-      "checkpoint": 60,
+      "checkpoint": 80,
       "status": "IN_PROGRESS",
       "owner": "marketing_refresh / lead",
       "dependencies": [],
       "acceptance": "Mera QR and planned Travel with truthful interface demonstrations implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
       "evidence": [
-        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md",
+        "docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md"
       ],
       "blockers": [],
       "history": []
@@ -425,16 +448,24 @@
       "workstream": "W",
       "title": "Products, consultancy, about, contact, sign-in and policy navigation",
       "weight": 6,
-      "checkpoint": 40,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "marketing_refresh / lead",
       "dependencies": [],
       "acceptance": "Products, consultancy, about, contact, sign-in and policy navigation implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
       "evidence": [
-        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md",
+        "docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md"
       ],
       "blockers": [],
-      "history": []
+      "history": [
+        {
+          "at": "2026-11-20",
+          "from": 40,
+          "to": 60,
+          "reason": "Hosted browser pass with explicit remaining gates; scope unchanged"
+        }
+      ]
     },
     {
       "id": "W4",
@@ -460,50 +491,74 @@
       "workstream": "S",
       "title": "Secure account, sign-in and separate demo routes",
       "weight": 5,
-      "checkpoint": 40,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "owner_onboarding",
       "dependencies": [],
       "acceptance": "Secure account, sign-in and separate demo routes implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
       "evidence": [
         "src/mera/Signup.tsx",
-        "src/mera/MeraSignIn.tsx"
+        "src/mera/MeraSignIn.tsx",
+        "docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md"
       ],
       "blockers": [],
-      "history": []
+      "history": [
+        {
+          "at": "2026-11-20",
+          "from": 40,
+          "to": 60,
+          "reason": "Hosted browser pass with explicit remaining gates; scope unchanged"
+        }
+      ]
     },
     {
       "id": "S2",
       "workstream": "S",
       "title": "Guided nine-step owner setup and contextual previews",
       "weight": 10,
-      "checkpoint": 40,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "owner_onboarding",
       "dependencies": [],
       "acceptance": "Guided nine-step owner setup and contextual previews implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
       "evidence": [
-        "src/mera/workspace/OwnerSetup.tsx"
+        "src/mera/workspace/OwnerSetup.tsx",
+        "docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md"
       ],
       "blockers": [],
-      "history": []
+      "history": [
+        {
+          "at": "2026-11-20",
+          "from": 40,
+          "to": 60,
+          "reason": "Hosted browser pass with explicit remaining gates; scope unchanged"
+        }
+      ]
     },
     {
       "id": "S3",
       "workstream": "S",
       "title": "Saved progress, validation, availability and failure recovery",
       "weight": 5,
-      "checkpoint": 40,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "owner_onboarding",
       "dependencies": [],
       "acceptance": "Saved progress, validation, availability and failure recovery implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
       "evidence": [
         "tests/mera-owner-setup.test.tsx",
-        "tests/mera-address-availability.test.js"
+        "tests/mera-address-availability.test.js",
+        "docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md"
       ],
       "blockers": [],
-      "history": []
+      "history": [
+        {
+          "at": "2026-11-20",
+          "from": 40,
+          "to": 60,
+          "reason": "Hosted browser pass with explicit remaining gates; scope unchanged"
+        }
+      ]
     },
     {
       "id": "C1",
@@ -542,13 +597,14 @@
       "workstream": "C",
       "title": "Truthful Travel interest submission and confirmation",
       "weight": 3,
-      "checkpoint": 60,
+      "checkpoint": 80,
       "status": "IN_PROGRESS",
       "owner": "staging / owner_onboarding / lead",
       "dependencies": [],
       "acceptance": "Truthful Travel interest submission and confirmation implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
       "evidence": [
-        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md",
+        "docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md"
       ],
       "blockers": [],
       "history": []
@@ -558,44 +614,73 @@
       "workstream": "C",
       "title": "MFA-protected enquiry and interest operator workflows",
       "weight": 4,
-      "checkpoint": 60,
+      "checkpoint": 80,
       "status": "IN_PROGRESS",
       "owner": "staging / owner_onboarding / lead",
       "dependencies": [],
       "acceptance": "MFA-protected enquiry and interest operator workflows implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
       "evidence": [
-        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md"
+        "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md",
+        "docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md"
       ],
       "blockers": [],
-      "history": []
+      "history": [
+        {
+          "at": "2026-11-20",
+          "from": 60,
+          "to": 80,
+          "reason": "Hosted browser pass with explicit remaining gates; scope unchanged"
+        }
+      ]
     },
     {
       "id": "Q1",
       "workstream": "Q",
       "title": "Rendered mobile/tablet/laptop/wide review and accessibility",
       "weight": 4,
-      "checkpoint": 0,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [],
       "acceptance": "Rendered mobile/tablet/laptop/wide review and accessibility implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
-      "evidence": [],
+      "evidence": [
+        "docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md"
+      ],
       "blockers": [],
-      "history": []
+      "history": [
+        {
+          "at": "2026-11-20",
+          "from": 0,
+          "to": 40,
+          "reason": "Hosted browser pass with explicit remaining gates; scope unchanged"
+        }
+      ]
     },
     {
       "id": "Q2",
       "workstream": "Q",
       "title": "Branding, CSV, floor/seating, private visits and receipt checks",
       "weight": 3,
-      "checkpoint": 0,
+      "checkpoint": 60,
       "status": "IN_PROGRESS",
       "owner": "lead",
       "dependencies": [],
       "acceptance": "Branding, CSV, floor/seating, private visits and receipt checks implemented, integrated, tested and lead-reviewed; rendered checks required for visible UI.",
-      "evidence": [],
-      "blockers": [],
-      "history": []
+      "evidence": [
+        "docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md"
+      ],
+      "blockers": [
+        "Chrome upload still explicitly denies file URL access after confirmed setting change.",
+        "Zero-total test excludes automatic paid documents; positive-paid receipt/sticker generation and hardware remain unverified."
+      ],
+      "history": [
+        {
+          "at": "2026-11-20",
+          "from": 0,
+          "to": 60,
+          "reason": "Hosted browser pass with explicit remaining gates; scope unchanged"
+        }
+      ]
     },
     {
       "id": "Q3",
@@ -610,7 +695,9 @@
       "evidence": [
         "docs/mera/staging-redesign/SCOPE3-INTEGRATION.md",
         "deploy/STAGING-7643E4D-EVIDENCE.json",
-        "docs/mera/staging-redesign/REMAINING-BROWSER-CHECKS.md"
+        "docs/mera/staging-redesign/REMAINING-BROWSER-CHECKS.md",
+        "deploy/STAGING-9901897-EVIDENCE.json",
+        "docs/mera/staging-redesign/HOSTED-WORKFLOW-PASS.md"
       ],
       "blockers": [],
       "history": []
@@ -625,8 +712,8 @@
         "W1"
       ],
       "task": "Company and offerings",
-      "visualReview": "New-scope verification pending",
-      "responsive": "Pending"
+      "visualReview": "Mobile readiness layout corrected and captured",
+      "responsive": "390/834/1440/1920 captured-state review passed"
     },
     {
       "id": "products",
@@ -647,8 +734,8 @@
         "W2"
       ],
       "task": "QR product story and actual demo",
-      "visualReview": "New-scope verification pending",
-      "responsive": "Pending"
+      "visualReview": "Product readiness, navigation and offline FAQ exercised",
+      "responsive": "390/834/1440/1920 captured-state review passed"
     },
     {
       "id": "travel",
@@ -659,8 +746,8 @@
         "C3"
       ],
       "task": "Planned direction and interest",
-      "visualReview": "New-scope verification pending",
-      "responsive": "Pending"
+      "visualReview": "Real interest receipt and operator arrival verified; planned status retained",
+      "responsive": "390/834/1440/1920 captured-state review passed"
     },
     {
       "id": "consultancy",
@@ -671,8 +758,8 @@
         "C2"
       ],
       "task": "Project brief",
-      "visualReview": "New-scope verification pending",
-      "responsive": "Pending"
+      "visualReview": "Real brief submitted; initial-form matrix reviewed; upload denied",
+      "responsive": "Initial step390/834/1440/1920 passed; later states partial"
     },
     {
       "id": "about",
@@ -728,8 +815,8 @@
         "S3"
       ],
       "task": "Registration and separate demo",
-      "visualReview": "New-scope verification pending",
-      "responsive": "Pending"
+      "visualReview": "Actual readiness blocks signup without verified email setup",
+      "responsive": "834 capture; broad matrix pending"
     },
     {
       "id": "setup",
@@ -740,8 +827,8 @@
         "S3"
       ],
       "task": "Nine-step setup",
-      "visualReview": "New-scope verification pending",
-      "responsive": "Pending"
+      "visualReview": "Saved step, unsaved draft continuity and checkbox correction verified",
+      "responsive": "390/834/1440 targeted checks; remaining steps and wide matrix pending"
     },
     {
       "id": "platform",
@@ -751,8 +838,8 @@
         "C4"
       ],
       "task": "Company submissions and platform operations",
-      "visualReview": "New-scope verification pending",
-      "responsive": "Pending"
+      "visualReview": "Normal MFA, saved version2 enquiry, note/handler/follow-up and expiry verified",
+      "responsive": "Saved enquiry layout reviewed at390/834/1440/1920; other platform surfaces retain separate gates"
     },
     {
       "id": "entry",
@@ -773,8 +860,8 @@
         "Q2"
       ],
       "task": "Remaining operational checks",
-      "visualReview": "New-scope verification pending",
-      "responsive": "Pending"
+      "visualReview": "Seating/private join/zero-order full fulfillment/report download verified",
+      "responsive": "Targeted desktop evidence; upload and positive-paid print boundary remain"
     }
   ]
 }

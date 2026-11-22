@@ -5,9 +5,9 @@ Consolidated November 20 brief supersedes the prior company/marketing interpreta
 | Owner | File ownership | State and dependency |
 |---|---|---|
 | Lead | main.tsx, Platform.tsx, company/PlatformCompanyInbox.tsx + recovery/CSS, ui/MeraEntry, skill, progress/evidence | Shared architecture, integration, recovery corrections and browser acceptance |
-| marketing_refresh | marketing/**, three marketing/navigation test files | Parent/product pages and fictional demonstrations implemented; 15 focused tests passed; rendered review pending |
-| owner_onboarding | public company forms/recovery/CSS, Signup and owner motion, company UI/inbox tests | Public forms implemented; 14 form/owner checks passed; inbox recovery regression additions active |
-| staging | company backend/schema/contracts/tests; deployment tooling | Private durable submissions, MFA operator handling, actor/version/idempotency verified against disposable PostgreSQL; no new release yet |
+| marketing_refresh | marketing/**, three marketing/navigation test files | Parent/product pages implemented; mobile route reviews passed; homepage mobile correction pushed as9901897, deployed mobile recapture passed |
+| owner_onboarding | public company forms/recovery/CSS, Signup and owner motion, company UI/inbox tests | Public forms and11 inbox recovery checks pass; owner guide resume/draft and private operator save verified; evidence maintained |
+| staging | company backend/schema/contracts/tests; deployment tooling | Private company workflows verified against disposable PostgreSQL; isolated releases through0b06f8b healthy,9901897 healthy |
 
 ## Shared contracts
 
@@ -17,12 +17,12 @@ Consolidated November 20 brief supersedes the prior company/marketing interpreta
 - Consultancy and Travel forms mount from company modules; private platform inbox mounts only after normal operator MFA. API contract: `docs/mera/company-leads-contract.md`.
 - Exact uncertain requests persist for explicit retry. Malformed success or changed retry cannot silently clear intent. One owner per shared file.
 
-## Verified staging baseline
+## Verified staging and workflow evidence
 
-`https://mera-web-staging.up.railway.app/mera/` at `ad02976427b6c28cc66d04aec97900674ada103e`; web/jobs successful, private PostgreSQL, synthetic data and live financial integrations disabled. Existing upload survived redeploy with matching bytes. New scope 3 source not yet deployed or visually accepted.
+Existing isolated Railway web/jobs and private PostgreSQL retained. Releases through `0b06f8b` verified; `9901897` mobile homepage correction is deployed and visually verified. Synthetic data only, no production changes or live money. Full application suite:777passed/0failed/3explicit integration skips; separate company PostgreSQL4/4. Subsequent CSS changes built successfully; owner5/5 and inbox11/11 focused tests passed.
 
-Full prior-revision regression: 754 tests, 752 passed, 2 skipped. This is a baseline, not a result for new changes. Scope 3 tests and rendered verification are recorded as performed.
+Normal operator password/MFA login, enquiry assignment/note/follow-up save, expiry, and saved-summary layouts verified. Public consultancy and Travel submissions reached storage/operator views. Owner guide resume and in-guide draft retention verified. Reservation seating, private joining after reload, zero-order full fulfillment and completed worker CSV download verified. See [hosted pass](HOSTED-WORKFLOW-PASS.md) and the root progress tracker for weighted acceptance rather than treating this list as full completion.
 
 ## Remaining gates
 
-Integrated build/regression; new hosted release; mobile/tablet/laptop/wide screenshots; genuine consultancy/interest submission and operator update; owner setup and role workflows; outstanding branding upload/floor/private table/receipt/CSV checks. Email delivery/provider access, approved commercial policies and physical printers remain external production gates.
+Broader page/state and four-size coverage; complete privacy/commercial policy approvals; browser attachment/logo upload remains explicitly denied by Chrome despite setting confirmation. Zero-value order does not produce automatic paid documents, so positive-paid receipt/sticker generation remains a separate unverified check. Email sender/provider access and physical printer/Windows validation remain external gates. No backend expansion is planned unless an actual workflow blocker is found.

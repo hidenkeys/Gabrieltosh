@@ -1,0 +1,70 @@
+{
+  "at": "2026-11-21T16:47:44.411Z",
+  "checks": [
+    {
+      "path": "/api/health",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/identity/capabilities",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/platform/company-leads",
+      "status": 401
+    },
+    {
+      "path": "/api/mera/webhooks/resend-inbox",
+      "status": 401
+    }
+  ],
+  "capabilities": {
+    "registration": "provider",
+    "emailDelivery": "provider",
+    "persistentCustomerIdentity": "blocked",
+    "reason": "Verified email delivery and sender authorization are required for production registration."
+  },
+  "sourceRevision": "6db58129587093344f16faa30b42643e8a738fbd",
+  "webDeploymentId": "f057cbc5-a8a8-44f8-a63e-68f271c9254b",
+  "jobsDeploymentId": "1d28f55a-89bd-4317-a638-30dfc94dfcf7",
+  "deploymentStatuses": "SUCCESS",
+  "environment": "isolated staging",
+  "migrationEvidence": "Guarded predeploy succeeded; readiness endpoint responds and durable inbound journal exists.",
+  "directEmail": {
+    "accepted": true,
+    "provider": "resend",
+    "id": "01a1ff01-55ac-7aa9-a671-117f66b9fb00"
+  },
+  "inboundTestEmail": {
+    "accepted": true,
+    "provider": "resend",
+    "id": "01a1ff02-5d36-7cab-a4a6-50f8f5459495"
+  },
+  "forwardingJournal": [
+    {
+      "inbox_id": "2cd7a3e7-fc63-4627-9672-fab561bab98b",
+      "email_id": "e0c32d77-2959-4ca4-8ce2-b1ff0bd0724f",
+      "status": "accepted",
+      "provider_email_id": "01a1ff02-6aaa-776f-9400-541e427f05ea",
+      "last_http_status": 200,
+      "attempts": 1
+    }
+  ],
+  "scope": "Web-only mail/identity/inbound configuration. Existing credentials and sessions preserved; no owner account created.",
+  "limitations": [
+    "Resend confirms delivery to the recipient mail server; Gmail inbox versus spam placement and user reading are not asserted.",
+    "Owner signup UI and automated verification tests pass; no real owner account was created or verification token consumed for the user.",
+    "Live forwarding test used plain text; attachment rendering was not tested.",
+    "No production application settings or records changed; authorized notify subdomain DNS was added without changing existing root Zoho records."
+  ],
+  "resendDashboardDelivery": {
+    "directEmail": "delivered",
+    "inboundTestEmail": "delivered",
+    "forwardedEmail": "delivered",
+    "forwardedEmailId": "01a1ff02-6aaa-776f-9400-541e427f05ea",
+    "webhookHttpStatus": 200,
+    "webhookAttempts": 1,
+    "webhookResult": "accepted",
+    "verifiedThrough": "Authenticated Resend Chrome dashboard"
+  }
+}

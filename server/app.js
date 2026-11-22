@@ -1,3 +1,4 @@
+import { createInboxForwardingWebhook, MERA_FORWARD_WEBHOOK } from "./mera/inbound-forwarding.js";
 import express from "express";
 import { hostingOptions, stagingHeaders } from "./mera-hosting.js";
 import helmet from "helmet";
@@ -108,6 +109,10 @@ export function createApp() {
       crossOriginEmbedderPolicy: false,
     }),
   );
+  if (process.env.MERA_ENABLED === "true") {
+    // Resend authenticates this one route with the signed raw body, not browser cookies/CSRF headers.
+    app.post(MERA_FORWARD_WEBHOOK, express.raw({ type: "application/json", limit: "256kb" }), createInboxForwardingWebhook({ query, transaction }));
+  }
   app.use(meraHostRoutes(query));
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());

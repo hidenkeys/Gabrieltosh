@@ -225,7 +225,12 @@ test("unknown organization creation persists a nonprivate lock across remount an
 });
 test("explicit owner verification rejection preserves the security requirement without claiming uncertain creation", async () => {
   window.sessionStorage.clear();
-  globalThis.fetch = (async () => Response.json({ available: true })) as any;
+  globalThis.fetch = (async (path: string) =>
+    Response.json(
+      String(path).endsWith("owner-status")
+        ? { state: "verified", canResend: false }
+        : { available: true },
+    )) as any;
   try {
     render(
       <CreateOrganization
@@ -241,6 +246,16 @@ test("explicit owner verification rejection preserves the security requirement w
         }}
         onCreated={async () => {}}
       />,
+    );
+    await waitFor(() =>
+      assert.equal(
+        (
+          screen
+            .getByLabelText("Organization name")
+            .closest("fieldset") as HTMLFieldSetElement
+        ).disabled,
+        false,
+      ),
     );
     fireEvent.change(screen.getByLabelText("Organization name"), {
       target: { value: "New venue" },
@@ -272,4 +287,177 @@ test("explicit owner verification rejection preserves the security requirement w
     cleanup();
     window.sessionStorage.clear();
   }
+});
+
+test("platform-only account cannot create organization or resend an owner email", async () => {
+  cleanup();
+  window.sessionStorage.clear();
+  const calls: string[] = [];
+  globalThis.fetch = async (url) => {
+    calls.push(String(url));
+    return Response.json({ state: "platform_operator", canResend: false });
+  };
+  let writes = 0;
+  render(
+    <CreateOrganization
+      actorId="operator"
+      actorName="Platform QA"
+      disabled={false}
+      demo={false}
+      save={async () => {
+        writes++;
+      }}
+      onCreated={async () => {}}
+    />,
+  );
+  await screen.findByRole("heading", {
+    name: "Use an owner account to create a business",
+  });
+  assert.ok(screen.getByRole("link", { name: "Open platform administration" }));
+  assert.equal(
+    screen.queryByRole("button", { name: "Resend verification email" }),
+    null,
+  );
+  assert.equal(
+    (
+      screen
+        .getByLabelText("Organization name")
+        .closest("fieldset") as HTMLFieldSetElement
+    ).disabled,
+    true,
+  );
+  assert.equal(writes, 0);
+  assert.equal(calls.length, 1);
+  cleanup();
+});
+
+test("owner verification check preserves business draft and unknown resend uses exact key after remount", async () => {
+  cleanup();
+  window.sessionStorage.clear();
+  let verified = false;
+  const bodies: any[] = [];
+  globalThis.fetch = async (url, options) => {
+    if (String(url).endsWith("owner-status"))
+      return Response.json({
+        state: verified ? "verified" : "unverified",
+        email: "owner@example.invalid",
+        canResend: true,
+      });
+    const body = JSON.parse(String(options?.body));
+    bodies.push(body);
+    if (bodies.length === 1)
+      return Response.json({
+        requestKey: body.resendKey,
+        status: "verification_required",
+        simulation: false,
+        emailDelivery: "unknown",
+        expiresAt: "2026-12-01T12:00:00Z",
+        retryAllowed: false,
+        canResend: false,
+      });
+    return Response.json({
+      requestKey: body.resendKey,
+      status: "verification_required",
+      simulation: false,
+      emailDelivery: "accepted",
+      expiresAt: "2026-12-01T12:00:00Z",
+      retryAllowed: false,
+      canResend: false,
+    });
+  };
+  const props = {
+    actorId: "owner-resend",
+    actorName: "Owner",
+    disabled: false,
+    demo: false,
+    save: async () => {},
+    onCreated: async () => {},
+  };
+  render(<CreateOrganization {...props} />);
+  await screen.findByText(/Verify owner@example.invalid/);
+  assert.equal(bodies.length, 0);
+  fireEvent.change(screen.getByLabelText("Organization name"), {
+    target: { value: "Draft venue" },
+  });
+  fireEvent.click(
+    screen.getByRole("button", { name: "Resend verification email" }),
+  );
+  await screen.findByRole("button", {
+    name: "Retry same verification email request",
+  });
+  assert.ok(window.sessionStorage.getItem("mera:owner-resend:v1:owner-resend"));
+  verified = true;
+  fireEvent.click(screen.getByRole("button", { name: "Check verification" }));
+  await waitFor(() =>
+    assert.equal(
+      (
+        screen
+          .getByLabelText("Organization name")
+          .closest("fieldset") as HTMLFieldSetElement
+      ).disabled,
+      false,
+    ),
+  );
+  assert.equal(
+    (screen.getByLabelText("Organization name") as HTMLInputElement).value,
+    "Draft venue",
+  );
+  cleanup();
+  verified = false;
+  render(<CreateOrganization {...props} />);
+  const retry = await screen.findByRole("button", {
+    name: "Retry same verification email request",
+  });
+  fireEvent.click(retry);
+  await screen.findByText(/email provider accepted/);
+  assert.deepEqual(bodies[0], bodies[1]);
+  cleanup();
+  window.sessionStorage.clear();
+});
+
+test("unavailable owner status is not treated as missing identity and requires a successful check", async () => {
+  cleanup();
+  window.sessionStorage.clear();
+  let fail = true;
+  globalThis.fetch = async () => {
+    if (fail) throw Error("offline");
+    return Response.json({ state: "no_owner_identity", canResend: false });
+  };
+  render(
+    <CreateOrganization
+      actorId="unknown-owner"
+      actorName="Owner"
+      disabled={false}
+      demo={false}
+      save={async () => {
+        throw Error("must not submit");
+      }}
+      onCreated={async () => {}}
+    />,
+  );
+  await screen.findByRole("alert");
+  assert.equal(
+    screen.queryByText(/does not have a business owner identity/),
+    null,
+  );
+  assert.equal(
+    (
+      screen
+        .getByLabelText("Organization name")
+        .closest("fieldset") as HTMLFieldSetElement
+    ).disabled,
+    true,
+  );
+  fail = false;
+  fireEvent.click(screen.getByRole("button", { name: "Check verification" }));
+  await screen.findByText(/does not have a business owner identity/);
+  assert.equal(
+    screen.queryByRole("link", { name: "Open platform administration" }),
+    null,
+  );
+  assert.equal(
+    screen.queryByRole("button", { name: "Resend verification email" }),
+    null,
+  );
+  cleanup();
 });

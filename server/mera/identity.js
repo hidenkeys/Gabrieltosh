@@ -1,3 +1,8 @@
+import { getEmailRecipientPolicy } from "./email-provider.js";
+import {
+  mountProviderIdentity,
+  providerIdentityReady,
+} from "./provider-identity.js";
 import { randomUUID, randomBytes, createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import bcrypt from "bcryptjs";
@@ -23,33 +28,56 @@ export async function requireVerifiedOwner(req, db) {
   ).rows[0];
   if (!identity)
     throw fail(
-      "A verified owner identity is required before creating an organization. Email verification delivery is not configured.",
+      providerIdentityReady()
+        ? "Verify your owner email before creating an organization."
+        : "A verified owner identity is required before creating an organization. Email verification delivery is unavailable.",
       403,
       "OWNER_VERIFICATION_REQUIRED",
     );
 }
-export function mountMeraIdentity(router, { db }) {
+export function createIdentityLimiter() {
   const attempts = new Map();
   function limit(req) {
+    const path = req.path || "";
+    const bucket = path.endsWith("/recover")
+      ? "read"
+      : path.endsWith("/recover-account")
+        ? "credentials"
+        : path.endsWith("/verify")
+          ? "verify"
+          : "send";
+    const maximum = bucket === "read" ? 30 : bucket === "send" ? 5 : 10;
     const now = Date.now(),
-      key = req.ip || "unknown";
+      key = (req.ip || "unknown") + ":" + bucket;
     for (const [id, v] of attempts) if (v.until <= now) attempts.delete(id);
     if (!attempts.has(key)) {
       if (attempts.size >= 10000)
         throw fail("Registration is busy. Retry shortly.", 503);
       attempts.set(key, { count: 0, until: now + 900000 });
     }
-    if (++attempts.get(key).count > 5)
+    if (++attempts.get(key).count > maximum)
       throw fail(
-        "Too many registration attempts. Wait fifteen minutes.",
+        "Too many attempts. Wait fifteen minutes.",
         429,
         "RATE_LIMITED",
       );
   }
+  return limit;
+}
+export function mountMeraIdentity(router, { db }) {
+  const limit = createIdentityLimiter();
+  mountProviderIdentity(router, { db, limit });
   router.get("/identity/capabilities", (_req, res) =>
     res.json({
-      registration: simulated() ? "simulator" : "blocked",
-      emailDelivery: "blocked",
+      registration: simulated()
+        ? "simulator"
+        : providerIdentityReady()
+          ? "provider"
+          : "blocked",
+      emailDelivery:
+        !simulated() && providerIdentityReady() ? "provider" : "blocked",
+      recipientPolicy:
+        getEmailRecipientPolicy().policy === "public" ? "public" : "allowlist",
       persistentCustomerIdentity: "blocked",
       reason:
         "Verified email delivery and sender authorization are required for production registration.",
@@ -102,17 +130,15 @@ export function mountMeraIdentity(router, { db }) {
         );
       throw e;
     }
-    res
-      .status(201)
-      .json({
-        status: "verification_required",
-        simulation: true,
-        emailSent: false,
-        verificationToken: token,
-        expiresInSeconds: 3600,
-        notice:
-          "Development-only token. No email has been sent and no real contact verification is claimed.",
-      });
+    res.status(201).json({
+      status: "verification_required",
+      simulation: true,
+      emailSent: false,
+      verificationToken: token,
+      expiresInSeconds: 3600,
+      notice:
+        "Development-only token. No email has been sent and no real contact verification is claimed.",
+    });
   });
   router.post("/identity/verify", async (req, res) => {
     if (!simulated())
@@ -128,7 +154,7 @@ export function mountMeraIdentity(router, { db }) {
     const result = await db.transaction(async (c) => {
       const challenge = (
         await c.query(
-          "SELECT * FROM mera_identity_challenges WHERE token_hash=$1 FOR UPDATE",
+          "SELECT * FROM mera_identity_challenges WHERE token_hash=$1 AND mode='simulator' FOR UPDATE",
           [hash(token)],
         )
       ).rows[0];

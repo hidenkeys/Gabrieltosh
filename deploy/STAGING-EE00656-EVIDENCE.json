@@ -1,0 +1,37 @@
+{
+  "at": "2026-11-20T14:43:53.477Z",
+  "origin": "https://mera-web-staging.up.railway.app",
+  "sourceRevision": "ee00656a646f58b98613f7b4a7175de23a76c702",
+  "webDeploymentId": "a428bc6a-c18d-4e3d-a754-8077fbd10a79",
+  "jobsDeploymentId": "87247f6c-8b37-4bfc-b37b-e504d3f8fbda",
+  "deploymentStatuses": "SUCCESS",
+  "checks": [
+    {
+      "path": "/api/health",
+      "status": 200
+    },
+    {
+      "path": "/mera/",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/identity/capabilities",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/platform/company-leads",
+      "status": 401
+    }
+  ],
+  "capabilities": {
+    "registration": "blocked",
+    "emailDelivery": "blocked"
+  },
+  "newSubmissions": 0,
+  "emailEnablementChanges": false,
+  "preservation": "No variables, credentials, sender settings, database records or persisted sessions changed.",
+  "limitations": [
+    "Provider adapter is not integrated into identity workflows; registration and email remain blocked.",
+    "No real email sent; browser verification coordinated separately."
+  ]
+}

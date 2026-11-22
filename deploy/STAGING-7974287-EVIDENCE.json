@@ -1,0 +1,57 @@
+{
+  "at": "2026-11-21T17:11:41.574Z",
+  "sourceRevision": "79742873ee09e654042e9566295ccfbaa1cc0537",
+  "webDeploymentId": "c55dcf41-828e-446f-845b-4adf2a8937d4",
+  "jobsDeploymentId": "a8f91e0c-9643-455d-8678-b9ca06388343",
+  "deploymentStatuses": "SUCCESS",
+  "checks": [
+    {
+      "path": "/api/health",
+      "status": 200
+    },
+    {
+      "path": "/mera/",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/identity/capabilities",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/platform/company-leads",
+      "status": 401
+    }
+  ],
+  "capabilities": {
+    "registration": "provider",
+    "emailDelivery": "provider",
+    "recipientPolicy": "public",
+    "persistentCustomerIdentity": "blocked",
+    "reason": "Verified email delivery and sender authorization are required for production registration."
+  },
+  "changes": "Same-tab verification link capture. Runtime variables, secrets, records and sessions retained.",
+  "limitations": [
+    "No email or account created during deployment; browser workflow verification belongs to coordinator."
+  ],
+  "browserWorkflow": {
+    "environment": "https://mera-web-staging.up.railway.app",
+    "registration": "Passed through public signup using a new Gmail alias outside legacy allowlist",
+    "mailboxDelivery": "Verification email observed in recipient Gmail INBOX",
+    "verification": "Explicit Verify email succeeded; token removed from URL",
+    "signIn": "Verified owner signed in through normal workspace form",
+    "organization": "Mera Public Signup QA 20261121",
+    "slug": "mera-public-qa-20261121",
+    "branch": "Staging Test Branch",
+    "access": "Organization-wide owner access displayed",
+    "persistence": "Organization and branch persisted after page reload",
+    "signOut": "Test session signed out successfully",
+    "sameTabVerification": "Final deployment captures email hash without reload and requires explicit confirmation",
+    "singleUseLink": "Consumed token rejected with clear sign-in guidance",
+    "viewports": [
+      "Default desktop browser viewport (screenshots retained)",
+      "390x844 mobile signup and organization creation"
+    ],
+    "marketing": "User branch merged; mobile menu navigation and order demo send/start/ready/reset exercised",
+    "scope": "One clearly labelled synthetic owner, organization and branch created on staging. No production mutations. Existing launch/subscription readiness gates preserved."
+  }
+}

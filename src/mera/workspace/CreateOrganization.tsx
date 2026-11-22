@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { ArrowRight, Store } from "lucide-react";
 import { MeraBrand } from "../ui/MeraBrand";
 import { workspaceApi } from "./api";
+import OwnerVerification from "./OwnerVerification";
 type Props = {
   actorId: string;
   actorName: string;
@@ -23,6 +24,10 @@ export default function CreateOrganization({
   save,
   onCreated,
 }: Props) {
+  const [verification, setVerification] = useState({ actorId, verified: demo });
+  const [verificationRefresh, setVerificationRefresh] = useState(0);
+  const ownerVerified =
+    verification.actorId === actorId && verification.verified;
   const [name, setName] = useState(""),
     [slug, setSlug] = useState(""),
     [branch, setBranch] = useState("");
@@ -78,7 +83,15 @@ export default function CreateOrganization({
   }
   async function create(event: React.FormEvent) {
     event.preventDefault();
-    if (busy || disabled || locked || flight.current || !actorId) return;
+    if (
+      busy ||
+      disabled ||
+      locked ||
+      flight.current ||
+      !actorId ||
+      !ownerVerified
+    )
+      return;
     const normalized = slug.trim().toLowerCase();
     if (!availability?.available || availability.slug !== normalized) {
       setError(
@@ -125,6 +138,10 @@ export default function CreateOrganization({
           window.sessionStorage.removeItem(recoveryKey);
         } catch {
           setLocked(true);
+        }
+        if (failure.code === "OWNER_VERIFICATION_REQUIRED") {
+          setVerification({ actorId, verified: false });
+          setVerificationRefresh((value) => value + 1);
         }
         setError(failure.message);
         setAvailability(null);
@@ -174,6 +191,14 @@ export default function CreateOrganization({
             real email, publish a menu or activate billing.
           </p>
         )}
+        <OwnerVerification
+          key={actorId}
+          actorId={actorId}
+          demo={demo}
+          refreshKey={verificationRefresh}
+          disabled={disabled}
+          onVerified={(verified) => setVerification({ actorId, verified })}
+        />
         {error && <p role="alert">{error}</p>}
         {locked ? (
           <div>
@@ -193,7 +218,7 @@ export default function CreateOrganization({
           </div>
         ) : (
           <form onSubmit={create}>
-            <fieldset disabled={disabled || busy}>
+            <fieldset disabled={disabled || busy || !ownerVerified}>
               <label>
                 Organization name
                 <input
