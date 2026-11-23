@@ -414,3 +414,131 @@ test("unnamed controlled choices do not introduce extra form fields and still va
     -1,
   );
 });
+
+test("combobox reopening preserves selected record and closed ArrowDown starts at first permitted option", () => {
+  const changes: string[] = [];
+  function Example() {
+    const [value, setValue] = React.useState("b");
+    return (
+      <Combobox
+        label="Record"
+        value={value}
+        onChange={(next) => {
+          changes.push(next);
+          setValue(next);
+        }}
+        options={[
+          { value: "a", label: "Alpha" },
+          { value: "b", label: "Beta" },
+        ]}
+      />
+    );
+  }
+  render(<Example />);
+  const input = screen.getByRole("combobox");
+  fireEvent.focus(input);
+  fireEvent.keyDown(input, { key: "Enter" });
+  assert.deepEqual(changes, ["b"]);
+  assert.equal((input as HTMLInputElement).value, "Beta");
+  cleanup();
+  render(
+    <Combobox
+      label="Record"
+      value=""
+      onChange={(value) => changes.push(value)}
+      options={[
+        { value: "blocked", label: "Blocked", disabled: true },
+        { value: "a", label: "Alpha" },
+        { value: "b", label: "Beta" },
+      ]}
+    />,
+  );
+  const empty = screen.getByRole("combobox");
+  fireEvent.focus(empty);
+  fireEvent.keyDown(empty, { key: "Escape" });
+  fireEvent.keyDown(empty, { key: "ArrowDown" });
+  fireEvent.keyDown(empty, { key: "Enter" });
+  assert.equal(changes.at(-1), "a");
+});
+test("required choices without any enabled option block native form submission and remain focusable", () => {
+  const cases = [
+    [],
+    [{ value: "disabled", label: "Unavailable", disabled: true }],
+  ];
+  for (const options of cases) {
+    const view = render(
+      <form>
+        <Segmented
+          label="Required destination"
+          value=""
+          onChange={() => {}}
+          options={options}
+          required
+        />
+      </form>,
+    );
+    const form = document.querySelector("form")!;
+    assert.equal(form.checkValidity(), false);
+    const field = screen.getByRole("textbox", {
+      name: "Required destination selection required",
+    });
+    (field as HTMLElement).focus();
+    assert.equal(document.activeElement, field);
+    assert.equal(Array.from(new dom.window.FormData(form).keys()).length, 0);
+    view.rerender(
+      <form>
+        <Segmented
+          label="Required destination"
+          value="a"
+          onChange={() => {}}
+          options={[{ value: "a", label: "Available" }]}
+          required
+        />
+      </form>,
+    );
+    assert.equal(form.checkValidity(), true);
+    cleanup();
+  }
+  const ChoiceField = requireChoice;
+  render(
+    <form>
+      <ChoiceField label="Required empty" required>
+        <option value="">Choose</option>
+      </ChoiceField>
+    </form>,
+  );
+  assert.equal(document.querySelector("form")!.checkValidity(), false);
+});
+const { default: MinorMoneyInput } =
+  await import("../src/mera/ui/MinorMoneyInput");
+test("minor-unit currency retains decimal drafts, converts cents and resets external record values", () => {
+  const changes: number[] = [];
+  function Example({ external }: { external?: number }) {
+    const [value, setValue] = React.useState(500);
+    return (
+      <MinorMoneyInput
+        label="Variant price"
+        value={external ?? value}
+        onChange={(next) => {
+          changes.push(next);
+          setValue(next);
+        }}
+        required
+      />
+    );
+  }
+  const view = render(<Example />);
+  const input = screen.getByRole("textbox", {
+    name: "Variant price",
+  }) as HTMLInputElement;
+  fireEvent.change(input, { target: { value: "5." } });
+  assert.equal(input.value, "5.");
+  fireEvent.change(input, { target: { value: "5.25" } });
+  assert.equal(input.value, "5.25");
+  assert.equal(changes.at(-1), 525);
+  fireEvent.change(input, { target: { value: "" } });
+  assert.equal(input.value, "");
+  assert.equal(input.validity.valueMissing, true);
+  view.rerender(<Example external={125050} />);
+  assert.equal(input.value, "1,250.5");
+});

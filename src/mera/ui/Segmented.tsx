@@ -1,4 +1,4 @@
-import { type KeyboardEvent } from "react";
+import { useId, type KeyboardEvent } from "react";
 export type ChoiceOption = {
   value: string;
   label: string;
@@ -25,6 +25,7 @@ export function Segmented({
   required,
   className = "",
 }: ChoiceProps) {
+  const unavailableId = useId();
   const selected = options.find(
     (option) => option.value === value && !option.disabled,
   );
@@ -69,6 +70,24 @@ export function Segmented({
       onKeyDown={arrows}
     >
       <legend>{label}</legend>
+      {required && !firstEnabled && (
+        <div className="mi-choice-unavailable">
+          <label htmlFor={unavailableId}>{label} selection required</label>
+          <input
+            id={unavailableId}
+            required
+            disabled={disabled}
+            value=""
+            onChange={() => {}}
+            aria-describedby={`${unavailableId}-help`}
+            placeholder="No permitted choices available"
+          />
+          <small id={`${unavailableId}-help`}>
+            No permitted choices are available. Refresh the records or ask an
+            administrator before continuing.
+          </small>
+        </div>
+      )}
       <div className="mi-choice-options">
         {options.map((option) => (
           <label className="mi-choice-option" key={option.value}>

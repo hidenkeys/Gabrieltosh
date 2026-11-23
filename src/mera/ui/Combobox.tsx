@@ -31,9 +31,13 @@ export function Combobox({
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     input.current?.setCustomValidity(
-      required && !value ? "Choose an option from the list." : "",
+      required &&
+        (!value ||
+          !options.some((option) => option.value === value && !option.disabled))
+        ? "Choose a permitted option from the list."
+        : "",
     );
-  }, [required, value]);
+  }, [required, value, options]);
   const generated = useId(),
     [query, setQuery] = useState(""),
     [open, setOpen] = useState(false),
@@ -72,6 +76,11 @@ export function Combobox({
         required={required}
         onFocus={() => {
           setQuery("");
+          setActive(
+            options
+              .filter((option) => !option.disabled)
+              .findIndex((option) => option.value === value),
+          );
           setOpen(true);
         }}
         onBlur={() => setOpen(false)}
@@ -88,15 +97,30 @@ export function Combobox({
           }
           if (event.key === "ArrowDown" || event.key === "ArrowUp") {
             event.preventDefault();
-            setOpen(true);
-            setActive((index) =>
-              enabled.length
-                ? (index +
-                    (event.key === "ArrowDown" ? 1 : -1) +
-                    enabled.length) %
-                  enabled.length
-                : 0,
-            );
+            if (!open) {
+              setQuery("");
+              const available = options.filter((option) => !option.disabled);
+              const index = available.findIndex(
+                (option) => option.value === value,
+              );
+              setActive(
+                index >= 0
+                  ? index
+                  : event.key === "ArrowDown"
+                    ? 0
+                    : available.length - 1,
+              );
+              setOpen(true);
+            } else {
+              setActive((index) =>
+                enabled.length
+                  ? (index +
+                      (event.key === "ArrowDown" ? 1 : -1) +
+                      enabled.length) %
+                    enabled.length
+                  : -1,
+              );
+            }
           }
           if (event.key === "Enter" && open) {
             event.preventDefault();
