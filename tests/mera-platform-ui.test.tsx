@@ -45,14 +45,19 @@ test("platform exposes no directory before operator step-up", async () => {
 });
 test("uncertain operator status change retains exact request intent and key", async () => {
   const writes: any[] = [];
-  let fail = true;
+  let outcome = "network";
   globalThis.fetch = (async (input: any, init: any = {}) => {
     const path = String(input);
     if (path.endsWith("/auth"))
       return Response.json({ enrolled: true, verified: true });
     if (init.method === "PATCH") {
       writes.push(JSON.parse(init.body));
-      if (fail) throw new Error("connection dropped");
+      if (outcome === "network") throw new Error("connection dropped");
+      if (outcome === "rejected")
+        return Response.json(
+          { error: "Retry could not be confirmed" },
+          { status: 422 },
+        );
       return Response.json({ subscription: { status: "suspended" } });
     }
     return Response.json({
@@ -104,12 +109,32 @@ test("uncertain operator status change retains exact request intent and key", as
       ).disabled,
       true,
     );
-    fail = false;
+    assert.equal(
+      (
+        screen.getByRole("button", {
+          name: "Open audited configuration support",
+        }) as HTMLButtonElement
+      ).disabled,
+      true,
+    );
+    outcome = "rejected";
     fireEvent.click(
       screen.getByRole("button", { name: "Retry original status change" }),
     );
     await waitFor(() => assert.equal(writes.length, 2));
+    await screen.findByText("Retry could not be confirmed");
+    assert.equal(
+      (screen.getByLabelText("Reason for this action") as HTMLTextAreaElement)
+        .disabled,
+      true,
+    );
     assert.deepEqual(writes[0], writes[1]);
+    outcome = "success";
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry original status change" }),
+    );
+    await waitFor(() => assert.equal(writes.length, 3));
+    assert.deepEqual(writes[0], writes[2]);
   } finally {
     cleanup();
   }
@@ -349,7 +374,7 @@ test("access failure and authenticator recovery move focus to the current state"
     cleanup();
   }
 });
-test("shared reason retains native service-form validation while disclosures preserve drafts", async () => {
+test("action reasons remain task-local while disclosures preserve drafts", async () => {
   const writes: any[] = [];
   globalThis.fetch = (async (input: any, init: any = {}) => {
     if (String(input).endsWith("/auth"))
@@ -381,7 +406,7 @@ test("shared reason retains native service-form validation while disclosures pre
     const reason = screen.getByLabelText(
       "Reason for this action",
     ) as HTMLTextAreaElement;
-    assert.equal(reason.closest("form"), null);
+    assert.equal(reason.closest("form"), reason.form);
     assert.equal(reason.form?.id, "mera-platform-service-form");
     assert.equal(reason.required, true);
     assert.equal(reason.minLength, 10);
@@ -399,10 +424,18 @@ test("shared reason retains native service-form validation while disclosures pre
     fireEvent.change(reason, {
       target: { value: "Reviewed operator action for fixture" },
     });
+    const addressReason = screen.getByLabelText(
+      "Reason for address change",
+    ) as HTMLTextAreaElement;
+    assert.equal(addressReason.value, "");
+    fireEvent.change(addressReason, {
+      target: { value: "Owner requested a new address" },
+    });
     fireEvent.click(addressSummary);
     assert.equal(addressBlock.open, false);
     fireEvent.click(addressSummary);
     assert.equal(addressBlock.open, true);
+    assert.equal(addressReason.value, "Owner requested a new address");
     assert.equal(address.value, "reviewed-address");
     assert.equal(reason.value, "Reviewed operator action for fixture");
     chooseField(screen, fireEvent, "Service status", "past_due");
@@ -533,5 +566,61 @@ test("operator audit never invents session verification as a missing support rea
   } finally {
     cleanup();
     globalThis.fetch = original;
+  }
+});
+
+test("configuration support uses its own reason and never borrows a status reason", async () => {
+  const requests: any[] = [];
+  globalThis.fetch = async (input, init) => {
+    const path = String(input);
+    if (path.endsWith("/auth"))
+      return Response.json({ enrolled: true, verified: true });
+    if (path.endsWith("/support-access")) {
+      requests.push(JSON.parse(String(init?.body)));
+      return Response.json({
+        organization: { name: "Venue", onboarding: { status: "draft" } },
+      });
+    }
+    return Response.json({
+      organizations: [
+        {
+          id: "org",
+          name: "Venue",
+          slug: "venue",
+          subscription: { status: "active" },
+        },
+      ],
+      audits: [],
+      policy: {},
+    });
+  };
+  try {
+    render(<Platform />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Review organization" }),
+    );
+    fireEvent.change(screen.getByLabelText("Reason for this action"), {
+      target: { value: "A status-only reason" },
+    });
+    const support = screen.getByRole("button", {
+      name: "Open audited configuration support",
+    }) as HTMLButtonElement;
+    assert.equal(support.disabled, true);
+    fireEvent.change(
+      screen.getByLabelText("Reason for configuration support"),
+      { target: { value: "Investigate setup reported by owner" } },
+    );
+    fireEvent.click(support);
+    await screen.findByText(/Configuration opened for Venue/);
+    assert.deepEqual(requests, [
+      { reason: "Investigate setup reported by owner" },
+    ]);
+    assert.equal(
+      (screen.getByLabelText("Reason for this action") as HTMLTextAreaElement)
+        .value,
+      "A status-only reason",
+    );
+  } finally {
+    cleanup();
   }
 });

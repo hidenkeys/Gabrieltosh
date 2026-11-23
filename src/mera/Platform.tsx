@@ -81,6 +81,7 @@ export default function Platform() {
     [selected, setSelected] = useState<any>(null),
     [status, setStatus] = useState("trialing"),
     [reason, setReason] = useState(""),
+    [actionReasons, setActionReasons] = useState<Record<string, string>>({}),
     [support, setSupport] = useState<any>(null),
     [pendingChange, setPendingChange] = useState<any>(null),
     [reference, setReference] = useState(""),
@@ -150,6 +151,7 @@ export default function Platform() {
         setSupportCases([]);
         setCaseDrafts({});
         setReason("");
+        setActionReasons({});
       }
       if (current.userId) principal.current = current.userId;
       setAuth(current);
@@ -246,6 +248,7 @@ export default function Platform() {
       await load();
     } catch (e) {
       if (
+        !pendingChange &&
         e instanceof WorkspaceError &&
         [400, 401, 403, 404, 422].includes(e.status)
       )
@@ -256,6 +259,13 @@ export default function Platform() {
     }
   }
   async function supportView() {
+    if (
+      busy ||
+      pendingChange ||
+      !selected ||
+      (actionReasons.support || "").trim().length < 10
+    )
+      return;
     const epoch = accessEpoch.current;
     setBusy(true);
     setError("");
@@ -263,7 +273,7 @@ export default function Platform() {
       const result = await workspaceApi(
         "/platform/organizations/" + selected.id + "/support-access",
         "POST",
-        { reason },
+        { reason: actionReasons.support || "" },
       );
       if (epoch === accessEpoch.current) setSupport(result);
     } catch (e) {
@@ -281,7 +291,7 @@ export default function Platform() {
       const result = await workspaceApi(
         "/platform/organizations/" + selected.id + "/lookup",
         "POST",
-        { reference, reason },
+        { reference, reason: actionReasons.lookup || "" },
       );
       if (epoch === accessEpoch.current) setLookup(result);
     } catch (e) {
@@ -297,7 +307,10 @@ export default function Platform() {
       await workspaceApi(
         "/platform/organizations/" + selected.id + "/policy-approval",
         "POST",
-        { version: selected.policy.version, reason },
+        {
+          version: selected.policy.version,
+          reason: actionReasons.approval || "",
+        },
       );
       setSelected(null);
       await load();
@@ -331,7 +344,7 @@ export default function Platform() {
         {
           version: selected.features?.version || 1,
           flags: featureDraft,
-          reason,
+          reason: actionReasons.features || "",
         },
       );
       setSelected(null);
@@ -353,7 +366,7 @@ export default function Platform() {
         {
           expectedSlug: selected.slug,
           newSlug,
-          reason,
+          reason: actionReasons.address || "",
         },
       );
       setSelected(null);
@@ -839,6 +852,7 @@ export default function Platform() {
                                   org.subscription?.status || "trialing",
                                 );
                                 setReason("");
+                                setActionReasons({});
                                 setSupport(null);
                                 setLookup(null);
                                 setReference("");
@@ -894,7 +908,7 @@ export default function Platform() {
                   )}
                   {pendingChange && (
                     <p className="info-box" role="status">
-                      The last status change has an uncertain result. Retry the
+                      The last status change could not be confirmed. Retry the
                       original request before starting another action.
                     </p>
                   )}
@@ -902,25 +916,6 @@ export default function Platform() {
                     {selected.slug} ·{" "}
                     {subscriptionLabel(selected.subscription?.status)}
                   </p>
-                  <div className="mera-platform-action-reason">
-                    <label>
-                      Reason for this action
-                      <textarea
-                        form="mera-platform-service-form"
-                        aria-describedby="mera-platform-reason-help"
-                        value={reason}
-                        disabled={!!pendingChange}
-                        onChange={(e) => setReason(e.target.value)}
-                        minLength={10}
-                        maxLength={500}
-                        required
-                      />
-                    </label>
-                    <p id="mera-platform-reason-help">
-                      Required for changes and reference lookups. This reason is
-                      saved in the audit log.
-                    </p>
-                  </div>
                   <details className="mera-platform-operation">
                     <summary>Organization address</summary>
                     <form onSubmit={renameOrganization}>
@@ -944,12 +939,27 @@ export default function Platform() {
                           disabled={busy || !!pendingChange}
                         />
                       </label>
-                      <p>Use the shared action reason above before saving.</p>
+                      <label>
+                        Reason for address change
+                        <textarea
+                          value={actionReasons.address || ""}
+                          onChange={(event) =>
+                            setActionReasons((current) => ({
+                              ...current,
+                              address: event.target.value,
+                            }))
+                          }
+                          minLength={10}
+                          maxLength={500}
+                          required
+                          disabled={busy || !!pendingChange}
+                        />
+                      </label>
                       <button
                         disabled={
                           busy ||
                           !!pendingChange ||
-                          reason.trim().length < 10 ||
+                          (actionReasons.address || "").trim().length < 10 ||
                           newSlug === selected.slug
                         }
                       >
@@ -963,6 +973,25 @@ export default function Platform() {
                       id="mera-platform-service-form"
                       onSubmit={changeSubscription}
                     >
+                      <div className="mera-platform-action-reason">
+                        <label>
+                          Reason for this action
+                          <textarea
+                            form="mera-platform-service-form"
+                            aria-describedby="mera-platform-reason-help"
+                            value={reason}
+                            disabled={!!pendingChange}
+                            onChange={(e) => setReason(e.target.value)}
+                            minLength={10}
+                            maxLength={500}
+                            required
+                          />
+                        </label>
+                        <p id="mera-platform-reason-help">
+                          Required for this service status change. This reason
+                          is saved in the audit log.
+                        </p>
+                      </div>
                       <ChoiceField
                         label={<>Service status</>}
                         value={status}
@@ -1016,14 +1045,7 @@ export default function Platform() {
                             ? "Retry original status change"
                             : "Save service status"}
                         </button>
-                        <button
-                          type="button"
-                          className="secondary"
-                          disabled={busy || reason.trim().length < 10}
-                          onClick={supportView}
-                        >
-                          Open audited configuration support
-                        </button>
+
                         <button
                           type="button"
                           className="secondary"
@@ -1034,6 +1056,38 @@ export default function Platform() {
                         </button>
                       </div>
                     </form>
+                  </details>
+                  <details className="mera-platform-operation">
+                    <summary>Configuration support</summary>
+                    <label>
+                      Reason for configuration support
+                      <textarea
+                        value={actionReasons.support || ""}
+                        onChange={(event) =>
+                          setActionReasons((current) => ({
+                            ...current,
+                            support: event.target.value,
+                          }))
+                        }
+                        required
+                        minLength={10}
+                        maxLength={500}
+                        disabled={busy || !!pendingChange}
+                      />
+                    </label>
+                    <p>This reason is saved in the audit log.</p>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={
+                        busy ||
+                        !!pendingChange ||
+                        (actionReasons.support || "").trim().length < 10
+                      }
+                      onClick={supportView}
+                    >
+                      Open audited configuration support
+                    </button>
                     {support && (
                       <p role="status">
                         Configuration opened for {support.organization.name}.
@@ -1046,6 +1100,22 @@ export default function Platform() {
                   </details>
                   <details className="mera-platform-operation">
                     <summary>Service controls</summary>
+                    <label>
+                      Reason for service controls
+                      <textarea
+                        value={actionReasons.features || ""}
+                        onChange={(event) =>
+                          setActionReasons((current) => ({
+                            ...current,
+                            features: event.target.value,
+                          }))
+                        }
+                        minLength={10}
+                        maxLength={500}
+                        required
+                        disabled={busy || !!pendingChange}
+                      />
+                    </label>
                     <p>
                       These controls apply to new requests. Accepted requests,
                       existing service and permitted exports can continue.
@@ -1084,7 +1154,9 @@ export default function Platform() {
                       type="button"
                       className="secondary"
                       disabled={
-                        busy || !!pendingChange || reason.trim().length < 10
+                        busy ||
+                        !!pendingChange ||
+                        (actionReasons.features || "").trim().length < 10
                       }
                       onClick={saveFeatures}
                     >
@@ -1093,10 +1165,26 @@ export default function Platform() {
                   </details>
                   <details className="mera-platform-operation">
                     <summary>Reference lookup</summary>
+                    <label>
+                      Reason for reference lookup
+                      <textarea
+                        value={actionReasons.lookup || ""}
+                        onChange={(event) =>
+                          setActionReasons((current) => ({
+                            ...current,
+                            lookup: event.target.value,
+                          }))
+                        }
+                        minLength={10}
+                        maxLength={500}
+                        required
+                        disabled={busy || !!pendingChange}
+                      />
+                    </label>
                     <p>
                       Enter an exact order, payment or invoice reference.
                       Results exclude customer names and contact details; every
-                      lookup records the reason above.
+                      lookup records its reason.
                     </p>
                     <label>
                       Record reference
@@ -1112,7 +1200,7 @@ export default function Platform() {
                       disabled={
                         busy ||
                         !!pendingChange ||
-                        reason.trim().length < 10 ||
+                        (actionReasons.lookup || "").trim().length < 10 ||
                         reference.trim().length < 3
                       }
                       onClick={lookupReference}
@@ -1185,13 +1273,29 @@ export default function Platform() {
                         reason above; it does not activate collections or
                         recurring debit.
                       </p>
+                      <label>
+                        Reason for commercial approval
+                        <textarea
+                          value={actionReasons.approval || ""}
+                          onChange={(event) =>
+                            setActionReasons((current) => ({
+                              ...current,
+                              approval: event.target.value,
+                            }))
+                          }
+                          minLength={10}
+                          maxLength={500}
+                          required
+                          disabled={busy || !!pendingChange}
+                        />
+                      </label>
                       <button
                         className="secondary"
                         type="button"
                         disabled={
                           busy ||
                           !!pendingChange ||
-                          reason.trim().length < 10 ||
+                          (actionReasons.approval || "").trim().length < 10 ||
                           selected.policy.status === "approved"
                         }
                         onClick={approvePolicy}
