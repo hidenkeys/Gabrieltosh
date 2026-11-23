@@ -366,3 +366,20 @@
     max-height: min(60dvh, 560px);
   }
 }
+/* Taller choice groups must not stretch neighboring single-line fields. */
+.mera-workspace .mw-form {
+  align-items: start;
+}
+.mera-workspace .mw-form > label {
+  align-self: start;
+  align-content: start;
+}
+.mera-workspace
+  .mw-form
+  > label
+  > input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+    [type="color"]
+  ):not([type="hidden"]) {
+  height: 44px;
+  min-height: 44px;
+}
