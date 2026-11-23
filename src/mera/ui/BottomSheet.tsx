@@ -36,6 +36,7 @@ export function BottomSheet({
           <h2 id={id}>{title}</h2>
           <button
             type="button"
+            className="secondary"
             onClick={onClose}
             disabled={busy}
             aria-label={`Close ${title}`}

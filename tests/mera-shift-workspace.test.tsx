@@ -1,3 +1,4 @@
+import { chooseField } from "./choice-field-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -39,18 +40,17 @@ test("all shift records remain mounted and their drafts survive queues and selec
   );
   const input = screen.getByLabelText("open count");
   fireEvent.change(input, { target: { value: "123" } });
-  assert.equal(document.querySelectorAll("input").length, 4);
-  fireEvent.change(screen.getByLabelText("Shift queue"), {
-    target: { value: "closed" },
-  });
+  assert.equal(
+    document.querySelectorAll(".mw-shift-workspace-record input").length,
+    4,
+  );
+  chooseField(screen, fireEvent, "Show shifts", "closed");
   assert.ok(
     input.closest(".mw-shift-workspace-record")?.hasAttribute("hidden"),
   );
   fireEvent.click(screen.getByRole("button", { name: "Clear selected shift" }));
   assert.match(screen.getByText(/Showing/).textContent!, /Showing 2 of 4/);
-  fireEvent.change(screen.getByLabelText("Shift queue"), {
-    target: { value: "all" },
-  });
+  chooseField(screen, fireEvent, "Show shifts", "all");
   assert.ok(
     screen.getByLabelText("open count") === input,
     "filtering must preserve actual child identity",
@@ -81,7 +81,10 @@ test("unknown and malformed data are not presented as an empty branch", () => {
     />,
   );
   assert.ok(screen.getByText(/some records unavailable/));
-  assert.equal(document.querySelectorAll("input").length, 1);
+  assert.equal(
+    document.querySelectorAll(".mw-shift-workspace-record input").length,
+    1,
+  );
   assert.equal(screen.queryByText(/No shifts have/), null);
 });
 test("missing selected record has a clear recovery action without showing an ID", () => {

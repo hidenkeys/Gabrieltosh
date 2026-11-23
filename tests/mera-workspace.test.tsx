@@ -1,3 +1,4 @@
+import { chooseField, choiceValue } from "./choice-field-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -147,9 +148,7 @@ test("workspace scopes visible navigation and discards the previous branch recor
   await screen.findByText("Surulere customer", { exact: false });
   assert.equal(screen.queryByRole("tab", { name: "People" }), null);
   assert.equal(screen.queryByRole("tab", { name: "Subscription" }), null);
-  fireEvent.change(screen.getByLabelText("Branch"), {
-    target: { value: "branch-2" },
-  });
+  chooseField(screen, fireEvent, "Branch", "branch-2");
   await screen.findByText("Ikeja customer", { exact: false });
   assert.equal(screen.queryByText("Surulere customer", { exact: false }), null);
   cleanup();
@@ -166,9 +165,15 @@ test("uncertain manual collection retries retain one request key and are never s
   );
   await screen.findByText("Surulere customer", { exact: false });
   fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
-  fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
-    target: { value: "order-branch-1" },
-  });
+  fireEvent.focus(screen.getByRole("combobox", { name: "Order", exact: true }));
+  fireEvent.change(
+    screen.getByRole("combobox", { name: "Order", exact: true }),
+    { target: { value: "Surulere" } },
+  );
+  fireEvent.keyDown(
+    screen.getByRole("combobox", { name: "Order", exact: true }),
+    { key: "Enter" },
+  );
   fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
     target: { value: "1000" },
   });
@@ -232,21 +237,38 @@ test("refund payout method is explicitly chosen and sent rather than assumed cas
     await screen.findByText("Surulere customer", { exact: false });
     fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
     fireEvent.click(screen.getByText("Record money returned", { exact: true }));
-    const method = screen.getByLabelText(
-      "Refund payout method",
-    ) as HTMLSelectElement;
-    assert.equal(method.value, "");
-    assert.equal(method.required, true);
-    fireEvent.change(screen.getByLabelText("Refund order"), {
-      target: { value: "order-branch-1" },
-    });
+    const method = screen.getByRole("radio", {
+      name: "External transfer returned",
+    }) as HTMLInputElement;
+    assert.equal(method.checked, false);
+    assert.ok(
+      screen
+        .getByRole("group", { name: "Refund payout method" })
+        .querySelector("input:required"),
+    );
+    fireEvent.focus(
+      screen.getByRole("combobox", { name: "Refund order", exact: true }),
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Refund order", exact: true }),
+      { target: { value: "Surulere" } },
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Refund order", exact: true }),
+      { key: "Enter" },
+    );
     fireEvent.change(screen.getByLabelText("Amount returned (naira)"), {
       target: { value: "100" },
     });
-    fireEvent.change(screen.getByLabelText("Refund reason"), {
+    fireEvent.click(
+      screen
+        .getByRole("group", { name: "Refund reason" })
+        .querySelector('input[value="__other"]')!,
+    );
+    fireEvent.change(screen.getByLabelText("Refund reason details"), {
       target: { value: "Returned via bank" },
     });
-    fireEvent.change(method, { target: { value: "external_transfer" } });
+    fireEvent.click(method);
     fireEvent.click(
       screen.getByRole("button", { name: "Record authorized refund" }),
     );
@@ -329,9 +351,7 @@ test("slow manual refresh cannot overwrite the new branch after switching", asyn
     deferOldRefresh = true;
     fireEvent.click(screen.getByRole("button", { name: "Refresh workspace" }));
     await waitFor(() => assert(resolveOldRefresh));
-    fireEvent.change(screen.getByLabelText("Branch"), {
-      target: { value: "branch-2" },
-    });
+    chooseField(screen, fireEvent, "Branch", "branch-2");
     await screen.findByText("Ikeja customer", { exact: false });
     await act(async () => {
       resolveOldRefresh!(Response.json(snapshot("branch-1")));
@@ -427,12 +447,20 @@ test("staff table orders freeze uncertain intent and retry the same request with
     fireEvent.change(screen.getByLabelText("Customer name (optional)"), {
       target: { value: "Ada" },
     });
-    fireEvent.change(screen.getByLabelText("Fulfillment"), {
-      target: { value: "table_service" },
-    });
-    fireEvent.change(screen.getByLabelText("Open table visit"), {
-      target: { value: "visit-1" },
-    });
+    fireEvent.click(
+      screen.getByRole("radio", { name: "Table service", exact: true }),
+    );
+    fireEvent.focus(
+      screen.getByRole("combobox", { name: "Open table visit", exact: true }),
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Open table visit", exact: true }),
+      { key: "ArrowDown" },
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Open table visit", exact: true }),
+      { key: "Enter" },
+    );
     fireEvent.change(screen.getByLabelText("Quantity of Milk tea"), {
       target: { value: "1" },
     });
@@ -619,9 +647,7 @@ test("complaint resolution requires an explicit private resolution and uses bran
         },
       }),
     );
-    fireEvent.change(screen.getByLabelText("Case status"), {
-      target: { value: "resolved" },
-    });
+    chooseField(screen, fireEvent, "Case status", "resolved");
     assert.equal(
       (screen.getByLabelText("Resolution") as HTMLTextAreaElement).required,
       true,
@@ -730,16 +756,20 @@ test("station partial fulfillment sends a versioned SET quantity and never bypas
         },
       }),
     );
-    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Prepare one more Milk tea on bar" })));
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Prepare one more Milk tea on bar",
+        }),
+      ),
+    );
     assert.equal(
       calls[0][0],
       "/organizations/org/branches/branch/tickets/bar-ticket/items/tea-line",
     );
     assert.deepEqual(calls[0][2], { preparedQuantity: 2, version: 7 });
     await act(async () =>
-      fireEvent.click(
-        screen.getByRole("button", { name: "Mark ready" }),
-      ),
+      fireEvent.click(screen.getByRole("button", { name: "Mark ready" })),
     );
     assert.equal(
       calls[1][0],
@@ -763,14 +793,10 @@ test("returning to the same branch still rejects a response from its earlier sco
     fireEvent.click(screen.getByRole("button", { name: "Refresh workspace" }));
     await waitFor(() => assert(resolveOldRefresh));
     const staleResolver = resolveOldRefresh!;
-    fireEvent.change(screen.getByLabelText("Branch"), {
-      target: { value: "branch-2" },
-    });
+    chooseField(screen, fireEvent, "Branch", "branch-2");
     await screen.findByText("Ikeja customer", { exact: false });
     deferOldRefresh = false;
-    fireEvent.change(screen.getByLabelText("Branch"), {
-      target: { value: "branch-1" },
-    });
+    chooseField(screen, fireEvent, "Branch", "branch-1");
     await screen.findByText("Surulere customer", { exact: false });
     await act(async () => {
       const stale = snapshot("branch-1");
@@ -908,18 +934,16 @@ test("custom roles expose only actor-grantable permissions and invite using a sc
         },
       }),
     );
-    await screen.findByRole("option", { name: "Host" });
-    assert.equal(screen.queryByRole("option", { name: "Owner" }), null);
+    await screen.findByRole("radio", { name: "Host" });
+    assert.equal(screen.queryByRole("radio", { name: "Owner" }), null);
     assert.equal(
-      screen.queryByRole("checkbox", { name: "Manage subscription billing" }),
+      screen.queryByRole("switch", { name: "Manage subscription billing" }),
       null,
     );
     fireEvent.change(screen.getByLabelText("Staff email"), {
       target: { value: "staff@example.com" },
     });
-    fireEvent.change(screen.getByLabelText("Invitation role"), {
-      target: { value: "custom-role" },
-    });
+    chooseField(screen, fireEvent, "Invitation role", "custom-role");
     await act(async () =>
       fireEvent.click(
         screen.getByRole("button", { name: "Create branch invitation" }),
@@ -983,6 +1007,7 @@ test("branch service windows save local timezone and trading cutoff without assu
     fireEvent.change(screen.getByLabelText("Trading day starts"), {
       target: { value: "05:30" },
     });
+    fireEvent.click(screen.getByRole("button", { name: "3. Hours" }));
     fireEvent.click(
       screen.getByRole("button", { name: "Add availability window" }),
     );
@@ -992,6 +1017,7 @@ test("branch service windows save local timezone and trading cutoff without assu
     fireEvent.change(screen.getByLabelText("Window 1 ends"), {
       target: { value: "22:00" },
     });
+    fireEvent.click(screen.getByRole("button", { name: "6. Review" }));
     await act(async () =>
       fireEvent.click(
         screen.getByRole("button", { name: "Save branch policies" }),
@@ -1115,7 +1141,7 @@ test("launch readiness remains blocked and reservation cutoffs stay unresolved u
     );
     fireEvent.click(
       screen.getByLabelText(
-        "I reviewed this timing policy and its unresolved cutoffs.",
+        "I reviewed this timing policy and any cutoffs not yet set.",
       ),
     );
     await act(async () =>
@@ -1173,20 +1199,24 @@ test("shared menu publication sends explicit branch overrides and a canonical te
         },
       }),
     );
-    await screen.findByRole("option", { name: "Curated menu · version 4" });
-    fireEvent.change(screen.getByLabelText("Shared template"), {
-      target: { value: "shared" },
+    await screen.findByRole("combobox", { name: "Shared template" });
+    await waitFor(() => {
+      fireEvent.focus(
+        screen.getByRole("combobox", { name: "Shared template" }),
+      );
+      assert(screen.getByRole("option", { name: "Curated menu · version 4" }));
     });
+    chooseField(screen, fireEvent, "Shared template", "shared");
     fireEvent.change(
       screen.getByLabelText("Override price for Milk tea (naira)"),
       { target: { value: "1750" } },
     );
-    fireEvent.change(screen.getByLabelText("Availability for Milk tea"), {
-      target: { value: "false" },
-    });
-    fireEvent.change(
-      screen.getByLabelText("Destination category for Milk tea"),
-      { target: { value: "destination-category" } },
+    chooseField(screen, fireEvent, "Availability for Milk tea", "false");
+    chooseField(
+      screen,
+      fireEvent,
+      "Destination category for Milk tea",
+      "destination-category",
     );
     await act(async () =>
       fireEvent.click(
@@ -1891,9 +1921,17 @@ test("an uncertain financial record blocks edited amounts and other targets unti
     render(React.createElement(Workspace, { user, notify: () => {} }));
     await screen.findByText("Surulere customer", { exact: false });
     fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
-    fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
-      target: { value: "order-branch-1" },
-    });
+    fireEvent.focus(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+      { target: { value: "Surulere" } },
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+      { key: "Enter" },
+    );
     fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
       target: { value: "1000" },
     });
@@ -1956,9 +1994,17 @@ test("absence from canonical lookup never abandons financial uncertainty; a reco
     render(React.createElement(Workspace, { user, notify: () => {} }));
     await screen.findByText("Surulere customer", { exact: false });
     fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
-    fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
-      target: { value: "order-branch-1" },
-    });
+    fireEvent.focus(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+      { target: { value: "Surulere" } },
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+      { key: "Enter" },
+    );
     fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
       target: { value: "1000" },
     });
@@ -2071,9 +2117,17 @@ test("sign out warns about unresolved requests and only clears recovery after ex
     await screen.findByText("Surulere customer", { exact: false });
     assert(screen.getByLabelText("Account for Teni"));
     fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
-    fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
-      target: { value: "order-branch-1" },
-    });
+    fireEvent.focus(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+      { target: { value: "Surulere" } },
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+      { key: "Enter" },
+    );
     fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
       target: { value: "1000" },
     });
@@ -2202,9 +2256,17 @@ test("only a canonical abandoned fence releases uncertainty and a new explicit e
     render(React.createElement(Workspace, { user, notify: () => {} }));
     await screen.findByText("Surulere customer", { exact: false });
     fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
-    fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
-      target: { value: "order-branch-1" },
-    });
+    fireEvent.focus(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+      { target: { value: "Surulere" } },
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+      { key: "Enter" },
+    );
     fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
       target: { value: "1000" },
     });
@@ -2238,9 +2300,17 @@ test("only a canonical abandoned fence releases uncertainty and a new explicit e
       null,
     );
     failPayment = false;
-    fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
-      target: { value: "order-branch-1" },
-    });
+    fireEvent.focus(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+      { target: { value: "Surulere" } },
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+      { key: "Enter" },
+    );
     fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
       target: { value: "1000" },
     });
@@ -2633,15 +2703,14 @@ test("imported orders are fetched from bounded history and remain outside prepar
     });
     await waitFor(() =>
       assert.equal(
-        (screen.getByLabelText("History records") as HTMLSelectElement).closest(
-          "fieldset",
-        )?.disabled,
+        screen
+          .getByRole("group", { name: "History records" })
+          .querySelector("input")!
+          .matches(":disabled"),
         false,
       ),
     );
-    fireEvent.change(screen.getByLabelText("History records"), {
-      target: { value: "only" },
-    });
+    chooseField(screen, fireEvent, "History records", "only");
     fireEvent.click(
       screen.getByRole("button", { name: "Apply history filters" }),
     );
@@ -2869,9 +2938,7 @@ test("staff visit opening acknowledges exact minimum terms and reveals its joini
     render(React.createElement(Workspace, { user, notify: () => {} }));
     await screen.findByText("Surulere customer", { exact: false });
     fireEvent.click(screen.getByRole("tab", { name: "Tables & visits" }));
-    fireEvent.change(screen.getByLabelText("Table", { exact: true }), {
-      target: { value: "table-1" },
-    });
+    chooseField(screen, fireEvent, "Table", "table-1");
     fireEvent.change(screen.getByLabelText("Guest display name"), {
       target: { value: "Ada" },
     });
@@ -2906,9 +2973,7 @@ test("staff visit opening acknowledges exact minimum terms and reveals its joini
         ),
       );
     }
-    fireEvent.change(screen.getByLabelText("Branch"), {
-      target: { value: "branch-2" },
-    });
+    chooseField(screen, fireEvent, "Branch", "branch-2");
     await waitFor(() => assert.equal(screen.queryByText("PRIVATE123"), null));
     assert.equal(screen.queryByText("Private access · Ada"), null);
   } finally {
@@ -3507,12 +3572,8 @@ test("history cursor pages reset when applied filters change and details use the
     fireEvent.change(screen.getByLabelText("Search order history"), {
       target: { value: "  Ada  " },
     });
-    fireEvent.change(screen.getByLabelText("History records"), {
-      target: { value: "only" },
-    });
-    fireEvent.change(screen.getByLabelText("Orders per page"), {
-      target: { value: "25" },
-    });
+    chooseField(screen, fireEvent, "History records", "only");
+    chooseField(screen, fireEvent, "Orders per page", "25");
     fireEvent.click(
       screen.getByRole("button", { name: "Apply history filters" }),
     );
@@ -3739,8 +3800,10 @@ test("branch service modes save canonical settings without conflating reservatio
         }}
       />,
     );
-    fireEvent.click(screen.getByRole("checkbox", { name: "Table service" }));
-    fireEvent.click(screen.getByRole("checkbox", { name: "Lounge & club" }));
+    fireEvent.click(screen.getByRole("button", { name: "2. Service modes" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Table service" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Lounge & club" }));
+    fireEvent.click(screen.getByRole("button", { name: "6. Review" }));
     fireEvent.submit(
       screen
         .getByRole("button", { name: "Save branch policies" })
@@ -3884,13 +3947,23 @@ test("typed stock loss preserves the exact original key and expected balance aft
       />,
     );
     fireEvent.focus(screen.getByLabelText("Stock product"));
-    fireEvent.click(screen.getByRole("option", {name: "Tea 12 in stock"}));
-    fireEvent.click(screen.getByRole("button", {name: "Adjust stock for Tea"}));
-    fireEvent.click(screen.getByRole("radio", {name: "Loss",exact:true}));
-    fireEvent.change(screen.getByLabelText("Stock change for Tea"), {target:{value:"2"}});
-    fireEvent.click(screen.getByRole("radio", {name:"Other",exact:true}));
-    fireEvent.change(screen.getByLabelText("Stock reason for Tea details"), {target:{value:"Two sealed cartons missing"}});
-    fireEvent.submit(screen.getByRole("button",{name:"Save stock change"}).closest("form")!);
+    fireEvent.click(screen.getByRole("option", { name: "Tea 12 in stock" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Adjust stock for Tea" }),
+    );
+    fireEvent.click(screen.getByRole("radio", { name: "Loss", exact: true }));
+    fireEvent.change(screen.getByLabelText("Stock change for Tea"), {
+      target: { value: "2" },
+    });
+    fireEvent.click(screen.getByRole("radio", { name: "Other", exact: true }));
+    fireEvent.change(screen.getByLabelText("Stock reason for Tea details"), {
+      target: { value: "Two sealed cartons missing" },
+    });
+    fireEvent.submit(
+      screen
+        .getByRole("button", { name: "Save stock change" })
+        .closest("form")!,
+    );
     await screen.findByRole("button", {
       name: "Retry original stock movement",
     });
@@ -4068,9 +4141,7 @@ test("F5 integrated selection resets at branch switch and falls back promptly af
     await screen.findByRole("heading", { name: "The whole collection" });
     fireEvent.click(screen.getByRole("tab", { name: "Orders" }));
     await screen.findByText("Surulere customer", { exact: false });
-    fireEvent.change(screen.getByLabelText("Branch"), {
-      target: { value: "branch-2" },
-    });
+    chooseField(screen, fireEvent, "Branch", "branch-2");
     await waitFor(() =>
       assert.equal(
         screen
@@ -4461,9 +4532,17 @@ test("write validation errors survive a successful background refresh while read
     render(<Workspace user={user} notify={() => {}} />);
     await screen.findByRole("tab", { name: "Transactions", exact: true });
     fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
-    fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
-      target: { value: "order-branch-1" },
-    });
+    fireEvent.focus(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+      { target: { value: "Surulere" } },
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+      { key: "Enter" },
+    );
     fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
       target: { value: "1000" },
     });
@@ -4526,9 +4605,17 @@ test("a new explicit write clears the previous validation message before its res
     render(<Workspace user={user} notify={() => {}} />);
     await screen.findByText("Surulere customer", { exact: false });
     fireEvent.click(screen.getByRole("tab", { name: "Transactions" }));
-    fireEvent.change(screen.getByLabelText("Order", { exact: true }), {
-      target: { value: "order-branch-1" },
-    });
+    fireEvent.focus(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+      { target: { value: "Surulere" } },
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Order", exact: true }),
+      { key: "Enter" },
+    );
     fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
       target: { value: "1000" },
     });
@@ -4653,33 +4740,25 @@ test("service queues resolve the signed-in handler and ready orders without mixi
     const originalCard = screen.getByRole("article", {
       name: "Order MY-ROUND",
     });
-    fireEvent.change(screen.getByLabelText("Service queue"), {
-      target: { value: "mine" },
-    });
+    chooseField(screen, fireEvent, "Show orders", "mine");
     assert.ok(screen.getByRole("article", { name: "Order MY-ROUND" }));
     assert.equal(
       screen.queryByRole("article", { name: "Order OTHER-ROUND" }),
       null,
     );
-    fireEvent.change(screen.getByLabelText("Service queue"), {
-      target: { value: "ready" },
-    });
+    chooseField(screen, fireEvent, "Show orders", "ready");
     assert.ok(screen.getByRole("article", { name: "Order OTHER-ROUND" }));
     assert.equal(
       screen.queryByRole("article", { name: "Order MY-ROUND" }),
       null,
     );
-    fireEvent.change(screen.getByLabelText("Service queue"), {
-      target: { value: "unassigned" },
-    });
+    chooseField(screen, fireEvent, "Show orders", "unassigned");
     assert.ok(screen.getByRole("article", { name: "Order UNASSIGNED-ROUND" }));
     assert.equal(
       screen.queryByRole("article", { name: "Order OTHER-ROUND" }),
       null,
     );
-    fireEvent.change(screen.getByLabelText("Service queue"), {
-      target: { value: "mine" },
-    });
+    chooseField(screen, fireEvent, "Show orders", "mine");
     assert.equal(
       screen.getByRole("article", { name: "Order MY-ROUND" }),
       originalCard,
@@ -4827,14 +4906,7 @@ test("overview drilldowns reset stale filters and select only current active or 
         exact: true,
       }),
     );
-    assert.equal(
-      (
-        screen.getByRole("combobox", {
-          name: "Service queue",
-        }) as HTMLSelectElement
-      ).value,
-      "active",
-    );
+    assert.equal(choiceValue(screen, "Show orders"), "active");
     assert(screen.getByRole("article", { name: "Order QA-A", exact: true }));
     assert(
       !screen.queryByRole("article", { name: "Order QA-EXPIRED", exact: true }),
@@ -4845,14 +4917,7 @@ test("overview drilldowns reset stale filters and select only current active or 
         await screen.findByRole("region", { name: "Needs your attention" }),
       ).getByRole("button", { name: "Review order QA-A", exact: true }),
     );
-    assert.equal(
-      (
-        screen.getByRole("combobox", {
-          name: "Service queue",
-        }) as HTMLSelectElement
-      ).value,
-      "delayed",
-    );
+    assert.equal(choiceValue(screen, "Show orders"), "delayed");
     assert.equal(
       (
         screen.getByRole("searchbox", {
@@ -4866,14 +4931,7 @@ test("overview drilldowns reset stale filters and select only current active or 
     fireEvent.click(
       await screen.findByRole("button", { name: "View orders", exact: true }),
     );
-    assert.equal(
-      (
-        screen.getByRole("combobox", {
-          name: "Service queue",
-        }) as HTMLSelectElement
-      ).value,
-      "all",
-    );
+    assert.equal(choiceValue(screen, "Show orders"), "all");
     assert.equal(
       (
         screen.getByRole("searchbox", {
@@ -5058,14 +5116,7 @@ test("overview arrival and shift links select the relevant records, and normal n
         exact: true,
       }),
     );
-    assert.equal(
-      (
-        screen.getByRole("combobox", {
-          name: "Shift queue",
-        }) as HTMLSelectElement
-      ).value,
-      "attention",
-    );
+    assert.equal(choiceValue(screen, "Show shifts"), "attention");
     assert(screen.getByRole("heading", { name: "Open shift", exact: true }));
     assert(
       !screen.queryByRole("heading", { name: "Closed shift", exact: true }),
