@@ -1,4 +1,4 @@
-import { useId, type KeyboardEvent } from "react";
+import { type KeyboardEvent } from "react";
 export type ChoiceOption = {
   value: string;
   label: string;
@@ -25,7 +25,10 @@ export function Segmented({
   required,
   className = "",
 }: ChoiceProps) {
-  const id = useId();
+  const selected = options.find(
+    (option) => option.value === value && !option.disabled,
+  );
+  const firstEnabled = options.find((option) => !option.disabled);
   function arrows(event: KeyboardEvent<HTMLFieldSetElement>) {
     if (
       ![
@@ -72,12 +75,25 @@ export function Segmented({
             <input
               type="radio"
               aria-label={option.label}
-              name={name || id}
+              name={name}
+              tabIndex={
+                option.disabled
+                  ? -1
+                  : (
+                        selected
+                          ? option.value === selected.value
+                          : option === firstEnabled
+                      )
+                    ? 0
+                    : -1
+              }
               value={option.value}
               checked={value === option.value}
               onChange={() => onChange(option.value)}
               disabled={option.disabled}
-              required={required}
+              required={
+                required && (name ? true : !selected && option === firstEnabled)
+              }
             />
             <span>
               {option.label}

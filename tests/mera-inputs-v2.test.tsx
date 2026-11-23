@@ -383,3 +383,34 @@ test("date input-only events preserve exact local values and billing can omit av
   );
   assert.equal(screen.queryByText(/venue will confirm/), null);
 });
+
+test("unnamed controlled choices do not introduce extra form fields and still validate selection", () => {
+  function Example() {
+    const [value, setValue] = React.useState("");
+    return (
+      <form>
+        <Segmented
+          label="Show"
+          value={value}
+          onChange={setValue}
+          required
+          options={[
+            { value: "active", label: "Active" },
+            { value: "ready", label: "Ready" },
+          ]}
+        />
+      </form>
+    );
+  }
+  render(<Example />);
+  const form = document.querySelector("form")!;
+  assert.equal(form.checkValidity(), false);
+  fireEvent.click(screen.getByRole("radio", { name: "Ready" }));
+  assert.equal(form.checkValidity(), true);
+  assert.equal(Array.from(new dom.window.FormData(form).keys()).length, 0);
+  assert.equal(
+    (screen.getByRole("radio", { name: "Active" }) as HTMLInputElement)
+      .tabIndex,
+    -1,
+  );
+});
