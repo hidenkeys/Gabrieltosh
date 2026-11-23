@@ -23,6 +23,18 @@ Object.defineProperty(globalThis, "navigator", {
 const React = await import("react");
 const { render, screen, fireEvent, cleanup, waitFor, act, within } =
   await import("@testing-library/react");
+function chooseReference(label: string) {
+  const input = screen.getByRole("combobox", { name: label, hidden: true });
+  fireEvent.focus(input);
+  const list = screen.getByRole("listbox", {
+    name: `${label} options`,
+    hidden: true,
+  });
+  fireEvent.click(
+    list.querySelector('[role="option"]:not([aria-disabled="true"])')!,
+  );
+}
+
 function fillPresetDetails(label: string, value: string) {
   fireEvent.click(
     within(screen.getByRole("group", { name: label, hidden: true })).getByRole(
@@ -193,9 +205,7 @@ test("reconciliation failed reads retry honestly and a successful write followed
     fireEvent.change(screen.getByLabelText("Simulator transaction ID"), {
       target: { value: "TX-123" },
     });
-    fireEvent.change(screen.getByLabelText("Simulator order"), {
-      target: { value: "order" },
-    });
+    chooseReference("Simulator order");
     fireEvent.change(screen.getByLabelText("Observed amount (naira)"), {
       target: { value: "100" },
     });
@@ -241,9 +251,7 @@ test("reconciliation unknown retries keep eventID/time/body and read refresh doe
     fireEvent.change(screen.getByLabelText("Simulator transaction ID"), {
       target: { value: "TX-123" },
     });
-    fireEvent.change(screen.getByLabelText("Simulator order"), {
-      target: { value: "order" },
-    });
+    chooseReference("Simulator order");
     fireEvent.change(screen.getByLabelText("Observed amount (naira)"), {
       target: { value: "100" },
     });
@@ -334,13 +342,15 @@ test("handover plain-network uncertainty retains original receiver/key through40
     fireEvent.click(
       screen.getByText("Hand over this open shift", { selector: "summary" }),
     );
-    await screen.findByRole("option", { name: "Bola" });
-    fireEvent.change(screen.getByLabelText("Receiving staff"), {
-      target: { value: "receiver" },
-    });
-    fireEvent.change(screen.getByLabelText("Handover reason"), {
-      target: { value: "Evening responsibility" },
-    });
+    await waitFor(() =>
+      assert.equal(!!screen.queryByText("Loading receiving staff…"), false),
+    );
+    fireEvent.focus(
+      screen.getByRole("combobox", { name: "Receiving staff", hidden: true }),
+    );
+    await screen.findByRole("option", { name: "Bola", hidden: true });
+    chooseReference("Receiving staff");
+    fillPresetDetails("Handover reason", "Evening responsibility");
     fireEvent.click(
       screen.getByRole("button", { name: "Record shift handover" }),
     );
@@ -375,9 +385,7 @@ test("unknown variance approval cannot be blindly resubmitted without refreshing
         }}
       />,
     );
-    fireEvent.change(screen.getByLabelText("Variance approval reason"), {
-      target: { value: "Count reviewed" },
-    });
+    fillPresetDetails("Variance approval reason", "Count reviewed");
     fireEvent.click(
       screen.getByRole("button", { name: "Approve reconciled variance" }),
     );

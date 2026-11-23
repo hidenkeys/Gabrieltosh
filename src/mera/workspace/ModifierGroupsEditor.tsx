@@ -1,3 +1,5 @@
+import Stepper from "../ui/Stepper";
+import MinorMoneyInput from "../ui/MinorMoneyInput";
 import { uuid } from "../../api";
 type Option = { id: string; name: string; price: number };
 type Group = {
@@ -51,34 +53,22 @@ export default function ModifierGroupsEditor({
                 }
               />
             </label>
-            <label>
-              Minimum choices
-              <input
-                required
-                type="number"
-                min={0}
-                max={Math.min(group.max, group.options.length)}
-                step={1}
-                value={group.min}
-                onChange={(event) =>
-                  update(group.id, { min: Number(event.target.value) })
-                }
-              />
-            </label>
-            <label>
-              Maximum choices
-              <input
-                required
-                type="number"
-                min={Math.max(1, group.min)}
-                max={30}
-                step={1}
-                value={group.max}
-                onChange={(event) =>
-                  update(group.id, { max: Number(event.target.value) })
-                }
-              />
-            </label>
+            <Stepper
+              label="Minimum choices"
+              required
+              min={0}
+              max={Math.min(group.max, group.options.length)}
+              value={group.min}
+              onChange={(value) => update(group.id, { min: value })}
+            />
+            <Stepper
+              label="Maximum choices"
+              required
+              min={Math.max(1, group.min)}
+              max={30}
+              value={group.max}
+              onChange={(value) => update(group.id, { max: value })}
+            />
           </div>
           {(group.min > group.max || group.min > group.options.length) && (
             <p role="alert">Choice limits must fit the number of options.</p>
@@ -103,31 +93,25 @@ export default function ModifierGroupsEditor({
                   }
                 />
               </label>
-              <label>
-                Option extra price (naira)
-                <input
-                  required
-                  type="number"
-                  min={0}
-                  max={1000000000}
-                  step="0.01"
-                  value={option.price / 100}
-                  onChange={(event) =>
-                    update(group.id, {
-                      options: group.options.map((row) =>
-                        row.id === option.id
-                          ? {
-                              ...row,
-                              price: Math.round(
-                                Number(event.target.value) * 100,
-                              ),
-                            }
-                          : row,
-                      ),
-                    })
-                  }
-                />
-              </label>
+              <MinorMoneyInput
+                label="Option extra price (naira)"
+                min={0}
+                max={1000000000}
+                required
+                value={option.price}
+                onChange={(value) =>
+                  update(group.id, {
+                    options: group.options.map((row) =>
+                      row.id === option.id
+                        ? {
+                            ...row,
+                            price: value,
+                          }
+                        : row,
+                    ),
+                  })
+                }
+              />
               <button
                 type="button"
                 disabled={group.options.length === 1}

@@ -81,6 +81,7 @@ test("refund full and half amounts use remaining paid credit and line values sta
   );
   const order = screen.getByRole("combobox", { name: "Order" });
   fireEvent.focus(order);
+  fireEvent.keyDown(order, { key: "ArrowDown" });
   fireEvent.keyDown(order, { key: "Enter" });
   fireEvent.click(screen.getByRole("button", { name: "Full amount" }));
   assert.equal(
@@ -135,6 +136,7 @@ test("cancellation preset remains exact and quantity stepper cannot exceed unpre
   fireEvent.click(screen.getByText("Cancel unprepared items"));
   const item = screen.getByRole("combobox", { name: "Item to cancel" });
   fireEvent.focus(item);
+  fireEvent.keyDown(item, { key: "ArrowDown" });
   fireEvent.keyDown(item, { key: "Enter" });
   const count = screen.getByLabelText("Quantity to cancel") as HTMLInputElement;
   assert.equal(count.max, "1");
@@ -150,4 +152,59 @@ test("cancellation preset remains exact and quantity stepper cannot exceed unpre
   assert.equal(calls[0][2].quantity, 1);
   assert.equal(calls[0][2].version, 4);
   assert.equal(calls[0][2].reason, "Item unavailable");
+});
+
+test("size and add-on price editors preserve decimal typing while emitting integer kobo", async () => {
+  const { default: VariantsEditor } =
+    await import("../src/mera/workspace/VariantsEditor");
+  const { default: ModifierGroupsEditor } =
+    await import("../src/mera/workspace/ModifierGroupsEditor");
+  let lastSize: any[], lastGroup: any[];
+  function Editors() {
+    const [sizes, setSizes] = React.useState([
+      { id: "s", name: "Large", price: 0 },
+    ]);
+    const [groups, setGroups] = React.useState([
+      {
+        id: "g",
+        name: "Toppings",
+        min: 0,
+        max: 1,
+        options: [{ id: "p", name: "Pearls", price: 0 }],
+      },
+    ]);
+    return (
+      <>
+        <VariantsEditor
+          value={sizes}
+          onChange={(value) => {
+            lastSize = value;
+            setSizes(value as any);
+          }}
+        />
+        <ModifierGroupsEditor
+          value={groups}
+          onChange={(value) => {
+            lastGroup = value;
+            setGroups(value as any);
+          }}
+        />
+      </>
+    );
+  }
+  render(<Editors />);
+  const size = screen.getByLabelText("Size price (naira)") as HTMLInputElement;
+  fireEvent.change(size, { target: { value: "12." } });
+  assert.equal(size.value, "12.");
+  fireEvent.change(size, { target: { value: "12.34" } });
+  assert.equal(lastSize![0].price, 1234);
+  assert.equal(size.value, "12.34");
+  const extra = screen.getByLabelText(
+    "Option extra price (naira)",
+  ) as HTMLInputElement;
+  fireEvent.change(extra, { target: { value: "1,500." } });
+  assert.equal(extra.value, "1,500.");
+  fireEvent.change(extra, { target: { value: "1,500.25" } });
+  assert.equal(lastGroup![0].options[0].price, 150025);
+  assert.equal(extra.type, "text");
 });

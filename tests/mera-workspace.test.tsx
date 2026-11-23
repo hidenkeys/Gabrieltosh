@@ -24,6 +24,18 @@ Object.defineProperty(globalThis, "navigator", {
 const React = await import("react");
 const { render, screen, fireEvent, waitFor, cleanup, act, within } =
   await import("@testing-library/react");
+function chooseReference(label: string) {
+  const input = screen.getByRole("combobox", { name: label, hidden: true });
+  fireEvent.focus(input);
+  const list = screen.getByRole("listbox", {
+    name: `${label} options`,
+    hidden: true,
+  });
+  fireEvent.click(
+    list.querySelector('[role="option"]:not([aria-disabled="true"])')!,
+  );
+}
+
 function fillPresetDetails(label: string, value: string) {
   fireEvent.click(
     within(screen.getByRole("group", { name: label, hidden: true })).getByRole(
@@ -269,9 +281,7 @@ test("table-only staff cannot access financial bill actions", async () => {
       save: async () => ({}),
     }),
   );
-  fireEvent.change(screen.getByLabelText("Bill to manage"), {
-    target: { value: "bill-1" },
-  });
+  chooseReference("Bill to manage");
   assert.equal(screen.queryByRole("button", { name: "Split bill" }), null);
   assert.equal(
     screen.queryByRole("button", { name: "Merge into selected bill" }),
@@ -283,6 +293,7 @@ test("table-only staff cannot access financial bill actions", async () => {
   );
   cleanup();
 });
+
 test("table coordinate editor follows the backend zero-to-one-hundred bounds", async () => {
   const { default: TableEditor } =
     await import("../src/mera/workspace/TableEditor");
@@ -360,7 +371,8 @@ test("unused reservation deposit is labeled credit held rather than negative deb
       save: async () => ({}),
     }),
   );
-  assert(screen.getByText(/Credit held ₦1,000/));
+  fireEvent.focus(screen.getByRole("combobox", { name: "Bill to manage" }));
+  assert(screen.getByRole("option", { name: /Credit held ₦1,000/ }));
   assert.equal(screen.queryByText(/Due.*-/), null);
   cleanup();
 });
@@ -1356,6 +1368,10 @@ test("unpaid item cancellation respects prepared quantities and paid orders stay
     );
     fireEvent.keyDown(
       screen.getByRole("combobox", { name: "Item to cancel", hidden: true }),
+      { key: "ArrowDown" },
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Item to cancel", hidden: true }),
       { key: "Enter" },
     );
     assert.equal(
@@ -1439,9 +1455,7 @@ test("reconciliation records explicit simulator observations without claiming se
     fireEvent.change(screen.getByLabelText("Simulator transaction ID"), {
       target: { value: "TX-123" },
     });
-    fireEvent.change(screen.getByLabelText("Simulator order"), {
-      target: { value: "order" },
-    });
+    chooseReference("Simulator order");
     fireEvent.change(screen.getByLabelText("Observed amount (naira)"), {
       target: { value: "1500" },
     });
@@ -1633,6 +1647,10 @@ test("paid item cancellation allocates existing approved refund credit without i
     );
     fireEvent.keyDown(
       screen.getByRole("combobox", { name: "Item to cancel", hidden: true }),
+      { key: "ArrowDown" },
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Item to cancel", hidden: true }),
       { key: "Enter" },
     );
     fillPresetDetails("Cancellation reason", "Refund approved for this item");
@@ -1811,9 +1829,10 @@ test("shift variance approval is restricted to managers and handover uses author
         },
       }),
     );
-    fireEvent.change(screen.getByLabelText("Variance approval reason"), {
-      target: { value: "Count verified against till audit" },
-    });
+    fillPresetDetails(
+      "Variance approval reason",
+      "Count verified against till audit",
+    );
     await act(async () =>
       fireEvent.click(
         screen.getByRole("button", { name: "Approve reconciled variance" }),
@@ -1836,13 +1855,15 @@ test("shift variance approval is restricted to managers and handover uses author
         },
       }),
     );
+    await waitFor(() =>
+      assert.equal(!!screen.queryByText("Loading receiving staff…"), false),
+    );
+    fireEvent.focus(
+      screen.getByRole("combobox", { name: "Receiving staff", hidden: true }),
+    );
     await screen.findByRole("option", { name: "Bola", hidden: true });
-    fireEvent.change(screen.getByLabelText("Receiving staff"), {
-      target: { value: "receiver" },
-    });
-    fireEvent.change(screen.getByLabelText("Handover reason"), {
-      target: { value: "Evening shift responsibility" },
-    });
+    chooseReference("Receiving staff");
+    fillPresetDetails("Handover reason", "Evening shift responsibility");
     await act(async () =>
       fireEvent.click(
         screen.getByRole("button", {
@@ -2415,6 +2436,10 @@ test("priced item cancellation reviews original-policy totals then records only 
     );
     fireEvent.keyDown(
       screen.getByRole("combobox", { name: "Item to cancel", hidden: true }),
+      { key: "ArrowDown" },
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Item to cancel", hidden: true }),
       { key: "Enter" },
     );
     fillPresetDetails(
@@ -2730,20 +2755,24 @@ test("debt write-offs are explicit non-cash actions with canonical balance bound
         },
       }),
     );
-    assert.equal(
+    fireEvent.change(screen.getByLabelText("Debt write-off amount (naira)"), {
+      target: { value: "1500.01" },
+    });
+    assert.match(
       (
         screen.getByLabelText(
           "Debt write-off amount (naira)",
         ) as HTMLInputElement
-      ).max,
-      "1500",
+      ).validationMessage,
+      /no more than 1500/,
     );
     fireEvent.change(screen.getByLabelText("Debt write-off amount (naira)"), {
       target: { value: "1500" },
     });
-    fireEvent.change(screen.getByLabelText("Debt write-off reason"), {
-      target: { value: "Manager reviewed uncollectible balance" },
-    });
+    fillPresetDetails(
+      "Debt write-off reason",
+      "Manager reviewed uncollectible balance",
+    );
     assert.equal(
       (
         screen.getByRole("button", {
@@ -2917,9 +2946,7 @@ test("reservation seating passes the fresh joining code to the scoped private-pa
         }),
       }),
     );
-    fireEvent.change(screen.getByLabelText("Seat at table"), {
-      target: { value: "window" },
-    });
+    chooseReference("Seat at table");
     await act(async () =>
       fireEvent.click(
         screen.getByRole("button", { name: "Seat reservation", hidden: true }),
@@ -3299,20 +3326,21 @@ test("deposit forfeiture requires explicit policy and tax review and preserves u
         },
       }),
     );
-    fireEvent.change(screen.getByLabelText("Deposit under review"), {
-      target: { value: "deposit" },
-    });
-    fireEvent.change(screen.getByLabelText("Reviewed deposit outcome"), {
-      target: { value: "forfeit" },
-    });
+    chooseReference("Deposit under review");
+    fireEvent.click(
+      screen.getByRole("radio", {
+        name: "Eligible booked-policy forfeiture",
+        hidden: true,
+        exact: true,
+      }),
+    );
     fireEvent.change(screen.getByLabelText("Deposit outcome amount (naira)"), {
       target: { value: "1000" },
     });
-    fireEvent.change(screen.getByLabelText("Deposit outcome reason"), {
-      target: {
-        value: "Reviewed the booked non-refundable cancellation policy",
-      },
-    });
+    fillPresetDetails(
+      "Deposit outcome reason",
+      "Reviewed the booked non-refundable cancellation policy",
+    );
     fireEvent.click(
       screen.getByLabelText(
         "I reviewed the booked policy and verified this outcome.",
@@ -3327,9 +3355,13 @@ test("deposit forfeiture requires explicit policy and tax review and preserves u
       ).disabled,
       true,
     );
-    fireEvent.change(screen.getByLabelText("Forfeiture tax review"), {
-      target: { value: "unknown" },
-    });
+    fireEvent.click(
+      screen.getByRole("radio", {
+        name: "Tax amount remains unknown",
+        hidden: true,
+        exact: true,
+      }),
+    );
     await act(async () =>
       fireEvent.click(
         screen.getByRole("button", {
@@ -4274,9 +4306,7 @@ test("P1 counter uses published variant prices and blocks incomplete or expired 
     fireEvent.change(screen.getByLabelText("Quantity of QA drink"), {
       target: { value: "2" },
     });
-    fireEvent.change(screen.getByLabelText("Size for QA drink"), {
-      target: { value: "large" },
-    });
+    fireEvent.click(screen.getByRole("radio", { name: /^Large ·/ }));
     assert(
       (
         screen.getByRole("button", {
@@ -4333,6 +4363,7 @@ test("P1 counter uses published variant prices and blocks incomplete or expired 
     globalThis.fetch = original;
   }
 });
+
 test("P1 missing published counter projection never falls back to working catalog and supports read retry", async () => {
   const original = globalThis.fetch,
     previous = [...context.organizations[0].permissions];

@@ -1,3 +1,5 @@
+import Combobox from "../ui/Combobox";
+import ReasonInput from "../ui/ReasonInput";
 import React, { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
 import { formatMoney, workspaceApi, WorkspaceError } from "./api";
@@ -210,16 +212,19 @@ function ScopedShiftActions({
                 className="fo-fieldset"
                 disabled={disabled || working || approvalUnknown}
               >
-                <label>
-                  Variance approval reason
-                  <input
-                    required
-                    minLength={3}
-                    maxLength={500}
-                    value={reason}
-                    onChange={(event) => setReason(event.target.value)}
-                  />
-                </label>
+                <ReasonInput
+                  label="Variance approval reason"
+                  required
+                  minLength={3}
+                  maxLength={500}
+                  value={reason}
+                  onChange={setReason}
+                  presets={[
+                    "Till recount verified",
+                    "Recorded cash movements checked",
+                    "Variance reviewed with staff",
+                  ]}
+                />
                 <Action type="submit" pending={working}>
                   Approve reconciled variance
                 </Action>
@@ -264,31 +269,30 @@ function ScopedShiftActions({
               }
             >
               <div className="fo-form-grid">
-                <label>
-                  Receiving staff
-                  <select
-                    required
-                    value={toUserId}
-                    onChange={(event) => setToUserId(event.target.value)}
-                  >
-                    <option value="">Choose an authorized staff member</option>
-                    {staff.map((person) => (
-                      <option key={person.userId} value={person.userId}>
-                        {person.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Handover reason
-                  <input
-                    required
-                    minLength={3}
-                    maxLength={500}
-                    value={reason}
-                    onChange={(event) => setReason(event.target.value)}
-                  />
-                </label>
+                <Combobox
+                  label="Receiving staff"
+                  required
+                  value={toUserId}
+                  onChange={setToUserId}
+                  placeholder="Choose an authorized staff member"
+                  options={staff.map((person) => ({
+                    value: person.userId,
+                    label: person.name,
+                  }))}
+                />
+                <ReasonInput
+                  label="Handover reason"
+                  required
+                  minLength={3}
+                  maxLength={500}
+                  value={reason}
+                  onChange={setReason}
+                  presets={[
+                    "Shift change",
+                    "Break cover",
+                    "Manager taking over",
+                  ]}
+                />
               </div>
               <Action type="submit" disabled={!staff.length} pending={working}>
                 Record shift handover

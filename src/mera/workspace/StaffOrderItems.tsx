@@ -1,3 +1,7 @@
+import Stepper from "../ui/Stepper";
+import Segmented from "../ui/Segmented";
+import Chips from "../ui/Chips";
+import Combobox from "../ui/Combobox";
 import { formatMoney } from "./api";
 import { catalogPriceLabel } from "./catalogPresentation";
 import { validateStaffSelection } from "./staffSelection";
@@ -49,22 +53,18 @@ export default function StaffOrderItems({
               key={product.id}
               style={{ borderBottom: "1px solid #eeebe6", paddingBottom: 10 }}
             >
-              <label className="mw-row">
+              <div className="mw-row">
                 <span>
                   {product.name} · {priceLabel}
                 </span>
-                <input
-                  aria-label={"Quantity of " + product.name}
-                  type="number"
-                  min="0"
-                  max="100"
+                <Stepper
+                  label={"Quantity of " + product.name}
+                  min={0}
+                  max={100}
                   value={line?.quantity || 0}
-                  style={{ width: 85 }}
-                  onChange={(event) =>
-                    update(product.id, { quantity: Number(event.target.value) })
-                  }
+                  onChange={(value) => update(product.id, { quantity: value })}
                 />
-              </label>
+              </div>
               {selection && !selection.complete && (
                 <p className="mw-pos-selection-help" role="status">
                   {selection.messages.join(" ")}
@@ -72,25 +72,30 @@ export default function StaffOrderItems({
               )}
               {line && (
                 <div className="mw-form">
-                  {product.variants?.length > 0 && (
-                    <label>
-                      Size for {product.name}
-                      <select
-                        required
-                        value={line.variantId || ""}
-                        onChange={(event) =>
-                          update(product.id, { variantId: event.target.value })
-                        }
-                      >
-                        <option value="">Choose size</option>
-                        {product.variants.map((variant: any) => (
-                          <option key={variant.id} value={variant.id}>
-                            {variant.name} · {formatMoney(variant.price)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
+                  {product.variants?.length > 0 &&
+                    (() => {
+                      const Choice =
+                        product.variants.length <= 4
+                          ? Segmented
+                          : product.variants.length <= 12
+                            ? Chips
+                            : Combobox;
+                      return (
+                        <Choice
+                          label={"Size for " + product.name}
+                          required
+                          value={line.variantId || ""}
+                          onChange={(value) =>
+                            update(product.id, { variantId: value })
+                          }
+                          options={product.variants.map((variant: any) => ({
+                            value: variant.id,
+                            label:
+                              variant.name + " · " + formatMoney(variant.price),
+                          }))}
+                        />
+                      );
+                    })()}
                   {product.modifierGroups?.map((group: any) => (
                     <fieldset
                       key={group.id}

@@ -1,3 +1,5 @@
+import Stepper from "../ui/Stepper";
+import MinorMoneyInput from "../ui/MinorMoneyInput";
 import { uuid } from "../../api";
 export default function VariantsEditor({
   value,
@@ -33,37 +35,27 @@ export default function VariantsEditor({
               }
             />
           </label>
-          <label>
-            Size price (naira)
-            <input
-              required
-              type="number"
-              min={0}
-              step="0.01"
-              value={variant.price / 100}
-              onChange={(event) =>
-                update(variant.id, {
-                  price: Math.round(Number(event.target.value) * 100),
-                })
-              }
-            />
-          </label>
-          <label>
-            Size low-stock alert threshold
-            <input
-              required
-              type="number"
-              min={0}
-              max={1000000}
-              step={1}
-              value={variant.lowStockThreshold ?? 5}
-              onChange={(event) =>
-                update(variant.id, {
-                  lowStockThreshold: Number(event.target.value),
-                })
-              }
-            />
-          </label>
+          <MinorMoneyInput
+            label="Size price (naira)"
+            min={0}
+            required
+            value={variant.price}
+            onChange={(value) =>
+              update(variant.id, {
+                price: value,
+              })
+            }
+          />
+          <Stepper
+            label="Size low-stock alert threshold"
+            required
+            min={0}
+            max={1000000}
+            value={variant.lowStockThreshold ?? 5}
+            onChange={(value) =>
+              update(variant.id, { lowStockThreshold: value })
+            }
+          />
           <div>
             <p>
               {variant.stockMode === "counted"

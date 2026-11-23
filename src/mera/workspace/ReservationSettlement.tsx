@@ -1,3 +1,6 @@
+import Combobox from "../ui/Combobox";
+import Segmented from "../ui/Segmented";
+import MoneyInput from "../ui/MoneyInput";
 import { useState } from "react";
 import { uuid } from "../../api";
 import { formatMoney } from "./api";
@@ -66,30 +69,26 @@ export default function ReservationSettlement({
             );
           }}
         >
-          <label>
-            Deposit already received (naira)
-            <input
-              required
-              min="0.01"
-              step="0.01"
-              type="number"
-              value={form.amount || ""}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
-            />
-          </label>
-          <label>
-            Deposit method
-            <select
-              value={form.method || "cash"}
-              onChange={(e) => setForm({ ...form, method: e.target.value })}
-            >
-              <option value="cash">Cash</option>
-              <option value="external_pos">External POS</option>
-              <option value="external_transfer">
-                Verified external transfer
-              </option>
-            </select>
-          </label>
+          <MoneyInput
+            label="Deposit already received (naira)"
+            min={0.01}
+            required
+            value={String(form.amount || "")}
+            onChange={(value) => setForm({ ...form, amount: value })}
+          />
+          <Segmented
+            label="Deposit method"
+            value={form.method || "cash"}
+            onChange={(value) => setForm({ ...form, method: value })}
+            options={[
+              { value: "cash", label: "Cash" },
+              { value: "external_pos", label: "External POS" },
+              {
+                value: "external_transfer",
+                label: "Verified external transfer",
+              },
+            ]}
+          />
           <label>
             Verified reference
             <input
@@ -117,21 +116,18 @@ export default function ReservationSettlement({
             );
           }}
         >
-          <label>
-            Seat at table
-            <select
-              required
-              value={form.tableId || ""}
-              onChange={(e) => setForm({ ...form, tableId: e.target.value })}
-            >
-              <option value="">Choose table</option>
-              {tables.map((table) => (
-                <option key={table.id} value={table.id}>
-                  {table.name} · {table.capacity} seats
-                </option>
-              ))}
-            </select>
-          </label>
+          <Combobox
+            label="Seat at table"
+            required
+            value={form.tableId || ""}
+            onChange={(value) => setForm({ ...form, tableId: value })}
+            options={tables.map((table) => ({
+              value: table.id,
+              label: table.name,
+              description: `${table.capacity} seats`,
+            }))}
+            placeholder="Choose table"
+          />
           <div className="mw-wide">
             <button className="primary" disabled={disabled}>
               Seat reservation

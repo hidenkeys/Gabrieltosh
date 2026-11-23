@@ -16,6 +16,19 @@ Object.defineProperty(globalThis, "navigator", {
 const React = await import("react");
 const { render, screen, fireEvent, cleanup, waitFor, act } =
   await import("@testing-library/react");
+
+function chooseReference(label: string) {
+  const input = screen.getByRole("combobox", { name: label, hidden: true });
+  fireEvent.focus(input);
+  const list = screen.getByRole("listbox", {
+    name: `${label} options`,
+    hidden: true,
+  });
+  fireEvent.click(
+    list.querySelector('[role="option"]:not([aria-disabled="true"])')!,
+  );
+}
+
 const { default: Bills } = await import("../src/mera/workspace/Bills");
 const { readBillChangeMarker } =
   await import("../src/mera/workspace/billChangeJournal");
@@ -49,10 +62,7 @@ const props = {
   canPay: true,
   save: async () => ({}),
 };
-const choose = () =>
-  fireEvent.change(screen.getByLabelText("Bill to manage"), {
-    target: { value: bill.id },
-  });
+const choose = () => chooseReference("Bill to manage");
 async function split() {
   choose();
   fireEvent.click(screen.getByText("Split this bill", { exact: true }));
@@ -230,9 +240,7 @@ test("merge body and source target stay exact after props refresh while payment 
   );
   choose();
   fireEvent.click(screen.getByText("Merge another bill", { exact: true }));
-  fireEvent.change(screen.getByLabelText("Merge another bill into this one"), {
-    target: { value: "source" },
-  });
+  chooseReference("Merge another bill into this one");
   fireEvent.submit(
     screen
       .getByRole("button", { name: "Merge into selected bill" })
@@ -258,9 +266,9 @@ test("merge body and source target stay exact after props refresh while payment 
   fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
     target: { value: "12.34" },
   });
-  fireEvent.change(screen.getByLabelText("Method"), {
-    target: { value: "cash" },
-  });
+  fireEvent.click(
+    screen.getByRole("radio", { name: "Cash", hidden: true, exact: true }),
+  );
   fireEvent.submit(
     screen
       .getByRole("button", { name: "Record bill collection" })

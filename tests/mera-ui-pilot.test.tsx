@@ -23,6 +23,7 @@ Object.defineProperty(globalThis, "navigator", {
 const React = await import("react");
 const { render, screen, fireEvent, cleanup } =
   await import("@testing-library/react");
+
 const { default: StaffPos } = await import("../src/mera/workspace/StaffPos");
 const { default: WorkspaceNavigation } =
   await import("../src/mera/workspace/WorkspaceNavigation");
@@ -82,9 +83,7 @@ test("POS search preserves selected customization and totals while unavailable s
     fireEvent.click(
       screen.getByRole("button", { name: "Add Milk tea to order" }),
     );
-    fireEvent.change(screen.getByLabelText("Size for Milk tea"), {
-      target: { value: "large" },
-    });
+    fireEvent.click(screen.getByRole("radio", { name: /^Large ·/ }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Boba +₦50.00" }));
     assert.ok(screen.getByText("Complete selections"));
     assert.equal(screen.queryByText("₦270.00"), null);
@@ -96,7 +95,8 @@ test("POS search preserves selected customization and totals while unavailable s
       screen.getByText("No items match. Try another name or category."),
     );
     assert.equal(
-      (screen.getByLabelText("Size for Milk tea") as HTMLSelectElement).value,
+      (screen.getByRole("radio", { name: /^Large ·/ }) as HTMLInputElement)
+        .value,
       "large",
     );
     assert.equal(

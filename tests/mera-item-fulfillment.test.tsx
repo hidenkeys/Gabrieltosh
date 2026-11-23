@@ -16,6 +16,27 @@ Object.defineProperty(globalThis, "navigator", {
 const React = await import("react");
 const { render, screen, fireEvent, cleanup, act } =
   await import("@testing-library/react");
+function fillPresetDetails(label: string, value: string) {
+  const group = screen.getByRole("group", { name: label, hidden: true });
+  const other = group.querySelector('input[value="__other"]')!;
+  fireEvent.click(other);
+  fireEvent.change(screen.getByLabelText(`${label} details`), {
+    target: { value },
+  });
+}
+
+function chooseReference(label: string) {
+  const input = screen.getByRole("combobox", { name: label, hidden: true });
+  fireEvent.focus(input);
+  const list = screen.getByRole("listbox", {
+    name: `${label} options`,
+    hidden: true,
+  });
+  fireEvent.click(
+    list.querySelector('[role="option"]:not([aria-disabled="true"])')!,
+  );
+}
+
 const { default: ItemFulfillment } =
   await import("../src/mera/workspace/ItemFulfillment");
 const { WorkspaceError } = await import("../src/mera/workspace/api");
@@ -46,10 +67,7 @@ function open() {
   fireEvent.click(screen.getByText("Hand over prepared items"));
 }
 function select() {
-  fireEvent.change(
-    screen.getByRole("combobox", { name: "Item to hand over" }),
-    { target: { value: "line-one" } },
-  );
+  chooseReference("Item to hand over");
 }
 test("handoff is a monotonic cumulative total capped by actual prepared quantities", async () => {
   const calls: any[] = [];
@@ -100,10 +118,7 @@ test("unknown handoff survives409/429 and refreshed terminal stage with exact or
   const view = render(<ItemFulfillment {...props} save={save} />);
   open();
   select();
-  fireEvent.change(
-    screen.getByRole("textbox", { name: "Handoff note (optional)" }),
-    { target: { value: "Original handoff note" } },
-  );
+  fillPresetDetails("Handoff note (optional)", "Original handoff note");
   fireEvent.click(screen.getByRole("button", { name: "Record item handoff" }));
   await screen.findByRole("alert");
   view.rerender(
@@ -182,7 +197,8 @@ test("only actionable prepared lines can be selected and fully served items are 
     />,
   );
   open();
-  assert(screen.getByRole("option", { name: "Tea · 1 / 4 handed over" }));
+  fireEvent.focus(screen.getByRole("combobox", { name: "Item to hand over" }));
+  assert(screen.getByRole("option", { name: "Tea 1 / 4 handed over" }));
   assert.equal(screen.queryByRole("option", { name: /Not prepared/ }), null);
   assert.equal(screen.queryByRole("option", { name: /Already handed/ }), null);
 });

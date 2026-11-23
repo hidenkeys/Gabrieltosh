@@ -17,6 +17,19 @@ Object.defineProperty(globalThis, "navigator", {
 const React = await import("react");
 const { render, screen, fireEvent, cleanup, waitFor, act } =
   await import("@testing-library/react");
+
+function chooseReference(label: string) {
+  const input = screen.getByRole("combobox", { name: label, hidden: true });
+  fireEvent.focus(input);
+  const list = screen.getByRole("listbox", {
+    name: `${label} options`,
+    hidden: true,
+  });
+  fireEvent.click(
+    list.querySelector('[role="option"]:not([aria-disabled="true"])')!,
+  );
+}
+
 const { default: Bills } = await import("../src/mera/workspace/Bills");
 const base = "/organizations/org/branches/branch";
 const bill = {
@@ -46,10 +59,7 @@ const props = {
   canPay: true,
   save: async () => ({}),
 };
-const choose = () =>
-  fireEvent.change(screen.getByLabelText("Bill to manage"), {
-    target: { value: "bill-1" },
-  });
+const choose = () => chooseReference("Bill to manage");
 const open = (summary: string) =>
   fireEvent.click(screen.getByText(summary, { exact: true }));
 const input = (label: string, value: string) =>
@@ -138,9 +148,13 @@ test("split preserves whole-item API body and merges only another open bill from
   choose();
   open("Split this bill");
   input("New bill name", "One guest");
-  fireEvent.change(screen.getByLabelText("Split by"), {
-    target: { value: "items" },
-  });
+  fireEvent.click(
+    screen.getByRole("radio", {
+      name: "Whole item units",
+      hidden: true,
+      exact: true,
+    }),
+  );
   input("Move quantity of Lemonade", "1");
   fireEvent.click(screen.getByRole("button", { name: "Split bill" }));
   await waitFor(() => assert.equal(calls.length, 1));
@@ -158,11 +172,12 @@ test("split preserves whole-item API body and merges only another open bill from
     assert(!screen.getByLabelText("Bill to manage").hasAttribute("disabled")),
   );
   open("Merge another bill");
-  assert(screen.getByRole("option", { name: "Same party" }));
-  assert.equal(screen.queryByRole("option", { name: "Other party" }), null);
-  fireEvent.change(screen.getByLabelText("Merge another bill into this one"), {
-    target: { value: "same" },
-  });
+  fireEvent.focus(
+    screen.getByRole("combobox", { name: "Merge another bill into this one" }),
+  );
+  assert(screen.getByRole("option", { name: /^Same party / }));
+  assert.equal(screen.queryByRole("option", { name: /^Other party / }), null);
+  chooseReference("Merge another bill into this one");
   fireEvent.click(
     screen.getByRole("button", { name: "Merge into selected bill" }),
   );
@@ -218,9 +233,13 @@ test("unknown collection retries exact original key/body through409 and429 witho
   choose();
   open("Record money received");
   input("Amount received (naira)", "12.34");
-  fireEvent.change(screen.getByLabelText("Method"), {
-    target: { value: "external_transfer" },
-  });
+  fireEvent.click(
+    screen.getByRole("radio", {
+      name: "Verified external transfer",
+      hidden: true,
+      exact: true,
+    }),
+  );
   input("Verified reference", "Actual-reference");
   fireEvent.click(
     screen.getByRole("button", { name: "Record bill collection" }),
@@ -298,9 +317,13 @@ test("item splitting requires a selected whole unit and explains unavailable leg
   const view = render(<Bills {...props} />);
   choose();
   open("Split this bill");
-  fireEvent.change(screen.getByLabelText("Split by"), {
-    target: { value: "items" },
-  });
+  fireEvent.click(
+    screen.getByRole("radio", {
+      name: "Whole item units",
+      hidden: true,
+      exact: true,
+    }),
+  );
   assert(
     (screen.getByRole("button", { name: "Split bill" }) as HTMLButtonElement)
       .disabled,

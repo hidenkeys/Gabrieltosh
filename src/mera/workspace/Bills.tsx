@@ -1,3 +1,7 @@
+import Combobox from "../ui/Combobox";
+import Segmented from "../ui/Segmented";
+import Stepper from "../ui/Stepper";
+import MoneyInput from "../ui/MoneyInput";
 import { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
 import { formatMoney, workspaceApi } from "./api";
@@ -542,31 +546,25 @@ function ScopedBills({
           )}
         </div>
       )}
-      <label className="mw-form">
-        Bill to manage
-        <select
-          disabled={!available || working || !!pending || !!changeMarker}
-          value={form.billId || ""}
-          onChange={(e) => {
-            if (inFlight.current || pendingRef.current || markerRef.current)
-              return;
-            setForm({ billId: e.target.value });
-            setItems({});
-          }}
-        >
-          <option value="">Select an open bill</option>
-          {rows
-            .filter((b) => b.status === "open")
-            .map((b) => (
-              <option key={b.id} value={b.id}>
-                {name(b)} ·{" "}
-                {Number.isSafeInteger(b.balance) && b.balance < 0
-                  ? "Credit held " + amount(-b.balance)
-                  : amount(b.balance)}
-              </option>
-            ))}
-        </select>
-      </label>
+      <Combobox
+        label="Bill to manage"
+        value={form.billId || ""}
+        disabled={!available || working || !!pending || !!changeMarker}
+        placeholder="Select an open bill"
+        onChange={(value) => {
+          if (inFlight.current || pendingRef.current || markerRef.current)
+            return;
+          setForm({ billId: value });
+          setItems({});
+        }}
+        options={rows
+          .filter((b) => b.status === "open")
+          .map((b) => ({
+            value: b.id,
+            label: name(b),
+            description: `${party(b)} · ${Number.isSafeInteger(b.balance) && b.balance < 0 ? "Credit held " + amount(-b.balance) : amount(b.balance)}`,
+          }))}
+      />
       {current && (
         <Disclosure
           summary="Bill items and payments"
@@ -635,16 +633,15 @@ function ScopedBills({
                     onChange={(e) => update("name", e.target.value)}
                   />
                 </label>
-                <label>
-                  Split by
-                  <select
-                    value={form.splitMode || "amount"}
-                    onChange={(e) => update("splitMode", e.target.value)}
-                  >
-                    <option value="amount">Outstanding amount</option>
-                    <option value="items">Whole item units</option>
-                  </select>
-                </label>
+                <Segmented
+                  label="Split by"
+                  value={form.splitMode || "amount"}
+                  onChange={(value) => update("splitMode", value)}
+                  options={[
+                    { value: "amount", label: "Outstanding amount" },
+                    { value: "items", label: "Whole item units" },
+                  ]}
+                />
                 {form.splitMode === "items" ? (
                   <fieldset className="mw-wide">
                     <legend>Items to move</legend>
@@ -664,54 +661,42 @@ function ScopedBills({
                       ? current.charges
                       : []
                     ).map((charge: any) => (
-                      <label className="mw-row" key={charge.id}>
-                        <span>
-                          {charge.name} · {amount(charge.amount)}
-                        </span>
-                        <input
-                          aria-label={"Move quantity of " + charge.name}
-                          type="number"
-                          min="0"
-                          max={charge.quantity || 0}
-                          disabled={
-                            locked ||
-                            !Number.isSafeInteger(charge.quantity) ||
-                            charge.quantity <= 0
-                          }
-                          value={items[charge.id] || 0}
-                          onChange={(e) => {
-                            if (
-                              inFlight.current ||
-                              pendingRef.current ||
-                              markerRef.current
-                            )
-                              return;
-                            setItems({
-                              ...items,
-                              [charge.id]: Number(e.target.value),
-                            });
-                          }}
-                        />
-                      </label>
+                      <Stepper
+                        key={charge.id}
+                        label={"Move quantity of " + charge.name}
+                        min={0}
+                        max={charge.quantity || 0}
+                        disabled={
+                          locked ||
+                          !Number.isSafeInteger(charge.quantity) ||
+                          charge.quantity <= 0
+                        }
+                        value={items[charge.id] || 0}
+                        onChange={(value) => {
+                          if (
+                            inFlight.current ||
+                            pendingRef.current ||
+                            markerRef.current
+                          )
+                            return;
+                          setItems({ ...items, [charge.id]: value });
+                        }}
+                      />
                     ))}
                   </fieldset>
                 ) : (
-                  <label>
-                    Amount to move (naira)
-                    <input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      max={
-                        Number.isSafeInteger(current.balance)
-                          ? Math.max(0, current.balance) / 100
-                          : undefined
-                      }
-                      required
-                      value={form.amount || ""}
-                      onChange={(e) => update("amount", e.target.value)}
-                    />
-                  </label>
+                  <MoneyInput
+                    label="Amount to move (naira)"
+                    min={0.01}
+                    max={
+                      Number.isSafeInteger(current.balance)
+                        ? Math.max(0, current.balance) / 100
+                        : undefined
+                    }
+                    required
+                    value={String(form.amount || "")}
+                    onChange={(value) => update("amount", value)}
+                  />
                 )}
                 <div className="mw-wide">
                   <button
@@ -741,28 +726,25 @@ function ScopedBills({
                   );
                 }}
               >
-                <label>
-                  Merge another bill into this one
-                  <select
-                    required
-                    value={form.sourceBill || ""}
-                    onChange={(e) => update("sourceBill", e.target.value)}
-                  >
-                    <option value="">Choose another bill in this visit</option>
-                    {rows
-                      .filter(
-                        (b) =>
-                          b.id !== current.id &&
-                          b.status === "open" &&
-                          b.visitId === current.visitId,
-                      )
-                      .map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {name(b)}
-                        </option>
-                      ))}
-                  </select>
-                </label>
+                <Combobox
+                  label="Merge another bill into this one"
+                  required
+                  value={form.sourceBill || ""}
+                  onChange={(value) => update("sourceBill", value)}
+                  placeholder="Choose another bill in this visit"
+                  options={rows
+                    .filter(
+                      (b) =>
+                        b.id !== current.id &&
+                        b.status === "open" &&
+                        b.visitId === current.visitId,
+                    )
+                    .map((b) => ({
+                      value: b.id,
+                      label: name(b),
+                      description: amount(b.balance),
+                    }))}
+                />
                 <div className="mw-wide">
                   <button className="secondary" disabled={disabled}>
                     Merge into selected bill
@@ -792,35 +774,31 @@ function ScopedBills({
                     );
                   }}
                 >
-                  <label>
-                    Amount received (naira)
-                    <input
-                      required
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      max={
-                        Number.isSafeInteger(current.balance)
-                          ? Math.max(0, current.balance) / 100
-                          : undefined
-                      }
-                      value={form.paymentAmount || ""}
-                      onChange={(e) => update("paymentAmount", e.target.value)}
-                    />
-                  </label>
-                  <label>
-                    Method
-                    <select
-                      value={form.method || "cash"}
-                      onChange={(e) => update("method", e.target.value)}
-                    >
-                      <option value="cash">Cash</option>
-                      <option value="external_pos">External POS</option>
-                      <option value="external_transfer">
-                        Verified external transfer
-                      </option>
-                    </select>
-                  </label>
+                  <MoneyInput
+                    label="Amount received (naira)"
+                    min={0.01}
+                    max={
+                      Number.isSafeInteger(current.balance)
+                        ? Math.max(0, current.balance) / 100
+                        : undefined
+                    }
+                    required
+                    value={String(form.paymentAmount || "")}
+                    onChange={(value) => update("paymentAmount", value)}
+                  />
+                  <Segmented
+                    label="Method"
+                    value={form.method || "cash"}
+                    onChange={(value) => update("method", value)}
+                    options={[
+                      { value: "cash", label: "Cash" },
+                      { value: "external_pos", label: "External POS" },
+                      {
+                        value: "external_transfer",
+                        label: "Verified external transfer",
+                      },
+                    ]}
+                  />
                   <label>
                     Verified reference
                     <input

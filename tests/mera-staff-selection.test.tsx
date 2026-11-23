@@ -118,6 +118,7 @@ Object.defineProperty(globalThis, "navigator", {
 const React = await import("react");
 const { render, screen, fireEvent, cleanup } =
   await import("@testing-library/react");
+
 const { default: StaffPos } = await import("../src/mera/workspace/StaffPos");
 test("P1 basket prompts for choices then displays actual selected base, extras and item estimate", () => {
   function Harness() {
@@ -145,9 +146,7 @@ test("P1 basket prompts for choices then displays actual selected base, extras a
     fireEvent.change(screen.getByLabelText("Search counter menu"), {
       target: { value: "not found" },
     });
-    fireEvent.change(screen.getByLabelText("Size for Tea"), {
-      target: { value: "large" },
-    });
+    fireEvent.click(screen.getByRole("radio", { name: /^Large ·/ }));
     assert(screen.getByText("Tea · Complete selections"));
     fireEvent.click(screen.getByRole("checkbox", { name: /Pearls/ }));
     assert(

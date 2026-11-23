@@ -1,3 +1,7 @@
+import Combobox from "../ui/Combobox";
+import Segmented from "../ui/Segmented";
+import ReasonInput from "../ui/ReasonInput";
+import MoneyInput from "../ui/MoneyInput";
 import React, { useState } from "react";
 import { uuid } from "../../api";
 import { formatMoney, WorkspaceError } from "./api";
@@ -103,10 +107,10 @@ export default function DepositOutcomes({
         <p>No deposits recorded for this booking.</p>
       ) : (
         <>
-          {deposits.map((row) => (
+          {deposits.map((row, index) => (
             <div className="mw-row" key={row.id}>
               <span>
-                {row.reference || row.id.slice(0, 8)} ·{" "}
+                {row.reference || `Deposit ${index + 1}`} ·{" "}
                 {row.disposition?.replaceAll("_", " ") || "held unreviewed"}
               </span>
               <b>
@@ -128,86 +132,79 @@ export default function DepositOutcomes({
                 style={{ border: 0, padding: 0 }}
               >
                 <div className="mw-form">
-                  <label>
-                    Deposit under review
-                    <select
-                      required
-                      value={depositId}
-                      onChange={(event) => {
-                        setDepositId(event.target.value);
-                        setReviewed(false);
-                      }}
-                    >
-                      <option value="">Choose unused deposit</option>
-                      {deposits
-                        .filter((row) => row.unallocatedBalance > 0)
-                        .map((row) => (
-                          <option key={row.id} value={row.id}>
-                            {row.reference || row.id.slice(0, 8)} ·{" "}
-                            {formatMoney(row.unallocatedBalance)}
-                          </option>
-                        ))}
-                    </select>
-                  </label>
-                  <label>
-                    Reviewed deposit outcome
-                    <select
-                      required
-                      value={outcome}
-                      onChange={(event) => {
-                        setOutcome(event.target.value);
-                        setReviewed(false);
-                        setReturned(false);
-                      }}
-                    >
-                      <option value="">Choose an outcome</option>
-                      <option value="held">Keep held pending review</option>
-                      <option value="manual_return">
-                        Record completed manual return
-                      </option>
-                      {["cancelled", "no_show"].includes(reservation.status) &&
-                        !reservation.visitId && (
-                          <option value="forfeit">
-                            Eligible booked-policy forfeiture
-                          </option>
-                        )}
-                    </select>
-                  </label>
+                  <Combobox
+                    label="Deposit under review"
+                    required
+                    value={depositId}
+                    onChange={(value) => {
+                      setDepositId(value);
+                      setReviewed(false);
+                    }}
+                    placeholder="Choose unused deposit"
+                    options={deposits
+                      .filter((row) => row.unallocatedBalance > 0)
+                      .map((row, index) => ({
+                        value: row.id,
+                        label: row.reference || `Deposit ${index + 1}`,
+                        description: formatMoney(row.unallocatedBalance),
+                      }))}
+                  />
+                  <Segmented
+                    label="Reviewed deposit outcome"
+                    required
+                    value={outcome}
+                    onChange={(value) => {
+                      setOutcome(value);
+                      setReviewed(false);
+                      setReturned(false);
+                    }}
+                    options={[
+                      { value: "held", label: "Keep held pending review" },
+                      {
+                        value: "manual_return",
+                        label: "Record completed manual return",
+                      },
+                      ...(["cancelled", "no_show"].includes(
+                        reservation.status,
+                      ) && !reservation.visitId
+                        ? [
+                            {
+                              value: "forfeit",
+                              label: "Eligible booked-policy forfeiture",
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
                   {outcome && outcome !== "held" && (
-                    <label>
-                      Deposit outcome amount (naira)
-                      <input
-                        required
-                        type="number"
-                        min="0.01"
-                        max={remaining / 100}
-                        step="0.01"
-                        value={amount}
-                        onChange={(event) => setAmount(event.target.value)}
-                      />
-                    </label>
+                    <MoneyInput
+                      label="Deposit outcome amount (naira)"
+                      min={0.01}
+                      max={remaining / 100}
+                      required
+                      value={String(amount)}
+                      onChange={(value) => setAmount(value)}
+                    />
                   )}
                   {outcome === "manual_return" && (
                     <>
-                      <label>
-                        Actual deposit return method
-                        <select
-                          required
-                          value={method}
-                          onChange={(event) => setMethod(event.target.value)}
-                        >
-                          <option value="">
-                            Choose actual completed return
-                          </option>
-                          <option value="cash">Cash returned</option>
-                          <option value="external_pos">
-                            External POS refund
-                          </option>
-                          <option value="external_transfer">
-                            External transfer returned
-                          </option>
-                        </select>
-                      </label>
+                      <Segmented
+                        label="Actual deposit return method"
+                        required
+                        value={method}
+                        onChange={setMethod}
+                        options={[
+                          { value: "cash", label: "Cash returned" },
+                          {
+                            value: "external_pos",
+                            label: "External POS refund",
+                          },
+                          {
+                            value: "external_transfer",
+                            label: "External transfer returned",
+                          },
+                        ]}
+                      />
                       <label>
                         Deposit return reference
                         <input
@@ -221,37 +218,31 @@ export default function DepositOutcomes({
                   )}
                   {outcome === "forfeit" && (
                     <>
-                      <label>
-                        Forfeiture tax review
-                        <select
-                          required
-                          value={taxChoice}
-                          onChange={(event) => setTaxChoice(event.target.value)}
-                        >
-                          <option value="">
-                            Choose reviewed tax treatment
-                          </option>
-                          <option value="unknown">
-                            Tax amount remains unknown
-                          </option>
-                          <option value="known">
-                            Record reviewed tax amount
-                          </option>
-                        </select>
-                      </label>
+                      <Segmented
+                        label="Forfeiture tax review"
+                        required
+                        value={taxChoice}
+                        onChange={setTaxChoice}
+                        options={[
+                          {
+                            value: "unknown",
+                            label: "Tax amount remains unknown",
+                          },
+                          {
+                            value: "known",
+                            label: "Record reviewed tax amount",
+                          },
+                        ]}
+                      />
                       {taxChoice === "known" && (
-                        <label>
-                          Forfeiture tax amount (naira)
-                          <input
-                            required
-                            type="number"
-                            min={0}
-                            max={Number(amount) || 0}
-                            step="0.01"
-                            value={tax}
-                            onChange={(event) => setTax(event.target.value)}
-                          />
-                        </label>
+                        <MoneyInput
+                          label="Forfeiture tax amount (naira)"
+                          min={0}
+                          max={Number(amount) || 0}
+                          required
+                          value={String(tax)}
+                          onChange={(value) => setTax(value)}
+                        />
                       )}
                     </>
                   )}
@@ -260,22 +251,26 @@ export default function DepositOutcomes({
                   <p className="mw-note">
                     Booked refund rule:{" "}
                     {String(
-                      deposit.policySnapshot.refundRule || "unresolved",
+                      deposit.policySnapshot.refundRule || "not set",
                     ).replaceAll("_", " ")}
                     . The server checks eligibility and unused funds again
                     before recording this outcome.
                   </p>
                 )}
-                <label>
-                  Deposit outcome reason
-                  <textarea
-                    required
-                    minLength={10}
-                    maxLength={500}
-                    value={reason}
-                    onChange={(event) => setReason(event.target.value)}
-                  />
-                </label>
+                <ReasonInput
+                  label="Deposit outcome reason"
+                  required
+                  minLength={10}
+                  maxLength={500}
+                  value={reason}
+                  onChange={setReason}
+                  presets={[
+                    "Booked policy reviewed",
+                    "Return verified manually",
+                    "Keep held for policy review",
+                    "Eligible forfeiture reviewed",
+                  ]}
+                />
                 <label className="mw-row">
                   <span>
                     I reviewed the booked policy and verified this outcome.

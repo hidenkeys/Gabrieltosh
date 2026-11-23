@@ -1,3 +1,5 @@
+import ReasonInput from "../ui/ReasonInput";
+import MoneyInput from "../ui/MoneyInput";
 import React, { useState } from "react";
 import { uuid } from "../../api";
 import { formatMoney, WorkspaceError } from "./api";
@@ -89,28 +91,27 @@ export default function WriteOff({
             style={{ border: 0, padding: 0 }}
           >
             <div className="mw-form">
-              <label>
-                Debt write-off amount (naira)
-                <input
-                  required
-                  type="number"
-                  min="0.01"
-                  max={balance / 100}
-                  step="0.01"
-                  value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
-                />
-              </label>
-              <label>
-                Debt write-off reason
-                <input
-                  required
-                  minLength={10}
-                  maxLength={500}
-                  value={reason}
-                  onChange={(event) => setReason(event.target.value)}
-                />
-              </label>
+              <MoneyInput
+                label="Debt write-off amount (naira)"
+                min={0.01}
+                max={balance / 100}
+                required
+                value={String(amount)}
+                onChange={(value) => setAmount(value)}
+              />
+              <ReasonInput
+                label="Debt write-off reason"
+                required
+                minLength={10}
+                maxLength={500}
+                value={reason}
+                onChange={setReason}
+                presets={[
+                  "Unrecoverable customer debt",
+                  "Approved goodwill adjustment",
+                  "Payment dispute reviewed",
+                ]}
+              />
             </div>
             <label className="mw-row">
               <span>

@@ -1,3 +1,7 @@
+import Combobox from "../ui/Combobox";
+import Segmented from "../ui/Segmented";
+import Stepper from "../ui/Stepper";
+import MoneyInput from "../ui/MoneyInput";
 import React, { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
 import { formatMoney, workspaceApi, WorkspaceError } from "./api";
@@ -316,72 +320,58 @@ function ScopedReconciliation({ base, orders, demo, disabled, save }: Props) {
                         }
                       />
                     </label>
-                    <label>
-                      Simulator order
-                      <select
-                        required
-                        value={draft.orderId}
-                        onChange={(event) =>
-                          setDraft({ ...draft, orderId: event.target.value })
-                        }
-                      >
-                        <option value="">Choose an order</option>
-                        {orders.map((order) => (
-                          <option key={order.id} value={order.id}>
-                            {order.reference || "Reference unavailable"} ·{" "}
-                            {order.displayName}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      Event sequence
-                      <input
-                        required
-                        type="number"
-                        min={1}
-                        step={1}
-                        value={draft.sequence}
-                        onChange={(event) =>
-                          setDraft({
-                            ...draft,
-                            sequence: Number(event.target.value),
-                          })
-                        }
-                      />
-                    </label>
-                    <label>
-                      Observation type
-                      <select
-                        value={draft.type}
-                        onChange={(event) =>
-                          setDraft({ ...draft, type: event.target.value })
-                        }
-                      >
-                        {[
-                          "collection_reported",
-                          "refund_reported",
-                          "settlement_reported",
-                        ].map((type) => (
-                          <option key={type} value={type}>
-                            {human(type)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      Observed amount (naira)
-                      <input
-                        required
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        value={draft.amount}
-                        onChange={(event) =>
-                          setDraft({ ...draft, amount: event.target.value })
-                        }
-                      />
-                    </label>
+                    <Combobox
+                      label="Simulator order"
+                      required
+                      value={draft.orderId}
+                      onChange={(value) =>
+                        setDraft({ ...draft, orderId: value })
+                      }
+                      placeholder="Choose an order"
+                      options={orders.map((order) => ({
+                        value: order.id,
+                        label: order.reference || "Reference unavailable",
+                        description: [
+                          order.displayName,
+                          Number.isSafeInteger(order.total)
+                            ? money(order.total)
+                            : null,
+                          typeof order.status === "string"
+                            ? human(order.status)
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · "),
+                      }))}
+                    />
+                    <Stepper
+                      label="Event sequence"
+                      required
+                      min={1}
+                      value={draft.sequence}
+                      onChange={(value) =>
+                        setDraft({ ...draft, sequence: value })
+                      }
+                    />
+                    <Segmented
+                      label="Observation type"
+                      value={draft.type}
+                      onChange={(value) => setDraft({ ...draft, type: value })}
+                      options={[
+                        "collection_reported",
+                        "refund_reported",
+                        "settlement_reported",
+                      ].map((value) => ({ value, label: human(value) }))}
+                    />
+                    <MoneyInput
+                      label="Observed amount (naira)"
+                      min={0.01}
+                      required
+                      value={String(draft.amount)}
+                      onChange={(value) =>
+                        setDraft({ ...draft, amount: value })
+                      }
+                    />
                   </div>
                   <Action type="submit" pending={working}>
                     Record test observation

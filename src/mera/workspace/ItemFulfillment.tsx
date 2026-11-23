@@ -1,3 +1,6 @@
+import Combobox from "../ui/Combobox";
+import Stepper from "../ui/Stepper";
+import ReasonInput from "../ui/ReasonInput";
 import { useEffect, useRef, useState, useId } from "react";
 import { uuid } from "../../api";
 import { Disclosure } from "../ui/OperationalPrimitives";
@@ -289,62 +292,55 @@ function ScopedItemFulfillment({
               }}
             >
               <fieldset disabled={disabled || working}>
-                <label>
-                  Item to hand over
-                  <select
-                    required
-                    value={lineId}
-                    onChange={(event) => {
-                      const selected = actionable.find(
-                        (item: any) => item.orderLineId === event.target.value,
-                      );
-                      setLineId(event.target.value);
-                      setQuantity((selected?.served ?? 0) + 1);
-                      setError("");
-                    }}
-                  >
-                    <option value="">Choose a prepared item</option>
-                    {actionable.map((item: any) => (
-                      <option key={item.orderLineId} value={item.orderLineId}>
-                        {item.name} · {item.served} / {item.quantity} handed
-                        over
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Combobox
+                  label="Item to hand over"
+                  required
+                  value={lineId}
+                  onChange={(value) => {
+                    const selected = actionable.find(
+                      (item: any) => item.orderLineId === value,
+                    );
+                    setLineId(value);
+                    setQuantity((selected?.served ?? 0) + 1);
+                    setError("");
+                  }}
+                  placeholder="Choose a prepared item"
+                  options={actionable.map((item: any) => ({
+                    value: item.orderLineId,
+                    label: item.name,
+                    description: `${item.served} / ${item.quantity} handed over`,
+                  }))}
+                />
                 {line && (
                   <p className="mw-note">
                     Already handed over: {line.served}. Prepared:{" "}
                     {line.prepared}. Total ordered: {line.quantity}.
                   </p>
                 )}
-                <label>
-                  Total handed over after this action
-                  <input
-                    type="number"
-                    required
-                    min={(line?.served ?? 0) + 1}
-                    max={line?.limit ?? 0}
-                    step={1}
-                    value={quantity}
-                    onChange={(event) =>
-                      setQuantity(Number(event.target.value))
-                    }
-                    aria-describedby={quantityHintId}
-                  />
-                </label>
+                <Stepper
+                  label="Total handed over after this action"
+                  required
+                  min={(line?.served ?? 0) + 1}
+                  max={line?.limit ?? 0}
+                  value={quantity}
+                  onChange={setQuantity}
+                  describedBy={quantityHintId}
+                />
                 <p id={quantityHintId} className="mw-item-handoff-hint">
                   Include items already handed over. This is the new total, not
                   the quantity being added.
                 </p>
-                <label>
-                  Handoff note (optional)
-                  <input
-                    value={reason}
-                    maxLength={300}
-                    onChange={(event) => setReason(event.target.value)}
-                  />
-                </label>
+                <ReasonInput
+                  label="Handoff note (optional)"
+                  value={reason}
+                  maxLength={300}
+                  onChange={setReason}
+                  presets={[
+                    "Handed to customer",
+                    "Collected by waiter",
+                    "Taken to table",
+                  ]}
+                />
                 <button
                   type="submit"
                   className="secondary"
