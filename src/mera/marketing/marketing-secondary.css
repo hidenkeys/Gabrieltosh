@@ -316,3 +316,32 @@
     width: 86px;
   }
 }
+
+/* Keep legal-page destinations separate and usable at every viewport width. */
+.mera-secondary-page > footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 28px;
+  padding: 24px
+    max(
+      var(--mera-gutter, 20px),
+      calc((100% - var(--mera-content, 1240px)) / 2)
+    );
+  border-top: 1px solid var(--mera-border);
+  color: var(--mera-muted);
+}
+.mera-secondary-page > footer a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--mera-forest);
+}
+.mera-secondary-page > footer span {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .mera-secondary-page > footer span {
+    flex-basis: 100%;
+  }
+}
