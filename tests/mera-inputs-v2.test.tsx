@@ -90,7 +90,7 @@ test("stepper honors saved floor and maximum with pointer and editable numeric i
   fireEvent.click(screen.getByRole("button", { name: /Increase/ }));
   assert.equal((screen.getByRole("spinbutton") as HTMLInputElement).value, "3");
   fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "9" } });
-  assert.equal((screen.getByRole("spinbutton") as HTMLInputElement).value, "4");
+  assert.equal((screen.getByRole("spinbutton") as HTMLInputElement).value, "9");
   assert.equal(
     (screen.getByRole("button", { name: /Increase/ }) as HTMLButtonElement)
       .disabled,
@@ -295,4 +295,91 @@ test("cash counter uses an explicit total and date choices submit unchanged loca
       "Choose a preferred time. The venue will confirm availability.",
     ),
   );
+});
+
+const { default: requireChoice } = await import("../src/mera/ui/ChoiceField");
+test("choice adapter preserves required empty state, grouped disabled options and form reset", () => {
+  const ChoiceField = requireChoice;
+  render(
+    <form>
+      <ChoiceField label="Destination" name="destination" required>
+        <option value="">Choose destination</option>
+        <>
+          <option value="one">One</option>
+        </>
+        <optgroup label="Closed" disabled>
+          <option value="two">Two</option>
+        </optgroup>
+      </ChoiceField>
+    </form>,
+  );
+  assert.equal(
+    screen.queryByRole("radio", { name: "Choose destination" }),
+    null,
+  );
+  assert.equal(document.querySelector("form")!.checkValidity(), false);
+  assert.equal(
+    (screen.getByRole("radio", { name: "Two" }) as HTMLInputElement).disabled,
+    true,
+  );
+  fireEvent.click(screen.getByRole("radio", { name: "One" }));
+  assert.equal(
+    new dom.window.FormData(document.querySelector("form")!).get("destination"),
+    "one",
+  );
+  fireEvent.reset(document.querySelector("form")!);
+  assert.equal(document.querySelector("form")!.checkValidity(), false);
+});
+
+test("choice adapter searches data lists and preserves optional empty all value", () => {
+  const ChoiceField = requireChoice;
+  render(
+    <form>
+      <ChoiceField label="Table" name="table" searchable>
+        <option value="">All tables</option>
+        <option value="a">Table A</option>
+      </ChoiceField>
+    </form>,
+  );
+  const input = screen.getByRole("combobox", { name: "Table" });
+  fireEvent.focus(input);
+  fireEvent.click(screen.getByRole("option", { name: "Table A" }));
+  assert.equal(
+    new dom.window.FormData(document.querySelector("form")!).get("table"),
+    "a",
+  );
+  fireEvent.focus(input);
+  fireEvent.click(screen.getByRole("option", { name: "All tables" }));
+  assert.equal(
+    new dom.window.FormData(document.querySelector("form")!).get("table"),
+    "",
+  );
+});
+test("date input-only events preserve exact local values and billing can omit availability language", () => {
+  function Example() {
+    const [value, setValue] = React.useState("2026-12-01T10:00");
+    return (
+      <form>
+        <DateTimePicker
+          label="Invoice period"
+          name="period"
+          value={value}
+          onChange={setValue}
+          availabilityHint={false}
+        />
+      </form>
+    );
+  }
+  render(<Example />);
+  fireEvent.input(screen.getByLabelText("Date"), {
+    target: { value: "2026-12-02" },
+  });
+  fireEvent.input(screen.getByLabelText("Preferred time"), {
+    target: { value: "11:30" },
+  });
+  assert.equal(
+    new dom.window.FormData(document.querySelector("form")!).get("period"),
+    "2026-12-02T11:30",
+  );
+  assert.equal(screen.queryByText(/venue will confirm/), null);
 });

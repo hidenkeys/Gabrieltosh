@@ -105,12 +105,17 @@ export function Combobox({
         }}
       />
       {open && (
-        <ul id={`${generated}-options`} role="listbox" aria-label={label}>
+        <ul
+          id={`${generated}-options`}
+          role="listbox"
+          aria-label={`${label} options`}
+        >
           {filtered.map((option) => (
             <li
               key={option.value}
               id={`${generated}-option-${options.indexOf(option)}`}
               role="option"
+              data-value={option.value}
               aria-label={`${option.label}${option.description ? ` ${option.description}` : ""}`}
               aria-selected={value === option.value}
               data-active={enabled[active]?.value === option.value}

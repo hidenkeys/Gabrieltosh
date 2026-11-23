@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef } from "react";
 export type StepperProps = {
   label: string;
+  describedBy?: string;
   value: number;
   onChange: (value: number) => void;
   min?: number;
@@ -16,6 +17,7 @@ export type StepperProps = {
 };
 export function Stepper({
   label,
+  describedBy,
   value,
   onChange,
   min = 0,
@@ -96,6 +98,7 @@ export function Stepper({
         <input
           id={id || generated}
           name={name}
+          aria-describedby={describedBy}
           type="number"
           inputMode="numeric"
           value={value}
@@ -109,9 +112,7 @@ export function Stepper({
               event.target.value !== "" &&
               Number.isFinite(event.target.valueAsNumber)
             )
-              onChange(
-                Math.min(max, Math.max(min, event.target.valueAsNumber)),
-              );
+              onChange(event.target.valueAsNumber);
           }}
         />
         {button(step, "+")}

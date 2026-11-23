@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import Chips from "./Chips";
 export type DateTimePickerProps = {
   label: string;
+  availabilityHint?: string | false;
   ariaDescribedBy?: string;
   value: string;
   onChange: (value: string) => void;
@@ -18,6 +19,7 @@ const localDate = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 export function DateTimePicker({
   label,
+  availabilityHint = "Choose a preferred time. The venue will confirm availability.",
   ariaDescribedBy,
   value,
   onChange,
@@ -121,6 +123,7 @@ export function DateTimePicker({
             min={min?.slice(0, 10)}
             max={max?.slice(0, 10)}
             onChange={(event) => update(event.target.value, time)}
+            onInput={(event) => update(event.currentTarget.value, time)}
           />
         </label>
       )}
@@ -158,14 +161,13 @@ export function DateTimePicker({
           required={required}
           step="60"
           onChange={(event) => update(chosenDay, event.target.value)}
+          onInput={(event) => update(chosenDay, event.currentTarget.value)}
           min={day === min?.slice(0, 10) ? min.slice(11, 16) : undefined}
           max={day === max?.slice(0, 10) ? max.slice(11, 16) : undefined}
         />
       </label>
-      {!slots && (
-        <small>
-          Choose a preferred time. The venue will confirm availability.
-        </small>
+      {!slots && availabilityHint !== false && (
+        <small>{availabilityHint}</small>
       )}
       {name && <input type="hidden" name={name} value={value} />}
     </fieldset>
