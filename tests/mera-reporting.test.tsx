@@ -347,3 +347,30 @@ for (const status of [401, 403, 404])
     assert(screen.getByRole("button", { name: "Retry selected date" }));
     assert.equal(reads, 2);
   });
+
+test("trading-day presets change only the reviewed input and never invent a range report or load automatically", async (t) => {
+  const paths: string[] = [];
+  t.mock.method(globalThis, "fetch", async (input: any) => {
+    const path = String(input);
+    paths.push(path);
+    const date = new URL(path, "http://localhost").searchParams.get("date")!;
+    return Response.json({ ...response(), report: { ...report, date } });
+  });
+  render(<ReportExplorer base={base} disabled={false} />);
+  fireEvent.click(screen.getByRole("radio", { name: "Today", exact: true }));
+  const chosen = (screen.getByLabelText("Business date") as HTMLInputElement)
+    .value;
+  assert.ok(validBusinessDate(chosen));
+  assert.equal(paths.length, 0);
+  assert.equal(
+    screen.queryByRole("radio", { name: "This week", exact: true }),
+    null,
+    "one-day API must not advertise aggregated week totals",
+  );
+  fireEvent.submit(
+    screen.getByRole("button", { name: "Load date report" }).closest("form")!,
+  );
+  await screen.findByText(/Selected trading day:/);
+  assert.equal(paths.length, 1);
+  assert.ok(paths[0].endsWith("date=" + chosen));
+});

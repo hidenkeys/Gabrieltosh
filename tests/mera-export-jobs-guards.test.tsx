@@ -303,3 +303,37 @@ test("invalid job timestamps remain unavailable rather than throwing or inventin
     globalThis.fetch = original;
   }
 });
+
+test("report-export date presets never queue a job and custom entry keeps the exact selected day", async () => {
+  const writes: any[] = [];
+  globalThis.fetch = async () => Response.json([]);
+  try {
+    render(
+      <ExportJobs
+        {...props}
+        save={async (...args: any[]) => {
+          writes.push(args);
+          return { id: "job-day" };
+        }}
+      />,
+    );
+    await screen.findByText("No jobs for this branch.");
+    fireEvent.click(
+      screen.getByRole("radio", { name: "Yesterday", exact: true }),
+    );
+    const day = (screen.getByLabelText("Business date") as HTMLInputElement)
+      .value;
+    assert.match(day, /^\d{4}-\d{2}-\d{2}$/);
+    assert.equal(writes.length, 0);
+    fireEvent.submit(
+      screen
+        .getByRole("button", { name: "Queue report export" })
+        .closest("form")!,
+    );
+    await waitFor(() => assert.equal(writes.length, 1));
+    assert.equal(writes[0][2].date, day);
+  } finally {
+    cleanup();
+    globalThis.fetch = original;
+  }
+});

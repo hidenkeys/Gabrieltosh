@@ -65,9 +65,9 @@ test("P5 active parties follow actual arrival order, contact stays disclosed and
     );
     assert(screen.getAllByText(/19 Nov 2026, 00:30/).length > 0);
     assert.equal(container.querySelector("script"), null);
-    fireEvent.change(screen.getByLabelText("Waitlist view"), {
-      target: { value: "history" },
-    });
+    fireEvent.click(
+      screen.getByRole("radio", { name: "Seated & cancelled", exact: true }),
+    );
     await screen.findByRole("heading", { name: "Seated party" });
     assert.equal(screen.queryByRole("button", { name: "Mark seated" }), null);
     assert(screen.getByText(/does not open a table visit/));

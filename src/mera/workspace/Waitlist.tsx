@@ -1,3 +1,6 @@
+import Segmented from "../ui/Segmented";
+import Stepper from "../ui/Stepper";
+import Chips from "../ui/Chips";
 import React, { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
 import { DataRegion, Disclosure } from "../ui/OperationalPrimitives";
@@ -259,14 +262,16 @@ function ScopedWaitlist({ base, disabled, timeZone, save }: Props) {
           </button>
         </div>
       )}
-      <label className="mw-waitlist-filter">
-        Waitlist view
-        <select value={view} onChange={(event) => setView(event.target.value)}>
-          <option value="active">Waiting & notified</option>
-          <option value="history">Seated & cancelled</option>
-          <option value="all">All parties</option>
-        </select>
-      </label>
+      <Segmented
+        label="Show waitlist"
+        value={view}
+        onChange={setView}
+        options={[
+          { value: "active", label: "Waiting & notified" },
+          { value: "history", label: "Seated & cancelled" },
+          { value: "all", label: "All parties" },
+        ]}
+      />
       {loading ? (
         <p role="status">Loading waitlist…</p>
       ) : readError ? null : !shown.length ? (
@@ -431,22 +436,33 @@ function ScopedWaitlist({ base, disabled, timeZone, save }: Props) {
                   }
                 />
               </label>
-              <label>
-                Party size
-                <input
-                  type="number"
+              <div>
+                <Stepper
+                  label="Party size"
+                  value={draft.partySize}
+                  onChange={(partySize) => setDraft({ ...draft, partySize })}
                   min={1}
                   max={100}
                   required
-                  value={draft.partySize}
-                  onChange={(event) =>
+                />
+                <Chips
+                  label="Quick party size"
+                  value={draft.partySize > 8 ? "9+" : String(draft.partySize)}
+                  onChange={(v) =>
                     setDraft({
                       ...draft,
-                      partySize: Number(event.target.value),
+                      partySize: v === "9+" ? 9 : Number(v),
                     })
                   }
+                  options={[
+                    ...Array.from({ length: 8 }, (_, i) => ({
+                      value: String(i + 1),
+                      label: String(i + 1),
+                    })),
+                    { value: "9+", label: "9+" },
+                  ]}
                 />
-              </label>
+              </div>
               <label>
                 Contact
                 <input

@@ -1,3 +1,4 @@
+import Chips from "../ui/Chips";
 import React, { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
 import { workspaceApi } from "./api";
@@ -44,6 +45,23 @@ function ScopedExports({ base, disabled, save, timeZone, initialDate }: Props) {
     [uncertainRetries, setUncertainRetries] = useState<Record<string, boolean>>(
       {},
     );
+  const [dayPreset, setDayPreset] = useState("custom");
+  const dateInput = useRef<HTMLInputElement>(null);
+  const chooseDay = (value: string) => {
+    setDayPreset(value);
+    if (value === "custom") {
+      dateInput.current?.focus();
+      try {
+        dateInput.current?.showPicker?.();
+      } catch {}
+      return;
+    }
+    const now = new Date();
+    if (value === "yesterday") now.setDate(now.getDate() - 1);
+    setDate(
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`,
+    );
+  };
   const [denied, setDenied] = useState(false);
   const active = useRef(true),
     generation = useRef(0),
@@ -419,15 +437,42 @@ function ScopedExports({ base, disabled, save, timeZone, initialDate }: Props) {
             }
             className="mw-utility-form"
           >
+            <div style={{ gridColumn: "1 / -1", minWidth: 0 }}>
+              {" "}
+              <Chips
+                label="Choose a trading day"
+                value={dayPreset}
+                onChange={chooseDay}
+                disabled={
+                  disabled || working || loading || !!readError || !!pending
+                }
+                options={[
+                  { value: "today", label: "Today" },
+                  { value: "yesterday", label: "Yesterday" },
+                  { value: "custom", label: "Custom" },
+                ]}
+              />
+              <small>
+                Presets use this device’s date. Reports cover one branch trading
+                day at a time.
+              </small>
+            </div>
             <label>
               Business date
               <input
                 type="date"
                 name="businessDate"
+                ref={dateInput}
                 required
                 value={date}
-                onInput={(event) => setDate(event.currentTarget.value)}
-                onChange={(event) => setDate(event.target.value)}
+                onInput={(event) => {
+                  setDate(event.currentTarget.value);
+                  setDayPreset("custom");
+                }}
+                onChange={(event) => {
+                  setDate(event.target.value);
+                  setDayPreset("custom");
+                }}
               />
             </label>
             <button className="primary">Queue report export</button>

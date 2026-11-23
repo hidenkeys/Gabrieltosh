@@ -1,3 +1,4 @@
+import { chooseDateTime, readDateTime } from "./mera-input-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -14,7 +15,7 @@ Object.defineProperty(globalThis, "navigator", {
   configurable: true,
 });
 const React = await import("react");
-const { render, screen, fireEvent, waitFor, cleanup, act } =
+const { render, screen, fireEvent, waitFor, cleanup, act, within } =
   await import("@testing-library/react");
 const { default: Invoices } = await import("../src/mera/workspace/Invoices");
 const billing = {
@@ -91,12 +92,20 @@ test("O7 invoice list precedes disclosed creation and pending retry retains orig
         dom.window.Node.DOCUMENT_POSITION_FOLLOWING,
     );
     details.open = true;
-    fireEvent.change(screen.getByLabelText("Period starts"), {
-      target: { value: "2026-11-01T00:00" },
-    });
-    fireEvent.change(screen.getByLabelText("Period ends"), {
-      target: { value: "2026-12-01T00:00" },
-    });
+    chooseDateTime(
+      screen,
+      fireEvent,
+      within,
+      "Period starts",
+      "2026-11-01T00:00",
+    );
+    chooseDateTime(
+      screen,
+      fireEvent,
+      within,
+      "Period ends",
+      "2026-12-01T00:00",
+    );
     fireEvent.submit(
       screen
         .getByRole("button", { name: "Create proposed invoice" })
@@ -106,14 +115,15 @@ test("O7 invoice list precedes disclosed creation and pending retry retains orig
     details.open = false;
     details.open = true;
     assert.equal(
-      (screen.getByLabelText("Period starts") as HTMLInputElement).value,
+      readDateTime(screen, within, "Period starts"),
       "2026-11-01T00:00",
     );
     assert(
       (
-        screen
-          .getByLabelText("Period starts")
-          .closest("fieldset") as HTMLFieldSetElement
+        screen.getByRole("group", {
+          name: "Period starts",
+          exact: true,
+        }) as HTMLFieldSetElement
       ).disabled,
     );
     fireEvent.click(
@@ -221,5 +231,46 @@ test("O7 composed invoice view hides duplicate service summary but retains recor
   } finally {
     cleanup();
     globalThis.fetch = original;
+  }
+});
+
+test("invoice period presets keep device-local boundaries explicit and never create an invoice until submitted", async () => {
+  const before = globalThis.fetch;
+  const writes: any[] = [];
+  globalThis.fetch = async () => Response.json(billing);
+  try {
+    render(
+      <Invoices
+        organizationId="org"
+        disabled={false}
+        save={async (...args: any[]) => {
+          writes.push(args);
+          return { id: "new-invoice" };
+        }}
+      />,
+    );
+    await screen.findByText("No invoices recorded.");
+    fireEvent.click(
+      screen.getByText("Create a proposed invoice", { selector: "summary" }),
+    );
+    fireEvent.click(
+      screen.getByRole("radio", { name: "This month", exact: true }),
+    );
+    assert.equal(writes.length, 0);
+    const start = readDateTime(screen, within, "Period starts"),
+      end = readDateTime(screen, within, "Period ends");
+    assert.ok(start.endsWith("-01T00:00"));
+    assert.ok(Date.parse(end) > Date.parse(start));
+    fireEvent.submit(
+      screen
+        .getByRole("button", { name: "Create proposed invoice" })
+        .closest("form")!,
+    );
+    await waitFor(() => assert.equal(writes.length, 1));
+    assert.equal(writes[0][2].periodStart, new Date(start).toISOString());
+    assert.equal(writes[0][2].periodEnd, new Date(end).toISOString());
+  } finally {
+    cleanup();
+    globalThis.fetch = before;
   }
 });

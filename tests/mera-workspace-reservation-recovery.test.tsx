@@ -1,3 +1,4 @@
+import { chooseDateTime } from "./mera-input-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -21,7 +22,7 @@ Object.defineProperty(globalThis, "navigator", {
   configurable: true,
 });
 const React = await import("react");
-const { render, screen, fireEvent, waitFor, cleanup } =
+const { render, screen, fireEvent, waitFor, cleanup, within } =
   await import("@testing-library/react");
 const { default: Workspace } =
   await import("../src/mera/workspace/OrganizationWorkspace");
@@ -130,7 +131,9 @@ async function openAndFill() {
     ["Starts at (this device’s local time)", "2030-01-02T12:00"],
     ["Ends at (this device’s local time)", "2030-01-02T13:00"],
   ])
-    fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    if (label.startsWith("Starts at") || label.startsWith("Ends at"))
+      chooseDateTime(screen, fireEvent, within, label, value);
+    else fireEvent.change(screen.getByLabelText(label), { target: { value } });
   fireEvent.change(screen.getByLabelText("Notes (optional)"), {
     target: { value: "Private guest request" },
   });

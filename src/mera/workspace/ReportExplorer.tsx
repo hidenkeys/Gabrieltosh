@@ -1,3 +1,4 @@
+import Chips from "../ui/Chips";
 import { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
 import { ReadState } from "../ui/OperationalPrimitives";
@@ -57,6 +58,23 @@ function ScopedReportExplorer({
     [error, setError] = useState(""),
     [loading, setLoading] = useState(false),
     [revision, setRevision] = useState(0);
+  const [dayPreset, setDayPreset] = useState("custom");
+  const dateInput = useRef<HTMLInputElement>(null);
+  const chooseDay = (value: string) => {
+    setDayPreset(value);
+    if (value === "custom") {
+      dateInput.current?.focus();
+      try {
+        dateInput.current?.showPicker?.();
+      } catch {}
+      return;
+    }
+    const now = new Date();
+    if (value === "yesterday") now.setDate(now.getDate() - 1);
+    setDate(
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`,
+    );
+  };
   const generation = useRef(0),
     errorRef = useRef<HTMLDivElement>(null),
     headingRef = useRef<HTMLHeadingElement>(null),
@@ -157,17 +175,42 @@ function ScopedReportExplorer({
         </p>
       </header>
       <form className="mw-date-report-form" onSubmit={loadDate}>
+        <div style={{ gridColumn: "1 / -1", minWidth: 0 }}>
+          {" "}
+          <Chips
+            label="Choose a trading day"
+            value={dayPreset}
+            onChange={chooseDay}
+            disabled={disabled || loading}
+            options={[
+              { value: "today", label: "Today" },
+              { value: "yesterday", label: "Yesterday" },
+              { value: "custom", label: "Custom" },
+            ]}
+          />
+          <small>
+            Presets use this device’s date. Reports cover one branch trading day
+            at a time.
+          </small>
+        </div>
         <label>
           Business date
           <input
             name="businessDate"
+            ref={dateInput}
             required
             type="date"
             min="1900-01-01"
             max="2999-12-31"
             value={date}
-            onInput={(event) => setDate(event.currentTarget.value)}
-            onChange={(event) => setDate(event.target.value)}
+            onInput={(event) => {
+              setDate(event.currentTarget.value);
+              setDayPreset("custom");
+            }}
+            onChange={(event) => {
+              setDate(event.target.value);
+              setDayPreset("custom");
+            }}
             onInvalid={(event) => {
               event.preventDefault();
               setError(

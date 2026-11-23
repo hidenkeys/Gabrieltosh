@@ -1,3 +1,5 @@
+import DateTimePicker from "../ui/DateTimePicker";
+import DateRangePresets from "../ui/DateRangePresets";
 import React, { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
 import { workspaceApi, formatMoney } from "./api";
@@ -25,6 +27,7 @@ function ScopedInvoices({
   const [data, setData] = useState<any>(null);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [periodPreset, setPeriodPreset] = useState("custom");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true),
@@ -268,24 +271,48 @@ function ScopedInvoices({
                 className="mw-invoice-create-fields"
               >
                 <div className="mw-form">
-                  <label>
-                    Period starts
-                    <input
-                      required
-                      type="datetime-local"
-                      value={start}
-                      onChange={(e) => setStart(e.target.value)}
-                    />
-                  </label>
-                  <label>
-                    Period ends
-                    <input
-                      required
-                      type="datetime-local"
-                      value={end}
-                      onChange={(e) => setEnd(e.target.value)}
-                    />
-                  </label>
+                  <DateRangePresets
+                    label="Invoice period"
+                    value={periodPreset}
+                    onPresetChange={setPeriodPreset}
+                    disabled={
+                      disabled || busy || !!pending || loading || !!loadError
+                    }
+                    onChange={(range) => {
+                      setStart(range.from + "T00:00");
+                      const last = new Date(range.to + "T00:00");
+                      last.setDate(last.getDate() + 1);
+                      setEnd(
+                        `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}-${String(last.getDate()).padStart(2, "0")}T00:00`,
+                      );
+                    }}
+                  />
+                  <p>
+                    Periods use this device’s local dates. The end is exclusive;
+                    no charge is made by choosing a period.
+                  </p>
+                  <DateTimePicker
+                    label="Period starts"
+                    availabilityHint={false}
+                    value={start}
+                    onChange={(value) => {
+                      setStart(value);
+                      setPeriodPreset("custom");
+                    }}
+                    required
+                    disabled={disabled || busy || !!pending}
+                  />
+                  <DateTimePicker
+                    label="Period ends"
+                    availabilityHint={false}
+                    value={end}
+                    onChange={(value) => {
+                      setEnd(value);
+                      setPeriodPreset("custom");
+                    }}
+                    required
+                    disabled={disabled || busy || !!pending}
+                  />
                   <button className="secondary" disabled={disabled || busy}>
                     Create proposed invoice
                   </button>

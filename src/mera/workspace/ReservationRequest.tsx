@@ -1,3 +1,8 @@
+import Chips from "../ui/Chips";
+import Combobox from "../ui/Combobox";
+import ReasonInput from "../ui/ReasonInput";
+import DateTimePicker from "../ui/DateTimePicker";
+import Stepper from "../ui/Stepper";
 import { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
 import { workspaceApi, formatMoney } from "./api";
@@ -60,7 +65,7 @@ function ScopedRequest(props: Props) {
   const [draft, setDraft] = useState({
     displayName: "",
     contact: "",
-    partySize: "",
+    partySize: "2",
     startsAt: "",
     endsAt: "",
     tableId: "",
@@ -98,7 +103,7 @@ function ScopedRequest(props: Props) {
       setDraft({
         displayName: "",
         contact: "",
-        partySize: "",
+        partySize: "2",
         startsAt: "",
         endsAt: "",
         tableId: "",
@@ -134,7 +139,7 @@ function ScopedRequest(props: Props) {
       setDraft({
         displayName: "",
         contact: "",
-        partySize: "",
+        partySize: "2",
         startsAt: "",
         endsAt: "",
         tableId: "",
@@ -210,7 +215,7 @@ function ScopedRequest(props: Props) {
       setDraft({
         displayName: "",
         contact: "",
-        partySize: "",
+        partySize: "2",
         startsAt: "",
         endsAt: "",
         tableId: "",
@@ -433,16 +438,20 @@ function ScopedRequest(props: Props) {
               been recorded. It does not cancel an accepted reservation or
               initiate a refund.
             </p>
-            <label>
-              Reason for stopping
-              <input
-                value={reason}
-                minLength={3}
-                maxLength={500}
-                disabled={disabled || working}
-                onChange={(e) => setReason(e.target.value)}
-              />
-            </label>
+            <ReasonInput
+              label="Reason for stopping"
+              value={reason}
+              onChange={setReason}
+              minLength={3}
+              maxLength={500}
+              required
+              disabled={disabled || working}
+              presets={[
+                "Plans changed",
+                "Duplicate request",
+                "Booking no longer needed",
+              ]}
+            />
             <label className="mw-row">
               <input
                 type="checkbox"
@@ -502,62 +511,94 @@ function ScopedRequest(props: Props) {
                     "datetime-local",
                   ],
                 ] as const
-              ).map(([key, label, type]) => (
-                <label key={key}>
-                  {label}
-                  <input
-                    required
-                    type={type}
-                    min={key === "partySize" ? 1 : undefined}
-                    max={key === "partySize" ? 100 : undefined}
-                    maxLength={
-                      key === "displayName"
-                        ? 100
-                        : key === "contact"
-                          ? 160
-                          : undefined
-                    }
+              ).map(([key, label, type]) =>
+                type === "datetime-local" ? (
+                  <DateTimePicker
+                    key={key}
+                    label={label}
                     value={draft[key]}
-                    onInput={
-                      type === "datetime-local"
-                        ? (event) => {
-                            const value = event.currentTarget.value;
-                            setDraft((previous) => ({
-                              ...previous,
-                              [key]: value,
-                            }));
-                          }
-                        : undefined
+                    onChange={(value) =>
+                      setDraft((previous) => ({ ...previous, [key]: value }))
                     }
-                    onChange={(e) =>
-                      setDraft({ ...draft, [key]: e.target.value })
-                    }
+                    required
                   />
-                </label>
-              ))}
-              <label>
-                Preferred table
-                <select
-                  value={draft.tableId}
-                  onChange={(e) =>
-                    setDraft({ ...draft, tableId: e.target.value })
-                  }
-                >
-                  <option value="">No preference</option>
-                  {(Array.isArray(props.tables) ? props.tables : [])
+                ) : key === "partySize" ? (
+                  <Stepper
+                    key={key}
+                    label={label}
+                    value={Number(draft.partySize)}
+                    onChange={(value) =>
+                      setDraft((previous) => ({
+                        ...previous,
+                        partySize: String(value),
+                      }))
+                    }
+                    min={1}
+                    max={100}
+                    required
+                  />
+                ) : (
+                  <label key={key}>
+                    {label}
+                    <input
+                      required
+                      type={type}
+                      maxLength={
+                        key === "displayName"
+                          ? 100
+                          : key === "contact"
+                            ? 160
+                            : undefined
+                      }
+                      value={draft[key]}
+                      onChange={(e) =>
+                        setDraft({ ...draft, [key]: e.target.value })
+                      }
+                    />
+                  </label>
+                ),
+              )}
+              <Chips
+                label="Quick party size"
+                value={Number(draft.partySize) >= 9 ? "9+" : draft.partySize}
+                onChange={(value) =>
+                  setDraft((previous) => ({
+                    ...previous,
+                    partySize: value === "9+" ? "9" : value,
+                  }))
+                }
+                options={[
+                  ...Array.from({ length: 8 }, (_, index) => ({
+                    value: String(index + 1),
+                    label: String(index + 1),
+                  })),
+                  { value: "9+", label: "9+" },
+                ]}
+              />
+              <Combobox
+                label="Preferred table"
+                value={draft.tableId}
+                onChange={(tableId) =>
+                  setDraft((previous) => ({ ...previous, tableId }))
+                }
+                options={[
+                  { value: "", label: "No preference" },
+                  ...(Array.isArray(props.tables) ? props.tables : [])
                     .filter(
                       (table) =>
                         table &&
                         typeof table.id === "string" &&
                         typeof table.name === "string",
                     )
-                    .map((table) => (
-                      <option key={table.id} value={table.id}>
-                        {table.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
+                    .map((table) => ({
+                      value: table.id,
+                      label: table.name,
+                      description: Number.isSafeInteger(table.capacity)
+                        ? `${table.capacity} seats`
+                        : undefined,
+                    })),
+                ]}
+              />
               {!Array.isArray(props.tables) && (
                 <p>
                   Table details are unavailable. You can request no preference.

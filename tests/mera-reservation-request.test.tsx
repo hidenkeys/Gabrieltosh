@@ -1,3 +1,4 @@
+import { chooseDateTime, readDateTime } from "./mera-input-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -14,7 +15,7 @@ Object.defineProperty(globalThis, "navigator", {
   configurable: true,
 });
 const React = await import("react");
-const { render, screen, fireEvent, waitFor, cleanup, act } =
+const { render, screen, fireEvent, waitFor, cleanup, act, within } =
   await import("@testing-library/react");
 const { default: ReservationRequest } =
   await import("../src/mera/workspace/ReservationRequest");
@@ -53,7 +54,9 @@ async function fill() {
     ["Starts at (this device’s local time)", "2030-01-02T12:00"],
     ["Ends at (this device’s local time)", "2030-01-02T13:00"],
   ])
-    fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    if (label.startsWith("Starts at") || label.startsWith("Ends at"))
+      chooseDateTime(screen, fireEvent, within, label, value);
+    else fireEvent.change(screen.getByLabelText(label), { target: { value } });
   return screen
     .getByRole("button", { name: "Request reservation" })
     .closest("form")!;
@@ -194,9 +197,7 @@ test("reference-only recovery never retries private details and explicit confirm
       !screen.queryByRole("button", { name: "Retry original reservation" }),
     );
     fireEvent.click(screen.getByText("Stop the unconfirmed request"));
-    fireEvent.change(screen.getByLabelText("Reason for stopping"), {
-      target: { value: "Guest requests stop" },
-    });
+    fireEvent.click(screen.getByRole("radio", { name: "Plans changed" }));
     fireEvent.click(
       screen.getByRole("checkbox", {
         name: "I want to stop this unconfirmed request.",
@@ -379,17 +380,20 @@ test("confirmed creation clears fields and policy acknowledgement so a second sy
     await screen.findByText(/original reservation is recorded/);
     assert.equal(writes, 1);
     assert.equal(journal.readStaffReservationJournal(scope), null);
-    for (const label of [
-      "Guest name",
-      "Contact",
-      "Party size",
-      "Starts at (this device’s local time)",
-      "Ends at (this device’s local time)",
-    ])
+    for (const label of ["Guest name", "Contact"])
       assert.equal(
         (screen.getByLabelText(label) as HTMLInputElement).value,
         "",
       );
+    assert.equal(
+      (screen.getByLabelText("Party size") as HTMLInputElement).value,
+      "2",
+    );
+    for (const label of [
+      "Starts at (this device’s local time)",
+      "Ends at (this device’s local time)",
+    ])
+      assert.equal(readDateTime(screen, within, label), "");
     assert.equal(
       (
         screen.getByRole("checkbox", {
@@ -435,28 +439,28 @@ test("native datetime input-only events populate the exact original UTC booking 
       fireEvent.change(screen.getByLabelText(label), { target: { value } });
     const starts = "2030-02-03T14:15",
       ends = "2030-02-03T15:45";
-    fireEvent.input(
-      screen.getByLabelText("Starts at (this device’s local time)"),
-      { target: { value: starts } },
+    chooseDateTime(
+      screen,
+      fireEvent,
+      within,
+      "Starts at (this device’s local time)",
+      starts,
+      true,
     );
-    fireEvent.input(
-      screen.getByLabelText("Ends at (this device’s local time)"),
-      { target: { value: ends } },
+    chooseDateTime(
+      screen,
+      fireEvent,
+      within,
+      "Ends at (this device’s local time)",
+      ends,
+      true,
     );
     assert.equal(
-      (
-        screen.getByLabelText(
-          "Starts at (this device’s local time)",
-        ) as HTMLInputElement
-      ).value,
+      readDateTime(screen, within, "Starts at (this device’s local time)"),
       starts,
     );
     assert.equal(
-      (
-        screen.getByLabelText(
-          "Ends at (this device’s local time)",
-        ) as HTMLInputElement
-      ).value,
+      readDateTime(screen, within, "Ends at (this device’s local time)"),
       ends,
     );
     fireEvent.submit(
@@ -476,5 +480,52 @@ test("native datetime input-only events populate the exact original UTC booking 
     cleanup();
     window.sessionStorage.clear();
     globalThis.fetch = original;
+  }
+});
+
+test("staff party quick choices and typed9+ counts preserve actual cumulative party size in the unchanged booking body", async () => {
+  const writes: any[] = [];
+  try {
+    render(
+      <ReservationRequest
+        {...props}
+        save={async (_path, _method, body) => {
+          writes.push(body);
+          return {
+            ...body,
+            id,
+            createdBy: actor,
+            guestId: null,
+            status: "requested",
+          };
+        }}
+      />,
+    );
+    const form = await fill();
+    fireEvent.click(screen.getByRole("radio", { name: "9+", exact: true }));
+    assert.equal(
+      (screen.getByLabelText("Party size") as HTMLInputElement).value,
+      "9",
+    );
+    assert.equal(writes.length, 0);
+    fireEvent.change(screen.getByLabelText("Party size"), {
+      target: { value: "12" },
+    });
+    assert.equal(
+      (
+        screen.getByRole("radio", {
+          name: "9+",
+          exact: true,
+        }) as HTMLInputElement
+      ).checked,
+      true,
+    );
+    fireEvent.submit(form);
+    await waitFor(() => assert.equal(writes.length, 1));
+    assert.equal(writes[0].partySize, 12);
+  } finally {
+    cleanup();
+    globalThis.fetch = original;
+    window.sessionStorage.clear();
   }
 });
