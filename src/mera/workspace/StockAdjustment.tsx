@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import BottomSheet from "../ui/BottomSheet";
 import Segmented from "../ui/Segmented";
 import Chips from "../ui/Chips";
@@ -31,8 +31,25 @@ export default function StockAdjustment({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [pending, setPending] = useState<any>(null),
-    [uncertain, setUncertain] = useState(false);
-  const lock = useRef(false);
+    [denied, setDenied] = useState(false);
+  const lock = useRef(false),
+    alive = useRef(true),
+    deniedRef = useRef(false),
+    pendingRef = useRef<any>(null);
+  const scope = base + "|" + product.id,
+    bornScope = useRef(scope),
+    renderedScope = useRef(scope);
+  renderedScope.current = scope;
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+  const currentScope = () =>
+    alive.current &&
+    renderedScope.current === bornScope.current &&
+    !deniedRef.current;
   const balances = [
     { ...product, label: "Product balance" },
     ...(product.variants || []).map((v: any) => ({
@@ -43,53 +60,108 @@ export default function StockAdjustment({
   const target = variantId
     ? product.variants?.find((v: any) => v.id === variantId)
     : product;
-  const current = Number(target?.stock || 0),
-    delta =
-      type === "restock"
-        ? Math.abs(change)
-        : type === "correction"
-          ? change
-          : -Math.abs(change),
-    next = current + delta;
+  const validTarget =
+    target?.stockMode === "counted" &&
+    Number.isSafeInteger(target?.stock) &&
+    target.stock >= 0 &&
+    target.stock <= 1000000;
+  const current = pending ? pending.before : validTarget ? target.stock : null;
+  const delta = pending
+    ? pending.delta
+    : type === "restock"
+      ? Math.abs(change)
+      : type === "correction"
+        ? change
+        : -Math.abs(change);
+  const next = current === null ? null : current + delta;
+  const validChange =
+    validTarget &&
+    Number.isSafeInteger(change) &&
+    change !== 0 &&
+    (type === "correction" || change > 0) &&
+    next !== null &&
+    next >= 0 &&
+    next <= 1000000;
   async function send(original?: any) {
-    if (lock.current || disabled) return;
+    if (lock.current || disabled || !currentScope()) return;
+    const prior = !!pendingRef.current;
+    if (
+      !original &&
+      !pendingRef.current &&
+      (!validChange ||
+        reason.trim().length < (type === "correction" ? 3 : 10) ||
+        reason.length > (type === "correction" ? 300 : 500))
+    )
+      return;
+    const correction = type === "correction";
+    const attempt = original ||
+      pendingRef.current || {
+        correction,
+        before: current,
+        delta,
+        path: base + (correction ? "/stock" : "/stock/movements"),
+        body: {
+          ...(correction
+            ? {}
+            : {
+                requestKey: crypto.randomUUID(),
+                type,
+                expectedStock: current,
+              }),
+          productId: product.id,
+          ...(variantId ? { variantId } : {}),
+          quantity: correction ? next : Math.abs(change),
+          reason,
+        },
+      };
+    if (attempt.correction && prior) return;
+    const requestedScope = scope;
     lock.current = true;
+    pendingRef.current = attempt;
     setBusy(true);
     setError("");
-    const correction = type === "correction";
-    const body = original || {
-      ...(correction
-        ? {}
-        : { requestKey: crypto.randomUUID(), type, expectedStock: current }),
-      productId: product.id,
-      ...(variantId ? { variantId } : {}),
-      quantity: correction ? next : Math.abs(change),
-      reason,
-    };
     try {
-      await save(
-        base + (correction ? "/stock" : "/stock/movements"),
-        "POST",
-        body,
-        "Stock updated.",
-      );
+      await save(attempt.path, "POST", attempt.body, "Stock updated.");
+      if (!currentScope() || renderedScope.current !== requestedScope) return;
+      pendingRef.current = null;
       setPending(null);
       setOpen(false);
       setReason("");
       setChange(1);
     } catch (e: any) {
-      setError(e.message || "Stock could not be saved. Review and try again.");
-      if (!e.status || e.status >= 500) {
-        if (correction) setUncertain(true);
-        else setPending(body);
+      if (!currentScope() || renderedScope.current !== requestedScope) return;
+      if ([401, 403, 404].includes(e.status)) {
+        deniedRef.current = true;
+        setDenied(true);
+        setReason("");
+        setError(
+          "Stock access needs checking. Refresh the workspace or sign in again before changing stock.",
+        );
+      } else {
+        setError(
+          e.message || "Stock could not be saved. Review and try again.",
+        );
+        if (!prior && [400, 409, 422].includes(e.status)) {
+          pendingRef.current = null;
+          setPending(null);
+        } else setPending(attempt);
       }
     } finally {
-      setBusy(false);
       lock.current = false;
+      if (alive.current && renderedScope.current === requestedScope)
+        setBusy(false);
     }
   }
-  if (!balances.length) return null;
-  const frozen = busy || disabled || !!pending || uncertain;
+  if (denied || scope !== bornScope.current)
+    return (
+      <p role="alert">
+        {scope !== bornScope.current
+          ? "The stock view changed. Refresh the workspace before making another change."
+          : error}
+      </p>
+    );
+  if (!balances.length && !pendingRef.current) return null;
+  const frozen = busy || disabled || !!pending;
   return (
     <>
       <button
@@ -98,7 +170,13 @@ export default function StockAdjustment({
         className="secondary"
         disabled={disabled}
         onClick={() => {
-          if (target.stockMode !== "counted") setVariant(balances[0].id);
+          if (!currentScope()) return;
+          if (pendingRef.current) {
+            setOpen(true);
+            return;
+          }
+          if (target?.stockMode !== "counted")
+            setVariant(balances[0].id === product.id ? "" : balances[0].id);
           setOpen(true);
         }}
       >
@@ -108,20 +186,13 @@ export default function StockAdjustment({
         open={open}
         title={`Adjust stock · ${product.name}`}
         onClose={() => setOpen(false)}
-        busy={busy || !!pending || uncertain}
+        busy={busy || !!pending}
       >
         <form
           className="mw-stock-sheet"
           onSubmit={(e) => {
             e.preventDefault();
-            if (
-              !frozen &&
-              next >= 0 &&
-              next <= 1000000 &&
-              change !== 0 &&
-              reason.trim().length >= (type === "correction" ? 3 : 10)
-            )
-              void send();
+            if (!frozen && validChange) void send();
           }}
         >
           {balances.length > 1 && (
@@ -141,7 +212,8 @@ export default function StockAdjustment({
             />
           )}
           <p>
-            Current balance <strong>{current}</strong>
+            {pending ? "Balance before this request" : "Current balance"}{" "}
+            <strong>{current === null ? "Unavailable" : current}</strong>
           </p>
           <Segmented
             label="Movement type"
@@ -163,15 +235,19 @@ export default function StockAdjustment({
             label={`Stock change for ${product.name}`}
             value={change}
             onChange={setChange}
-            min={type === "correction" ? -current : 1}
+            min={type === "correction" ? -(current ?? 0) : 1}
             max={
               type === "restock"
-                ? 1000000 - current
+                ? 1000000 - (current ?? 0)
                 : type === "correction"
-                  ? 1000000 - current
-                  : current
+                  ? 1000000 - (current ?? 0)
+                  : (current ?? 0)
             }
-            disabled={frozen}
+            disabled={
+              frozen ||
+              !validTarget ||
+              (type !== "restock" && type !== "correction" && current === 0)
+            }
             required
           />
           <Chips
@@ -179,14 +255,19 @@ export default function StockAdjustment({
             value={String(delta)}
             onChange={(v) => {
               const n = Number(v);
-              if (n < 0 && type === "restock") setType("correction");
-              setChange(type === "correction" || n < 0 ? n : Math.abs(n));
+              setChange(type === "correction" ? n : Math.abs(n));
             }}
             disabled={frozen}
-            options={[1, 5, 10, -1, -5].map((n) => ({
+            options={(type === "correction"
+              ? [1, 5, 10, -1, -5]
+              : type === "restock"
+                ? [1, 5, 10]
+                : [-1, -5, -10]
+            ).map((n) => ({
               value: String(n),
               label: n > 0 ? `+${n}` : String(n),
-              disabled: current + n < 0,
+              disabled:
+                current === null || current + n < 0 || current + n > 1000000,
             }))}
           />
           <ReasonInput
@@ -206,10 +287,11 @@ export default function StockAdjustment({
             disabled={frozen}
           />
           <p aria-live="polite">
-            Resulting balance <strong>{next}</strong>
+            Resulting balance{" "}
+            <strong>{Number.isSafeInteger(next) ? next : "Unavailable"}</strong>
           </p>
           {error && <p role="alert">{error}</p>}
-          {pending ? (
+          {pending && !pending.correction ? (
             <div role="status">
               <p>
                 We could not confirm the movement. Retry this same change to
@@ -217,22 +299,22 @@ export default function StockAdjustment({
               </p>
               <button
                 type="button"
+                className="secondary"
                 disabled={busy || disabled}
                 onClick={() => void send(pending)}
               >
                 Retry original stock movement
               </button>
             </div>
-          ) : uncertain ? (
+          ) : pending?.correction ? (
             <p role="alert">
               We could not confirm this count correction. Refresh the workspace
               and review the balance before making another change.
             </p>
           ) : (
             <button
-              disabled={
-                busy || disabled || next < 0 || next > 1000000 || change === 0
-              }
+              className="primary"
+              disabled={busy || disabled || !validChange}
             >
               Save stock change
             </button>
