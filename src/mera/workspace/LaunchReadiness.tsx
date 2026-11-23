@@ -7,7 +7,9 @@ export default function LaunchReadiness({
   save,
   guidedStage,
   publicContact,
+  accessBlocked,
 }: {
+  accessBlocked?: boolean;
   guidedStage?: "payments" | "review";
   publicContact?: string;
   base: string;
@@ -29,8 +31,12 @@ export default function LaunchReadiness({
     }
   });
   const inFlight = useRef(false);
-  const authority = useRef({ alive: true, disabled, base });
-  authority.current.disabled = disabled;
+  const authority = useRef({
+    alive: true,
+    disabled: accessBlocked ?? disabled,
+    base,
+  });
+  authority.current.disabled = accessBlocked ?? disabled;
   authority.current.base = base;
   useEffect(() => {
     authority.current.alive = true;

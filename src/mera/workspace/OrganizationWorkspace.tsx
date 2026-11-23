@@ -2149,6 +2149,7 @@ export default function OrganizationWorkspace({
                   readiness={
                     <LaunchReadiness
                       key={branchBase + "launch"}
+                      accessBlocked={offline || !allowed("organization.manage")}
                       base={branchBase}
                       settings={branch?.settings}
                       disabled={busy || offline}
@@ -3726,6 +3727,19 @@ export default function OrganizationWorkspace({
                         </div>
                       </NonReplayForm>
                     }
+                    bills={
+                      <Bills
+                        key={branchBase + financialRevision}
+                        bills={data.bills}
+                        actorId={principal || user.id}
+                        visits={data.visits}
+                        tables={data.tables}
+                        base={branchBase}
+                        disabled={busy || offline}
+                        canPay={allowed("payments.record")}
+                        save={mutate}
+                      />
+                    }
                     setup={
                       <>
                         {Array.isArray(data.tables) && (
@@ -3751,7 +3765,7 @@ export default function OrganizationWorkspace({
                               "POST",
                               {
                                 name: tabForm.tableName,
-                                capacity: Number(tabForm.capacity),
+                                capacity: Number(tabForm.capacity ?? 1),
                                 zone: tabForm.zone || "Main floor",
                                 x: 0,
                                 y: 0,
@@ -3769,17 +3783,6 @@ export default function OrganizationWorkspace({
                         </NonReplayForm>
                       </>
                     }
-                  />
-                  <Bills
-                    key={branchBase + financialRevision}
-                    bills={data.bills}
-                    actorId={principal || user.id}
-                    visits={data.visits}
-                    tables={data.tables}
-                    base={branchBase}
-                    disabled={busy || offline}
-                    canPay={allowed("payments.record")}
-                    save={mutate}
                   />
                 </>
               )}

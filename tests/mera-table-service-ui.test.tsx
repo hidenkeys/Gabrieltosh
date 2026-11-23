@@ -99,3 +99,76 @@ test("party filtering preserves mounted drafts and resolves combined table names
     cleanup();
   }
 });
+
+test("table task navigation shows one task while retaining the mounted floor draft", () => {
+  let mounts = 0;
+  function FloorDraft() {
+    React.useEffect(() => {
+      mounts++;
+    }, []);
+    return (
+      <label>
+        Floor zone draft
+        <input defaultValue="" />
+      </label>
+    );
+  }
+  try {
+    render(
+      <TableServiceView
+        {...props}
+        setup={<FloorDraft />}
+        bills={
+          <section aria-label="Bill management">
+            <button>Review synthetic bill</button>
+          </section>
+        }
+      />,
+    );
+    const service = screen.getByRole("region", { name: "Branch tables" });
+    const floor = screen.getByLabelText("Floor zone draft");
+    const bill = screen.getByText("Review synthetic bill");
+    const taskPanel = (node: Element) =>
+      node.closest(".mw-table-service > div") as HTMLElement;
+    assert.equal(taskPanel(service).hidden, false);
+    assert.equal(taskPanel(floor).hidden, true);
+    assert.equal(taskPanel(bill).hidden, true);
+    assert.equal(
+      screen.queryByRole("button", { name: "Review synthetic bill" }),
+      null,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Floor layout" }));
+    assert.equal(taskPanel(service).hidden, true);
+    assert.equal(taskPanel(floor).hidden, false);
+    assert.equal(taskPanel(bill).hidden, true);
+    assert.equal(
+      screen
+        .getByRole("button", { name: "Floor layout" })
+        .getAttribute("aria-pressed"),
+      "true",
+    );
+    fireEvent.change(floor, {
+      target: { value: "Keep the garden layout draft" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Manage bills" }));
+    assert.equal(taskPanel(service).hidden, true);
+    assert.equal(taskPanel(floor).hidden, true);
+    assert.equal(taskPanel(bill).hidden, false);
+    assert(screen.getByRole("button", { name: "Review synthetic bill" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Tables & parties" }));
+    assert.equal(taskPanel(service).hidden, false);
+    assert.equal(taskPanel(floor).hidden, true);
+    assert.equal(taskPanel(bill).hidden, true);
+    fireEvent.click(screen.getByRole("button", { name: "Floor layout" }));
+    assert.equal(
+      (screen.getByLabelText("Floor zone draft") as HTMLInputElement).value,
+      "Keep the garden layout draft",
+    );
+    assert.equal(mounts, 1, "changing tasks must not remount the floor editor");
+  } finally {
+    cleanup();
+  }
+});

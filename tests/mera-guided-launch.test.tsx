@@ -207,3 +207,35 @@ test("guided business asks contact once and preserves legacy metadata in unchang
     cleanup();
   }
 });
+
+test("parent mutation busy is not mistaken for revoked authority between policy and launch", async () => {
+  globalThis.fetch = async () => Response.json(ready);
+  window.sessionStorage.clear();
+  let finishPolicy: any;
+  const calls: string[] = [];
+  const save = async (path: string) => {
+    calls.push(path);
+    if (path.endsWith("launch-policy"))
+      return new Promise((resolve) => {
+        finishPolicy = resolve;
+      });
+    return { ...ready, launchState: "published" };
+  };
+  try {
+    const view = render(
+      <LaunchReadiness {...props} accessBlocked={false} save={save} />,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Go live" }));
+    await waitFor(() => assert.equal(calls.length, 1));
+    view.rerender(
+      <LaunchReadiness {...props} disabled accessBlocked={false} save={save} />,
+    );
+    finishPolicy(ready);
+    await waitFor(() => assert.equal(calls.length, 2));
+    await waitFor(() => assert.equal(window.sessionStorage.length, 0));
+    assert.ok(screen.getByText(/Branch state: published/));
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
+  }
+});

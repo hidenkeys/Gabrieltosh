@@ -266,3 +266,20 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Separate floor setup and bill management from live table service. */
+.mw-task-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.mw-task-navigation button {
+  min-height: 44px;
+}
+.mw-table-service > [hidden] {
+  display: none;
+}
+
+/* Task panels must shrink inside the workspace grid on phones. */
+.mw-table-service > div { min-width: 0; }
