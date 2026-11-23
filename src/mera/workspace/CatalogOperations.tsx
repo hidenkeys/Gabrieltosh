@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import React, { useState } from "react";
 export default function CatalogOperations({
   base,
@@ -149,18 +150,14 @@ export default function CatalogOperations({
                   ))}
                 </div>
                 <div className="mw-form">
-                  <label>
-                    New availability
-                    <select
-                      value={String(available)}
-                      onChange={(event) =>
-                        setAvailable(event.target.value === "true")
-                      }
-                    >
-                      <option value="false">Unavailable</option>
-                      <option value="true">Available</option>
-                    </select>
-                  </label>
+                  <ChoiceField
+                    label={<>New availability</>}
+                    value={String(available)}
+                    onChange={(nextValue) => setAvailable(nextValue === "true")}
+                  >
+                    <option value="false">Unavailable</option>
+                    <option value="true">Available</option>
+                  </ChoiceField>
                   <label>
                     Bulk availability reason
                     <input

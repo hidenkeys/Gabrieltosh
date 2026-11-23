@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import { useState, type ReactNode } from "react";
 import { Disclosure, ReadState } from "../ui/OperationalPrimitives";
 const labels: Record<string, string> = {
@@ -103,17 +104,15 @@ export default function TableServiceView({
             <h2>Parties & visits</h2>
             <p>Keep each party’s rounds, tables and access together.</p>
           </div>
-          <label>
-            Party view
-            <select
-              value={view}
-              onChange={(event) => setView(event.target.value)}
-            >
-              <option value="open">Open parties</option>
-              <option value="closed">Closed visits</option>
-              <option value="all">All visits</option>
-            </select>
-          </label>
+          <ChoiceField
+            label={<>Party view</>}
+            value={view}
+            onChange={(nextValue) => setView(nextValue)}
+          >
+            <option value="open">Open parties</option>
+            <option value="closed">Closed visits</option>
+            <option value="all">All visits</option>
+          </ChoiceField>
         </header>
         {!knownVisits ? (
           <ReadState

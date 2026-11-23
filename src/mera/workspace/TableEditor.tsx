@@ -1,3 +1,5 @@
+import Stepper from "../ui/Stepper";
+import ChoiceField from "../ui/ChoiceField";
 import { useEffect, useRef, useState } from "react";
 import { Disclosure } from "../ui/OperationalPrimitives";
 import NonReplayForm, { type NonReplayState } from "./NonReplayForm";
@@ -115,13 +117,21 @@ function ScopedTableEditor({
             />
           </label>
         ))}
-        {(["capacity", "x", "y"] as const).map((key) => (
+        <Stepper
+          label="Seats"
+          value={draft.capacity}
+          min={1}
+          max={100}
+          required
+          onChange={(capacity) => setDraft({ ...draft, capacity })}
+        />
+        {(["x", "y"] as const).map((key) => (
           <label key={key}>
-            {key === "capacity" ? "Seats" : key.toUpperCase() + " position"}
+            {key.toUpperCase() + " position"}
             <input
               type="number"
               required
-              min={key === "capacity" ? 1 : 0}
+              min={0}
               max={100}
               value={draft[key]}
               onChange={(e) =>
@@ -162,17 +172,15 @@ function ScopedTableEditor({
             visits must close or release the table first.
           </p>
           <div className="mw-form">
-            <label>
-              Table service status
-              <select
-                value={status}
-                onChange={(event) => setStatus(event.target.value)}
-              >
-                <option value="available">Available</option>
-                <option value="cleaning">Cleaning</option>
-                <option value="unavailable">Unavailable</option>
-              </select>
-            </label>
+            <ChoiceField
+              label={<>Table service status</>}
+              value={status}
+              onChange={(nextValue) => setStatus(nextValue)}
+            >
+              <option value="available">Available</option>
+              <option value="cleaning">Cleaning</option>
+              <option value="unavailable">Unavailable</option>
+            </ChoiceField>
             <label>
               Table status reason
               <input

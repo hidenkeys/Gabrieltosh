@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useRef, useState } from "react";
 import { formatMoney, workspaceApi } from "./api";
 import OrderInstructions from "./OrderInstructions";
@@ -396,17 +397,15 @@ function ScopedOrderHistory({
                 onChange={(event) => update("q", event.target.value)}
               />
             </label>
-            <label>
-              History records
-              <select
-                value={draft.historical}
-                onChange={(event) => update("historical", event.target.value)}
-              >
-                <option value="exclude">Current system records</option>
-                <option value="only">Imported source history only</option>
-                <option value="all">Current and imported history</option>
-              </select>
-            </label>
+            <ChoiceField
+              label={<>History records</>}
+              value={draft.historical}
+              onChange={(nextValue) => update("historical", nextValue)}
+            >
+              <option value="exclude">Current system records</option>
+              <option value="only">Imported source history only</option>
+              <option value="all">Current and imported history</option>
+            </ChoiceField>
           </div>
           <Disclosure
             className="oh-more-filters"
@@ -417,29 +416,27 @@ function ScopedOrderHistory({
             }
           >
             <div className="oh-filter-grid">
-              <label>
-                History order status
-                <select
-                  value={draft.status}
-                  onChange={(event) => update("status", event.target.value)}
-                >
-                  <option value="">All statuses</option>
-                  {[
-                    "submitted",
-                    "accepted",
-                    "preparing",
-                    "ready",
-                    "collected",
-                    "completed",
-                    "rejected",
-                    "cancelled",
-                  ].map((value) => (
-                    <option key={value} value={value}>
-                      {human(value)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <ChoiceField
+                label={<>History order status</>}
+                value={draft.status}
+                onChange={(nextValue) => update("status", nextValue)}
+              >
+                <option value="">All statuses</option>
+                {[
+                  "submitted",
+                  "accepted",
+                  "preparing",
+                  "ready",
+                  "collected",
+                  "completed",
+                  "rejected",
+                  "cancelled",
+                ].map((value) => (
+                  <option key={value} value={value}>
+                    {human(value)}
+                  </option>
+                ))}
+              </ChoiceField>
               <label>
                 History source
                 <input
@@ -457,31 +454,27 @@ function ScopedOrderHistory({
                   )}
                 </datalist>
               </label>
-              <label>
-                History payment status
-                <select
-                  value={draft.paymentStatus}
-                  onChange={(event) =>
-                    update("paymentStatus", event.target.value)
-                  }
-                >
-                  <option value="">All payment states</option>
-                  {[
-                    "unpaid",
-                    "pending",
-                    "partially_paid",
-                    "paid",
-                    "partially_refunded",
-                    "refunded",
-                    "failed",
-                    "expired",
-                  ].map((value) => (
-                    <option key={value} value={value}>
-                      {human(value)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <ChoiceField
+                label={<>History payment status</>}
+                value={draft.paymentStatus}
+                onChange={(nextValue) => update("paymentStatus", nextValue)}
+              >
+                <option value="">All payment states</option>
+                {[
+                  "unpaid",
+                  "pending",
+                  "partially_paid",
+                  "paid",
+                  "partially_refunded",
+                  "refunded",
+                  "failed",
+                  "expired",
+                ].map((value) => (
+                  <option key={value} value={value}>
+                    {human(value)}
+                  </option>
+                ))}
+              </ChoiceField>
               <label>
                 History staff identity
                 <input
@@ -516,19 +509,15 @@ function ScopedOrderHistory({
                   onChange={(event) => update("to", event.target.value)}
                 />
               </label>
-              <label>
-                Orders per page
-                <select
-                  value={draft.take}
-                  onChange={(event) =>
-                    update("take", Number(event.target.value))
-                  }
-                >
-                  {[25, 50, 100].map((value) => (
-                    <option key={value}>{value}</option>
-                  ))}
-                </select>
-              </label>
+              <ChoiceField
+                label={<>Orders per page</>}
+                value={draft.take}
+                onChange={(nextValue) => update("take", Number(nextValue))}
+              >
+                {[25, 50, 100].map((value) => (
+                  <option key={value}>{value}</option>
+                ))}
+              </ChoiceField>
               <label className="mw-row">
                 <span>History unassigned orders only</span>
                 <input

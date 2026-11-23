@@ -1,3 +1,4 @@
+import { chooseField } from "./choice-field-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -63,10 +64,7 @@ test("product search, category filters and pagination retain real counts and rec
       screen.getByRole("button", { name: "Clear product filters" }),
     );
     assert.equal(screen.getAllByRole("listitem").length, 12);
-    fireEvent.change(
-      screen.getByRole("combobox", { name: "Product category" }),
-      { target: { value: "Tea" } },
-    );
+    chooseField(screen, fireEvent, "Product category", "Tea");
     assert.equal(screen.getAllByRole("listitem").length, 7);
   } finally {
     cleanup();

@@ -1,3 +1,4 @@
+import { chooseField, choiceValue } from "./choice-field-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -97,9 +98,7 @@ test("unknown support POST keeps identical intent through409/429 and read refres
     );
     await screen.findByText("No support cases yet.");
     openDraft();
-    fireEvent.change(screen.getByLabelText("Related branch"), {
-      target: { value: "branch" },
-    });
+    chooseField(screen, fireEvent, "Related branch", String("branch"));
     fireEvent.click(
       screen.getByRole("button", { name: "Create support case" }),
     );

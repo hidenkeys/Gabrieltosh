@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import { useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Paperclip, X } from "lucide-react";
 import {
@@ -289,29 +290,29 @@ export default function ProjectBrief() {
                 true,
               )}
               <div className="mera-company-field">
-                <label htmlFor="brief-projectType">Starting point</label>
-                <select
+                <ChoiceField
+                  label={<>Starting point</>}
                   id="brief-projectType"
                   name="projectType"
                   value={details.projectType}
-                  onChange={(e) =>
-                    setDetails({ ...details, projectType: e.target.value })
+                  onChange={(nextValue) =>
+                    setDetails({ ...details, projectType: nextValue })
                   }
                 >
                   <option value="new_build">A new system</option>
                   <option value="existing_system">
                     Improve an existing system
                   </option>
-                </select>
+                </ChoiceField>
               </div>
               <div className="mera-company-field">
-                <label htmlFor="brief-budgetRange">Indicative budget</label>
-                <select
+                <ChoiceField
+                  label={<>Indicative budget</>}
                   id="brief-budgetRange"
                   name="budgetRange"
                   value={details.budgetRange}
-                  onChange={(e) =>
-                    setDetails({ ...details, budgetRange: e.target.value })
+                  onChange={(nextValue) =>
+                    setDetails({ ...details, budgetRange: nextValue })
                   }
                 >
                   {companyBudgetRanges.map((value) => (
@@ -319,7 +320,7 @@ export default function ProjectBrief() {
                       {companyBudgetLabels[value]}
                     </option>
                   ))}
-                </select>
+                </ChoiceField>
                 <small>A planning range, not a quoted price.</small>
               </div>
               {field("timeline", "Your preferred timeline")}
@@ -433,7 +434,13 @@ export default function ProjectBrief() {
                 <span>
                   I agree that MeraTech may use these details and documents to
                   review my enquiry and contact me about it.{" "}
-                  <a href="/mera/legal#privacy" target="_blank" rel="noopener noreferrer">Privacy information (opens in a new tab)</a>
+                  <a
+                    href="/mera/legal#privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Privacy information (opens in a new tab)
+                  </a>
                 </span>
               </label>
               {merged.privacyAcknowledged && (

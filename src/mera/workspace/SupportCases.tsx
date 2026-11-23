@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
 import { workspaceApi, WorkspaceError } from "./api";
@@ -250,26 +251,24 @@ function ScopedSupportCases({
                 Support subject
                 <input name="subject" required minLength={3} maxLength={140} />
               </label>
-              <label>
-                Support topic
-                <select name="topic">
-                  <option value="operations">Operations</option>
-                  <option value="billing">Billing</option>
-                  <option value="integration">Integration</option>
-                  <option value="account">Account</option>
-                </select>
-              </label>
-              <label>
-                Related branch
-                <select name="branchId">
-                  <option value="">Organization-wide question</option>
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <ChoiceField label={<>Support topic</>} name="topic">
+                <option value="operations">Operations</option>
+                <option value="billing">Billing</option>
+                <option value="integration">Integration</option>
+                <option value="account">Account</option>
+              </ChoiceField>
+              <ChoiceField
+                label={<>Related branch</>}
+                searchable
+                name="branchId"
+              >
+                <option value="">Organization-wide question</option>
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </option>
+                ))}
+              </ChoiceField>
               <label>
                 Support message
                 <textarea name="message" required maxLength={4000} />

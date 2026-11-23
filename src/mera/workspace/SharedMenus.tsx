@@ -1,3 +1,5 @@
+import MoneyInput from "../ui/MoneyInput";
+import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useState } from "react";
 import { workspaceApi } from "./api";
 import { categoryPath } from "./Categories";
@@ -109,23 +111,22 @@ export default function SharedMenus({
         <p role="status">Loading shared menus…</p>
       ) : (
         <>
-          <label>
-            Shared template
-            <select
-              value={selected}
-              onChange={(event) => {
-                setSelected(event.target.value);
-                setOverrides({});
-              }}
-            >
-              <option value="">Choose a shared menu</option>
-              {menus.map((menu) => (
-                <option key={menu.id} value={menu.id}>
-                  {menu.name} · version {menu.version}
-                </option>
-              ))}
-            </select>
-          </label>
+          <ChoiceField
+            label={<>Shared template</>}
+            searchable
+            value={selected}
+            onChange={(nextValue) => {
+              setSelected(nextValue);
+              setOverrides({});
+            }}
+          >
+            <option value="">Choose a shared menu</option>
+            {menus.map((menu) => (
+              <option key={menu.id} value={menu.id}>
+                {menu.name} · version {menu.version}
+              </option>
+            ))}
+          </ChoiceField>
           {template && (
             <>
               <p>
@@ -186,71 +187,61 @@ export default function SharedMenus({
                     <b>
                       {item.name} · {item.code}
                     </b>
-                    <label>
-                      Override price for {item.name} (naira)
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        placeholder={String(item.price / 100)}
-                        value={overrides[item.code]?.price ?? ""}
-                        onChange={(event) => {
-                          const current = { ...(overrides[item.code] || {}) };
-                          if (event.target.value === "") delete current.price;
-                          else current.price = event.target.value;
-                          setOverrides({ ...overrides, [item.code]: current });
-                        }}
-                      />
-                    </label>
-                    <label>
-                      Availability for {item.name}
-                      <select
-                        value={
-                          overrides[item.code]?.available === undefined
-                            ? "inherit"
-                            : String(overrides[item.code].available)
+                    <MoneyInput
+                      label={`Override price for ${item.name} (naira)`}
+                      min={0}
+                      placeholder={String(item.price / 100)}
+                      value={overrides[item.code]?.price ?? ""}
+                      onChange={(value) => {
+                        const current = { ...(overrides[item.code] || {}) };
+                        if (value === "") delete current.price;
+                        else current.price = value;
+                        setOverrides({ ...overrides, [item.code]: current });
+                      }}
+                    />
+                    <ChoiceField
+                      label={<>Availability for {item.name}</>}
+                      value={
+                        overrides[item.code]?.available === undefined
+                          ? "inherit"
+                          : String(overrides[item.code].available)
+                      }
+                      onChange={(nextValue) => {
+                        const current = { ...(overrides[item.code] || {}) };
+                        if (nextValue === "inherit") delete current.available;
+                        else current.available = nextValue === "true";
+                        setOverrides({ ...overrides, [item.code]: current });
+                      }}
+                    >
+                      <option value="inherit">Use template</option>
+                      <option value="true">Available</option>
+                      <option value="false">Unavailable</option>
+                    </ChoiceField>
+                    <ChoiceField
+                      label={<>Destination category for {item.name}</>}
+                      searchable
+                      value={overrides[item.code]?.categoryId || "inherit"}
+                      onChange={(nextValue) => {
+                        const current = { ...(overrides[item.code] || {}) };
+                        if (nextValue === "inherit") delete current.categoryId;
+                        else {
+                          current.categoryId = nextValue;
+                          delete current.category;
                         }
-                        onChange={(event) => {
-                          const current = { ...(overrides[item.code] || {}) };
-                          if (event.target.value === "inherit")
-                            delete current.available;
-                          else
-                            current.available = event.target.value === "true";
-                          setOverrides({ ...overrides, [item.code]: current });
-                        }}
-                      >
-                        <option value="inherit">Use template</option>
-                        <option value="true">Available</option>
-                        <option value="false">Unavailable</option>
-                      </select>
-                    </label>
-                    <label>
-                      Destination category for {item.name}
-                      <select
-                        value={overrides[item.code]?.categoryId || "inherit"}
-                        onChange={(event) => {
-                          const current = { ...(overrides[item.code] || {}) };
-                          if (event.target.value === "inherit")
-                            delete current.categoryId;
-                          else {
-                            current.categoryId = event.target.value;
-                            delete current.category;
-                          }
-                          setOverrides({ ...overrides, [item.code]: current });
-                        }}
-                      >
-                        <option value="inherit">
-                          Use template text category
-                        </option>
-                        {categories
-                          .filter((category) => category.active)
-                          .map((category) => (
-                            <option key={category.id} value={category.id}>
-                              {categoryPath(category, categories)}
-                            </option>
-                          ))}
-                      </select>
-                    </label>
+                        setOverrides({ ...overrides, [item.code]: current });
+                      }}
+                    >
+                      <option value="inherit">
+                        Use template text category
+                      </option>
+                      {categories
+                        .filter((category) => category.active)
+                        .map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {categoryPath(category, categories)}
+                          </option>
+                        ))}
+                    </ChoiceField>
                     {!overrides[item.code]?.categoryId && (
                       <label>
                         Override category for {item.name}

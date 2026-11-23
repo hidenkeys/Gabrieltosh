@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import { useEffect, useRef, useState } from "react";
 import { workspaceApi, WorkspaceError } from "../workspace/api";
 import {
@@ -280,34 +281,31 @@ export default function PlatformCompanyInbox({
                 placeholder="Reference, name, company or email"
               />
             </label>
-            <label>
-              Status
-              <select
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-              >
-                <option value="">All statuses</option>
-                {companyLeadStatuses.map((s) => (
-                  <option key={s} value={s}>
-                    {human(s)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Handler
-              <select
-                value={handler}
-                onChange={(e) => setHandler(e.target.value)}
-              >
-                <option value="">All handlers</option>
-                {handlers.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {h.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <ChoiceField
+              label={<>Status</>}
+              value={filter}
+              onChange={(nextValue) => setFilter(nextValue)}
+            >
+              <option value="">All statuses</option>
+              {companyLeadStatuses.map((s) => (
+                <option key={s} value={s}>
+                  {human(s)}
+                </option>
+              ))}
+            </ChoiceField>
+            <ChoiceField
+              label={<>Handler</>}
+              searchable
+              value={handler}
+              onChange={(nextValue) => setHandler(nextValue)}
+            >
+              <option value="">All handlers</option>
+              {handlers.map((h) => (
+                <option key={h.id} value={h.id}>
+                  {h.name}
+                </option>
+              ))}
+            </ChoiceField>
             <button disabled={loading}>Apply filters</button>
           </form>
           {loading ? (
@@ -568,59 +566,54 @@ export default function PlatformCompanyInbox({
                   )}
                 </section>
                 <fieldset disabled={busy || !!pending || !!recovery.error}>
-                  <label>
-                    Status
-                    <select
-                      value={draft.status}
-                      onChange={(e) =>
-                        setDraft({ ...draft, status: e.target.value })
-                      }
-                    >
-                      {companyLeadStatuses.map((s) => (
-                        <option key={s} value={s}>
-                          {human(s)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Assigned handler
-                    <select
-                      value={draft.assignedHandlerId}
-                      onChange={(e) =>
-                        setDraft({
-                          ...draft,
-                          assignedHandlerId: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="">Unassigned</option>
-                      {handlers.map((h) => (
-                        <option key={h.id} value={h.id}>
-                          {h.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Next stage
-                    <select
-                      value={draft.followUp.stage}
-                      onChange={(e) =>
-                        setDraft({
-                          ...draft,
-                          followUp: {
-                            ...draft.followUp,
-                            stage: e.target.value,
-                          },
-                        })
-                      }
-                    >
-                      <option value="none">None</option>
-                      <option value="discovery">Discovery</option>
-                      <option value="proposal">Proposal</option>
-                    </select>
-                  </label>
+                  <ChoiceField
+                    label={<>Status</>}
+                    value={draft.status}
+                    onChange={(nextValue) =>
+                      setDraft({ ...draft, status: nextValue })
+                    }
+                  >
+                    {companyLeadStatuses.map((s) => (
+                      <option key={s} value={s}>
+                        {human(s)}
+                      </option>
+                    ))}
+                  </ChoiceField>
+                  <ChoiceField
+                    label={<>Assigned handler</>}
+                    searchable
+                    value={draft.assignedHandlerId}
+                    onChange={(nextValue) =>
+                      setDraft({
+                        ...draft,
+                        assignedHandlerId: nextValue,
+                      })
+                    }
+                  >
+                    <option value="">Unassigned</option>
+                    {handlers.map((h) => (
+                      <option key={h.id} value={h.id}>
+                        {h.name}
+                      </option>
+                    ))}
+                  </ChoiceField>
+                  <ChoiceField
+                    label={<>Next stage</>}
+                    value={draft.followUp.stage}
+                    onChange={(nextValue) =>
+                      setDraft({
+                        ...draft,
+                        followUp: {
+                          ...draft.followUp,
+                          stage: nextValue,
+                        },
+                      })
+                    }
+                  >
+                    <option value="none">None</option>
+                    <option value="discovery">Discovery</option>
+                    <option value="proposal">Proposal</option>
+                  </ChoiceField>
                   <label>
                     Follow-up date (UTC)
                     <input

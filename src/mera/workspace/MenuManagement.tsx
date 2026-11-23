@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import React, { useId, useRef, useState } from "react";
 type Product = {
   [key: string]: any;
@@ -121,21 +122,20 @@ export default function MenuManagement({
                   }}
                 />
               </label>
-              <label>
-                Product category
-                <select
-                  value={category}
-                  onChange={(event) => {
-                    setCategory(event.target.value);
-                    setLimit(12);
-                  }}
-                >
-                  <option value="">All categories</option>
-                  {categoryNames.map((name) => (
-                    <option key={name}>{name}</option>
-                  ))}
-                </select>
-              </label>
+              <ChoiceField
+                label={<>Product category</>}
+                searchable
+                value={category}
+                onChange={(nextValue) => {
+                  setCategory(nextValue);
+                  setLimit(12);
+                }}
+              >
+                <option value="">All categories</option>
+                {categoryNames.map((name) => (
+                  <option key={name}>{name}</option>
+                ))}
+              </ChoiceField>
               <span role="status">
                 {filtered.length}{" "}
                 {filtered.length === 1 ? "product" : "products"}

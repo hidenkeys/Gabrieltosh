@@ -1,3 +1,4 @@
+import { chooseField, choiceValue } from "./choice-field-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -118,19 +119,13 @@ test("P2 more filters retain draft inputs and apply only through the scoped quer
       .closest("details")!;
     assert.equal(disclosure.open, false);
     fireEvent.click(disclosure.querySelector("summary")!);
-    fireEvent.change(screen.getByLabelText("History order status"), {
-      target: { value: "completed" },
-    });
+    chooseField(screen, fireEvent, "History order status", String("completed"));
     fireEvent.change(screen.getByLabelText("Search order history"), {
       target: { value: " Ada " },
     });
     fireEvent.click(disclosure.querySelector("summary")!);
     fireEvent.click(disclosure.querySelector("summary")!);
-    assert.equal(
-      (screen.getByLabelText("History order status") as HTMLSelectElement)
-        .value,
-      "completed",
-    );
+    assert.equal(choiceValue(screen, "History order status"), "completed");
     assert.equal(urls.length, 1);
     fireEvent.click(
       screen.getByRole("button", { name: "Apply history filters" }),

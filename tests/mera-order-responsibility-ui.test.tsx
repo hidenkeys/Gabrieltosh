@@ -1,3 +1,4 @@
+import { chooseField } from "./choice-field-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -78,7 +79,7 @@ test("scoped staff names override stale handler names, history hides IDs and ass
     assert.equal(screen.queryByText(/Stale other/), null);
     assert.equal(screen.queryByText(/unknown-private-id/), null);
     assert.ok(screen.getByText(/first 500/));
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "b" } });
+    chooseField(screen, fireEvent, "Assign order to", "b");
     const form = screen.getByRole("combobox").closest("form")!;
     fireEvent.submit(form);
     fireEvent.submit(form);
@@ -109,7 +110,7 @@ test("unknown non-idempotent assignment remains frozen after canonical refresh w
       }),
     );
     await open();
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "b" } });
+    chooseField(screen, fireEvent, "Assign order to", "b");
     fireEvent.submit(screen.getByRole("combobox").closest("form")!);
     await screen.findByRole("alert");
     assert.ok(
@@ -189,7 +190,7 @@ test("failed candidate read retries honestly and changed order requires review; 
     fireEvent.click(
       screen.getByRole("button", { name: "Review current responsibility" }),
     );
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "b" } });
+    chooseField(screen, fireEvent, "Assign order to", "b");
     fireEvent.submit(screen.getByRole("combobox").closest("form")!);
     view.rerender(
       React.createElement(Responsibility, {

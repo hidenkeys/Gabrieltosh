@@ -1,3 +1,4 @@
+import { chooseField, choiceValue } from "./choice-field-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -82,17 +83,13 @@ test("party filtering preserves mounted drafts and resolves combined table names
     fireEvent.change(screen.getByLabelText("Party note"), {
       target: { value: "Keep this draft" },
     });
-    fireEvent.change(screen.getByLabelText("Party view"), {
-      target: { value: "closed" },
-    });
+    chooseField(screen, fireEvent, "Party view", String("closed"));
     assert.ok(screen.getByText("No visits in this view."));
     assert.equal(
       screen.getByLabelText("Party note").closest("article")?.hidden,
       true,
     );
-    fireEvent.change(screen.getByLabelText("Party view"), {
-      target: { value: "open" },
-    });
+    chooseField(screen, fireEvent, "Party view", String("open"));
     assert.equal(
       (screen.getByLabelText("Party note") as HTMLInputElement).value,
       "Keep this draft",

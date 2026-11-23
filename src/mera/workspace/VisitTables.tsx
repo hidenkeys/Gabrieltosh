@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
 import { Action, Disclosure, ReadState } from "../ui/OperationalPrimitives";
@@ -215,23 +216,22 @@ function ScopedVisitTables({
                 })}
               </div>
               <div className="mw-visit-tool-form">
-                <label>
-                  Primary table
-                  <select
-                    required
-                    value={primary}
-                    onChange={(event) => setPrimary(event.target.value)}
-                  >
-                    <option value="">Choose primary table</option>
-                    {tables
-                      .filter((table) => selected.includes(table.id))
-                      .map((table) => (
-                        <option key={table.id} value={table.id}>
-                          {table.name || "Table name unavailable"}
-                        </option>
-                      ))}
-                  </select>
-                </label>
+                <ChoiceField
+                  label={<>Primary table</>}
+                  searchable
+                  required
+                  value={primary}
+                  onChange={(nextValue) => setPrimary(nextValue)}
+                >
+                  <option value="">Choose primary table</option>
+                  {tables
+                    .filter((table) => selected.includes(table.id))
+                    .map((table) => (
+                      <option key={table.id} value={table.id}>
+                        {table.name || "Table name unavailable"}
+                      </option>
+                    ))}
+                </ChoiceField>
                 <label>
                   Table change reason
                   <input

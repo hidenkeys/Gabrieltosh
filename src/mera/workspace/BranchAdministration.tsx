@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useRef, useState } from "react";
 type Branch = {
   id: string;
@@ -430,12 +431,13 @@ function ScopedBranchAdministration({
                       }
                     />
                   </label>
-                  <label>
-                    Currency
-                    <select value={draft.currency} onChange={() => {}}>
-                      <option value="NGN">Nigerian naira (NGN)</option>
-                    </select>
-                  </label>
+                  <ChoiceField
+                    label={<>Currency</>}
+                    value={draft.currency}
+                    onChange={() => {}}
+                  >
+                    <option value="NGN">Nigerian naira (NGN)</option>
+                  </ChoiceField>
                   <label>
                     Trading day starts
                     <input

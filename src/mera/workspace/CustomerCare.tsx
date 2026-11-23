@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import { useEffect, useRef, useState } from "react";
 type CareRecord = {
   id: string;
@@ -216,20 +217,18 @@ function ScopedCustomerCare({
               placeholder="Feedback, topic or order reference"
             />
           </label>
-          <label>
-            Filter care records
-            <select
-              value={filter}
-              onChange={(event) => setFilter(event.target.value)}
-            >
-              <option value="all">All statuses</option>
-              {Object.entries(labels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <ChoiceField
+            label={<>Filter care records</>}
+            value={filter}
+            onChange={(nextValue) => setFilter(nextValue)}
+          >
+            <option value="all">All statuses</option>
+            {Object.entries(labels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </ChoiceField>
           <p role="status">
             {rows.length} of {records.length} records shown
           </p>
@@ -351,21 +350,17 @@ function ScopedCustomerCare({
                     These resolution notes stay with your staff. The customer
                     can see the feedback status, but not these private notes.
                   </p>
-                  <label>
-                    Case status
-                    <select
-                      value={draft.status}
-                      onChange={(event) =>
-                        change({ status: event.target.value })
-                      }
-                    >
-                      {Object.entries(labels).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <ChoiceField
+                    label={<>Case status</>}
+                    value={draft.status}
+                    onChange={(nextValue) => change({ status: nextValue })}
+                  >
+                    {Object.entries(labels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </ChoiceField>
                   <label>
                     Resolution
                     <textarea

@@ -1,3 +1,4 @@
+import ChoiceField from "./ui/ChoiceField";
 import { useEffect, useState, useRef } from "react";
 import { workspaceApi, formatMoney, WorkspaceError } from "./workspace/api";
 import { useDialogFocus } from "./ui/useDialogFocus";
@@ -550,19 +551,18 @@ export default function Platform() {
           )}
           {data && (
             <>
-              <label className="mera-platform-section-select">
-                Platform section
-                <select
-                  value={panel}
-                  onChange={(event) => setPanel(event.target.value)}
-                >
-                  {platformSections.map(([id, label]) => (
-                    <option key={id} value={id}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <ChoiceField
+                label={<>Platform section</>}
+                className="mera-platform-section-select"
+                value={panel}
+                onChange={(nextValue) => setPanel(nextValue)}
+              >
+                {platformSections.map(([id, label]) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+              </ChoiceField>
               {["consultancy", "travel_interest"].includes(panel) &&
                 auth?.userId && (
                   <PlatformCompanyInbox
@@ -680,24 +680,22 @@ export default function Platform() {
                           · {row.subject} · {row.status.replaceAll("_", " ")}
                         </summary>
                         <p style={{ whiteSpace: "pre-wrap" }}>{row.message}</p>
-                        <label>
-                          Status
-                          <select
-                            value={
-                              draft.status === "open"
-                                ? "acknowledged"
-                                : draft.status
-                            }
-                            disabled={busy}
-                            onChange={(e) =>
-                              editCase(row, "status", e.target.value)
-                            }
-                          >
-                            <option value="acknowledged">Acknowledged</option>
-                            <option value="in_progress">In progress</option>
-                            <option value="resolved">Resolved</option>
-                          </select>
-                        </label>
+                        <ChoiceField
+                          label={<>Status</>}
+                          value={
+                            draft.status === "open"
+                              ? "acknowledged"
+                              : draft.status
+                          }
+                          disabled={busy}
+                          onChange={(nextValue) =>
+                            editCase(row, "status", nextValue)
+                          }
+                        >
+                          <option value="acknowledged">Acknowledged</option>
+                          <option value="in_progress">In progress</option>
+                          <option value="resolved">Resolved</option>
+                        </ChoiceField>
                         <label>
                           Reply visible to the organization
                           <textarea
@@ -765,28 +763,24 @@ export default function Platform() {
                       placeholder="Name or organization address"
                     />
                   </label>
-                  <label>
-                    Subscription status
-                    <select
-                      value={subscriptionFilter}
-                      onChange={(event) =>
-                        setSubscriptionFilter(event.target.value)
-                      }
-                    >
-                      <option value="all">All statuses</option>
-                      {[
-                        "trialing",
-                        "active",
-                        "past_due",
-                        "suspended",
-                        "cancelled",
-                      ].map((value) => (
-                        <option key={value} value={value}>
-                          {subscriptionLabel(value)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <ChoiceField
+                    label={<>Subscription status</>}
+                    value={subscriptionFilter}
+                    onChange={(nextValue) => setSubscriptionFilter(nextValue)}
+                  >
+                    <option value="all">All statuses</option>
+                    {[
+                      "trialing",
+                      "active",
+                      "past_due",
+                      "suspended",
+                      "cancelled",
+                    ].map((value) => (
+                      <option key={value} value={value}>
+                        {subscriptionLabel(value)}
+                      </option>
+                    ))}
+                  </ChoiceField>
                 </div>
                 <div
                   className="table-wrap"
@@ -968,26 +962,24 @@ export default function Platform() {
                       id="mera-platform-service-form"
                       onSubmit={changeSubscription}
                     >
-                      <label>
-                        Service status
-                        <select
-                          value={status}
-                          disabled={!!pendingChange}
-                          onChange={(e) => setStatus(e.target.value)}
-                        >
-                          {[
-                            "trialing",
-                            "active",
-                            "past_due",
-                            "suspended",
-                            "cancelled",
-                          ].map((s) => (
-                            <option key={s} value={s}>
-                              {subscriptionLabel(s)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                      <ChoiceField
+                        label={<>Service status</>}
+                        value={status}
+                        disabled={!!pendingChange}
+                        onChange={(nextValue) => setStatus(nextValue)}
+                      >
+                        {[
+                          "trialing",
+                          "active",
+                          "past_due",
+                          "suspended",
+                          "cancelled",
+                        ].map((s) => (
+                          <option key={s} value={s}>
+                            {subscriptionLabel(s)}
+                          </option>
+                        ))}
+                      </ChoiceField>
 
                       {[
                         ["trialEndsAt", "Trial ends (UTC)"],

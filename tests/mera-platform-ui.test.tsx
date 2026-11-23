@@ -1,3 +1,4 @@
+import { chooseField, choiceValue } from "./choice-field-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -72,9 +73,7 @@ test("uncertain operator status change retains exact request intent and key", as
     fireEvent.click(
       await screen.findByRole("button", { name: "Review organization" }),
     );
-    fireEvent.change(screen.getByLabelText("Service status"), {
-      target: { value: "suspended" },
-    });
+    chooseField(screen, fireEvent, "Service status", "suspended");
     fireEvent.change(screen.getByLabelText("Reason for this action"), {
       target: { value: "Review requested by owner" },
     });
@@ -83,7 +82,11 @@ test("uncertain operator status change retains exact request intent and key", as
     );
     await screen.findByRole("alert");
     assert.equal(
-      (screen.getByLabelText("Service status") as HTMLSelectElement).disabled,
+      (
+        screen.getByRole("group", {
+          name: "Service status",
+        }) as HTMLFieldSetElement
+      ).disabled,
       true,
     );
     assert.equal(
@@ -186,9 +189,7 @@ test("platform sections and subscription filter keep operational tasks focused",
       screen.queryByRole("heading", { name: "Organization support" }),
       null,
     );
-    fireEvent.change(screen.getByLabelText("Subscription status"), {
-      target: { value: "active" },
-    });
+    chooseField(screen, fireEvent, "Subscription status", "active");
     assert.ok(screen.getByRole("cell", { name: "Active business" }));
     assert.equal(screen.queryByRole("cell", { name: "Paused business" }), null);
     fireEvent.click(screen.getByRole("button", { name: "Support inbox" }));
@@ -404,12 +405,11 @@ test("shared reason retains native service-form validation while disclosures pre
     assert.equal(addressBlock.open, true);
     assert.equal(address.value, "reviewed-address");
     assert.equal(reason.value, "Reviewed operator action for fixture");
-    fireEvent.change(screen.getByLabelText("Service status"), {
-      target: { value: "past_due" },
-    });
+    chooseField(screen, fireEvent, "Service status", "past_due");
     assert.equal(
-      (screen.getByLabelText("Service status") as HTMLSelectElement)
-        .selectedOptions[0].textContent,
+      screen
+        .getByRole("radio", { name: "Past due" })
+        .getAttribute("aria-label"),
       "Past due",
     );
     fireEvent.click(
@@ -433,11 +433,13 @@ test("compact platform chooser reaches all seven sections and shares desktop nav
   }) as any;
   try {
     render(<Platform />);
-    const chooser = (await screen.findByLabelText(
-      "Platform section",
-    )) as HTMLSelectElement;
+    const chooser = await screen.findByRole("group", {
+      name: "Platform section",
+    });
     assert.deepEqual(
-      Array.from(chooser.options).map((option) => option.value),
+      Array.from(
+        chooser.querySelectorAll<HTMLInputElement>("input[type=radio]"),
+      ).map((option) => option.value),
       [
         "organizations",
         "support",
@@ -448,7 +450,7 @@ test("compact platform chooser reaches all seven sections and shares desktop nav
         "travel_interest",
       ],
     );
-    fireEvent.change(chooser, { target: { value: "audit" } });
+    chooseField(screen, fireEvent, "Platform section", "audit");
     assert.ok(screen.getByRole("heading", { name: "Operator audit" }));
     assert.equal(
       document.activeElement,
@@ -469,14 +471,14 @@ test("compact platform chooser reaches all seven sections and shares desktop nav
     });
     assert.equal(auditRegion.getAttribute("tabindex"), "0");
     fireEvent.click(screen.getByRole("button", { name: "Organizations" }));
-    assert.equal(chooser.value, "organizations");
+    assert.equal(choiceValue(screen, "Platform section"), "organizations");
     assert.equal(
       screen
         .getByRole("region", { name: "Organization directory table" })
         .getAttribute("tabindex"),
       "0",
     );
-    fireEvent.change(chooser, { target: { value: "backups" } });
+    chooseField(screen, fireEvent, "Platform section", "backups");
     assert.ok(screen.getByRole("heading", { name: "Backup readiness" }));
   } finally {
     cleanup();

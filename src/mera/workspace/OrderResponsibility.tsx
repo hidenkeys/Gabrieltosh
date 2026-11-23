@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import { useEffect, useRef, useState } from "react";
 import { Action, Disclosure, ReadState } from "../ui/OperationalPrimitives";
 import { workspaceApi } from "./api";
@@ -303,26 +304,23 @@ function ScopedResponsibility({
                         <fieldset
                           disabled={disabled || working || unknown || stale}
                         >
-                          <label>
-                            Assign order to
-                            <select
-                              required
-                              value={selected}
-                              onChange={(event) =>
-                                setSelected(event.target.value)
-                              }
-                            >
-                              <option value="">Choose branch staff</option>
-                              {staff.map((person) => (
-                                <option key={person.id} value={person.id}>
-                                  {person.name}
-                                  {person.id === order.handlerId
-                                    ? " · Current handler"
-                                    : ""}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
+                          <ChoiceField
+                            label={<>Assign order to</>}
+                            searchable
+                            required
+                            value={selected}
+                            onChange={(nextValue) => setSelected(nextValue)}
+                          >
+                            <option value="">Choose branch staff</option>
+                            {staff.map((person) => (
+                              <option key={person.id} value={person.id}>
+                                {person.name}
+                                {person.id === order.handlerId
+                                  ? " · Current handler"
+                                  : ""}
+                              </option>
+                            ))}
+                          </ChoiceField>
                           <Action
                             type="submit"
                             disabled={!selected || selected === order.handlerId}

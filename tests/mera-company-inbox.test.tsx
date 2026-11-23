@@ -1,3 +1,4 @@
+import { chooseField, choiceValue } from "./choice-field-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -142,15 +143,9 @@ test("successful note/status/handler/follow-up update uses actor guard and refre
   reset();
   const mock = server();
   await open();
-  fireEvent.change(screen.getByLabelText("Status"), {
-    target: { value: "discovery" },
-  });
-  fireEvent.change(screen.getByLabelText("Assigned handler"), {
-    target: { value: actor },
-  });
-  fireEvent.change(screen.getByLabelText("Next stage"), {
-    target: { value: "discovery" },
-  });
+  chooseField(screen, fireEvent, "Status", String("discovery"));
+  chooseField(screen, fireEvent, "Assigned handler", String(actor));
+  chooseField(screen, fireEvent, "Next stage", String("discovery"));
   fireEvent.change(screen.getByLabelText("Follow-up summary"), {
     target: { value: "Arrange synthetic review" },
   });
@@ -267,9 +262,7 @@ test("first stale-version conflict exposes refresh recovery without pretending s
     (screen.getByLabelText("Add internal note") as HTMLTextAreaElement).value,
     "Check conflict",
   );
-  fireEvent.change(screen.getByLabelText("Status"), {
-    target: { value: "reviewing" },
-  });
+  chooseField(screen, fireEvent, "Status", String("reviewing"));
   fireEvent.change(screen.getByLabelText("Add internal note"), {
     target: { value: "Reviewed fresh version" },
   });
@@ -392,9 +385,7 @@ test("refresh exposes concurrent saved status, version, handler and follow-up wh
   reset();
   const mock = server();
   await open();
-  fireEvent.change(screen.getByLabelText("Status"), {
-    target: { value: "reviewing" },
-  });
+  chooseField(screen, fireEvent, "Status", String("reviewing"));
   fireEvent.change(screen.getByLabelText("Add internal note"), {
     target: { value: "Unsaved operator note" },
   });
@@ -424,10 +415,7 @@ test("refresh exposes concurrent saved status, version, handler and follow-up wh
     summary.textContent!,
     /Your edits differ from the saved details/,
   );
-  assert.equal(
-    (screen.getByLabelText("Status") as HTMLSelectElement).value,
-    "reviewing",
-  );
+  assert.equal(choiceValue(screen, "Status"), "reviewing");
   assert.equal(
     (screen.getByLabelText("Add internal note") as HTMLTextAreaElement).value,
     "Unsaved operator note",

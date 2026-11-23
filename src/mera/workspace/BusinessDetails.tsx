@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useRef, useState } from "react";
 type Draft = { contact: string; phone: string; serviceMode: string };
 const modes = {
@@ -194,24 +195,24 @@ function ScopedBusinessDetails({
             Phone
             <input
               type="tel"
+              inputMode="tel"
+              autoComplete="tel"
               maxLength={60}
               value={draft.phone}
               onChange={(event) => edit({ phone: event.target.value })}
             />
           </label>
-          <label>
-            Primary service
-            <select
-              value={draft.serviceMode}
-              onChange={(event) => edit({ serviceMode: event.target.value })}
-            >
-              {Object.entries(modes).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <ChoiceField
+            label={<>Primary service</>}
+            value={draft.serviceMode}
+            onChange={(nextValue) => edit({ serviceMode: nextValue })}
+          >
+            {Object.entries(modes).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </ChoiceField>
           {!pending && canEdit && (
             <div className="mw-wide mw-actions">
               <button className="primary" disabled={working || disabled}>

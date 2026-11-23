@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
 export function categoryPath(category: any, categories: any[]) {
@@ -162,24 +163,23 @@ function ScopedCategories({ base, disabled, save, onCategories }: Props) {
                 }
               />
             </label>
-            <label>
-              Parent category
-              <select
-                value={draft.parentId || ""}
-                onChange={(event) =>
-                  setDraft({ ...draft, parentId: event.target.value || null })
-                }
-              >
-                <option value="">Top-level category</option>
-                {rows
-                  .filter((row) => row.active && !isDescendant(row))
-                  .map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {categoryPath(row, rows)}
-                    </option>
-                  ))}
-              </select>
-            </label>
+            <ChoiceField
+              label={<>Parent category</>}
+              searchable
+              value={draft.parentId || ""}
+              onChange={(nextValue) =>
+                setDraft({ ...draft, parentId: nextValue || null })
+              }
+            >
+              <option value="">Top-level category</option>
+              {rows
+                .filter((row) => row.active && !isDescendant(row))
+                .map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {categoryPath(row, rows)}
+                  </option>
+                ))}
+            </ChoiceField>
             <label>
               Category sort order
               <input

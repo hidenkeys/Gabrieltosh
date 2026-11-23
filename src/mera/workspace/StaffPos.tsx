@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import { useState, type ReactNode } from "react";
 import { Search, ShoppingBag, Plus } from "lucide-react";
 import { ProductImage } from "../../ProductImage";
@@ -116,18 +117,18 @@ export default function StaffPos({
             </button>
           ))}
         </div>
-        <label className="mw-pos-category">
-          Menu category
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            <option value="">All items</option>
-            {categories.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </label>
+        <ChoiceField
+          label={<>Menu category</>}
+          className="mw-pos-category"
+          searchable
+          value={category}
+          onChange={(nextValue) => setCategory(nextValue)}
+        >
+          <option value="">All items</option>
+          {categories.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </ChoiceField>
         <div className="section-title">
           <div>
             <h2>{category || "The whole collection"}</h2>

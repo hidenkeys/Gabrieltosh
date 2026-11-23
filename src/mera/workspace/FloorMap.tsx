@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import { useRef, useState } from "react";
 import NonReplayForm, { type NonReplayState } from "./NonReplayForm";
 
@@ -91,41 +92,39 @@ function ScopedFloorMap({
         Choose a table to adjust its position. Service status comes from the
         current visit; moving a table on this map does not move its guests.
       </p>
-      <label>
-        Map zone
-        <select
-          value={zone}
-          disabled={blocked}
-          onChange={(e) => {
-            setZone(e.target.value);
-            setSelected("");
-          }}
-        >
-          <option value="">All zones</option>
-          {zones.map((z) => (
-            <option key={z}>{z}</option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Map table
-        <select
-          value={selected}
-          disabled={blocked}
-          onChange={(event) => {
-            const table = shown.find((row) => row.id === event.target.value);
-            if (table) select(table);
-            else setSelected("");
-          }}
-        >
-          <option value="">Choose table</option>
-          {shown.map((table) => (
-            <option key={table.id} value={table.id}>
-              {table.name} · {table.zone || "Main floor"}
-            </option>
-          ))}
-        </select>
-      </label>
+      <ChoiceField
+        label={<>Map zone</>}
+        searchable
+        value={zone}
+        disabled={blocked}
+        onChange={(nextValue) => {
+          setZone(nextValue);
+          setSelected("");
+        }}
+      >
+        <option value="">All zones</option>
+        {zones.map((z) => (
+          <option key={z}>{z}</option>
+        ))}
+      </ChoiceField>
+      <ChoiceField
+        label={<>Map table</>}
+        searchable
+        value={selected}
+        disabled={blocked}
+        onChange={(nextValue) => {
+          const table = shown.find((row) => row.id === nextValue);
+          if (table) select(table);
+          else setSelected("");
+        }}
+      >
+        <option value="">Choose table</option>
+        {shown.map((table) => (
+          <option key={table.id} value={table.id}>
+            {table.name} · {table.zone || "Main floor"}
+          </option>
+        ))}
+      </ChoiceField>
       {!shown.length ? (
         <p>No tables in this zone.</p>
       ) : (

@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
 type Props = { base: string; tables: any[]; demo: boolean };
@@ -248,35 +249,32 @@ function ScopedQrCodes({ base, tables, demo }: Props) {
             className="mw-qr-create-fields"
           >
             <div className="mw-form">
-              <label>
-                Menu destination
-                <select
-                  value={kind}
-                  onChange={(event) => setKind(event.target.value)}
-                >
-                  <option value="organization">
-                    Organization · choose a branch
-                  </option>
-                  <option value="branch">This branch</option>
-                  <option value="table">A specific table</option>
-                </select>
-              </label>
+              <ChoiceField
+                label={<>Menu destination</>}
+                value={kind}
+                onChange={(nextValue) => setKind(nextValue)}
+              >
+                <option value="organization">
+                  Organization · choose a branch
+                </option>
+                <option value="branch">This branch</option>
+                <option value="table">A specific table</option>
+              </ChoiceField>
               {kind === "table" && (
-                <label>
-                  Table
-                  <select
-                    required
-                    value={tableId}
-                    onChange={(event) => setTableId(event.target.value)}
-                  >
-                    <option value="">Choose a table</option>
-                    {knownTables.map((table) => (
-                      <option key={table.id} value={table.id}>
-                        {table.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <ChoiceField
+                  label={<>Table</>}
+                  searchable
+                  required
+                  value={tableId}
+                  onChange={(nextValue) => setTableId(nextValue)}
+                >
+                  <option value="">Choose a table</option>
+                  {knownTables.map((table) => (
+                    <option key={table.id} value={table.id}>
+                      {table.name}
+                    </option>
+                  ))}
+                </ChoiceField>
               )}
               <button className="primary">
                 {busy ? "Creating…" : "Create menu code"}

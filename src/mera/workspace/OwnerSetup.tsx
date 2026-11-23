@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -278,20 +279,19 @@ function GuidedSetup(props: Props & { onClose: () => void }) {
       <div className="mera-owner-grid">
         <nav className="mera-owner-nav" aria-label="Owner setup steps">
           <p>YOUR SETUP GUIDE</p>
-          <label className="mera-owner-mobile-steps">
-            Setup step
-            <select
-              value={step}
-              disabled={disabled || busy || pendingStep !== null}
-              onChange={(event) => void move(Number(event.target.value))}
-            >
-              {steps.map(([title], index) => (
-                <option key={title} value={index}>
-                  {index + 1}. {title}
-                </option>
-              ))}
-            </select>
-          </label>
+          <ChoiceField
+            label={<>Setup step</>}
+            className="mera-owner-mobile-steps"
+            value={step}
+            disabled={disabled || busy || pendingStep !== null}
+            onChange={(nextValue) => void move(Number(nextValue))}
+          >
+            {steps.map(([title], index) => (
+              <option key={title} value={index}>
+                {index + 1}. {title}
+              </option>
+            ))}
+          </ChoiceField>
           <ol>
             {steps.map(([title], index) => (
               <li key={title}>

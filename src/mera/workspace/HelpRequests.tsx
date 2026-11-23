@@ -1,3 +1,4 @@
+import ChoiceField from "../ui/ChoiceField";
 import { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
 import { workspaceApi } from "./api";
@@ -400,20 +401,18 @@ function ScopedHelpRequests({
         </section>
       )}
       <div className="mw-help-toolbar">
-        <label>
-          Help category
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            <option value="all">All permitted categories</option>
-            {allowed.map((c) => (
-              <option key={c} value={c}>
-                {categories[c]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ChoiceField
+          label={<>Help category</>}
+          value={category}
+          onChange={(nextValue) => setCategory(nextValue)}
+        >
+          <option value="all">All permitted categories</option>
+          {allowed.map((c) => (
+            <option key={c} value={c}>
+              {categories[c]}
+            </option>
+          ))}
+        </ChoiceField>
         <button
           type="button"
           className="secondary"
@@ -514,18 +513,19 @@ function HelpRow({
         }}
       >
         <fieldset disabled={blocked} className="mw-help-fields">
-          <label>
-            Request status
-            <select value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option
-                value="acknowledged"
-                disabled={request.status === "resolved"}
-              >
-                Acknowledged
-              </option>
-              <option value="resolved">Resolved</option>
-            </select>
-          </label>
+          <ChoiceField
+            label={<>Request status</>}
+            value={status}
+            onChange={(nextValue) => setStatus(nextValue)}
+          >
+            <option
+              value="acknowledged"
+              disabled={request.status === "resolved"}
+            >
+              Acknowledged
+            </option>
+            <option value="resolved">Resolved</option>
+          </ChoiceField>
           <label>
             Customer-visible reply
             <textarea

@@ -1,3 +1,4 @@
+import { chooseField, choiceValue } from "./choice-field-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -90,9 +91,7 @@ test("reply and private-note drafts remain mounted across category hides and ref
     note = screen.getAllByLabelText("Private staff note")[0];
   fireEvent.change(reply, { target: { value: "Draft reply" } });
   fireEvent.change(note, { target: { value: "Private draft note" } });
-  fireEvent.change(screen.getByLabelText("Help category"), {
-    target: { value: "payment" },
-  });
+  chooseField(screen, fireEvent, "Help category", String("payment"));
   assert.equal(container.querySelectorAll("article").length, 2);
   assert.equal(reply.isConnected, true);
   fireEvent.click(
@@ -100,9 +99,7 @@ test("reply and private-note drafts remain mounted across category hides and ref
   );
   await waitFor(() => assert.equal(reads, 2));
   await waitFor(() => assert(!screen.queryByText("Loading help requests…")));
-  fireEvent.change(screen.getByLabelText("Help category"), {
-    target: { value: "all" },
-  });
+  chooseField(screen, fireEvent, "Help category", String("all"));
   assert(screen.getAllByLabelText("Customer-visible reply")[0] === reply);
   assert.equal((reply as HTMLTextAreaElement).value, "Draft reply");
   assert.equal((note as HTMLTextAreaElement).value, "Private draft note");
