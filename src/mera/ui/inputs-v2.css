@@ -1,0 +1,328 @@
+/* Shared controls: inherit the venue accent and existing Mera typography. */
+.mi-control {
+  --mi-accent: var(--brand, var(--mc-primary, var(--mx-forest, #153f32)));
+  --mi-paper: var(--wx-bone, var(--mc-bone, #fcfbf6));
+  --mi-line: var(--wx-line, var(--mc-line, #d8ded6));
+  color: inherit;
+  font-family: var(
+    --wx-text,
+    var(--mc-text, "Mera Text", system-ui, sans-serif)
+  );
+  min-width: 0;
+}
+.mi-control :is(button, input, textarea) {
+  font: inherit;
+}
+.mi-control :is(button, input, textarea):focus-visible,
+.mi-choice-option:has(input:focus-visible) > span {
+  outline: 3px solid var(--mi-accent);
+  outline-offset: 3px;
+}
+.mi-control button {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+  transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mi-control button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.mi-control :disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.mi-control > label,
+.mi-control legend {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 650;
+  margin-bottom: 8px;
+}
+.mi-choice {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.mi-choice-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.mi-choice-option {
+  position: relative;
+  margin: 0;
+  display: flex;
+  min-width: 0;
+  cursor: pointer;
+}
+.mi-choice-option input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+.mi-choice-option > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--mi-line);
+  border-radius: 8px;
+  background: var(--mi-paper);
+  line-height: 1.3;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.mi-choice-option input:checked + span {
+  border-color: var(--mi-accent);
+  color: var(--mi-accent);
+  background: color-mix(in srgb, var(--mi-accent) 12%, var(--mi-paper));
+  box-shadow: inset 0 0 0 1px var(--mi-accent);
+}
+.mi-choice-option input:disabled + span {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.mi-choice-option small {
+  padding: 2px 6px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--mi-accent) 9%, var(--mi-paper));
+  font-variant-numeric: tabular-nums;
+}
+.mi-chips .mi-choice-option > span {
+  border-radius: 24px;
+}
+.mi-stepper-row {
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  border: 1px solid var(--mi-line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--mi-paper);
+}
+.mi-stepper-row > button {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--mi-accent);
+  font-size: 1.4rem;
+  flex: none;
+}
+.mi-stepper-row > input {
+  width: 80px;
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  border-left: 1px solid var(--mi-line);
+  border-right: 1px solid var(--mi-line);
+  border-radius: 0;
+  text-align: center;
+  font-family: "Mera Display", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+  background: transparent;
+}
+.mi-stepper-row input::-webkit-inner-spin-button,
+.mi-stepper-row input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+.mi-money-row {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--mi-line);
+  border-radius: 10px;
+  background: var(--mi-paper);
+}
+.mi-money-row > span {
+  padding-left: 14px;
+  font-weight: 700;
+}
+.mi-money-row > input {
+  min-height: 44px;
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  padding: 10px;
+}
+.mi-control.mi-switch > label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.mi-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.mi-switch-track {
+  width: 44px;
+  height: 26px;
+  flex: none;
+  background: #777e77;
+  border-radius: 20px;
+  padding: 3px;
+}
+.mi-switch-track::after {
+  content: "";
+  display: block;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mi-switch input:checked + .mi-switch-track {
+  background: var(--mi-accent);
+}
+.mi-switch input:checked + .mi-switch-track::after {
+  transform: translateX(18px);
+}
+.mi-switch input:focus-visible + .mi-switch-track {
+  outline: 3px solid var(--mi-accent);
+  outline-offset: 3px;
+}
+.mi-reason textarea {
+  display: block;
+  width: 100%;
+  min-height: 88px;
+  margin-top: 8px;
+}
+.mi-reason > label {
+  margin-top: 12px;
+}
+.mi-combobox {
+  position: relative;
+}
+.mi-combobox > input {
+  width: 100%;
+  min-height: 44px;
+}
+.mi-combobox ul {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow: auto;
+  list-style: none;
+  margin: 4px 0;
+  padding: 4px;
+  border: 1px solid var(--mi-line);
+  border-radius: 12px;
+  background: var(--mi-paper);
+  box-shadow: 0 12px 30px #152b2420;
+}
+.mi-combobox li {
+  padding: 12px;
+  min-height: 44px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.mi-combobox li strong,
+.mi-combobox li small {
+  display: block;
+}
+.mi-combobox li[aria-selected="true"],
+.mi-combobox li[data-active="true"] {
+  background: color-mix(in srgb, var(--mi-accent) 12%, var(--mi-paper));
+}
+.mi-combobox li[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.mi-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #152b2470;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 20px;
+}
+.mi-sheet {
+  width: min(100%, 640px);
+  max-height: 90dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--mi-paper);
+  border: 1px solid var(--mi-line);
+  border-radius: 24px 24px 12px 12px;
+  padding: 24px;
+  box-shadow: 0 -12px 50px #152b2424;
+}
+.mi-sheet > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.mi-sheet h2 {
+  margin: 0;
+  font-family: "Mera Display", system-ui, sans-serif;
+}
+.mi-datetime {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.mi-datetime > button {
+  justify-self: start;
+}
+.mi-datetime input {
+  min-height: 44px;
+  display: block;
+}
+.mi-cash-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.mi-sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  .mi-choice-option:hover > span,
+  .mi-combobox li:not([aria-disabled="true"]):hover {
+    background: color-mix(in srgb, var(--mi-accent) 8%, var(--mi-paper));
+  }
+}
+@media (max-width: 540px) {
+  .mi-sheet-backdrop {
+    padding: 0;
+  }
+  .mi-sheet {
+    border-radius: 24px 24px 0 0;
+    padding: 20px 16px max(20px, env(safe-area-inset-bottom));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mi-control *,
+  .mi-control *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
