@@ -326,3 +326,19 @@
     animation: none !important;
   }
 }
+.mi-choice-unavailable {
+  display: grid;
+  gap: 8px;
+}
+.mi-choice-unavailable input {
+  min-height: 44px;
+  width: 100%;
+  border: 1px solid var(--mi-line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--mi-paper);
+}
+.mi-choice-unavailable small {
+  max-width: 60ch;
+  line-height: 1.5;
+}
