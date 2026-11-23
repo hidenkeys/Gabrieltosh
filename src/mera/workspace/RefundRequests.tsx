@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ReasonInput } from "../ui/ReasonInput";
 import { workspaceApi } from "./api";
 type Props = {
   base: string;
@@ -149,16 +150,21 @@ export default function RefundRequests({
                 onChange={(e) => setAmount(e.target.value)}
               />
             </label>
-            <label>
-              Reason
-              <input
-                required
-                minLength={10}
-                maxLength={500}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              />
-            </label>
+            <ReasonInput
+              label="Reason"
+              required
+              minLength={10}
+              maxLength={500}
+              value={reason}
+              onChange={setReason}
+              presets={[
+                "Wrong item served",
+                "Item quality issue",
+                "Customer was overcharged",
+                "Duplicate payment",
+                "Service problem",
+              ]}
+            />
             <button disabled={disabled}>Submit refund request</button>
           </form>
         )
@@ -199,15 +205,19 @@ function Request({ request, base, canReview, disabled, send }: any) {
       </p>
       {canReview && (
         <>
-          <label>
-            Review reason
-            <input
-              minLength={10}
-              maxLength={500}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
-          </label>
+          <ReasonInput
+            label="Review reason"
+            minLength={10}
+            maxLength={500}
+            value={reason}
+            onChange={setReason}
+            presets={[
+              "Verified completed return",
+              "Return approved",
+              "Does not meet refund policy",
+              "Duplicate request",
+            ]}
+          />
           <button
             disabled={disabled || reason.trim().length < 10}
             onClick={() =>

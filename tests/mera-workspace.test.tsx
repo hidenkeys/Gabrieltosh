@@ -3803,9 +3803,9 @@ test("refund request review separates actors and requires completed manual retur
       name: "Record completed return",
     }) as HTMLButtonElement;
     assert(button.disabled);
-    fireEvent.change(screen.getByLabelText("Review reason"), {
-      target: { value: "Verified completed return" },
-    });
+    fireEvent.click(
+      screen.getByRole("radio", { name: "Verified completed return" }),
+    );
     fireEvent.change(screen.getByLabelText("Actual completed return method"), {
       target: { value: "cash" },
     });
