@@ -1,3 +1,8 @@
+import MoneyInput from "../ui/MoneyInput";
+import ReasonInput from "../ui/ReasonInput";
+import Segmented from "../ui/Segmented";
+import Combobox from "../ui/Combobox";
+import { formatMoney } from "./api";
 import { useEffect, useState } from "react";
 import { workspaceApi } from "./api";
 type Props = {
@@ -32,6 +37,19 @@ export default function RefundRequests({
     [reason, setReason] = useState(""),
     [revision, setRevision] = useState(0),
     [pending, setPending] = useState<any>(null);
+  const [selectedLines, setSelectedLines] = useState<string[]>([]);
+  const selectedOrder = orders.find((order) => order.id === orderId);
+  const available = selectedOrder
+    ? Math.max(0, (selectedOrder.paid || 0) - (selectedOrder.refunded || 0))
+    : 0;
+  const refundLines = Array.isArray(selectedOrder?.items)
+    ? selectedOrder.items.filter(
+        (line: any) =>
+          typeof line.orderLineId === "string" &&
+          Number.isSafeInteger(line.total) &&
+          line.total > 0,
+      )
+    : [];
   useEffect(() => {
     const controller = new AbortController();
     setRequests([]);
@@ -117,48 +135,122 @@ export default function RefundRequests({
               );
             }}
           >
-            <label>
-              Order
-              <select
-                required
-                value={orderId}
-                onChange={(e) => setOrder(e.target.value)}
+            <Combobox
+              label="Order"
+              required
+              value={orderId}
+              onChange={(value) => {
+                setOrder(value);
+                setSelectedLines([]);
+                setAmount("");
+              }}
+              options={orders
+                .filter(
+                  (order) =>
+                    !order.historicalReadOnly &&
+                    (order.paid || 0) > (order.refunded || 0),
+                )
+                .map((order) => ({
+                  value: order.id,
+                  label: order.reference || "Order",
+                  description: `${order.displayName || ""} · ${formatMoney((order.paid || 0) - (order.refunded || 0))} available`,
+                  searchText: order.tableName || "",
+                }))}
+              disabled={disabled}
+            />
+            <MoneyInput
+              label="Requested return (₦)"
+              required
+              min={0.01}
+              max={selectedOrder ? available / 100 : undefined}
+              value={amount}
+              onChange={(value) => {
+                setAmount(value);
+                setSelectedLines([]);
+              }}
+              disabled={disabled}
+            />
+            {selectedOrder && (
+              <div
+                className="mi-quick-values"
+                aria-label="Quick return amounts"
               >
-                <option value="">Choose order</option>
-                {orders
-                  .filter(
-                    (o) =>
-                      !o.historicalReadOnly &&
-                      (o.paid || 0) > (o.refunded || 0),
-                  )
-                  .map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.reference}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label>
-              Requested return (₦)
-              <input
-                required
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
-            </label>
-            <label>
-              Reason
-              <input
-                required
-                minLength={10}
-                maxLength={500}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              />
-            </label>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    setAmount((available / 100).toFixed(2));
+                    setSelectedLines([]);
+                  }}
+                >
+                  Full amount
+                </button>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    setAmount((Math.floor(available / 2) / 100).toFixed(2));
+                    setSelectedLines([]);
+                  }}
+                >
+                  Half amount
+                </button>
+              </div>
+            )}
+            {!!refundLines.length && (
+              <fieldset disabled={disabled}>
+                <legend>Choose returned items</legend>
+                <p>
+                  Item values exclude order-level charges and discounts. Review
+                  the requested amount before submitting.
+                </p>
+                {refundLines.map((line: any) => (
+                  <label className="mw-row" key={line.orderLineId}>
+                    <input
+                      type="checkbox"
+                      checked={selectedLines.includes(line.orderLineId)}
+                      onChange={(event) => {
+                        const chosen = event.target.checked
+                          ? [...selectedLines, line.orderLineId]
+                          : selectedLines.filter(
+                              (id) => id !== line.orderLineId,
+                            );
+                        setSelectedLines(chosen);
+                        setAmount(
+                          (
+                            refundLines
+                              .filter((item: any) =>
+                                chosen.includes(item.orderLineId),
+                              )
+                              .reduce(
+                                (sum: number, item: any) => sum + item.total,
+                                0,
+                              ) / 100
+                          ).toFixed(2),
+                        );
+                      }}
+                    />
+                    {line.quantity} × {line.name} · {formatMoney(line.total)}
+                  </label>
+                ))}
+              </fieldset>
+            )}
+            <ReasonInput
+              label="Reason"
+              required
+              minLength={10}
+              maxLength={500}
+              value={reason}
+              onChange={setReason}
+              disabled={disabled}
+              presets={[
+                "Wrong item received",
+                "Quality issue",
+                "Overcharged amount",
+                "Duplicate payment",
+                "Service issue",
+              ]}
+            />
             <button disabled={disabled}>Submit refund request</button>
           </form>
         )
@@ -199,15 +291,22 @@ function Request({ request, base, canReview, disabled, send }: any) {
       </p>
       {canReview && (
         <>
-          <label>
-            Review reason
-            <input
-              minLength={10}
-              maxLength={500}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
-          </label>
+          <ReasonInput
+            label="Review reason"
+            minLength={10}
+            maxLength={500}
+            value={reason}
+            onChange={setReason}
+            disabled={disabled}
+            presets={[
+              "Wrong item received",
+              "Quality issue",
+              "Overcharged amount",
+              "Duplicate payment",
+              "Service issue",
+              "Request could not be verified",
+            ]}
+          />
           <button
             disabled={disabled || reason.trim().length < 10}
             onClick={() =>
@@ -220,15 +319,17 @@ function Request({ request, base, canReview, disabled, send }: any) {
           >
             Reject request
           </button>
-          <label>
-            Actual completed return method
-            <select value={method} onChange={(e) => setMethod(e.target.value)}>
-              <option value="">Choose actual method</option>
-              <option value="cash">Cash</option>
-              <option value="external_pos">External POS</option>
-              <option value="external_transfer">External transfer</option>
-            </select>
-          </label>
+          <Segmented
+            label="Actual completed return method"
+            value={method}
+            onChange={setMethod}
+            disabled={disabled}
+            options={[
+              { value: "cash", label: "Cash" },
+              { value: "external_pos", label: "External POS" },
+              { value: "external_transfer", label: "External transfer" },
+            ]}
+          />
           <label>
             Return reference
             <input

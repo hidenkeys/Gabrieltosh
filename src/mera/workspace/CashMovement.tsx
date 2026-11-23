@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
 import { formatMoney, WorkspaceError } from "./api";
 import { Action } from "../ui/OperationalPrimitives";
+import Segmented from "../ui/Segmented";
+import MoneyInput from "../ui/MoneyInput";
+import ReasonInput from "../ui/ReasonInput";
 type Props = {
   base: string;
   shiftId: string;
@@ -107,37 +110,37 @@ function ScopedCashMovement({ base, shiftId, disabled, save }: Props) {
               className="fo-fieldset"
             >
               <div className="fo-form-grid">
-                <label>
-                  Cash movement
-                  <select
-                    value={direction}
-                    onChange={(event) => setDirection(event.target.value)}
-                  >
-                    <option value="out">Cash out</option>
-                    <option value="in">Cash in</option>
-                  </select>
-                </label>
-                <label>
-                  Movement amount (naira)
-                  <input
-                    required
-                    min="0.01"
-                    type="number"
-                    step="0.01"
-                    value={amount}
-                    onChange={(event) => setAmount(event.target.value)}
-                  />
-                </label>
-                <label className="fo-wide">
-                  Movement reason
-                  <input
-                    required
-                    minLength={3}
-                    maxLength={300}
-                    value={reason}
-                    onChange={(event) => setReason(event.target.value)}
-                  />
-                </label>
+                <Segmented
+                  label="Cash movement"
+                  value={direction}
+                  onChange={setDirection}
+                  options={[
+                    { value: "out", label: "Cash out" },
+                    { value: "in", label: "Cash in" },
+                  ]}
+                />
+                <MoneyInput
+                  label="Movement amount (naira)"
+                  required
+                  min={0.01}
+                  value={amount}
+                  onChange={setAmount}
+                />
+                <ReasonInput
+                  label="Movement reason"
+                  required
+                  minLength={3}
+                  maxLength={300}
+                  value={reason}
+                  onChange={setReason}
+                  presets={[
+                    "Float top-up",
+                    "Bank drop",
+                    "Supplier payment",
+                    "Change for till",
+                    "Tip payout",
+                  ]}
+                />
               </div>
               <Action type="submit" pending={working}>
                 Record cash movement

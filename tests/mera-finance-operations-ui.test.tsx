@@ -21,8 +21,20 @@ Object.defineProperty(globalThis, "navigator", {
   configurable: true,
 });
 const React = await import("react");
-const { render, screen, fireEvent, cleanup, waitFor, act } =
+const { render, screen, fireEvent, cleanup, waitFor, act, within } =
   await import("@testing-library/react");
+function fillPresetDetails(label: string, value: string) {
+  fireEvent.click(
+    within(screen.getByRole("group", { name: label, hidden: true })).getByRole(
+      "radio",
+      { name: "Other", hidden: true },
+    ),
+  );
+  fireEvent.change(screen.getByLabelText(`${label} details`), {
+    target: { value },
+  });
+}
+
 const { default: CashMovement } =
   await import("../src/mera/workspace/CashMovement");
 const { default: ShiftActions } =
@@ -36,9 +48,7 @@ function cashDraft() {
   fireEvent.change(screen.getByLabelText("Movement amount (naira)"), {
     target: { value: "500" },
   });
-  fireEvent.change(screen.getByLabelText("Movement reason"), {
-    target: { value: "Reviewed petty cash" },
-  });
+  fillPresetDetails("Movement reason", "Reviewed petty cash");
 }
 test("cash plain-network uncertainty survives409/429 exact retries and auth loss hides the draft", async () => {
   const writes: any[] = [];
@@ -60,8 +70,11 @@ test("cash plain-network uncertainty survives409/429 exact retries and auth loss
     );
     await screen.findByText("Cash response lost");
     assert.equal(
-      (screen.getByLabelText("Movement reason") as HTMLInputElement).closest(
-        "fieldset",
+      (
+        screen
+          .getByLabelText("Movement reason details")
+          .closest("form")
+          ?.querySelector("fieldset") as HTMLFieldSetElement
       )?.disabled,
       true,
     );
@@ -89,7 +102,10 @@ test("cash plain-network uncertainty survives409/429 exact retries and auth loss
     );
     assert.equal(writes[0].body.amount, 50000);
     await screen.findByText(/Shift access needs checking/);
-    assert.equal(screen.queryByLabelText("Movement reason"), null);
+    assert.equal(
+      screen.queryByRole("group", { name: "Movement reason", hidden: true }),
+      null,
+    );
     assert.equal(
       screen.queryByRole("button", { name: "Retry original cash movement" }),
       null,

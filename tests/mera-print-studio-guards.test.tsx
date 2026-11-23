@@ -14,8 +14,20 @@ Object.defineProperty(globalThis, "navigator", {
   configurable: true,
 });
 const React = await import("react");
-const { render, screen, fireEvent, waitFor, cleanup, act } =
+const { render, screen, fireEvent, waitFor, cleanup, act, within } =
   await import("@testing-library/react");
+function fillPresetDetails(label: string, value: string) {
+  fireEvent.click(
+    within(screen.getByRole("group", { name: label, hidden: true })).getByRole(
+      "radio",
+      { name: "Other", hidden: true },
+    ),
+  );
+  fireEvent.change(screen.getByLabelText(`${label} details`), {
+    target: { value },
+  });
+}
+
 const { default: PrintStudio } =
   await import("../src/mera/workspace/PrintStudio");
 const base = "/organizations/org/branches/branch",
@@ -182,7 +194,10 @@ test("permission loss hides jobs immediately, rejects late read and never expose
       ),
     );
     assert.equal(screen.queryByText(/PRIVATE_OLD_REFERENCE/), null);
-    assert.equal(screen.queryByLabelText("Reason for reprint"), null);
+    assert.equal(
+      screen.queryByRole("group", { name: "Reason for reprint", hidden: true }),
+      null,
+    );
     assert.ok(screen.getByText(/Order access is required/));
   } finally {
     cleanup();
@@ -216,9 +231,7 @@ test("unknown reprint while permission is removed remains frozen when access ret
     const view = render(<PrintStudio {...p} />);
     await screen.findByRole("button", { name: "Queue marked duplicate" });
     assert.ok(screen.getByText("Time unavailable"));
-    fireEvent.change(screen.getByLabelText("Reason for reprint"), {
-      target: { value: "Paper jam" },
-    });
+    fillPresetDetails("Reason for reprint", "Paper jam");
     const button = screen.getByRole("button", {
       name: "Queue marked duplicate",
     });
@@ -228,10 +241,7 @@ test("unknown reprint while permission is removed remains frozen when access ret
     view.rerender(<PrintStudio {...p} canReprint={false} />);
     await act(async () => reject(Error("Network unknown")));
     view.rerender(<PrintStudio {...p} />);
-    assert.equal(
-      (screen.getByLabelText("Reason for reprint") as HTMLInputElement).value,
-      "",
-    );
+    assert.equal(screen.queryByLabelText("Reason for reprint details"), null);
     assert.equal(
       (
         screen.getByRole("button", {

@@ -14,8 +14,20 @@ Object.defineProperty(globalThis, "navigator", {
   configurable: true,
 });
 const React = await import("react");
-const { render, screen, fireEvent, waitFor, cleanup, act } =
+const { render, screen, fireEvent, waitFor, cleanup, act, within } =
   await import("@testing-library/react");
+function fillPresetDetails(label: string, value: string) {
+  fireEvent.click(
+    within(screen.getByRole("group", { name: label, hidden: true })).getByRole(
+      "radio",
+      { name: "Other", hidden: true },
+    ),
+  );
+  fireEvent.change(screen.getByLabelText(`${label} details`), {
+    target: { value },
+  });
+}
+
 const { default: PrintStudio } =
   await import("../src/mera/workspace/PrintStudio");
 const { readPrintStudioMarker } =
@@ -278,9 +290,7 @@ test("reprint proof must identify a queued marked duplicate with unconfirmed phy
     />,
   );
   await screen.findByRole("button", { name: "Queue marked duplicate" });
-  fireEvent.change(screen.getByLabelText("Reason for reprint"), {
-    target: { value: "Paper jam reason" },
-  });
+  fillPresetDetails("Reason for reprint", "Paper jam reason");
   fireEvent.click(
     screen.getByRole("button", { name: "Queue marked duplicate" }),
   );
@@ -315,7 +325,9 @@ test("permission loss hides private original reason and late previous-actor muta
   render(<PrintStudio {...props} canViewJobs={false} canReprint={false} />);
   await screen.findByRole("button", { name: "Check print request outcome" });
   assert.ok(!screen.queryByText("source-job"));
-  assert.ok(!screen.queryByLabelText("Reason for reprint"));
+  assert.ok(
+    !screen.queryByRole("group", { name: "Reason for reprint", hidden: true }),
+  );
 });
 test("predispatch storage write failure prevents template save and exposes recovery error without submitting", async () => {
   fetchLists();
@@ -391,25 +403,22 @@ test("loss of reprint permission drops private reason and delayed error, preserv
   };
   const view = render(<PrintStudio {...p} />);
   await screen.findByRole("button", { name: "Queue marked duplicate" });
-  fireEvent.change(screen.getByLabelText("Reason for reprint"), {
-    target: { value: "PRIVATE REPRINT REASON" },
-  });
+  fillPresetDetails("Reason for reprint", "PRIVATE REPRINT REASON");
   fireEvent.click(
     screen.getByRole("button", { name: "Queue marked duplicate" }),
   );
   view.rerender(<PrintStudio {...p} canReprint={false} />);
   await act(async () => reject(Error("PRIVATE PROVIDER ERROR")));
-  assert.ok(!screen.queryByLabelText("Reason for reprint"));
+  assert.ok(
+    !screen.queryByRole("group", { name: "Reason for reprint", hidden: true }),
+  );
   assert.ok(!screen.queryByText(/PRIVATE PROVIDER ERROR/));
   assert.ok(
     !screen.queryByRole("button", { name: "Retry original print request" }),
   );
   assert.ok(readPrintStudioMarker(actorId, base));
   view.rerender(<PrintStudio {...p} />);
-  assert.equal(
-    (screen.getByLabelText("Reason for reprint") as HTMLInputElement).value,
-    "",
-  );
+  assert.equal(screen.queryByLabelText("Reason for reprint details"), null);
   assert.ok(
     !screen.queryByRole("button", { name: "Retry original print request" }),
   );

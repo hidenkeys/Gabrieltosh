@@ -1,3 +1,5 @@
+import CashCounter from "../ui/CashCounter";
+import ReasonInput from "../ui/ReasonInput";
 import { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
 import { reservationDate } from "./reservationPresentation";
@@ -374,15 +376,19 @@ function ScopedShiftOperation(props: Props) {
               This stops only an operation that has not been recorded. It does
               not reverse an accepted shift or cash entry.
             </p>
-            <label>
-              Reason for stopping
-              <input
-                maxLength={500}
-                value={stopReason}
-                disabled={disabled || busy}
-                onChange={(e) => setStopReason(e.target.value)}
-              />
-            </label>
+            <ReasonInput
+              label="Reason for stopping"
+              value={stopReason}
+              onChange={setStopReason}
+              minLength={3}
+              maxLength={500}
+              disabled={disabled || busy}
+              presets={[
+                "Wrong shift selected",
+                "Entered wrong cash amount",
+                "Shift no longer needed",
+              ]}
+            />
             <label className="mw-row">
               <input
                 type="checkbox"
@@ -444,28 +450,31 @@ function ScopedShiftOperation(props: Props) {
             }}
           >
             <fieldset disabled={disabled || busy || blocked || !ready || !safe}>
-              <label>
-                {opens.length === 1
-                  ? "Counted cash (naira)"
-                  : "Opening float (naira)"}
-                <input
-                  required
-                  inputMode="decimal"
-                  value={cash}
-                  onChange={(e) => setCash(e.target.value)}
-                  onInput={(e) => setCash(e.currentTarget.value)}
-                  placeholder="0.00"
-                />
-              </label>
+              <CashCounter
+                key={opens.length === 1 ? opens[0].id : "opening"}
+                label={
+                  opens.length === 1
+                    ? "Counted cash (naira)"
+                    : "Opening float (naira)"
+                }
+                required
+                value={cash}
+                onChange={setCash}
+              />
               {opens.length === 1 && (
-                <label>
-                  Variance explanation
-                  <input
-                    maxLength={300}
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                  />
-                </label>
+                <ReasonInput
+                  label="Variance explanation"
+                  value={reason}
+                  onChange={setReason}
+                  maxLength={300}
+                  presets={[
+                    "No variance",
+                    "Change given incorrectly",
+                    "Cash payment not recorded",
+                    "Till recount",
+                    "Cash missing",
+                  ]}
+                />
               )}
               <Action type="submit" variant="primary">
                 {opens.length === 1 ? "Close & reconcile" : "Open shift"}

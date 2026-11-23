@@ -14,8 +14,20 @@ Object.defineProperty(globalThis, "navigator", {
   configurable: true,
 });
 const React = await import("react");
-const { render, screen, fireEvent, waitFor, cleanup, act } =
+const { render, screen, fireEvent, waitFor, cleanup, act, within } =
   await import("@testing-library/react");
+function fillPresetDetails(label: string, value: string) {
+  fireEvent.click(
+    within(screen.getByRole("group", { name: label, hidden: true })).getByRole(
+      "radio",
+      { name: "Other", hidden: true },
+    ),
+  );
+  fireEvent.change(screen.getByLabelText(`${label} details`), {
+    target: { value },
+  });
+}
+
 const { default: PrintStudio } =
   await import("../src/mera/workspace/PrintStudio");
 const { default: QrCodes } = await import("../src/mera/workspace/QrCodes");
@@ -381,9 +393,7 @@ test("O7 unknown reprint never resends on queue refresh and queue previews use s
     await screen.findByRole("heading", { name: "Receipt · A1" });
     assert(screen.getByRole("region", { name: "Recent print jobs" }));
     assert.equal(screen.queryByText("raw-order-private"), null);
-    fireEvent.change(screen.getByLabelText("Reason for reprint"), {
-      target: { value: "Receipt damaged" },
-    });
+    fillPresetDetails("Reason for reprint", "Receipt damaged");
     fireEvent.click(
       screen.getByRole("button", { name: "Queue marked duplicate" }),
     );

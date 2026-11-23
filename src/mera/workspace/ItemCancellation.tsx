@@ -1,3 +1,8 @@
+import ReasonInput from "../ui/ReasonInput";
+import MoneyInput from "../ui/MoneyInput";
+import Stepper from "../ui/Stepper";
+import Segmented from "../ui/Segmented";
+import Combobox from "../ui/Combobox";
 import React, { useState } from "react";
 import { uuid } from "../../api";
 import { WorkspaceError, formatMoney } from "./api";
@@ -135,51 +140,50 @@ export default function ItemCancellation({
           style={{ border: 0, padding: 0 }}
         >
           <div className="mw-form">
-            <label>
-              Item to cancel
-              <select
-                required
-                value={lineId}
-                onChange={(event) => {
-                  setLineId(event.target.value);
-                  setQuantity(1);
-                  setReview(null);
-                  setAllocations({});
-                }}
-              >
-                <option value="">Choose an unprepared item</option>
-                {lines.map((row: any) => (
-                  <option key={row.orderLineId} value={row.orderLineId}>
-                    {row.name} · {row.quantity} remaining
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Quantity to cancel
-              <input
-                type="number"
-                min={1}
-                max={Math.max(0, (line?.quantity || 0) - prepared)}
-                required
-                value={quantity}
-                onChange={(event) => {
-                  setQuantity(Number(event.target.value));
-                  setReview(null);
-                  setAllocations({});
-                }}
-              />
-            </label>
-            <label>
-              Cancellation reason
-              <input
-                required
-                minLength={3}
-                maxLength={300}
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
-              />
-            </label>
+            <Combobox
+              label="Item to cancel"
+              required
+              value={lineId}
+              onChange={(value) => {
+                setLineId(value);
+                setQuantity(1);
+                setReview(null);
+                setAllocations({});
+              }}
+              placeholder="Choose an unprepared item"
+              options={lines.map((row: any) => ({
+                value: row.orderLineId,
+                label: row.name,
+                description: `${row.quantity} remaining`,
+              }))}
+            />
+            <Stepper
+              label="Quantity to cancel"
+              min={1}
+              max={Math.max(0, (line?.quantity || 0) - prepared)}
+              disabled={!line || line.quantity <= prepared}
+              required
+              value={quantity}
+              onChange={(value) => {
+                setQuantity(value);
+                setReview(null);
+                setAllocations({});
+              }}
+            />
+            <ReasonInput
+              label="Cancellation reason"
+              required
+              minLength={3}
+              maxLength={300}
+              value={reason}
+              onChange={setReason}
+              presets={[
+                "Customer changed mind",
+                "Item unavailable",
+                "Wrong item entered",
+                "Took too long",
+              ]}
+            />
           </div>
           {requiresReview && (
             <div className="mw-note">
@@ -246,31 +250,20 @@ export default function ItemCancellation({
                 </p>
               ) : (
                 credits.map((refund) => (
-                  <label key={refund.id}>
-                    Allocate refund {refund.reference || refund.id.slice(0, 8)}{" "}
-                    ·{" "}
-                    {formatMoney(
-                      refund.amount - (refund.cancellationAppliedAmount || 0),
-                    )}{" "}
-                    unused
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      max={
-                        (refund.amount -
-                          (refund.cancellationAppliedAmount || 0)) /
-                        100
-                      }
-                      value={allocations[refund.id] || ""}
-                      onChange={(event) =>
-                        setAllocations({
-                          ...allocations,
-                          [refund.id]: event.target.value,
-                        })
-                      }
-                    />
-                  </label>
+                  <MoneyInput
+                    key={refund.id}
+                    label={`Allocate refund ${refund.reference || "credit"} · ${formatMoney(refund.amount - (refund.cancellationAppliedAmount || 0))} unused`}
+                    min={0}
+                    max={
+                      (refund.amount -
+                        (refund.cancellationAppliedAmount || 0)) /
+                      100
+                    }
+                    value={allocations[refund.id] || ""}
+                    onChange={(value) =>
+                      setAllocations({ ...allocations, [refund.id]: value })
+                    }
+                  />
                 ))
               )}
             </fieldset>
@@ -335,31 +328,34 @@ export default function ItemCancellation({
                 recorded. This action records money returned outside Mera.
               </p>
               <div className="mw-form">
-                <label>
-                  Reviewed cancellation refund method
-                  <select
-                    required
-                    value={refundMethod}
-                    onChange={(event) => setRefundMethod(event.target.value)}
-                  >
-                    <option value="">Choose actual payout method</option>
-                    <option value="cash">Cash returned</option>
-                    <option value="external_pos">External POS refund</option>
-                    <option value="external_transfer">
-                      External transfer returned
-                    </option>
-                  </select>
-                </label>
-                <label>
-                  Reviewed cancellation refund reason
-                  <input
-                    required
-                    minLength={3}
-                    maxLength={300}
-                    value={refundReason}
-                    onChange={(event) => setRefundReason(event.target.value)}
-                  />
-                </label>
+                <Segmented
+                  label="Reviewed cancellation refund method"
+                  required
+                  value={refundMethod}
+                  onChange={setRefundMethod}
+                  options={[
+                    { value: "cash", label: "Cash returned" },
+                    { value: "external_pos", label: "External POS refund" },
+                    {
+                      value: "external_transfer",
+                      label: "External transfer returned",
+                    },
+                  ]}
+                />
+                <ReasonInput
+                  label="Reviewed cancellation refund reason"
+                  required
+                  minLength={3}
+                  maxLength={300}
+                  value={refundReason}
+                  onChange={setRefundReason}
+                  presets={[
+                    "Customer changed mind",
+                    "Item unavailable",
+                    "Wrong item entered",
+                    "Took too long",
+                  ]}
+                />
               </div>
               <label className="mw-row">
                 <span>I verified this refund was already paid manually.</span>

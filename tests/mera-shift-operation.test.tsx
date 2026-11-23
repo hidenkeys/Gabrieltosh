@@ -14,8 +14,20 @@ Object.defineProperty(globalThis, "navigator", {
   configurable: true,
 });
 const React = await import("react");
-const { render, screen, fireEvent, waitFor, cleanup, act } =
+const { render, screen, fireEvent, waitFor, cleanup, act, within } =
   await import("@testing-library/react");
+function fillPresetDetails(label: string, value: string) {
+  fireEvent.click(
+    within(screen.getByRole("group", { name: label, hidden: true })).getByRole(
+      "radio",
+      { name: "Other", hidden: true },
+    ),
+  );
+  fireEvent.change(screen.getByLabelText(`${label} details`), {
+    target: { value },
+  });
+}
+
 const { default: ShiftOperation } =
   await import("../src/mera/workspace/ShiftOperation");
 const j = await import("../src/mera/workspace/shiftOperationJournal");
@@ -187,9 +199,7 @@ test("close target and original count stay frozen despite new current shift, mal
     fireEvent.change(screen.getByLabelText("Counted cash (naira)"), {
       target: { value: "10.01" },
     });
-    fireEvent.change(screen.getByLabelText("Variance explanation"), {
-      target: { value: "Till counted by staff" },
-    });
+    fillPresetDetails("Variance explanation", "Till counted by staff");
     fireEvent.submit(
       screen
         .getByRole("button", { name: "Close & reconcile" })
@@ -237,9 +247,7 @@ test("reference-only marker can stop safely, actor header accompanies proof chec
       !screen.queryByRole("button", { name: "Retry original shift operation" }),
     );
     fireEvent.click(screen.getByText("Stop the unconfirmed shift request"));
-    fireEvent.change(screen.getByLabelText("Reason for stopping"), {
-      target: { value: "Stop original attempt" },
-    });
+    fillPresetDetails("Reason for stopping", "Stop original attempt");
     fireEvent.click(
       screen.getByRole("checkbox", {
         name: "I want to stop this unconfirmed shift operation.",
@@ -352,9 +360,7 @@ test("successful close verifies original operation through GET before clearing a
     fireEvent.change(screen.getByLabelText("Counted cash (naira)"), {
       target: { value: "15" },
     });
-    fireEvent.change(screen.getByLabelText("Variance explanation"), {
-      target: { value: "Staff counted till" },
-    });
+    fillPresetDetails("Variance explanation", "Staff counted till");
     fireEvent.submit(
       screen
         .getByRole("button", { name: "Close & reconcile" })
@@ -368,10 +374,7 @@ test("successful close verifies original operation through GET before clearing a
       (screen.getByLabelText("Counted cash (naira)") as HTMLInputElement).value,
       "",
     );
-    assert.equal(
-      (screen.getByLabelText("Variance explanation") as HTMLInputElement).value,
-      "",
-    );
+    assert.equal(screen.queryByLabelText("Variance explanation details"), null);
   } finally {
     cleanup();
     window.sessionStorage.clear();
@@ -395,9 +398,7 @@ test("denied recovery hides cash and reason immediately and redacts journal with
     fireEvent.change(screen.getByLabelText("Counted cash (naira)"), {
       target: { value: "18.76" },
     });
-    fireEvent.change(screen.getByLabelText("Variance explanation"), {
-      target: { value: "PRIVATE CASH EXPLANATION" },
-    });
+    fillPresetDetails("Variance explanation", "PRIVATE CASH EXPLANATION");
     fireEvent.submit(
       screen
         .getByRole("button", { name: "Close & reconcile" })
@@ -436,9 +437,7 @@ test("fresh close draft is bound to its actual target and resets when another op
     fireEvent.change(screen.getByLabelText("Counted cash (naira)"), {
       target: { value: "27.55" },
     });
-    fireEvent.change(screen.getByLabelText("Variance explanation"), {
-      target: { value: "A count only" },
-    });
+    fillPresetDetails("Variance explanation", "A count only");
     view.rerender(
       <ShiftOperation {...p} shifts={[{ id: actor, status: "open" }]} />,
     );
@@ -447,7 +446,11 @@ test("fresh close draft is bound to its actual target and resets when another op
       "",
     );
     assert.equal(
-      (screen.getByLabelText("Variance explanation") as HTMLInputElement).value,
+      (
+        screen.getByLabelText(
+          "Variance explanation details",
+        ) as HTMLTextAreaElement
+      ).value,
       "",
     );
     fireEvent.submit(

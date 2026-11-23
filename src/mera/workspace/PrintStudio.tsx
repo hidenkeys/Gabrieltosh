@@ -1,3 +1,6 @@
+import Segmented from "../ui/Segmented";
+import Switch from "../ui/Switch";
+import ReasonInput from "../ui/ReasonInput";
 import { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
 import { uuid } from "../../api";
@@ -873,24 +876,23 @@ function ScopedPrintStudio({
                       }
                     />
                   </label>
-                  <label>
-                    Receipt roll
-                    <select
-                      value={templates.receipt.paperWidth}
-                      onChange={(e) =>
-                        editTemplates({
-                          ...templates,
-                          receipt: {
-                            ...templates.receipt,
-                            paperWidth: Number(e.target.value),
-                          },
-                        })
-                      }
-                    >
-                      <option value="58">58 mm</option>
-                      <option value="80">80 mm</option>
-                    </select>
-                  </label>
+                  <Segmented
+                    label="Receipt roll"
+                    value={String(templates.receipt.paperWidth)}
+                    onChange={(value) =>
+                      editTemplates({
+                        ...templates,
+                        receipt: {
+                          ...templates.receipt,
+                          paperWidth: Number(value),
+                        },
+                      })
+                    }
+                    options={[
+                      { value: "58", label: "58 mm" },
+                      { value: "80", label: "80 mm" },
+                    ]}
+                  />
                   <label>
                     Footer
                     <textarea
@@ -907,24 +909,17 @@ function ScopedPrintStudio({
                       }
                     />
                   </label>
-                  <label>
-                    Show staff
-                    <select
-                      value={String(templates.receipt.showStaff)}
-                      onChange={(e) =>
-                        editTemplates({
-                          ...templates,
-                          receipt: {
-                            ...templates.receipt,
-                            showStaff: e.target.value === "true",
-                          },
-                        })
-                      }
-                    >
-                      <option value="true">Yes</option>
-                      <option value="false">No</option>
-                    </select>
-                  </label>
+                  <Switch
+                    label="Show staff"
+                    description="Include the staff member's name on receipts."
+                    checked={templates.receipt.showStaff}
+                    onChange={(value) =>
+                      editTemplates({
+                        ...templates,
+                        receipt: { ...templates.receipt, showStaff: value },
+                      })
+                    }
+                  />
                   {(["width", "height"] as const).map((key) => (
                     <label key={key}>
                       Sticker {key} (mm)
@@ -1012,23 +1007,25 @@ function ScopedPrintStudio({
               </div>
             )}
             {canReprint && (
-              <label>
-                Reason for reprint
-                <input
-                  value={reason}
-                  minLength={3}
-                  maxLength={300}
-                  disabled={
-                    disabled ||
-                    busy ||
-                    !!marker ||
-                    !recoveryReady ||
-                    reprintUnknown
-                  }
-                  onChange={(event) => setReason(event.target.value)}
-                  placeholder="Why is a duplicate needed?"
-                />
-              </label>
+              <ReasonInput
+                label="Reason for reprint"
+                value={reason}
+                minLength={3}
+                maxLength={300}
+                disabled={
+                  disabled ||
+                  busy ||
+                  !!marker ||
+                  !recoveryReady ||
+                  reprintUnknown
+                }
+                onChange={setReason}
+                presets={[
+                  "Printer jammed",
+                  "Customer asked for copy",
+                  "Wrong details",
+                ]}
+              />
             )}
             {!jobs.length ? (
               <p>No print jobs in this branch.</p>

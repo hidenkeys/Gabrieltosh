@@ -24,6 +24,18 @@ Object.defineProperty(globalThis, "navigator", {
 const React = await import("react");
 const { render, screen, fireEvent, waitFor, cleanup, act, within } =
   await import("@testing-library/react");
+function fillPresetDetails(label: string, value: string) {
+  fireEvent.click(
+    within(screen.getByRole("group", { name: label, hidden: true })).getByRole(
+      "radio",
+      { name: "Other", hidden: true },
+    ),
+  );
+  fireEvent.change(screen.getByLabelText(`${label} details`), {
+    target: { value },
+  });
+}
+
 const { default: Workspace } =
   await import("../src/mera/workspace/OrganizationWorkspace");
 const user = { id: "user-1", name: "Teni" };
@@ -1339,16 +1351,18 @@ test("unpaid item cancellation respects prepared quantities and paid orders stay
         },
       }),
     );
-    fireEvent.change(screen.getByLabelText("Item to cancel"), {
-      target: { value: "line" },
-    });
+    fireEvent.focus(
+      screen.getByRole("combobox", { name: "Item to cancel", hidden: true }),
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Item to cancel", hidden: true }),
+      { key: "Enter" },
+    );
     assert.equal(
       (screen.getByLabelText("Quantity to cancel") as HTMLInputElement).max,
       "2",
     );
-    fireEvent.change(screen.getByLabelText("Cancellation reason"), {
-      target: { value: "Customer changed their order" },
-    });
+    fillPresetDetails("Cancellation reason", "Customer changed their order");
     await act(async () =>
       fireEvent.click(
         screen.getByRole("button", {
@@ -1378,8 +1392,11 @@ test("unpaid item cancellation respects prepared quantities and paid orders stay
     );
     assert.equal(
       (
-        screen.getByLabelText("Cancellation reason") as HTMLInputElement
-      ).closest("fieldset")?.disabled,
+        screen
+          .getByRole("group", { name: "Cancellation reason", hidden: true })
+          .closest("form")
+          ?.querySelector("fieldset") as HTMLFieldSetElement
+      )?.disabled,
       true,
     );
     assert(
@@ -1476,17 +1493,18 @@ test("cash movement uncertainty locks intent and retries the original idempotenc
     fireEvent.change(screen.getByLabelText("Movement amount (naira)"), {
       target: { value: "500" },
     });
-    fireEvent.change(screen.getByLabelText("Movement reason"), {
-      target: { value: "Petty cash supplies" },
-    });
+    fillPresetDetails("Movement reason", "Petty cash supplies");
     await act(async () =>
       fireEvent.click(
         screen.getByRole("button", { name: "Record cash movement" }),
       ),
     );
     assert.equal(
-      (screen.getByLabelText("Movement reason") as HTMLInputElement).closest(
-        "fieldset",
+      (
+        screen
+          .getByLabelText("Movement reason details")
+          .closest("form")
+          ?.querySelector("fieldset") as HTMLFieldSetElement
       )?.disabled,
       true,
     );
@@ -1610,12 +1628,14 @@ test("paid item cancellation allocates existing approved refund credit without i
         },
       }),
     );
-    fireEvent.change(screen.getByLabelText("Item to cancel"), {
-      target: { value: "line" },
-    });
-    fireEvent.change(screen.getByLabelText("Cancellation reason"), {
-      target: { value: "Refund approved for this item" },
-    });
+    fireEvent.focus(
+      screen.getByRole("combobox", { name: "Item to cancel", hidden: true }),
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Item to cancel", hidden: true }),
+      { key: "Enter" },
+    );
+    fillPresetDetails("Cancellation reason", "Refund approved for this item");
     assert.equal(
       (
         screen.getByRole("button", {
@@ -2390,12 +2410,17 @@ test("priced item cancellation reviews original-policy totals then records only 
         },
       }),
     );
-    fireEvent.change(screen.getByLabelText("Item to cancel"), {
-      target: { value: "line" },
-    });
-    fireEvent.change(screen.getByLabelText("Cancellation reason"), {
-      target: { value: "Customer cancelled one unprepared drink" },
-    });
+    fireEvent.focus(
+      screen.getByRole("combobox", { name: "Item to cancel", hidden: true }),
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Item to cancel", hidden: true }),
+      { key: "Enter" },
+    );
+    fillPresetDetails(
+      "Cancellation reason",
+      "Customer cancelled one unprepared drink",
+    );
     assert.equal(
       (
         screen.getByRole("button", {
@@ -2426,13 +2451,12 @@ test("priced item cancellation reviews original-policy totals then records only 
       ).disabled,
       true,
     );
-    fireEvent.change(
-      screen.getByLabelText("Reviewed cancellation refund method"),
-      { target: { value: "cash" } },
+    fireEvent.click(
+      screen.getByRole("radio", { name: "Cash returned", hidden: true }),
     );
-    fireEvent.change(
-      screen.getByLabelText("Reviewed cancellation refund reason"),
-      { target: { value: "Cash already returned and verified" } },
+    fillPresetDetails(
+      "Reviewed cancellation refund reason",
+      "Cash already returned and verified",
     );
     fireEvent.click(
       screen.getByLabelText(
@@ -3793,12 +3817,8 @@ test("refund request review separates actors and requires completed manual retur
       name: "Record completed return",
     }) as HTMLButtonElement;
     assert(button.disabled);
-    fireEvent.change(screen.getByLabelText("Review reason"), {
-      target: { value: "Verified completed return" },
-    });
-    fireEvent.change(screen.getByLabelText("Actual completed return method"), {
-      target: { value: "cash" },
-    });
+    fillPresetDetails("Review reason", "Verified completed return");
+    fireEvent.click(screen.getByRole("radio", { name: "Cash", exact: true }));
     assert(button.disabled);
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(button);
