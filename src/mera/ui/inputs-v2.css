@@ -383,3 +383,72 @@
   height: 44px;
   min-height: 44px;
 }
+/* Less-used navigation stays reachable without competing with daily work. */
+.mera-workspace .mw-nav-more {
+  border-top: 1px solid var(--wx-line);
+  margin-top: 12px;
+  padding-top: 8px;
+}
+.mera-workspace .mw-more-toggle {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  min-height: 44px;
+}
+.mera-workspace .mw-more-toggle svg {
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mera-workspace .mw-more-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.mera-workspace #mw-more-workspace-pages[hidden] {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mera-workspace .mw-more-toggle svg {
+    transition: none;
+  }
+}
+.mi-unit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--mi-line);
+  border-radius: 10px;
+  background: var(--mi-paper);
+}
+.mi-unit-row input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  padding: 10px 12px;
+  background: transparent;
+  border-radius: 10px;
+}
+.mi-unit-row > span {
+  padding-right: 12px;
+  color: var(--wx-muted, var(--mc-muted, #5a665f));
+  font-size: 13px;
+  white-space: nowrap;
+}
+.mi-unit-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.mi-unit-presets button,
+.mi-unit > button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--mi-line);
+  border-radius: 10px;
+  background: var(--mi-paper);
+  color: inherit;
+  font-size: 12px;
+}
+.mi-unit > button {
+  margin-top: 8px;
+}

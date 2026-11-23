@@ -1,3 +1,4 @@
+import UnitInput from "../ui/UnitInput";
 import React, { useState } from "react";
 import Stepper from "../ui/Stepper";
 import Switch from "../ui/Switch";
@@ -45,26 +46,23 @@ export default function ReservationPolicy({
         onChange={(value) => setDraft({ ...draft, [key]: value })}
       />
     ) : (
-      <label key={key}>
-        {label}
-        <input
-          type="number"
-          min={min}
-          max={max}
-          required={!nullable}
-          placeholder={nullable ? "Not set" : ""}
-          value={draft[key] === null ? "" : String(draft[key])}
-          onChange={(event) =>
-            setDraft({
-              ...draft,
-              [key]:
-                event.target.value === "" && nullable
-                  ? null
-                  : Number(event.target.value),
-            })
-          }
-        />
-      </label>
+      <UnitInput
+        key={key}
+        label={label}
+        unit="minutes"
+        min={min}
+        max={max}
+        required={!nullable}
+        allowUnset={nullable}
+        value={draft[key] === null ? "" : String(draft[key])}
+        onChange={(value) =>
+          setDraft({
+            ...draft,
+            [key]: value === "" && nullable ? null : Number(value),
+          })
+        }
+        presets={[{ value: 0 }, { value: 15 }, { value: 30 }, { value: 60 }]}
+      />
     );
   return (
     <section className="mw-card">

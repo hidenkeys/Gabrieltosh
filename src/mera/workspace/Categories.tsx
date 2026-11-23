@@ -1,3 +1,4 @@
+import Stepper from "../ui/Stepper";
 import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
@@ -180,20 +181,14 @@ function ScopedCategories({ base, disabled, save, onCategories }: Props) {
                   </option>
                 ))}
             </ChoiceField>
-            <label>
-              Category sort order
-              <input
-                type="number"
-                min={-100000}
-                max={100000}
-                step={1}
-                required
-                value={draft.sortOrder}
-                onChange={(event) =>
-                  setDraft({ ...draft, sortOrder: Number(event.target.value) })
-                }
-              />
-            </label>
+            <Stepper
+              label="Category sort order"
+              min={-100000}
+              max={100000}
+              required
+              value={draft.sortOrder}
+              onChange={(value) => setDraft({ ...draft, sortOrder: value })}
+            />
             <label className="mw-row">
               <span>Category active</span>
               <input

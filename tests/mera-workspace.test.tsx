@@ -49,6 +49,15 @@ function fillPresetDetails(label: string, value: string) {
   });
 }
 
+function revealWorkspaceMore() {
+  const more = screen.queryByRole("button", { name: "More", exact: true });
+  if (more?.getAttribute("aria-expanded") === "false") fireEvent.click(more);
+}
+async function findRareWorkspaceTab(name: string) {
+  await screen.findByRole("button", { name: "More", exact: true });
+  revealWorkspaceMore();
+  return screen.findByRole("tab", { name, exact: true });
+}
 const { default: Workspace } =
   await import("../src/mera/workspace/OrganizationWorkspace");
 const user = { id: "user-1", name: "Teni" };
@@ -208,6 +217,7 @@ test("pricing editor preserves unresolved choices and never requests live billin
   try {
     render(React.createElement(Workspace, { user, notify: () => {} }));
     await screen.findByText("Surulere customer", { exact: false });
+    revealWorkspaceMore();
     fireEvent.click(screen.getByRole("tab", { name: "Subscription" }));
     fireEvent.click(
       screen.getByRole("button", { name: "Save pricing proposal" }),
@@ -3212,12 +3222,12 @@ test("merchant support is visible only to explicitly organization-wide administr
   try {
     organization.organizationWide = false;
     render(React.createElement(Workspace, { user, notify: () => {} }));
-    await screen.findByRole("tab", { name: "Getting started" });
+    await findRareWorkspaceTab("Getting started");
     assert.equal(screen.queryByRole("tab", { name: "Mera support" }), null);
     cleanup();
     organization.organizationWide = true;
     render(React.createElement(Workspace, { user, notify: () => {} }));
-    const support = await screen.findByRole("tab", { name: "Mera support" });
+    const support = await findRareWorkspaceTab("Mera support");
     await screen.findByText("Surulere customer", { exact: false });
     fireEvent.click(support);
     await screen.findByText("Contact Mera support", { exact: false });
@@ -5267,3 +5277,42 @@ for (const role of ["stock_controller", "branch_manager"])
       window.sessionStorage.clear();
     }
   });
+
+test("creating a table submits the visible default one seat without requiring a quantity edit", async () => {
+  const originalFetch = globalThis.fetch;
+  const permissions = [...context.organizations[0].permissions];
+  context.organizations[0].permissions.push("tables.manage");
+  let body: any;
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    if (String(input).endsWith("/tables") && init.method === "POST") {
+      body = JSON.parse(init.body);
+      return Response.json({ id: "new-table", ...body });
+    }
+    return originalFetch(input, init);
+  }) as any;
+  try {
+    render(<Workspace user={user} notify={() => {}} />);
+    fireEvent.click(
+      await screen.findByRole("tab", { name: "Tables & visits" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Floor layout" }));
+    assert.equal(
+      (screen.getByLabelText("Seats") as HTMLInputElement).value,
+      "1",
+    );
+    fireEvent.change(screen.getByLabelText("Table label"), {
+      target: { value: "Table one" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create table", exact: true }),
+    );
+    await waitFor(() => assert.ok(body));
+    assert.equal(body.capacity, 1);
+    assert.equal(body.name, "Table one");
+    assert.equal(body.zone, "Main floor");
+  } finally {
+    cleanup();
+    context.organizations[0].permissions = permissions;
+    globalThis.fetch = originalFetch;
+  }
+});

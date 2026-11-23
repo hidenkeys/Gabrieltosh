@@ -386,3 +386,47 @@
     display: none;
   }
 }
+.mw-preparation .mw-ticket-note {
+  border: 1px solid var(--prep-line);
+  border-radius: 10px;
+  margin: 8px 0;
+}
+.mw-preparation .mw-ticket-note summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  min-height: 44px;
+  padding: 8px 10px;
+}
+.mw-preparation .mw-ticket-note summary::before {
+  content: "+";
+  color: var(--prep-accent);
+  font-weight: 700;
+}
+.mw-preparation .mw-ticket-note[open] summary::before {
+  content: "−";
+}
+.mw-preparation .mw-ticket-note summary strong {
+  flex: none;
+  font-size: 12px;
+}
+.mw-preparation .mw-ticket-note summary span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--prep-muted);
+}
+.mw-preparation .mw-ticket-note p {
+  margin: 0;
+  padding: 0 10px 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.mw-preparation .mw-ticket-note summary:focus-visible {
+  outline: 3px solid var(--prep-accent);
+  outline-offset: 3px;
+}

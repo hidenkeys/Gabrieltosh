@@ -657,7 +657,7 @@ function ScopedTickets({
                       : `Handled by ${order.handlerName}`}
                   </p>
                 )}
-                <OrderInstructions order={order} />
+                <OrderInstructions order={order} compactNote />
                 {recovery(ticket.id, waiting)}
                 <div className="mw-preparation-items">
                   {ticket.items.map((item: any, index: number) => {

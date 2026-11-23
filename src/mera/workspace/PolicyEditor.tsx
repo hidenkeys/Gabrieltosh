@@ -1,3 +1,4 @@
+import UnitInput from "../ui/UnitInput";
 import { useState } from "react";
 import Stepper from "../ui/Stepper";
 import MoneyInput from "../ui/MoneyInput";
@@ -60,19 +61,25 @@ export default function PolicyEditor({
         disabled={disabled}
       />
     ) : (
-      <label>
-        {label}
-        <input
-          required={!optional}
-          type="number"
-          min={0}
-          step={step}
-          value={draft[key]}
-          onChange={(event) =>
-            setDraft({ ...draft, [key]: event.target.value })
-          }
-        />
-      </label>
+      <UnitInput
+        label={label}
+        unit={key === "integratedFeeBps" ? "basis points" : "days"}
+        required={!optional}
+        min={0}
+        max={
+          key === "integratedFeeBps" ? 10000 : key === "trialDays" ? 3650 : 365
+        }
+        step={step}
+        value={draft[key]}
+        onChange={(value) => setDraft({ ...draft, [key]: value })}
+        disabled={disabled}
+        allowUnset={optional}
+        presets={
+          key === "integratedFeeBps"
+            ? []
+            : [{ value: 0 }, { value: 7 }, { value: 14 }, { value: 30 }]
+        }
+      />
     );
   const select = (
     label: string,
@@ -94,8 +101,8 @@ export default function PolicyEditor({
     <section className="mw-card">
       <h2>Configure a pricing proposal</h2>
       <p>
-        Save a versioned proposal for review. This never activates
-        subscriptions, collects money or enables recurring debit.
+        Save a pricing proposal for review. This never activates subscriptions,
+        collects money or enables recurring debit.
       </p>
       <form
         className="mw-form"

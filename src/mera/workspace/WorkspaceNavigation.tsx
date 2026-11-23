@@ -20,6 +20,7 @@ import {
   Download,
   LifeBuoy,
   Plug,
+  ChevronDown,
 } from "lucide-react";
 const pageIcons: Record<string, typeof LayoutGrid> = {
   counter: LayoutGrid,
@@ -57,15 +58,18 @@ const groups = [
       "help",
     ],
   ],
-  [
-    "Management",
-    ["overview", "menu", "payments", "shifts", "team", "care", "exports"],
-  ],
-  [
-    "Settings",
-    ["onboarding", "printing", "qr", "billing", "integrations", "support"],
-  ],
+  ["Management", ["overview", "menu", "payments", "shifts", "team"]],
 ] as const;
+const moreIds = [
+  "care",
+  "exports",
+  "onboarding",
+  "printing",
+  "qr",
+  "billing",
+  "integrations",
+  "support",
+];
 export default function WorkspaceNavigation({
   sections,
   active,
@@ -84,6 +88,11 @@ export default function WorkspaceNavigation({
   connectionState?: "unknown" | "connecting" | "connected" | "offline";
 }) {
   const [open, setOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(() => moreIds.includes(active));
+  const moreToggle = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (moreIds.includes(active)) setMoreOpen(true);
+  }, [active]);
   const [logoFailed, setLogoFailed] = useState(false);
   useEffect(() => setLogoFailed(false), [logo]);
   const navigation = useRef<HTMLElement>(null);
@@ -117,6 +126,44 @@ export default function WorkspaceNavigation({
         ?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]')
         ?.focus();
   }, [open]);
+  const renderGroup = (label: string, ids: readonly string[]) => {
+    const items = ids
+      .map((id) => sections.find((s) => s[0] === id))
+      .filter(Boolean) as string[][];
+    return (
+      items.length > 0 && (
+        <div key={label || "more"}>
+          {label && <p className="nav-label">{label}</p>}
+          {items.map(([id, name]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              id={"mw-tab-" + id}
+              aria-controls="mw-workspace-panel"
+              aria-selected={active === id}
+              tabIndex={active === id ? 0 : -1}
+              className={"nav-item" + (active === id ? " active" : "")}
+              onClick={() => {
+                if (open) closeMenu();
+                onSelect(id, { focusDestination: open });
+              }}
+            >
+              {(() => {
+                const Icon = pageIcons[id] || LayoutGrid;
+                return <Icon size={18} aria-hidden="true" />;
+              })()}
+              {id === "counter"
+                ? "Point of sale"
+                : id === "overview"
+                  ? "Overview"
+                  : name}
+            </button>
+          ))}
+        </div>
+      )
+    );
+  };
   return (
     <>
       <button
@@ -125,7 +172,10 @@ export default function WorkspaceNavigation({
         className="secondary mw-mobile-nav-toggle"
         aria-expanded={open}
         aria-controls="mw-operational-navigation"
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          if (!open && moreIds.includes(active)) setMoreOpen(true);
+          setOpen(!open);
+        }}
       >
         <Menu size={18} /> Workspace menu
       </button>
@@ -152,7 +202,11 @@ export default function WorkspaceNavigation({
               e.currentTarget.querySelectorAll<HTMLElement>(
                 "a,button:not(:disabled)",
               ),
-            ).filter((el) => el.tabIndex >= 0 || el === document.activeElement);
+            ).filter(
+              (el) =>
+                !el.closest("[hidden]") &&
+                (el.tabIndex >= 0 || el === document.activeElement),
+            );
             const first = controls[0],
               last = controls.at(-1);
             if (e.shiftKey && document.activeElement === first) {
@@ -193,9 +247,6 @@ export default function WorkspaceNavigation({
         </div>
         <div
           className="mw-side-links"
-          role="tablist"
-          aria-label="Workspace pages"
-          aria-orientation="vertical"
           onKeyDown={(e) => {
             const keys = [
               "ArrowDown",
@@ -210,7 +261,7 @@ export default function WorkspaceNavigation({
               e.currentTarget.querySelectorAll<HTMLButtonElement>(
                 '[role="tab"]',
               ),
-            );
+            ).filter((button) => !button.closest("[hidden]"));
             const current = buttons.indexOf(
               document.activeElement as HTMLButtonElement,
             );
@@ -228,44 +279,42 @@ export default function WorkspaceNavigation({
             buttons[next]?.focus();
           }}
         >
-          {groups.map(([label, ids]) => {
-            const items = ids
-              .map((id) => sections.find((s) => s[0] === id))
-              .filter(Boolean) as string[][];
-            return (
-              items.length > 0 && (
-                <div key={label}>
-                  <p className="nav-label">{label}</p>
-                  {items.map(([id, name]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      role="tab"
-                      id={"mw-tab-" + id}
-                      aria-controls="mw-workspace-panel"
-                      aria-selected={active === id}
-                      tabIndex={active === id ? 0 : -1}
-                      className={"nav-item" + (active === id ? " active" : "")}
-                      onClick={() => {
-                        if (open) closeMenu();
-                        onSelect(id, { focusDestination: open });
-                      }}
-                    >
-                      {(() => {
-                        const Icon = pageIcons[id] || LayoutGrid;
-                        return <Icon size={18} aria-hidden="true" />;
-                      })()}
-                      {id === "counter"
-                        ? "Point of sale"
-                        : id === "overview"
-                          ? "Overview"
-                          : name}
-                    </button>
-                  ))}
-                </div>
-              )
-            );
-          })}
+          <div
+            role="tablist"
+            aria-label="Workspace pages"
+            aria-orientation="vertical"
+          >
+            {groups.map(([label, ids]) => renderGroup(label, [...ids]))}
+          </div>
+          {moreIds.some((id) =>
+            sections.some((section) => section[0] === id),
+          ) && (
+            <div className="mw-nav-more">
+              <button
+                ref={moreToggle}
+                type="button"
+                className="nav-item mw-more-toggle"
+                aria-expanded={moreOpen}
+                aria-controls="mw-more-workspace-pages"
+                onClick={() => {
+                  if (moreOpen) moreToggle.current?.focus();
+                  setMoreOpen(!moreOpen);
+                }}
+              >
+                <ChevronDown size={18} aria-hidden="true" />
+                More
+              </button>
+              <div
+                id="mw-more-workspace-pages"
+                role="tablist"
+                aria-label="More workspace pages"
+                aria-orientation="vertical"
+                hidden={!moreOpen}
+              >
+                {renderGroup("", moreIds)}
+              </div>
+            </div>
+          )}
         </div>
         <div className="mw-side-bottom">
           <span

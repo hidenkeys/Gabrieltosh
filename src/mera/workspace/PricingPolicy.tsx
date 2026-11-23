@@ -1,3 +1,4 @@
+import UnitInput from "../ui/UnitInput";
 import React, { useState } from "react";
 import MoneyInput from "../ui/MoneyInput";
 import Segmented from "../ui/Segmented";
@@ -144,57 +145,45 @@ export default function PricingPolicy({
                             required
                           />
                         ) : (
-                          <label>
-                            {row.type === "fixed"
-                              ? "Discount amount (naira)"
-                              : "Discount (%)"}
-                            <input
-                              required
-                              type="number"
-                              min={0}
-                              max={
-                                row.type === "basis_points" ? 100 : undefined
-                              }
-                              step="0.01"
-                              value={row.value / 100}
-                              onChange={(event) =>
-                                setDraft({
-                                  ...draft,
-                                  discount: {
-                                    ...row,
-                                    value: Math.round(
-                                      Number(event.target.value) * 100,
-                                    ),
-                                  },
-                                })
-                              }
-                            />
-                          </label>
+                          <UnitInput
+                            label="Discount (%)"
+                            unit="%"
+                            required
+                            min={0}
+                            max={100}
+                            step="0.01"
+                            value={row.value / 100}
+                            onChange={(value) =>
+                              setDraft({
+                                ...draft,
+                                discount: {
+                                  ...row,
+                                  value: Math.round(Number(value) * 100),
+                                },
+                              })
+                            }
+                          />
                         )}
                       </>
                     ) : (
-                      <label>
-                        {key === "tax" ? "Tax" : "Service charge"} (%)
-                        <input
-                          required
-                          type="number"
-                          min={0}
-                          max={100}
-                          step="0.01"
-                          value={row.basisPoints / 100}
-                          onChange={(event) =>
-                            setDraft({
-                              ...draft,
-                              [key]: {
-                                ...row,
-                                basisPoints: Math.round(
-                                  Number(event.target.value) * 100,
-                                ),
-                              },
-                            })
-                          }
-                        />
-                      </label>
+                      <UnitInput
+                        label={`${key === "tax" ? "Tax" : "Service charge"} (%)`}
+                        unit="%"
+                        required
+                        min={0}
+                        max={100}
+                        step="0.01"
+                        value={row.basisPoints / 100}
+                        onChange={(value) =>
+                          setDraft({
+                            ...draft,
+                            [key]: {
+                              ...row,
+                              basisPoints: Math.round(Number(value) * 100),
+                            },
+                          })
+                        }
+                      />
                     )}
                     {key === "tax" && (
                       <Segmented

@@ -1,3 +1,4 @@
+import UnitInput from "../ui/UnitInput";
 import Stepper from "../ui/Stepper";
 import ChoiceField from "../ui/ChoiceField";
 import { useEffect, useRef, useState } from "react";
@@ -126,19 +127,23 @@ function ScopedTableEditor({
           onChange={(capacity) => setDraft({ ...draft, capacity })}
         />
         {(["x", "y"] as const).map((key) => (
-          <label key={key}>
-            {key.toUpperCase() + " position"}
-            <input
-              type="number"
-              required
-              min={0}
-              max={100}
-              value={draft[key]}
-              onChange={(e) =>
-                setDraft({ ...draft, [key]: Number(e.target.value) })
-              }
-            />
-          </label>
+          <UnitInput
+            key={key}
+            label={key.toUpperCase() + " position"}
+            unit="%"
+            required
+            min={0}
+            max={100}
+            value={draft[key]}
+            onChange={(value) => setDraft({ ...draft, [key]: Number(value) })}
+            presets={[
+              { value: 0 },
+              { value: 25 },
+              { value: 50 },
+              { value: 75 },
+              { value: 100 },
+            ]}
+          />
         ))}
         <div className="mw-wide">
           <button className="secondary" disabled={disabled}>

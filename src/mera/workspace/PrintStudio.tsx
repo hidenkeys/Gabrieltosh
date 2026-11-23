@@ -1,3 +1,4 @@
+import UnitInput from "../ui/UnitInput";
 import Segmented from "../ui/Segmented";
 import Switch from "../ui/Switch";
 import ReasonInput from "../ui/ReasonInput";
@@ -921,25 +922,25 @@ function ScopedPrintStudio({
                     }
                   />
                   {(["width", "height"] as const).map((key) => (
-                    <label key={key}>
-                      Sticker {key} (mm)
-                      <input
-                        type="number"
-                        required
-                        min={key === "width" ? 20 : 15}
-                        max={key === "width" ? 60 : 150}
-                        value={templates.label[key]}
-                        onChange={(e) =>
-                          editTemplates({
-                            ...templates,
-                            label: {
-                              ...templates.label,
-                              [key]: Number(e.target.value),
-                            },
-                          })
-                        }
-                      />
-                    </label>
+                    <UnitInput
+                      key={key}
+                      label={`Sticker ${key} (mm)`}
+                      unit="mm"
+                      required
+                      min={key === "width" ? 20 : 15}
+                      max={key === "width" ? 60 : 150}
+                      value={templates.label[key]}
+                      onChange={(value) =>
+                        editTemplates({
+                          ...templates,
+                          label: { ...templates.label, [key]: Number(value) },
+                        })
+                      }
+                      presets={(key === "width"
+                        ? [40, 50, 60]
+                        : [30, 50, 80]
+                      ).map((value) => ({ value }))}
+                    />
                   ))}
                   <div className="mw-wide">
                     <button className="primary" disabled={disabled}>

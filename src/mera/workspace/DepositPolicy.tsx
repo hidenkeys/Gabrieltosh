@@ -1,3 +1,4 @@
+import UnitInput from "../ui/UnitInput";
 import { useState } from "react";
 import MoneyInput from "../ui/MoneyInput";
 import Segmented from "../ui/Segmented";
@@ -73,19 +74,19 @@ export default function DepositPolicy({
           onChange={(amount) => setDraft({ ...draft, amount })}
           disabled={disabled}
         />
-        <label>
-          Cancellation cutoff (hours)
-          <input
-            required
-            min="0"
-            max="720"
-            type="number"
-            value={draft.cancellationCutoffHours}
-            onChange={(e) =>
-              setDraft({ ...draft, cancellationCutoffHours: e.target.value })
-            }
-          />
-        </label>
+        <UnitInput
+          label="Cancellation cutoff (hours)"
+          unit="hours"
+          required
+          min={0}
+          max={720}
+          value={draft.cancellationCutoffHours}
+          onChange={(value) =>
+            setDraft({ ...draft, cancellationCutoffHours: value })
+          }
+          disabled={disabled}
+          presets={[{ value: 0 }, { value: 6 }, { value: 24 }, { value: 48 }]}
+        />
         <Segmented
           label="Refund rule"
           required

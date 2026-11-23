@@ -477,6 +477,8 @@ test("mobile drawer contains Tab after roving focus moves beyond the selected ta
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Workspace menu" }));
+    const more = screen.getByRole("button", { name: "More", exact: true });
+    fireEvent.click(more);
     const firstTab = screen.getByRole("tab", { name: "Point of sale" });
     fireEvent.keyDown(firstTab, { key: "End" });
     const last = screen.getByRole("tab", { name: "Support" });
@@ -487,7 +489,60 @@ test("mobile drawer contains Tab after roving focus moves beyond the selected ta
         screen.getByRole("navigation").querySelector(".mw-close-nav"),
     );
     fireEvent.keyDown(document.activeElement!, { key: "Tab", shiftKey: true });
-    assert(document.activeElement === firstTab);
+    assert(document.activeElement === more);
+  } finally {
+    cleanup();
+  }
+});
+
+test("More keeps rare tasks quiet and reveals a selected rare destination", () => {
+  const sections = [
+    ["counter", "Point of sale"],
+    ["overview", "Overview"],
+    ["printing", "Receipt studio"],
+    ["support", "Support"],
+  ];
+  const selected: string[] = [];
+  try {
+    const view = render(
+      <WorkspaceNavigation
+        organization="Venue"
+        branch="Branch"
+        sections={sections}
+        active="counter"
+        onSelect={(id) => selected.push(id)}
+      />,
+    );
+    const more = screen.getByRole("button", { name: "More", exact: true });
+    assert.equal(more.getAttribute("aria-expanded"), "false");
+    assert.equal(screen.queryByRole("tab", { name: "Receipt studio" }), null);
+    const counter = screen.getByRole("tab", { name: "Point of sale" });
+    counter.focus();
+    fireEvent.keyDown(counter, { key: "End" });
+    assert.equal(
+      document.activeElement,
+      screen.getByRole("tab", { name: "Overview" }),
+    );
+    fireEvent.click(more);
+    fireEvent.click(screen.getByRole("tab", { name: "Receipt studio" }));
+    assert.deepEqual(selected, ["printing"]);
+    fireEvent.click(more);
+    view.rerender(
+      <WorkspaceNavigation
+        organization="Venue"
+        branch="Branch"
+        sections={sections}
+        active="printing"
+        onSelect={(id) => selected.push(id)}
+      />,
+    );
+    assert.equal(more.getAttribute("aria-expanded"), "true");
+    assert.equal(
+      screen
+        .getByRole("tab", { name: "Receipt studio" })
+        .getAttribute("aria-selected"),
+      "true",
+    );
   } finally {
     cleanup();
   }

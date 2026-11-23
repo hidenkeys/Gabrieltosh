@@ -1,10 +1,14 @@
+import { useState } from "react";
 export default function OrderInstructions({
   order,
   item,
+  compactNote = false,
 }: {
   order?: any;
   item?: any;
+  compactNote?: boolean;
 }) {
+  const [noteOpen, setNoteOpen] = useState(false);
   const snapshot = item || order;
   const strings = (value: any) =>
     Array.isArray(value)
@@ -25,13 +29,25 @@ export default function OrderInstructions({
     return null;
   return (
     <div className="mw-order-instructions">
-      {note && (
-        <p className="mw-note">
-          <strong>Preparation note</strong>
-          <br />
-          <span style={{ whiteSpace: "pre-wrap" }}>{note}</span>
-        </p>
-      )}
+      {note &&
+        (compactNote ? (
+          <details
+            className="mw-ticket-note"
+            onToggle={(event) => setNoteOpen(event.currentTarget.open)}
+          >
+            <summary aria-label="Preparation note">
+              <strong>Preparation note</strong>
+              {!noteOpen && <span aria-hidden="true">{note}</span>}
+            </summary>
+            {noteOpen && <p style={{ whiteSpace: "pre-wrap" }}>{note}</p>}
+          </details>
+        ) : (
+          <p className="mw-note">
+            <strong>Preparation note</strong>
+            <br />
+            <span style={{ whiteSpace: "pre-wrap" }}>{note}</span>
+          </p>
+        ))}
       {!!modifiers.length && (
         <p>
           <strong>Selected add-ons:</strong> {modifiers.join(", ")}
