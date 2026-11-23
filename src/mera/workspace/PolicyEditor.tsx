@@ -1,4 +1,6 @@
 import { useState } from "react";
+import MoneyInput from "../ui/MoneyInput";
+import Segmented from "../ui/Segmented";
 type Props = {
   organizationId: string;
   policy: any;
@@ -36,38 +38,45 @@ export default function PolicyEditor({
     key: keyof typeof draft,
     optional = false,
     step = "1",
-  ) => (
-    <label>
-      {label}
-      <input
-        required={!optional}
-        type="number"
-        min={key === "includedBranches" ? "1" : "0"}
-        step={step}
+  ) =>
+    ["monthlyPrice", "additionalBranchPrice"].includes(key) ? (
+      <MoneyInput
+        label={label}
         value={draft[key]}
-        onChange={(event) => setDraft({ ...draft, [key]: event.target.value })}
+        onChange={(value) => setDraft({ ...draft, [key]: value })}
+        required={!optional}
+        disabled={disabled}
       />
-    </label>
-  );
+    ) : (
+      <label>
+        {label}
+        <input
+          required={!optional}
+          type="number"
+          min={key === "includedBranches" ? "1" : "0"}
+          step={step}
+          value={draft[key]}
+          onChange={(event) =>
+            setDraft({ ...draft, [key]: event.target.value })
+          }
+        />
+      </label>
+    );
   const select = (
     label: string,
     key: keyof typeof draft,
     options: [string, string][],
   ) => (
-    <label>
-      {label}
-      <select
-        value={draft[key]}
-        onChange={(event) => setDraft({ ...draft, [key]: event.target.value })}
-      >
-        <option value="">Unresolved — no approved default</option>
-        {options.map(([value, text]) => (
-          <option key={value} value={value}>
-            {text}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Segmented
+      label={label}
+      value={draft[key]}
+      onChange={(value) => setDraft({ ...draft, [key]: value })}
+      disabled={disabled}
+      options={[
+        { value: "", label: "Not set" },
+        ...options.map(([value, label]) => ({ value, label })),
+      ]}
+    />
   );
   return (
     <section className="mw-card">
@@ -132,10 +141,10 @@ export default function PolicyEditor({
         {numberField("Trial days (optional)", "trialDays", true)}
         {numberField("Grace days (optional)", "graceDays", true)}
         <div className="mw-note mw-wide">
-          Blank unresolved policies remain null. External cash/POS and manually
-          verified transfers are excluded from the proposed integrated fee.
-          Provider costs, tax, commercial approval and live-provider
-          verification remain separate launch gates.
+          Not-set policies stay undecided. Choose how each works before going
+          live. External cash/POS and manually verified transfers are excluded
+          from the proposed integrated fee. Provider costs, tax, commercial
+          approval and live-provider verification remain separate launch gates.
         </div>
         {error && (
           <p role="alert" className="mw-note mw-error mw-wide">

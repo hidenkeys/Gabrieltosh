@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import Switch from "../ui/Switch";
 import { workspaceApi } from "./api";
 import { DataRegion, Disclosure } from "../ui/OperationalPrimitives";
 const scopes = [
@@ -319,20 +320,30 @@ function ScopedIntegrations({ base, demo, newAccessAllowed = true }: Props) {
             <fieldset>
               <legend>Allowed capabilities</legend>
               {scopes.map((scope) => (
-                <label key={scope} className="mw-row">
-                  <span>{scopeLabel(scope)}</span>
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(scope)}
-                    onChange={(event) =>
-                      setSelected((current) =>
-                        event.target.checked
-                          ? [...current, scope]
-                          : current.filter((value) => value !== scope),
-                      )
-                    }
-                  />
-                </label>
+                <Switch
+                  key={scope}
+                  label={scopeLabel(scope)}
+                  checked={selected.includes(scope)}
+                  onChange={(checked) =>
+                    setSelected((current) =>
+                      checked
+                        ? [...current, scope]
+                        : current.filter((value) => value !== scope),
+                    )
+                  }
+                  description={
+                    {
+                      "published_menu.read":
+                        "Let the integration display the published menu and current item availability.",
+                      "orders.create":
+                        "Let it request prices and submit orders for this branch.",
+                      "orders.read":
+                        "Let it read only orders created with this integration credential.",
+                      "reservations.create":
+                        "Let it submit reservation requests for this branch.",
+                    }[scope]
+                  }
+                />
               ))}
             </fieldset>
             <button className="primary" disabled={!selected.length}>

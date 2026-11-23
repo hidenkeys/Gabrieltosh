@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import Switch from "../ui/Switch";
 import { workspaceApi } from "./api";
 import { permissionLabel } from "./accessPresentation";
 import { hasAccessWrite } from "./accessWriteJournal";
@@ -32,6 +33,38 @@ const templateLabels: Record<string, string> = {
   front_desk: "Front desk",
   stock_controller: "Stock controller",
   reports_only: "Reports only",
+};
+const roleDescriptions: Record<string, string> = {
+  owner: "Owns the business and approves organization access.",
+  organization_admin: "Manages organization settings and staff.",
+  branch_manager: "Runs branch service and daily operations.",
+  cashier: "Records orders and counter payments.",
+  waiter: "Takes guest orders and manages table service.",
+  kitchen: "Prepares kitchen items and updates tickets.",
+  bar: "Prepares drinks and updates bar tickets.",
+  front_desk: "Welcomes guests and manages arrivals.",
+  stock_controller: "Maintains menu availability and stock.",
+  reports_only: "Reviews operational reports.",
+};
+const permissionGroup = (permission: string) => {
+  const area = permission.split(".")[0];
+  return [
+    "orders",
+    "tickets",
+    "preparation",
+    "tables",
+    "reservations",
+    "visits",
+    "waitlist",
+  ].includes(area)
+    ? "Service"
+    : ["payments", "refunds", "shifts", "cash", "reports", "billing"].includes(
+          area,
+        )
+      ? "Money & reports"
+      : ["menu", "stock"].includes(area)
+        ? "Menu & stock"
+        : "Business & access";
 };
 export default function RoleManager(props: Props) {
   return (
@@ -441,29 +474,29 @@ function ScopedRoleManager({
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   </label>
-                  <label>
-                    Invitation role
-                    <select
-                      required
-                      value={role}
-                      onChange={(e) => setRole(e.target.value)}
-                    >
-                      <option value="">Choose a role</option>
-                      {eligible.map((row) => (
-                        <option key={row.id} value={row.id}>
-                          {data.templates.some(
-                            (template: any) => template.id === row.id,
-                          ) &&
-                          Object.prototype.hasOwnProperty.call(
-                            templateLabels,
-                            row.id,
-                          )
-                            ? templateLabels[row.id]
-                            : row.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <fieldset className="mw-wide mi-role-cards">
+                    <legend>Invitation role</legend>
+                    {eligible.map((row) => (
+                      <label key={row.id} className="mi-role-card">
+                        <input
+                          type="radio"
+                          name="invitationRole"
+                          aria-label={templateLabels[row.id] || row.name}
+                          required
+                          value={row.id}
+                          checked={role === row.id}
+                          onChange={() => setRole(row.id)}
+                        />
+                        <span>
+                          <strong>{templateLabels[row.id] || row.name}</strong>
+                          <small>
+                            {roleDescriptions[row.id] ||
+                              "Uses the permissions saved in this custom role."}
+                          </small>
+                        </span>
+                      </label>
+                    ))}
+                  </fieldset>
                   <button
                     className="primary"
                     disabled={
@@ -837,27 +870,77 @@ function ScopedRoleManager({
                 </label>
                 <fieldset>
                   <legend>Allowed permissions</legend>
-                  <div className="mw-form">
-                    {permissions.map((permission) => (
-                      <label className="mw-row" key={permission}>
-                        <span>{permissionLabel(permission)}</span>
-                        <input
-                          type="checkbox"
-                          checked={edit.permissions.includes(permission)}
-                          onChange={(e) =>
-                            changedEdit({
-                              ...edit,
-                              permissions: e.target.checked
-                                ? [...edit.permissions, permission]
-                                : edit.permissions.filter(
-                                    (value: string) => value !== permission,
-                                  ),
-                            })
-                          }
-                        />
-                      </label>
-                    ))}
-                  </div>
+                  {!edit.id && (
+                    <div className="mw-actions" aria-label="Permission presets">
+                      {eligible
+                        .filter((row) =>
+                          data.templates.some(
+                            (template: any) => template.id === row.id,
+                          ),
+                        )
+                        .map((row) => (
+                          <button
+                            key={row.id}
+                            type="button"
+                            onClick={() =>
+                              changedEdit({
+                                ...edit,
+                                permissions: [...row.permissions],
+                              })
+                            }
+                          >
+                            Use {templateLabels[row.id] || row.name} permissions
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                  <p>
+                    {eligible.some(
+                      (row) =>
+                        row.permissions.length === edit.permissions.length &&
+                        row.permissions.every((permission: string) =>
+                          edit.permissions.includes(permission),
+                        ),
+                    )
+                      ? "Matches a role’s saved permissions."
+                      : edit.permissions.length
+                        ? "Customized permissions"
+                        : "Choose a role preset or add the permissions this person needs."}
+                  </p>
+                  {[
+                    "Service",
+                    "Money & reports",
+                    "Menu & stock",
+                    "Business & access",
+                  ].map((group) => {
+                    const values = permissions.filter(
+                      (permission) => permissionGroup(permission) === group,
+                    );
+                    return values.length ? (
+                      <fieldset className="mi-permission-group" key={group}>
+                        <legend>{group}</legend>
+                        <div>
+                          {values.map((permission) => (
+                            <Switch
+                              key={permission}
+                              label={permissionLabel(permission)}
+                              checked={edit.permissions.includes(permission)}
+                              onChange={(checked) =>
+                                changedEdit({
+                                  ...edit,
+                                  permissions: checked
+                                    ? [...edit.permissions, permission]
+                                    : edit.permissions.filter(
+                                        (value: string) => value !== permission,
+                                      ),
+                                })
+                              }
+                            />
+                          ))}
+                        </div>
+                      </fieldset>
+                    ) : null;
+                  })}
                 </fieldset>
                 {edit.id && (
                   <p>
@@ -867,16 +950,11 @@ function ScopedRoleManager({
                   </p>
                 )}
                 {edit.id && (
-                  <label className="mw-row">
-                    <span>Role active</span>
-                    <input
-                      type="checkbox"
-                      checked={edit.active}
-                      onChange={(e) =>
-                        changedEdit({ ...edit, active: e.target.checked })
-                      }
-                    />
-                  </label>
+                  <Switch
+                    label="Role active"
+                    checked={edit.active}
+                    onChange={(active) => changedEdit({ ...edit, active })}
+                  />
                 )}
                 <div className="mw-actions">
                   <button

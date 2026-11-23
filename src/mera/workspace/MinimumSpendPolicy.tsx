@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import MoneyInput from "../ui/MoneyInput";
+import Segmented from "../ui/Segmented";
+import Switch from "../ui/Switch";
 export default function MinimumSpendPolicy({
   base,
   policy,
@@ -17,7 +20,7 @@ export default function MinimumSpendPolicy({
 }) {
   const [draft, setDraft] = useState({
     enabled: policy?.enabled ?? false,
-    amount: policy?.amount ?? null,
+    amount: policy?.amount == null ? "" : String(policy.amount / 100),
     basis: policy?.basis ?? null,
     disclosure: policy?.disclosure || "",
   });
@@ -41,7 +44,15 @@ export default function MinimumSpendPolicy({
             await save(
               base + "/minimum-spend-policy",
               "PATCH",
-              { ...draft, approved, shortfallTreatment: "manager_review" },
+              {
+                ...draft,
+                amount:
+                  draft.amount === ""
+                    ? null
+                    : Math.round(Number(draft.amount) * 100),
+                approved,
+                shortfallTreatment: "manager_review",
+              },
               "Minimum-spend policy saved.",
             );
             setApproved(false);
@@ -51,51 +62,31 @@ export default function MinimumSpendPolicy({
         }}
       >
         <fieldset disabled={disabled} style={{ border: 0, padding: 0 }}>
-          <label className="mw-row">
-            <span>Enable reviewed minimum spend for new visits</span>
-            <input
-              type="checkbox"
-              checked={draft.enabled}
-              onChange={(event) =>
-                setDraft({ ...draft, enabled: event.target.checked })
-              }
-            />
-          </label>
+          <Switch
+            label="Enable reviewed minimum spend for new visits"
+            checked={draft.enabled}
+            onChange={(enabled) => setDraft({ ...draft, enabled })}
+          />
           <div className="mw-form">
-            <label>
-              Minimum-spend amount (naira)
-              <input
-                required={draft.enabled}
-                min={draft.enabled ? "0.01" : "0"}
-                max={1000000000}
-                type="number"
-                step="0.01"
-                placeholder="Unresolved"
-                value={draft.amount === null ? "" : draft.amount / 100}
-                onChange={(event) =>
-                  setDraft({
-                    ...draft,
-                    amount:
-                      event.target.value === ""
-                        ? null
-                        : Math.round(Number(event.target.value) * 100),
-                  })
-                }
-              />
-            </label>
-            <label>
-              Reviewed calculation basis
-              <select
-                required={draft.enabled}
-                value={draft.basis || ""}
-                onChange={(event) =>
-                  setDraft({ ...draft, basis: event.target.value || null })
-                }
-              >
-                <option value="">Unresolved</option>
-                <option value="net_paid_bill">Visit net paid bill</option>
-              </select>
-            </label>
+            <MoneyInput
+              label="Minimum-spend amount (naira)"
+              required={draft.enabled}
+              min={draft.enabled ? 0.01 : 0}
+              max={1000000000}
+              placeholder="Not set"
+              value={draft.amount}
+              onChange={(amount) => setDraft({ ...draft, amount })}
+            />
+            <Segmented
+              label="Reviewed calculation basis"
+              required={draft.enabled}
+              value={draft.basis || ""}
+              onChange={(value) => setDraft({ ...draft, basis: value || null })}
+              options={[
+                { value: "net_paid_bill", label: "Visit net paid bill" },
+                ...(!draft.enabled ? [{ value: "", label: "Not set" }] : []),
+              ]}
+            />
             <label className="mw-wide">
               Customer disclosure
               <textarea

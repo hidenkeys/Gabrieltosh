@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import Stepper from "../ui/Stepper";
+import Switch from "../ui/Switch";
 export default function ReservationPolicy({
   base,
   policy,
@@ -32,35 +34,45 @@ export default function ReservationPolicy({
     max: number,
     min = 0,
     nullable = false,
-  ) => (
-    <label key={key}>
-      {label}
-      <input
-        type="number"
+  ) =>
+    !nullable ? (
+      <Stepper
+        label={label}
+        value={Number(draft[key])}
         min={min}
         max={max}
-        required={!nullable}
-        placeholder={nullable ? "Unresolved" : ""}
-        value={draft[key] === null ? "" : String(draft[key])}
-        onChange={(event) =>
-          setDraft({
-            ...draft,
-            [key]:
-              event.target.value === "" && nullable
-                ? null
-                : Number(event.target.value),
-          })
-        }
+        required
+        onChange={(value) => setDraft({ ...draft, [key]: value })}
       />
-    </label>
-  );
+    ) : (
+      <label key={key}>
+        {label}
+        <input
+          type="number"
+          min={min}
+          max={max}
+          required={!nullable}
+          placeholder={nullable ? "Not set" : ""}
+          value={draft[key] === null ? "" : String(draft[key])}
+          onChange={(event) =>
+            setDraft({
+              ...draft,
+              [key]:
+                event.target.value === "" && nullable
+                  ? null
+                  : Number(event.target.value),
+            })
+          }
+        />
+      </label>
+    );
   return (
     <section className="mw-card">
       <h2>Reservation timing policy</h2>
       <p>
         Define booking notice and capacity buffers separately from enabling
-        reservations. Blank cancellation and late cutoffs remain unresolved.
-        Refund and no-show outcomes always require manual review.
+        reservations. Blank cancellation and late cutoffs stay undecided. Refund
+        and no-show outcomes always require manual review.
       </p>
       {error && <p role="alert">{error}</p>}
       <form
@@ -86,16 +98,11 @@ export default function ReservationPolicy({
         }}
       >
         <fieldset disabled={disabled} style={{ border: 0, padding: 0 }}>
-          <label className="mw-row">
-            <span>Apply this reservation timing policy</span>
-            <input
-              type="checkbox"
-              checked={draft.enabled}
-              onChange={(event) =>
-                setDraft({ ...draft, enabled: event.target.checked })
-              }
-            />
-          </label>
+          <Switch
+            label="Apply this reservation timing policy"
+            checked={draft.enabled}
+            onChange={(enabled) => setDraft({ ...draft, enabled })}
+          />
           <div className="mw-form">
             {numeric(
               "Minimum advance notice (minutes)",
@@ -135,7 +142,7 @@ export default function ReservationPolicy({
           </div>
           <label className="mw-row">
             <span>
-              I reviewed this timing policy and its unresolved cutoffs.
+              I reviewed this timing policy and any cutoffs not yet set.
             </span>
             <input
               type="checkbox"

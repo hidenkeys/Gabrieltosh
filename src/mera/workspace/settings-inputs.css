@@ -1,0 +1,135 @@
+.mera-workspace .mi-setup-progress {
+  display: grid;
+  gap: 10px;
+}
+.mera-workspace .mi-setup-progress p {
+  margin: 0;
+  font-weight: 650;
+}
+.mera-workspace .mi-setup-progress progress {
+  width: 100%;
+  height: 7px;
+  accent-color: var(--brand, #153f32);
+}
+.mera-workspace .mi-setup-progress nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.mera-workspace .mi-setup-progress button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--wx-line);
+  border-radius: 10px;
+  background: var(--wx-bone);
+  color: inherit;
+}
+.mera-workspace .mi-setup-progress button[aria-current="step"] {
+  border-color: var(--brand, #153f32);
+  box-shadow: inset 0 0 0 1px var(--brand, #153f32);
+  background: var(--wx-tint);
+}
+.mera-workspace .mi-setup-panel {
+  border: 0;
+  padding: 18px 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.mera-workspace .mi-setup-panel[hidden],
+.mera-workspace .mi-setup-review[hidden] {
+  display: none;
+}
+.mera-workspace .mi-setup-panel > legend {
+  font-family: var(--wx-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.mera-workspace .mi-setup-panel > p {
+  grid-column: 1/-1;
+}
+.mera-workspace .mi-setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px dashed var(--wx-line);
+  padding-top: 18px;
+}
+.mera-workspace .mi-setup-review {
+  border: 1px dashed var(--wx-line);
+  border-radius: 16px;
+  padding: 20px;
+  background: var(--wx-bone);
+}
+.mera-workspace .mi-setup-review dl > div {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--wx-line);
+}
+.mera-workspace .mi-setup-review dt {
+  font-weight: 650;
+}
+.mera-workspace .mi-setup-review dd {
+  margin: 0;
+}
+.mera-workspace .mi-role-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+  border: 0;
+  padding: 0;
+}
+.mera-workspace .mi-role-card {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--wx-line);
+  border-radius: 12px;
+  padding: 14px;
+  min-height: 80px;
+}
+.mera-workspace .mi-role-card:has(input:checked) {
+  background: var(--wx-tint);
+  border-color: var(--brand, #153f32);
+}
+.mera-workspace .mi-role-card input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-top: 3px;
+  accent-color: var(--brand, #153f32);
+}
+.mera-workspace .mi-role-card strong,
+.mera-workspace .mi-role-card small {
+  display: block;
+}
+.mera-workspace .mi-permission-group {
+  border: 1px solid var(--wx-line);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 12px 0;
+}
+.mera-workspace .mi-permission-group > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.mera-workspace .mi-setup-progress button:focus-visible,
+.mera-workspace .mi-role-card:has(input:focus-visible) {
+  outline: 3px solid var(--brand, #153f32);
+  outline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .mera-workspace .mi-setup-panel,
+  .mera-workspace .mi-permission-group > div {
+    grid-template-columns: 1fr;
+  }
+  .mera-workspace .mi-setup-review dl > div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

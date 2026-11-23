@@ -28,13 +28,33 @@ export default function TimeWindows({
     <fieldset className="mw-wide" disabled={disabled}>
       <legend>{label}</legend>
       <p className="mw-note">
-        No windows means always available. Times use the branch timezone. Split
-        overnight service into two windows, one for each calendar day.
+        No hours set means always available. Times use the branch timezone.
+        Split overnight service into two windows, one for each calendar day.
       </p>
       {value.map((window, index) => (
         <div className="mw-card" key={index}>
           <fieldset>
             <legend>Days for window {index + 1}</legend>
+            <div className="mw-actions">
+              <button
+                type="button"
+                onClick={() => update(index, { days: [0, 1, 2, 3, 4, 5, 6] })}
+              >
+                Same every day
+              </button>
+              <button
+                type="button"
+                onClick={() => update(index, { days: [1, 2, 3, 4, 5] })}
+              >
+                Weekdays
+              </button>
+              <button
+                type="button"
+                onClick={() => update(index, { days: [0, 6] })}
+              >
+                Weekends
+              </button>
+            </div>
             <div className="mw-window-days">
               {days.map((day, number) => (
                 <label key={day}>

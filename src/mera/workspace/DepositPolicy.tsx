@@ -1,4 +1,7 @@
 import { useState } from "react";
+import MoneyInput from "../ui/MoneyInput";
+import Segmented from "../ui/Segmented";
+import Switch from "../ui/Switch";
 export default function DepositPolicy({
   policy,
   base,
@@ -56,29 +59,20 @@ export default function DepositPolicy({
             .catch((e) => setError(e.message));
         }}
       >
-        <label>
-          Require manual deposit
-          <select
-            value={String(draft.enabled)}
-            onChange={(e) =>
-              setDraft({ ...draft, enabled: e.target.value === "true" })
-            }
-          >
-            <option value="false">No</option>
-            <option value="true">Yes, after explicit policy approval</option>
-          </select>
-        </label>
-        <label>
-          Deposit amount (naira)
-          <input
-            required
-            min="0"
-            step="0.01"
-            type="number"
-            value={draft.amount}
-            onChange={(e) => setDraft({ ...draft, amount: e.target.value })}
-          />
-        </label>
+        <Switch
+          label="Require manual deposit"
+          checked={draft.enabled}
+          onChange={(enabled) => setDraft({ ...draft, enabled })}
+          disabled={disabled}
+        />
+        <MoneyInput
+          label="Deposit amount (naira)"
+          required
+          min={0}
+          value={draft.amount}
+          onChange={(amount) => setDraft({ ...draft, amount })}
+          disabled={disabled}
+        />
         <label>
           Cancellation cutoff (hours)
           <input
@@ -92,20 +86,20 @@ export default function DepositPolicy({
             }
           />
         </label>
-        <label>
-          Refund rule
-          <select
-            required
-            value={draft.refundRule}
-            onChange={(e) => setDraft({ ...draft, refundRule: e.target.value })}
-          >
-            <option value="">Choose an approved rule</option>
-            <option value="refundable_before_cutoff">
-              Refundable before cutoff
-            </option>
-            <option value="non_refundable">Non-refundable</option>
-          </select>
-        </label>
+        <Segmented
+          label="Refund rule"
+          required
+          value={draft.refundRule}
+          onChange={(refundRule) => setDraft({ ...draft, refundRule })}
+          disabled={disabled}
+          options={[
+            {
+              value: "refundable_before_cutoff",
+              label: "Refundable before cutoff",
+            },
+            { value: "non_refundable", label: "Non-refundable" },
+          ]}
+        />
         <label
           className="mw-wide"
           style={{ display: "flex", alignItems: "center", gap: 9 }}

@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import MoneyInput from "../ui/MoneyInput";
+import Segmented from "../ui/Segmented";
+import Switch from "../ui/Switch";
 export default function PricingPolicy({
   base,
   policy,
@@ -21,6 +24,9 @@ export default function PricingPolicy({
     serviceCharge: policy?.serviceCharge ?? null,
     tax: policy?.tax ?? null,
   });
+  const [discountAmount, setDiscountAmount] = useState(
+    String((policy?.discount?.value || 0) / 100),
+  );
   const [approved, setApproved] = useState(false);
   const [error, setError] = useState("");
   return (
@@ -29,7 +35,8 @@ export default function PricingPolicy({
       <p>
         Configure only the charges this branch has approved. The server issues
         an itemized quote before an order uses this policy. These are store
-        charges, separate from Mera’s unresolved commercial fees.
+        charges, separate from Mera’s commercial fees, which still need
+        approval.
       </p>
       {error && <p role="alert">{error}</p>}
       <form
@@ -50,16 +57,11 @@ export default function PricingPolicy({
         }}
       >
         <fieldset disabled={disabled} style={{ border: 0, padding: 0 }}>
-          <label className="mw-row">
-            <span>Enable this branch order pricing policy</span>
-            <input
-              type="checkbox"
-              checked={draft.enabled}
-              onChange={(event) =>
-                setDraft({ ...draft, enabled: event.target.checked })
-              }
-            />
-          </label>
+          <Switch
+            label="Enable this branch order pricing policy"
+            checked={draft.enabled}
+            onChange={(enabled) => setDraft({ ...draft, enabled })}
+          />
           {(["discount", "serviceCharge", "tax"] as const).map((key) => {
             const row = draft[key];
             return (
@@ -71,31 +73,27 @@ export default function PricingPolicy({
                       ? "Tax"
                       : "Service charge"}
                 </legend>
-                <label className="mw-row">
-                  <span>
-                    Include {key === "serviceCharge" ? "service charge" : key}
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={!!row}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        [key]: event.target.checked
-                          ? key === "discount"
-                            ? { label: "Discount", type: "fixed", value: 0 }
-                            : key === "tax"
-                              ? {
-                                  label: "Tax",
-                                  basisPoints: 0,
-                                  basis: "net_items",
-                                }
-                              : { label: "Service charge", basisPoints: 0 }
-                          : null,
-                      })
-                    }
-                  />
-                </label>
+                <Switch
+                  label={`Include ${key === "serviceCharge" ? "service charge" : key}`}
+                  checked={!!row}
+                  onChange={(checked) => {
+                    if (key === "discount") setDiscountAmount("0");
+                    setDraft({
+                      ...draft,
+                      [key]: checked
+                        ? key === "discount"
+                          ? { label: "Discount", type: "fixed", value: 0 }
+                          : key === "tax"
+                            ? {
+                                label: "Tax",
+                                basisPoints: 0,
+                                basis: "net_items",
+                              }
+                            : { label: "Service charge", basisPoints: 0 }
+                        : null,
+                    });
+                  }}
+                />
                 {row && (
                   <div className="mw-form">
                     <label>
@@ -114,49 +112,65 @@ export default function PricingPolicy({
                     </label>
                     {key === "discount" ? (
                       <>
-                        <label>
-                          Discount type
-                          <select
-                            value={row.type}
-                            onChange={(event) =>
+                        <Segmented
+                          label="Discount type"
+                          value={row.type}
+                          onChange={(type) => {
+                            setDiscountAmount("0");
+                            setDraft({
+                              ...draft,
+                              discount: { ...row, type, value: 0 },
+                            });
+                          }}
+                          options={[
+                            { value: "fixed", label: "Fixed amount in naira" },
+                            { value: "basis_points", label: "Percentage" },
+                          ]}
+                        />
+                        {row.type === "fixed" ? (
+                          <MoneyInput
+                            label="Discount amount (naira)"
+                            value={discountAmount}
+                            onChange={(value) => {
+                              setDiscountAmount(value);
                               setDraft({
                                 ...draft,
                                 discount: {
                                   ...row,
-                                  type: event.target.value,
-                                  value: 0,
+                                  value: Math.round(Number(value) * 100),
                                 },
-                              })
-                            }
-                          >
-                            <option value="fixed">Fixed amount in naira</option>
-                            <option value="basis_points">Percentage</option>
-                          </select>
-                        </label>
-                        <label>
-                          {row.type === "fixed"
-                            ? "Discount amount (naira)"
-                            : "Discount (%)"}
-                          <input
+                              });
+                            }}
                             required
-                            type="number"
-                            min={0}
-                            max={row.type === "basis_points" ? 100 : undefined}
-                            step="0.01"
-                            value={row.value / 100}
-                            onChange={(event) =>
-                              setDraft({
-                                ...draft,
-                                discount: {
-                                  ...row,
-                                  value: Math.round(
-                                    Number(event.target.value) * 100,
-                                  ),
-                                },
-                              })
-                            }
                           />
-                        </label>
+                        ) : (
+                          <label>
+                            {row.type === "fixed"
+                              ? "Discount amount (naira)"
+                              : "Discount (%)"}
+                            <input
+                              required
+                              type="number"
+                              min={0}
+                              max={
+                                row.type === "basis_points" ? 100 : undefined
+                              }
+                              step="0.01"
+                              value={row.value / 100}
+                              onChange={(event) =>
+                                setDraft({
+                                  ...draft,
+                                  discount: {
+                                    ...row,
+                                    value: Math.round(
+                                      Number(event.target.value) * 100,
+                                    ),
+                                  },
+                                })
+                              }
+                            />
+                          </label>
+                        )}
                       </>
                     ) : (
                       <label>
@@ -183,25 +197,20 @@ export default function PricingPolicy({
                       </label>
                     )}
                     {key === "tax" && (
-                      <label>
-                        Tax calculation basis
-                        <select
-                          value={row.basis}
-                          onChange={(event) =>
-                            setDraft({
-                              ...draft,
-                              tax: { ...row, basis: event.target.value },
-                            })
-                          }
-                        >
-                          <option value="net_items">
-                            Items after discount
-                          </option>
-                          <option value="net_items_and_service">
-                            Items after discount plus service
-                          </option>
-                        </select>
-                      </label>
+                      <Segmented
+                        label="Tax calculation basis"
+                        value={row.basis}
+                        onChange={(basis) =>
+                          setDraft({ ...draft, tax: { ...row, basis } })
+                        }
+                        options={[
+                          { value: "net_items", label: "Items after discount" },
+                          {
+                            value: "net_items_and_service",
+                            label: "Items after discount plus service",
+                          },
+                        ]}
+                      />
                     )}
                   </div>
                 )}
