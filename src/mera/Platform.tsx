@@ -1011,22 +1011,30 @@ export default function Platform() {
                         ))}
                       </ChoiceField>
 
-                      {[
-                        ["trialEndsAt", "Trial ends (UTC)"],
-                        ["paidThrough", "Paid through (UTC)"],
-                        ["dueAt", "Payment due (UTC)"],
-                      ].map(([key, label]) => (
-                        <DateTimePicker
-                          key={key}
-                          label={label}
-                          value={dates[key]}
-                          disabled={!!pendingChange}
-                          availabilityHint={false}
-                          onChange={(value) =>
-                            setDates({ ...dates, [key]: value })
-                          }
-                        />
-                      ))}
+                      <details
+                        className="mera-platform-operation"
+                        onInvalidCapture={(event) => {
+                          event.currentTarget.open = true;
+                        }}
+                      >
+                        <summary>Service dates</summary>
+                        {[
+                          ["trialEndsAt", "Trial ends (UTC)"],
+                          ["paidThrough", "Paid through (UTC)"],
+                          ["dueAt", "Payment due (UTC)"],
+                        ].map(([key, label]) => (
+                          <DateTimePicker
+                            key={key}
+                            label={label}
+                            value={dates[key]}
+                            disabled={!!pendingChange}
+                            availabilityHint={false}
+                            onChange={(value) =>
+                              setDates({ ...dates, [key]: value })
+                            }
+                          />
+                        ))}
+                      </details>
                       <p>
                         Leave unagreed dates blank. A production trial needs an
                         explicit end date; grace periods require approved
