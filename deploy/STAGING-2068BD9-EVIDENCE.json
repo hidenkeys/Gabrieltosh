@@ -1,0 +1,37 @@
+{
+  "at": "2026-11-23T21:46:52.012Z",
+  "checks": [
+    {
+      "path": "/api/health",
+      "status": 200
+    },
+    {
+      "path": "/mera/",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/identity/capabilities",
+      "status": 200
+    },
+    {
+      "path": "/api/mera/v1/identity/owner-status",
+      "status": 401
+    }
+  ],
+  "capabilities": {
+    "registration": "provider",
+    "emailDelivery": "provider",
+    "recipientPolicy": "public",
+    "persistentCustomerIdentity": "blocked",
+    "reason": "Verified email delivery and sender authorization are required for production registration."
+  },
+  "sourceRevision": "2068bd9131811af4834009aff8cc515ad4bcef9b",
+  "sourceBranch": "mera-ux-inputs",
+  "webDeploymentId": "92fe51ba-9c07-4b9f-a8ea-09468e7afc1a",
+  "jobsDeploymentId": "56f29a93-dec1-456e-83f5-d31974a8338d",
+  "deploymentStatuses": "SUCCESS",
+  "preservation": "Existing runtime variables, Resend secrets, public signup policy, database and sessions retained. No provider sends or accounts created.",
+  "limitations": [
+    "Hosted screenshot recapture remains coordinated by lead."
+  ]
+}
