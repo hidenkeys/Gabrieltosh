@@ -1,0 +1,387 @@
+/*
+ * Preparation v2 — kitchen and bar tickets.
+ * A ticket should read at arm's length: who and which order, how long it has
+ * waited, what to make, and one big action. Loaded last.
+ */
+.mera-workspace .mw-preparation-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: flex-start;
+  margin: 4px 0 18px;
+}
+.mera-workspace .mw-preparation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 310px), 1fr));
+  gap: 18px;
+  align-items: start;
+}
+/* Waiting work first, finished work last. */
+.mera-workspace .mw-preparation-ticket[data-status="queued"] {
+  order: 1;
+}
+.mera-workspace .mw-preparation-ticket[data-status="preparing"] {
+  order: 2;
+}
+.mera-workspace .mw-preparation-ticket[data-status="ready"],
+.mera-workspace .mw-preparation-ticket[data-status="cancelled"] {
+  order: 3;
+}
+
+.mera-workspace .mw-preparation-ticket {
+  --tk-tone: #8a948d;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--wx-line, #e2e5dc);
+  border-top: 6px solid var(--tk-tone);
+  border-radius: 6px 6px 18px 18px;
+  background: #fff;
+  box-shadow: 0 18px 28px -24px rgba(22, 33, 28, 0.55);
+  overflow: hidden;
+  transition: box-shadow 220ms var(--wx-move, ease);
+}
+.mera-workspace .mw-preparation-ticket[data-status="preparing"] {
+  --tk-tone: #d99a1e;
+}
+.mera-workspace .mw-preparation-ticket[data-status="ready"] {
+  --tk-tone: #2f8f5b;
+}
+.mera-workspace .mw-preparation-ticket[data-status="cancelled"] {
+  --tk-tone: #b4503f;
+  opacity: 0.7;
+}
+.mera-workspace .mw-preparation-ticket[data-late="warn"] {
+  --tk-tone: #d99a1e;
+}
+.mera-workspace .mw-preparation-ticket[data-late="late"] {
+  --tk-tone: #c8452f;
+}
+
+/* Header: station and order reference lead. */
+.mera-workspace .mw-preparation-ticket > header {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 20px;
+  border: 0;
+}
+.mera-workspace .mw-preparation-station {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--wx-muted, #5a665f);
+}
+.mera-workspace .mw-preparation-ticket h3 {
+  margin: 2px 0 0;
+  font-family: var(--wx-display, "Mera Display", sans-serif);
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.mera-workspace .mw-preparation-ticket > header p {
+  margin: 4px 0 0;
+  font-size: 0.9375rem;
+  color: var(--wx-muted, #5a665f);
+}
+.mw-prep-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.mw-prep-clock {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--tk-tone);
+  color: #fff;
+  font-family: var(--wx-display, "Mera Display", sans-serif);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.mera-workspace .mw-preparation-ticket[data-late="warn"] .mw-prep-clock {
+  color: #2b1d00;
+}
+.mera-workspace .mw-preparation-status {
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-transform: none;
+  letter-spacing: 0;
+}
+/* Tear line with notches, shared with the guest basket. */
+.mera-workspace .mw-preparation-ticket > header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 0;
+  border-top: 2px dashed var(--wx-line, #e2e5dc);
+}
+.mera-workspace .mw-preparation-ticket > header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -11px;
+  height: 22px;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle 11px at 0 50%,
+      var(--wx-paper, #f7f6f0) 10.5px,
+      transparent 11px
+    ),
+    radial-gradient(
+      circle 11px at 100% 50%,
+      var(--wx-paper, #f7f6f0) 10.5px,
+      transparent 11px
+    );
+}
+
+.mera-workspace .mw-preparation-meta {
+  padding: 14px 20px 0;
+  font-size: 0.8125rem;
+  color: var(--wx-muted, #5a665f);
+}
+.mera-workspace .mw-preparation-items {
+  display: grid;
+  padding: 6px 20px 6px;
+}
+
+/* Items: one row each; the stepper sits where the thumb lands. */
+.mw-prep-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 14px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px dashed var(--wx-line, #e2e5dc);
+}
+.mw-prep-item:last-child {
+  border-bottom: 0;
+}
+.mw-prep-item .mw-preparation-item-heading {
+  grid-column: 1;
+  display: block;
+}
+.mw-prep-item .mw-preparation-item-heading strong {
+  display: block;
+  font-size: 1.0625rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+.mw-prep-count {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.mw-prep-dots {
+  grid-column: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+.mw-prep-dots i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #b9c2ba;
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    transform 260ms var(--wx-enter, ease);
+}
+.mw-prep-dots i[data-on] {
+  background: #2f8f5b;
+  border-color: #2f8f5b;
+  transform: scale(1.12);
+}
+.mw-prep-dots i[data-cancelled] {
+  border-style: dashed;
+  background: transparent;
+  opacity: 0.5;
+}
+.mw-prep-item[data-done] strong {
+  color: var(--wx-muted, #5a665f);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+.mw-prep-note {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  font-size: 0.8125rem;
+  color: var(--wx-muted, #5a665f);
+}
+.mw-prep-item
+  > :not(.mw-preparation-item-heading):not(.mw-prep-dots):not(
+    .mw-preparation-progress
+  ):not(.mw-prep-note) {
+  grid-column: 1 / -1;
+}
+.mw-prep-item .mw-preparation-progress {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin: 0;
+}
+.mw-prep-stepper {
+  display: grid;
+  grid-template-columns: 44px 44px 44px;
+  align-items: center;
+  border: 1.5px solid var(--wx-line, #e2e5dc);
+  border-radius: 14px;
+  background: var(--wx-bone, #fcfbf6);
+  overflow: hidden;
+}
+.mw-prep-stepper button {
+  height: 48px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--wx-ink, #16211c);
+}
+.mw-prep-stepper .mw-prep-add {
+  background: var(--wx-accent, var(--brand, #2f7df6));
+  color: #fff;
+}
+.mw-prep-stepper button:disabled {
+  opacity: 0.35;
+}
+.mw-prep-stepper input {
+  width: 100%;
+  height: 48px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  text-align: center;
+  font-family: var(--wx-display, "Mera Display", sans-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.mw-prep-stepper input::-webkit-inner-spin-button,
+.mw-prep-stepper input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.mw-prep-stepper input:focus {
+  box-shadow: none;
+  outline: 2px solid var(--wx-accent, #2f7df6);
+  outline-offset: -2px;
+}
+.mw-prep-save {
+  min-height: 40px;
+  font-size: 0.8125rem;
+}
+
+/* One big action per ticket. */
+.mera-workspace .mw-preparation-ticket > footer {
+  padding: 8px 20px 20px;
+  border: 0;
+}
+.mera-workspace .mw-preparation-ticket > footer .primary {
+  width: 100%;
+  min-height: 56px;
+  border-radius: 14px;
+  background: var(--tk-tone);
+  border-color: var(--tk-tone);
+  font-family: var(--wx-display, "Mera Display", sans-serif);
+  font-size: 1.0625rem;
+  letter-spacing: -0.01em;
+}
+.mera-workspace .mw-preparation-ticket[data-status="queued"] > footer .primary,
+.mera-workspace .mw-preparation-ticket[data-late] > footer .primary {
+  background: var(--wx-ink, #16211c);
+  border-color: var(--wx-ink, #16211c);
+}
+.mera-workspace
+  .mw-preparation-ticket[data-status="preparing"]
+  > footer
+  .primary {
+  background: #2f8f5b;
+  border-color: #2f8f5b;
+}
+
+/* Empty, error and recovery: one calm panel, not a stack of blocks. */
+.mera-workspace .mw-preparation-empty {
+  padding: 48px 24px;
+  border: 2px dashed var(--wx-line, #e2e5dc);
+  border-radius: 22px;
+  text-align: center;
+}
+.mera-workspace .mw-preparation-empty h3 {
+  font-family: var(--wx-display, "Mera Display", sans-serif);
+  letter-spacing: -0.03em;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mera-workspace .mw-preparation-ticket:hover {
+    box-shadow: 0 24px 34px -22px rgba(22, 33, 28, 0.6);
+  }
+}
+@media (max-width: 640px) {
+  .mera-workspace .mw-preparation-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Filter chips: compact pills, the legend reads as a quiet caption. */
+.mera-workspace .mw-preparation-filters .mi-choice {
+  min-width: 0;
+}
+.mera-workspace .mw-preparation-filters .mi-choice > legend {
+  margin-bottom: 6px;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--wx-muted, #5a665f);
+}
+.mera-workspace .mw-preparation-filters .mi-choice-options {
+  gap: 8px;
+}
+.mera-workspace .mw-preparation-filters .mi-choice-option {
+  display: flex;
+  flex: none;
+  width: auto;
+  min-width: 0;
+  gap: 0;
+}
+.mera-workspace .mw-preparation-filters .mi-choice-option > span {
+  border-radius: 999px;
+  padding: 8px 16px;
+}
+/* The clock chip already says how long; the sentence stays for screen readers. */
+.mera-workspace .mw-preparation-meta time {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.mera-workspace .mw-preparation-meta:not(:has(span)) {
+  padding-top: 0;
+}

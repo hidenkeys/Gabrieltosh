@@ -56,15 +56,11 @@ test("filter changes and loading retain actual prepared-count inputs and unsaved
   const { container, rerender } = render(<Tickets {...props} />);
   const input = screen.getByLabelText("Prepared quantity for Tea on kitchen");
   fireEvent.input(input, { target: { value: "2" } });
-  fireEvent.change(screen.getByLabelText("Ticket view"), {
-    target: { value: "ready" },
-  });
+  fireEvent.click(screen.getByRole("radio", { name: /^Ready/ }));
   assert.ok(container.querySelector("article[hidden]"));
   assert.equal(input.isConnected, true);
   assert.ok(screen.getByText("No tickets in this view"));
-  fireEvent.change(screen.getByLabelText("Ticket view"), {
-    target: { value: "active" },
-  });
+  fireEvent.click(screen.getByRole("radio", { name: /^Active/ }));
   assert.ok(
     screen.getByLabelText("Prepared quantity for Tea on kitchen") === input,
   );

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import OrderInstructions from "./OrderInstructions";
+import { Segmented } from "../ui/Segmented";
 type Save = (
   path: string,
   method: string,
@@ -110,6 +111,12 @@ function ScopedTickets({
           ? ticket.status === "ready"
           : !["ready", "cancelled"].includes(ticket.status))),
   );
+  const stations = Array.from(
+    new Set(permitted.map((ticket) => ticket.station)),
+  ).filter((value) => typeof value === "string") as string[];
+  const inStation = permitted.filter(
+    (ticket) => !station || ticket.station === station,
+  );
   const newer =
     pending &&
     permitted.find(
@@ -174,6 +181,32 @@ function ScopedTickets({
       flight.current = false;
       if (active.current) setWorking(false);
     }
+  };
+  const submitCount = (
+    item: any,
+    ticket: any,
+    locked: boolean,
+    count: number,
+  ) => {
+    if (
+      locked ||
+      !item.orderLineId ||
+      !Number.isSafeInteger(count) ||
+      count < (item.preparedQuantity ?? 0) ||
+      count > item.quantity
+    )
+      return;
+    void write({
+      path:
+        base +
+        "/tickets/" +
+        ticket.id +
+        "/items/" +
+        encodeURIComponent(item.orderLineId),
+      body: { preparedQuantity: count, version: ticket.version },
+      ticketId: ticket.id,
+      message: "Prepared item quantity updated.",
+    });
   };
   if (denied)
     return (
@@ -269,33 +302,42 @@ function ScopedTickets({
         </section>
       )}
       <div className="mw-preparation-filters">
-        {!stationScope && (
-          <label>
-            Preparation station
-            <select
-              value={station}
-              onChange={(event) => setStation(event.target.value)}
-            >
-              <option value="">All authorized stations</option>
-              {Array.from(new Set(permitted.map((ticket) => ticket.station)))
-                .filter((value) => typeof value === "string")
-                .map((value) => (
-                  <option key={value}>{value}</option>
-                ))}
-            </select>
-          </label>
+        {!stationScope && stations.length > 1 && (
+          <Segmented
+            label="Preparation station"
+            value={station}
+            onChange={setStation}
+            options={[
+              { value: "", label: "All stations", count: permitted.length },
+              ...stations.map((value) => ({
+                value,
+                label: value,
+                count: permitted.filter((ticket) => ticket.station === value)
+                  .length,
+              })),
+            ]}
+          />
         )}
-        <label>
-          Ticket view
-          <select
-            value={view}
-            onChange={(event) => setView(event.target.value)}
-          >
-            <option value="active">Active tickets</option>
-            <option value="ready">Ready for service</option>
-            <option value="all">All tickets</option>
-          </select>
-        </label>
+        <Segmented
+          label="Ticket view"
+          value={view}
+          onChange={setView}
+          options={[
+            {
+              value: "active",
+              label: "Active",
+              count: inStation.filter(
+                (t) => !["ready", "cancelled"].includes(t.status),
+              ).length,
+            },
+            {
+              value: "ready",
+              label: "Ready",
+              count: inStation.filter((t) => t.status === "ready").length,
+            },
+            { value: "all", label: "All", count: inStation.length },
+          ]}
+        />
       </div>
       {!Number.isFinite(now) && (
         <p className="mw-preparation-waiting">
@@ -381,6 +423,14 @@ function ScopedTickets({
             return (
               <article
                 className="mw-preparation-ticket"
+                data-status={ticket.status}
+                data-late={
+                  minutes !== null && minutes >= 15
+                    ? "late"
+                    : minutes !== null && minutes >= 8
+                      ? "warn"
+                      : undefined
+                }
                 key={ticket.id}
                 hidden={!rows.includes(ticket)}
               >
@@ -392,7 +442,14 @@ function ScopedTickets({
                     <h3>{order?.reference || "Order reference unavailable"}</h3>
                     {order?.displayName && <p>{order.displayName}</p>}
                   </div>
-                  <span className="mw-preparation-status">{status}</span>
+                  <div className="mw-prep-badges">
+                    {minutes !== null && minutes >= 0 && !closed && (
+                      <span className="mw-prep-clock" aria-hidden="true">
+                        {minutes} min
+                      </span>
+                    )}
+                    <span className="mw-preparation-status">{status}</span>
+                  </div>
                 </header>
                 <div className="mw-preparation-meta">
                   <time dateTime={typeof at === "string" ? at : undefined}>
@@ -430,34 +487,23 @@ function ScopedTickets({
                       return (
                         <form
                           key={key}
+                          className="mw-prep-item"
+                          data-done={
+                            (item.preparedQuantity || 0) >= item.quantity
+                              ? ""
+                              : undefined
+                          }
                           onSubmit={(event) => {
                             event.preventDefault();
                             const raw =
-                                quantities[key] ??
-                                String(item.preparedQuantity ?? 0),
-                              count = raw.trim() === "" ? NaN : Number(raw);
-                            if (
-                              locked ||
-                              !item.orderLineId ||
-                              !Number.isSafeInteger(count) ||
-                              count < (item.preparedQuantity ?? 0) ||
-                              count > item.quantity
-                            )
-                              return;
-                            void write({
-                              path:
-                                base +
-                                "/tickets/" +
-                                ticket.id +
-                                "/items/" +
-                                encodeURIComponent(item.orderLineId),
-                              body: {
-                                preparedQuantity: count,
-                                version: ticket.version,
-                              },
-                              ticketId: ticket.id,
-                              message: "Prepared item quantity updated.",
-                            });
+                              quantities[key] ??
+                              String(item.preparedQuantity ?? 0);
+                            submitCount(
+                              item,
+                              ticket,
+                              locked,
+                              raw.trim() === "" ? NaN : Number(raw),
+                            );
                           }}
                         >
                           <div className="mw-preparation-item-heading">
@@ -465,28 +511,84 @@ function ScopedTickets({
                               {item.quantity} × {item.name}
                               {item.size ? " · " + item.size : ""}
                             </strong>
-                            <span>
+                            <span className="mw-prep-count">
                               {item.preparedQuantity || 0} / {item.quantity}{" "}
                               prepared
                             </span>
                           </div>
+                          <span className="mw-prep-dots" aria-hidden="true">
+                            {Array.from({
+                              length: Math.min(item.quantity, 12),
+                            }).map((_, dot) => (
+                              <i
+                                key={dot}
+                                data-on={
+                                  dot <
+                                  Number(
+                                    quantities[key] ??
+                                      item.preparedQuantity ??
+                                      0,
+                                  )
+                                    ? ""
+                                    : undefined
+                                }
+                                data-cancelled={
+                                  dot >=
+                                  item.quantity - (item.cancelledQuantity || 0)
+                                    ? ""
+                                    : undefined
+                                }
+                              />
+                            ))}
+                          </span>
                           {!!item.cancelledQuantity && (
-                            <p>{item.cancelledQuantity} cancelled</p>
+                            <p className="mw-prep-note">
+                              {item.cancelledQuantity} cancelled
+                            </p>
                           )}
                           <OrderInstructions item={item} />
                           {!item.orderLineId ? (
-                            <p>
-                              Individual preparation counts are unavailable for
-                              this older ticket.
+                            <p className="mw-prep-note">
+                              This older ticket cannot track items one by one.
+                              Mark the whole ticket ready instead.
                             </p>
                           ) : (
                             !closed && (
                               <div className="mw-preparation-progress">
-                                <label>
-                                  Prepared quantity
+                                <div className="mw-prep-stepper">
+                                  <button
+                                    type="button"
+                                    aria-label={`Decrease prepared quantity for ${item.name}`}
+                                    disabled={
+                                      locked ||
+                                      Number(
+                                        quantities[key] ??
+                                          item.preparedQuantity ??
+                                          0,
+                                      ) <= (item.preparedQuantity || 0)
+                                    }
+                                    onClick={() =>
+                                      setQuantities((old) => ({
+                                        ...old,
+                                        [key]: String(
+                                          Math.max(
+                                            item.preparedQuantity || 0,
+                                            Number(
+                                              old[key] ??
+                                                item.preparedQuantity ??
+                                                0,
+                                            ) - 1,
+                                          ),
+                                        ),
+                                      }))
+                                    }
+                                  >
+                                    −
+                                  </button>
                                   <input
                                     aria-label={`Prepared quantity for ${item.name} on ${ticket.station}`}
                                     type="number"
+                                    inputMode="numeric"
                                     min={item.preparedQuantity || 0}
                                     max={item.quantity}
                                     step={1}
@@ -512,10 +614,45 @@ function ScopedTickets({
                                       }));
                                     }}
                                   />
-                                </label>
-                                <button className="secondary" disabled={locked}>
-                                  Save prepared quantity
-                                </button>
+                                  <button
+                                    type="button"
+                                    className="mw-prep-add"
+                                    aria-label={`Mark one more ${item.name} prepared`}
+                                    disabled={
+                                      locked ||
+                                      Number(
+                                        quantities[key] ??
+                                          item.preparedQuantity ??
+                                          0,
+                                      ) >= item.quantity
+                                    }
+                                    onClick={() => {
+                                      const next =
+                                        Number(
+                                          quantities[key] ??
+                                            item.preparedQuantity ??
+                                            0,
+                                        ) + 1;
+                                      setQuantities((old) => ({
+                                        ...old,
+                                        [key]: String(next),
+                                      }));
+                                      submitCount(item, ticket, locked, next);
+                                    }}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                                {quantities[key] !== undefined &&
+                                  Number(quantities[key]) !==
+                                    (item.preparedQuantity || 0) && (
+                                    <button
+                                      className="secondary mw-prep-save"
+                                      disabled={locked}
+                                    >
+                                      Save prepared quantity
+                                    </button>
+                                  )}
                               </div>
                             )
                           )}
