@@ -918,3 +918,21 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Optional details stay available without competing with the next action. */
+.mc-optional-details > summary,
+.mc-help-custom > summary {
+  min-height: 44px;
+  padding: 12px 0;
+  cursor: pointer;
+  font-weight: 600;
+}
+.mc-optional-details > summary:focus-visible,
+.mc-help-custom > summary:focus-visible {
+  outline: 3px solid var(--mc-primary);
+  outline-offset: 3px;
+}
+.mc-optional-details[open] > summary,
+.mc-help-custom[open] > summary {
+  margin-bottom: 8px;
+}

@@ -2,7 +2,7 @@
   display: grid;
   grid-template-columns: minmax(230px, 0.7fr) minmax(0, 1.3fr);
   border: 1px solid var(--mera-border);
-  border-radius: 20px;
+  border-radius: 24px;
   overflow: hidden;
   background: var(--mera-white);
   color: var(--mera-ink);
@@ -18,14 +18,14 @@
 }
 .mera-company-eyebrow {
   font-size: 10px !important;
-  letter-spacing: 0.14em;
+  letter-spacing: normal;
   font-weight: 800;
   color: var(--mera-forest);
   margin: 0 0 16px !important;
 }
 .mera-company-guide h2 {
   font:
-    750 clamp(25px, 3vw, 36px)/1.12 Inter,
+    750 clamp(25px, 3vw, 36px)/1.12 "Mera Display",
     Arial,
     sans-serif !important;
   letter-spacing: -0.045em;
@@ -135,7 +135,7 @@
   background: #fff;
   color: var(--mera-ink);
   border: 1px solid #b6c1b8;
-  border-radius: 7px;
+  border-radius: 10px;
   padding: 11px 12px;
   min-height: 44px;
 }
@@ -176,12 +176,12 @@
   align-items: center;
   min-height: 44px;
   border: 1px solid var(--mera-border);
-  border-radius: 7px;
+  border-radius: 10px;
   padding: 11px 18px;
   background: transparent;
   color: var(--mera-forest);
   font:
-    700 12px Inter,
+    700 12px "Mera Text",
     Arial,
     sans-serif;
   text-decoration: none;
@@ -281,7 +281,7 @@
 .mera-company-confirmation h2,
 .mera-company-recovery h2 {
   font:
-    750 30px/1.15 Inter,
+    750 30px/1.15 "Mera Display",
     Arial,
     sans-serif;
   letter-spacing: -0.035em;
@@ -303,7 +303,7 @@
   gap: 16px;
   padding: 20px;
   background: var(--mera-paper);
-  border-radius: 9px;
+  border-radius: 10px;
 }
 .mera-company-travel .mera-company-guide {
   display: flex;
@@ -316,7 +316,7 @@
 @media (max-width: 760px) {
   .mera-company-form {
     grid-template-columns: 1fr;
-    border-radius: 12px;
+    border-radius: 14px;
   }
   .mera-company-guide {
     border-right: 0;
@@ -394,4 +394,18 @@
 .mera-company-form select,
 .mera-company-form textarea {
   margin: 0;
+}
+
+.mera-company-optional > summary {
+  min-height: 44px;
+  padding: 12px 0;
+  cursor: pointer;
+  font-weight: 600;
+}
+.mera-company-optional > summary:focus-visible {
+  outline: 3px solid var(--mera-forest);
+  outline-offset: 3px;
+}
+.mera-company-optional[open] > summary {
+  margin-bottom: 12px;
 }

@@ -205,8 +205,9 @@ test("not_found stays locked and explicit stop requires authoritative abandonmen
     screen.getByRole("button", { name: "Stop unconfirmed reservation…" }),
   );
   assert.equal(posts.length, 0);
+  fireEvent.click(screen.getByRole("radio", { name: "Other", exact: true }));
   fireEvent.change(
-    screen.getByRole("textbox", { name: "Reason for stopping" }),
+    screen.getByRole("textbox", { name: "Reason for stopping details" }),
     { target: { value: "Please stop this unconfirmed request" } },
   );
   fireEvent.click(

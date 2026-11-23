@@ -1,3 +1,4 @@
+import ReasonInput from "../ui/ReasonInput";
 import { Combobox } from "../ui/Combobox";
 import ReservationOptions from "./ReservationOptions";
 import { Chips } from "../ui/Chips";
@@ -1912,18 +1913,21 @@ export default function CustomerExperience({
                         </button>
                       ))}
                     </div>
-                    <label>
-                      Anything we should know?
-                      <textarea
-                        maxLength={500}
-                        value={note}
-                        disabled={checkoutLocked}
-                        onChange={(e) => {
-                          if (!checkoutLocked) setNote(e.target.value);
-                        }}
-                        placeholder="Optional order note"
-                      />
-                    </label>
+                    <details className="mc-optional-details">
+                      <summary>Other order note</summary>
+                      <label>
+                        Anything we should know?
+                        <textarea
+                          maxLength={500}
+                          value={note}
+                          disabled={checkoutLocked}
+                          onChange={(e) => {
+                            if (!checkoutLocked) setNote(e.target.value);
+                          }}
+                          placeholder="Optional order note"
+                        />
+                      </label>
+                    </details>
                   </fieldset>
                   <section
                     className="mc-checkout-review"
@@ -2046,18 +2050,19 @@ export default function CustomerExperience({
                               does not cancel an accepted order, make a payment
                               or confirm a refund.
                             </p>
-                            <label>
-                              Why stop this request?
-                              <textarea
-                                minLength={3}
-                                maxLength={500}
-                                value={stopReason}
-                                disabled={busy}
-                                onChange={(event) =>
-                                  setStopReason(event.target.value)
-                                }
-                              />
-                            </label>
+                            <ReasonInput
+                              label="Why stop this request?"
+                              value={stopReason}
+                              onChange={setStopReason}
+                              presets={[
+                                "I want to change the details",
+                                "I no longer need this request",
+                                "Staff asked me to start again",
+                              ]}
+                              minLength={3}
+                              maxLength={500}
+                              disabled={busy}
+                            />
                             <button
                               type="button"
                               className="mc-secondary"
@@ -2430,10 +2435,13 @@ export default function CustomerExperience({
                       disabled={busy || !!reservationIntent}
                     />
                   </div>
-                  <label>
-                    Notes
-                    <textarea name="notes" maxLength={500} />
-                  </label>
+                  <details className="mc-optional-details">
+                    <summary>Add a reservation note</summary>
+                    <label>
+                      Notes
+                      <textarea name="notes" maxLength={500} />
+                    </label>
+                  </details>
                   <p>
                     Availability is checked by the venue. A reference confirms
                     receipt of your request; the venue must confirm the booking
@@ -2533,17 +2541,19 @@ export default function CustomerExperience({
                           kept. Stopping an unconfirmed request does not cancel
                           a booking or confirm a refund.
                         </p>
-                        <label>
-                          Reason for stopping
-                          <textarea
-                            value={stopReservationReason}
-                            onChange={(event) =>
-                              setStopReservationReason(event.target.value)
-                            }
-                            minLength={3}
-                            maxLength={500}
-                          />
-                        </label>
+                        <ReasonInput
+                          label="Reason for stopping"
+                          value={stopReservationReason}
+                          onChange={setStopReservationReason}
+                          presets={[
+                            "I want to change the details",
+                            "I no longer need this request",
+                            "Staff asked me to start again",
+                          ]}
+                          minLength={3}
+                          maxLength={500}
+                          disabled={busy}
+                        />
                         <button
                           type="button"
                           onClick={() => setConfirmStopReservation(false)}

@@ -8,7 +8,7 @@ export function PricingAndSupport() {
     <section id="pricing" className="mt-commercial-section">
       <div className="mt-container mt-split">
         <div>
-          <p className="eyebrow">A CONSIDERED START</p>
+          <p className="eyebrow">Before you begin</p>
           <h2>
             Review your setup.
             <br />
@@ -24,7 +24,6 @@ export function PricingAndSupport() {
         </div>
         <div className="mt-readiness-list">
           <article>
-            <span>01</span>
             <div>
               <h3>Organization readiness</h3>
               <p>
@@ -34,7 +33,6 @@ export function PricingAndSupport() {
             </div>
           </article>
           <article>
-            <span>02</span>
             <div>
               <h3>Payment readiness</h3>
               <p>
@@ -45,7 +43,6 @@ export function PricingAndSupport() {
             </div>
           </article>
           <article>
-            <span>03</span>
             <div>
               <h3>Review before launch</h3>
               <p>

@@ -1,5 +1,6 @@
 import { serviceHourSuggestions } from "./serviceHourSuggestions";
 import { useState } from "react";
+import Combobox from "../ui/Combobox";
 import { Chips } from "../ui/Chips";
 import { Stepper } from "../ui/Stepper";
 import { DateTimePicker } from "../ui/DateTimePicker";
@@ -45,7 +46,7 @@ export default function ReservationOptions({
           .concat([{ value: "9+", label: "9+" }])}
       />
       {!!tables.length && (
-        <Chips
+        <Combobox
           label="Preferred table (optional)"
           name="tableId"
           value={table}

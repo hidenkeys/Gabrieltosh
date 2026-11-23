@@ -305,3 +305,21 @@ test("consultancy completes review and submits selected scope once while waiting
   await screen.findByText("ENQ-123456ABCDEF");
   assert.ok(screen.getByText(/not project acceptance or a quotation/));
 });
+
+test("Travel keeps optional context disclosed without discarding entered details", () => {
+  render(<TravelInterest />);
+  const field = screen.getByLabelText(/Company or organization/);
+  const disclosure = field.closest("details")!;
+  assert(disclosure, "optional company context belongs to a disclosure");
+  assert.equal(disclosure.open, false);
+  fireEvent.click(screen.getByText("Add more about your interest (optional)"));
+  fireEvent.change(field, { target: { value: "Synthetic travel team" } });
+  disclosure.open = false;
+  assert.equal(
+    (screen.getByLabelText(/Company or organization/) as HTMLInputElement)
+      .value,
+    "Synthetic travel team",
+  );
+  assert.equal(screen.getByLabelText("Email address").closest("details"), null);
+  cleanup();
+});

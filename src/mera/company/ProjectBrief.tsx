@@ -99,7 +99,7 @@ export default function ProjectBrief() {
           <textarea
             id={id}
             name={name}
-            rows={4}
+            rows={name === "intendedUsers" ? 2 : 3}
             value={String(details[name])}
             maxLength={name === "intendedUsers" ? 1500 : 4000}
             aria-invalid={!!error}
@@ -110,6 +110,7 @@ export default function ProjectBrief() {
           <input
             id={id}
             name={name}
+            inputMode={name === "phone" ? "tel" : undefined}
             type={
               name === "email" ? "email" : name === "phone" ? "tel" : "text"
             }
@@ -252,7 +253,7 @@ export default function ProjectBrief() {
         }}
       >
         <header>
-          <p className="mera-company-eyebrow">STEP {step + 1} OF 3</p>
+          <p className="mera-company-eyebrow">Step {step + 1} of 3</p>
           <h3 ref={heading} tabIndex={-1}>
             {titles[step]}
           </h3>

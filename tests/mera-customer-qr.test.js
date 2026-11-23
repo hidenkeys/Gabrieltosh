@@ -543,7 +543,10 @@ test("reservation acknowledgement and original details survive uncertain deliver
   await screen.findByText("Brown Sugar Boba");
   fireEvent.click(screen.getByRole("button", { name: "Reserve a table" }));
   await screen.findByText(policy.disclosure);
-  fireEvent.click(screen.getByRole("radio", { name: "Window preference" }));
+  fireEvent.focus(
+    screen.getByRole("combobox", { name: "Preferred table (optional)" }),
+  );
+  fireEvent.click(screen.getByRole("option", { name: "Window preference" }));
   assert.equal(
     screen.getByRole("button", { name: "Request reservation" }).disabled,
     true,

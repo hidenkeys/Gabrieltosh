@@ -383,75 +383,86 @@ function ScopedHelpRequests({
               can be verified. No replacement request will be sent.
             </p>
           ) : (
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                void send();
-              }}
+            <details
+              className="mc-help-custom"
+              open={pending ? true : undefined}
             >
-              <fieldset disabled={busy || !!pending || !journalReady}>
-                <label>
-                  Your name
-                  <input
-                    required
-                    maxLength={100}
-                    value={displayName}
-                    disabled={nameLocked}
-                    onChange={(event) => onName(event.target.value)}
-                    autoComplete="given-name"
-                  />
-                </label>
-                <div className="mc-help-form-row">
-                  <Segmented
-                    label="Help topic"
-                    value={category}
-                    onChange={setCategory}
-                    options={Object.entries(topics).map(([value, label]) => ({
-                      value,
-                      label,
-                    }))}
-                  />
-                  {(orderId || visitId) && (
-                    <Segmented
-                      label="Related to"
-                      value={context}
-                      onChange={setContext}
-                      options={[
-                        { value: "", label: "General request" },
-                        ...(orderId
-                          ? [{ value: "order", label: "My current order" }]
-                          : []),
-                        ...(visitId
-                          ? [{ value: "visit", label: "My joined table visit" }]
-                          : []),
-                      ]}
+              <summary>Write a custom request or add details</summary>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void send();
+                }}
+              >
+                <fieldset disabled={busy || !!pending || !journalReady}>
+                  <label>
+                    Your name
+                    <input
+                      required
+                      maxLength={100}
+                      value={displayName}
+                      disabled={nameLocked}
+                      onChange={(event) => onName(event.target.value)}
+                      autoComplete="given-name"
                     />
-                  )}
-                </div>
-                <label>
-                  How can staff help?
-                  <textarea
-                    required
-                    minLength={1}
-                    maxLength={500}
-                    value={message}
-                    onChange={(event) => setMessage(event.target.value)}
-                    aria-describedby="mc-help-message-hint"
-                  />
-                </label>
-                <p id="mc-help-message-hint" className="mc-help-hint">
-                  For a quick request, details are optional: add them before
-                  tapping a tile. Or write a message and choose Send help
-                  request. Never include passwords or card details.
-                </p>
-                <button
-                  className="mc-primary"
-                  disabled={!message.trim() || !displayName.trim()}
-                >
-                  {busy ? "Sending request…" : "Send help request"}
-                </button>
-              </fieldset>
-            </form>
+                  </label>
+                  <div className="mc-help-form-row">
+                    <Segmented
+                      label="Help topic"
+                      value={category}
+                      onChange={setCategory}
+                      options={Object.entries(topics).map(([value, label]) => ({
+                        value,
+                        label,
+                      }))}
+                    />
+                    {(orderId || visitId) && (
+                      <Segmented
+                        label="Related to"
+                        value={context}
+                        onChange={setContext}
+                        options={[
+                          { value: "", label: "General request" },
+                          ...(orderId
+                            ? [{ value: "order", label: "My current order" }]
+                            : []),
+                          ...(visitId
+                            ? [
+                                {
+                                  value: "visit",
+                                  label: "My joined table visit",
+                                },
+                              ]
+                            : []),
+                        ]}
+                      />
+                    )}
+                  </div>
+                  <label>
+                    How can staff help?
+                    <textarea
+                      required
+                      minLength={1}
+                      maxLength={500}
+                      value={message}
+                      onChange={(event) => setMessage(event.target.value)}
+                      aria-describedby="mc-help-message-hint"
+                    />
+                  </label>
+                  <p id="mc-help-message-hint" className="mc-help-hint">
+                    For a quick request, details are optional: add them before
+                    tapping a tile. Or write a message and choose Send help
+                    request. Never include passwords or card details.
+                  </p>
+                  <button
+                    className="mc-primary"
+                    disabled={!message.trim() || !displayName.trim()}
+                  >
+                    {busy ? "Sending request…" : "Send help request"}
+                  </button>
+                </fieldset>
+              </form>
+            </details>
           )}
           {pending && (
             <button

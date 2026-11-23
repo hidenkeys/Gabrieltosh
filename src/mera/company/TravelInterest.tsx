@@ -18,6 +18,41 @@ export default function TravelInterest() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const merged = { ...state.fieldErrors, ...errors };
+  const contactField = ([key, label]: readonly [
+    "name" | "email" | "company" | "role",
+    string,
+  ]) => (
+    <div className="mera-company-field" key={key}>
+      <label htmlFor={`travel-${key}`}>
+        {label}
+        {["company", "role"].includes(key) && <span>Optional</span>}
+      </label>
+      <input
+        id={`travel-${key}`}
+        name={key}
+        type={key === "email" ? "email" : "text"}
+        autoComplete={
+          key === "name"
+            ? "name"
+            : key === "email"
+              ? "email"
+              : key === "company"
+                ? "organization"
+                : "organization-title"
+        }
+        value={details[key]}
+        maxLength={key === "email" ? 254 : key === "company" ? 120 : 100}
+        aria-invalid={!!merged[key]}
+        aria-describedby={merged[key] ? `travel-${key}-error` : undefined}
+        onChange={(e) => setDetails({ ...details, [key]: e.target.value })}
+      />
+      {merged[key] && (
+        <small id={`travel-${key}-error`} className="mera-company-error">
+          {merged[key]}
+        </small>
+      )}
+    </div>
+  );
   if (state.pending || state.receipt || state.blocked)
     return (
       <div className="mera-company-form mera-identity">
@@ -27,7 +62,7 @@ export default function TravelInterest() {
   return (
     <div className="mera-company-form mera-company-travel mera-identity">
       <aside className="mera-company-guide">
-        <p className="mera-company-eyebrow">STAY CLOSE TO WHAT’S NEXT</p>
+        <p className="mera-company-eyebrow">Stay close to what’s next</p>
         <h2>Help shape the next journey.</h2>
         <p>
           MeraTravel Suite is planned. Tell us what matters to your travel
@@ -75,65 +110,33 @@ export default function TravelInterest() {
             [
               ["name", "Your name"],
               ["email", "Email address"],
-              ["company", "Company or organization"],
-              ["role", "Your role"],
             ] as const
-          ).map(([key, label]) => (
-            <div className="mera-company-field" key={key}>
-              <label htmlFor={`travel-${key}`}>
-                {label}
-                {["company", "role"].includes(key) && <span>Optional</span>}
+          ).map(contactField)}
+
+          <details className="mera-company-optional wide">
+            <summary>Add more about your interest (optional)</summary>
+            {(
+              [
+                ["company", "Company or organization"],
+                ["role", "Your role"],
+              ] as const
+            ).map(contactField)}
+            <div className="mera-company-field wide">
+              <label htmlFor="travel-interest-field">
+                What would be useful for your team?<span>Optional</span>
               </label>
-              <input
-                id={`travel-${key}`}
-                name={key}
-                type={key === "email" ? "email" : "text"}
-                autoComplete={
-                  key === "name"
-                    ? "name"
-                    : key === "email"
-                      ? "email"
-                      : key === "company"
-                        ? "organization"
-                        : "organization-title"
-                }
-                value={details[key]}
-                maxLength={
-                  key === "email" ? 254 : key === "company" ? 120 : 100
-                }
-                aria-invalid={!!merged[key]}
-                aria-describedby={
-                  merged[key] ? `travel-${key}-error` : undefined
-                }
+              <textarea
+                id="travel-interest-field"
+                name="interest"
+                rows={4}
+                maxLength={2000}
+                value={details.interest}
                 onChange={(e) =>
-                  setDetails({ ...details, [key]: e.target.value })
+                  setDetails({ ...details, interest: e.target.value })
                 }
               />
-              {merged[key] && (
-                <small
-                  id={`travel-${key}-error`}
-                  className="mera-company-error"
-                >
-                  {merged[key]}
-                </small>
-              )}
             </div>
-          ))}
-          <div className="mera-company-field wide">
-            <label htmlFor="travel-interest-field">
-              What would be useful for your team?<span>Optional</span>
-            </label>
-            <textarea
-              id="travel-interest-field"
-              name="interest"
-              rows={4}
-              maxLength={2000}
-              value={details.interest}
-              onChange={(e) =>
-                setDetails({ ...details, interest: e.target.value })
-              }
-            />
-          </div>
+          </details>
           <label className="mera-company-consent wide">
             <input
               type="checkbox"
@@ -151,7 +154,13 @@ export default function TravelInterest() {
             <span>
               I agree that MeraTech may keep these details to review my interest
               and contact me about MeraTravel Suite.{" "}
-              <a href="/mera/legal#privacy" target="_blank" rel="noopener noreferrer">Privacy information (opens in a new tab)</a>
+              <a
+                href="/mera/legal#privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Privacy information (opens in a new tab)
+              </a>
             </span>
           </label>
           {merged.privacyAcknowledged && (

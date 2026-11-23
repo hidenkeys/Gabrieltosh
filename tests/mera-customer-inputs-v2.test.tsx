@@ -104,8 +104,11 @@ test("guest reservation chips and stepper retain native form values and disclose
   );
   fireEvent.click(screen.getByRole("button", { name: "Increase Party size" }));
   fireEvent.click(screen.getByRole("radio", { name: "2 hours", exact: true }));
+  fireEvent.focus(
+    screen.getByRole("combobox", { name: "Preferred table (optional)" }),
+  );
   fireEvent.click(
-    screen.getByRole("radio", { name: "Window table", exact: true }),
+    screen.getByRole("option", { name: "Window table", exact: true }),
   );
   fireEvent.click(screen.getByRole("button", { name: "Choose another date" }));
   fireEvent.change(screen.getByLabelText("Date", { exact: true }), {
@@ -171,4 +174,28 @@ test("branch-hour suggestions guide device-local starts without claiming capacit
     if (old === undefined) delete process.env.TZ;
     else process.env.TZ = old;
   }
+});
+
+test("custom help is disclosed without sending a request on expansion", async (t) => {
+  let writes = 0;
+  t.mock.method(globalThis, "fetch", async (_input: any, init: any) => {
+    if (init?.method && init.method !== "GET") writes++;
+    return Response.json({ requests: [] });
+  });
+  render(
+    <HelpRequests
+      prefix={prefix}
+      displayName="QA guest"
+      onName={() => {}}
+      ensureGuest={async () => {}}
+    />,
+  );
+  const summary = await screen.findByText(
+    "Write a custom request or add details",
+  );
+  const disclosure = summary.closest("details")!;
+  assert.equal(disclosure.open, false);
+  fireEvent.click(summary);
+  assert.equal(writes, 0);
+  assert(screen.getByLabelText("How can staff help?"));
 });

@@ -440,8 +440,9 @@ test("not_found keeps the original frozen; only explicit abandoned proof permits
       /If the venue already received your order, it will be kept/,
     ),
   );
+  fireEvent.click(screen.getByRole("radio", { name: "Other", exact: true }));
   fireEvent.change(
-    screen.getByRole("textbox", { name: "Why stop this request?" }),
+    screen.getByRole("textbox", { name: "Why stop this request? details" }),
     { target: { value: "Please allow me to start again" } },
   );
   fireEvent.click(screen.getByRole("button", { name: "Stop this request" }));
@@ -502,8 +503,9 @@ test("stop action opens an already recorded order without cancellation or a repl
   fireEvent.click(
     screen.getByRole("button", { name: "Stop unconfirmed request…" }),
   );
+  fireEvent.click(screen.getByRole("radio", { name: "Other", exact: true }));
   fireEvent.change(
-    screen.getByRole("textbox", { name: "Why stop this request?" }),
+    screen.getByRole("textbox", { name: "Why stop this request? details" }),
     { target: { value: "Check before starting again" } },
   );
   fireEvent.click(screen.getByRole("button", { name: "Stop this request" }));

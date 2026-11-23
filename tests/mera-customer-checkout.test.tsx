@@ -212,8 +212,9 @@ test("checkout failure stays local and original retry ignores mutable fields and
   fireEvent.click(
     screen.getByRole("button", { name: "Stop unconfirmed request…" }),
   );
+  fireEvent.click(screen.getByRole("radio", { name: "Other", exact: true }));
   fireEvent.change(
-    screen.getByRole("textbox", { name: "Why stop this request?" }),
+    screen.getByRole("textbox", { name: "Why stop this request? details" }),
     { target: { value: "ab" } },
   );
   const name = screen.getByRole("textbox", {
