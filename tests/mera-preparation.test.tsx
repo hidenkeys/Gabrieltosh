@@ -65,11 +65,11 @@ test("P4 station queue shows actual instructions, elapsed and named handler with
         save={async () => {}}
       />,
     );
-    assert(screen.getByText("3 × Tea"));
+    assert(screen.getByText("Tea"));
     assert(screen.getByText("Less sugar", { exact: false }));
     assert(screen.getByText("Milk", { exact: false }));
-    assert(screen.getByText("12 min since ticket received"));
-    assert(screen.getByText("Order handler: Teni"));
+    assert(screen.getByLabelText("12 min since ticket received"));
+    assert(screen.getByText("Handled by Teni"));
     assert(screen.getByText("No ice <script>unsafe</script>"));
     assert.equal(container.querySelector("script"), null);
     assert.equal(screen.queryByText("Private bar item"), null);
@@ -94,16 +94,10 @@ test("P4 uncertain preparation retries preserve original SET and version despite
         }}
       />,
     );
-    fireEvent.change(
-      screen.getByLabelText("Prepared quantity for Tea on kitchen"),
-      { target: { value: "2" } },
+    fireEvent.click(
+      screen.getByRole("button", { name: "Prepare one more Tea on kitchen" }),
     );
-    fireEvent.submit(
-      screen
-        .getByRole("button", { name: "Save prepared quantity" })
-        .closest("form")!,
-    );
-    await screen.findByText("Preparation update unconfirmed");
+    await screen.findByText("Check this update before preparing more items.");
     view.rerender(
       <Tickets
         base={base}
@@ -121,7 +115,7 @@ test("P4 uncertain preparation retries preserve original SET and version despite
         screen.getByLabelText(
           "Prepared quantity for Tea on kitchen",
         ) as HTMLInputElement
-      ).disabled,
+      ).getAttribute("aria-disabled") === "true",
     );
     fireEvent.click(
       screen.getByRole("button", { name: "Retry original preparation update" }),
@@ -129,16 +123,19 @@ test("P4 uncertain preparation retries preserve original SET and version despite
     await waitFor(() => assert.equal(writes.length, 2));
     assert.deepEqual(writes[0][2], { preparedQuantity: 2, version: 8 });
     assert.deepEqual(writes[1][2], writes[0][2]);
-    assert(screen.getByText("Preparation update unconfirmed"));
+    assert(screen.getByText("Check this update before preparing more items."));
     fireEvent.click(screen.getByRole("button", { name: "Use latest ticket" }));
-    assert.equal(screen.queryByText("Preparation update unconfirmed"), null);
+    assert.equal(
+      screen.queryByText("Check this update before preparing more items."),
+      null,
+    );
     assert.equal(
       (
         screen.getByLabelText(
           "Prepared quantity for Tea on kitchen",
         ) as HTMLInputElement
-      ).value,
-      "1",
+      ).textContent,
+      "1 / 3",
     );
   } finally {
     cleanup();
@@ -207,7 +204,7 @@ test("P4 waiting orders and explicit read-only state cannot start preparation", 
     assert(
       (
         screen.getByRole("button", {
-          name: "Start station preparation",
+          name: "Start preparing",
         }) as HTMLButtonElement
       ).disabled,
     );
@@ -225,7 +222,7 @@ test("P4 waiting orders and explicit read-only state cannot start preparation", 
     assert(
       (
         screen.getByRole("button", {
-          name: "Mark station ready",
+          name: "Mark ready",
         }) as HTMLButtonElement
       ).disabled,
     );
@@ -241,7 +238,7 @@ test("P4 waiting orders and explicit read-only state cannot start preparation", 
     assert(
       (
         screen.getByRole("button", {
-          name: "Mark station ready",
+          name: "Mark ready",
         }) as HTMLButtonElement
       ).disabled,
     );
@@ -280,7 +277,7 @@ test("P4 failed reads remain explicitly retryable while preparation writes are d
     assert.equal(
       (
         screen.getByRole("button", {
-          name: "Mark station ready",
+          name: "Mark ready",
         }) as HTMLButtonElement
       ).disabled,
       true,

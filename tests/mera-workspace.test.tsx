@@ -706,15 +706,7 @@ test("station partial fulfillment sends a versioned SET quantity and never bypas
         },
       }),
     );
-    fireEvent.change(
-      screen.getByLabelText("Prepared quantity for Milk tea on bar"),
-      { target: { value: "2" } },
-    );
-    await act(async () =>
-      fireEvent.click(
-        screen.getByRole("button", { name: "Save prepared quantity" }),
-      ),
-    );
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Prepare one more Milk tea on bar" })));
     assert.equal(
       calls[0][0],
       "/organizations/org/branches/branch/tickets/bar-ticket/items/tea-line",
@@ -722,7 +714,7 @@ test("station partial fulfillment sends a versioned SET quantity and never bypas
     assert.deepEqual(calls[0][2], { preparedQuantity: 2, version: 7 });
     await act(async () =>
       fireEvent.click(
-        screen.getByRole("button", { name: "Mark station ready" }),
+        screen.getByRole("button", { name: "Mark ready" }),
       ),
     );
     assert.equal(
