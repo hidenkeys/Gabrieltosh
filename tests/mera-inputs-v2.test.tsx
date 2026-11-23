@@ -542,3 +542,80 @@ test("minor-unit currency retains decimal drafts, converts cents and resets exte
   view.rerender(<Example external={125050} />);
   assert.equal(input.value, "1,250.5");
 });
+test("preset reason notes are optional, bounded, resumable and leave the plain preset unchanged when removed", () => {
+  const saved: string[] = [];
+  function Example({ initial = "" }: { initial?: string }) {
+    const [value, setValue] = React.useState(initial);
+    return (
+      <form>
+        <ReasonInput
+          label="Refund reason"
+          name="reason"
+          minLength={10}
+          maxLength={40}
+          required
+          presets={["Quality issue"]}
+          value={value}
+          onChange={(next) => {
+            saved.push(next);
+            setValue(next);
+          }}
+        />
+      </form>
+    );
+  }
+  render(<Example />);
+  fireEvent.click(screen.getByRole("radio", { name: "Quality issue" }));
+  assert.equal(saved.at(-1), "Quality issue");
+  fireEvent.click(screen.getByRole("button", { name: "Add a note" }));
+  const note = screen.getByRole("textbox", {
+    name: "Refund reason additional note",
+  }) as HTMLTextAreaElement;
+  assert.equal(note.required, false);
+  assert.equal(note.maxLength, 25);
+  fireEvent.change(note, { target: { value: "Cold drink" } });
+  assert.equal(
+    new dom.window.FormData(document.querySelector("form")!).get("reason"),
+    "Quality issue: Cold drink",
+  );
+  cleanup();
+  render(<Example initial="Quality issue: Cold drink" />);
+  assert.equal(
+    (screen.getByRole("radio", { name: "Quality issue" }) as HTMLInputElement)
+      .checked,
+    true,
+  );
+  assert.equal(
+    (
+      screen.getByRole("textbox", {
+        name: "Refund reason additional note",
+      }) as HTMLTextAreaElement
+    ).value,
+    "Cold drink",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Remove note" }));
+  assert.equal(saved.at(-1), "Quality issue");
+  assert.equal(screen.queryByRole("textbox"), null);
+});
+test("suggested booking hours do not prohibit an explicitly entered preferred time", () => {
+  function Example() {
+    const [value, setValue] = React.useState("2026-12-01T09:00");
+    return (
+      <form>
+        <DateTimePicker
+          label="Preferred arrival"
+          value={value}
+          onChange={setValue}
+          suggestedSlots={["09:00", "09:30"]}
+          required
+        />
+      </form>
+    );
+  }
+  render(<Example />);
+  fireEvent.input(screen.getByLabelText("Preferred time"), {
+    target: { value: "22:15" },
+  });
+  assert.equal(document.querySelector("form")!.checkValidity(), true);
+  assert.equal(screen.queryByRole("radio", { name: "10:00" }), null);
+});

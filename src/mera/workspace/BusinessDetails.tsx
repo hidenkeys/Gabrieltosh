@@ -1,5 +1,22 @@
 import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useRef, useState } from "react";
+export const normalizeBusinessPhone = (value: string) =>
+  `${value.trimStart().startsWith("+") ? "+" : ""}${value.replace(/\D/g, "")}`;
+export const formatBusinessPhone = (value: string) => {
+  if (!/^[+\d\s().-]*$/.test(value)) return value;
+  const normalized = normalizeBusinessPhone(value),
+    prefix = normalized.startsWith("+") ? "+" : "",
+    digits = normalized.replace(/^\+/, "");
+  if (digits.length < 5) return normalized;
+  const groups = [];
+  let rest = digits;
+  while (rest.length > 4) {
+    groups.push(rest.slice(0, 3));
+    rest = rest.slice(3);
+  }
+  if (rest) groups.push(rest);
+  return prefix + groups.join(" ");
+};
 type Draft = { contact: string; phone: string; serviceMode: string };
 const modes = {
   counter_takeaway: "Counter & takeaway",
@@ -137,7 +154,10 @@ function ScopedBusinessDetails({
     }
   };
   return (
-    <section className="mw-card" aria-label="Business details">
+    <section
+      className="mw-card mw-business-details"
+      aria-label="Business details"
+    >
       <h2>Business details</h2>
       <p>
         Keep organization contact details up to date. Branch hours and
@@ -198,8 +218,10 @@ function ScopedBusinessDetails({
               inputMode="tel"
               autoComplete="tel"
               maxLength={60}
-              value={draft.phone}
-              onChange={(event) => edit({ phone: event.target.value })}
+              value={formatBusinessPhone(draft.phone)}
+              onChange={(event) =>
+                edit({ phone: normalizeBusinessPhone(event.target.value) })
+              }
             />
           </label>
           <ChoiceField

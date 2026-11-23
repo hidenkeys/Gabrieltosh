@@ -444,7 +444,11 @@ export default function BranchSettings({
           </section>
           <div className="mw-wide mi-setup-actions">
             {setupStep > 0 && (
-              <button type="button" onClick={() => goToStep(setupStep - 1)}>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => goToStep(setupStep - 1)}
+              >
                 Back
               </button>
             )}

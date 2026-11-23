@@ -229,3 +229,34 @@ test("business details organization switch resets the draft and ignores the prev
     cleanup();
   }
 });
+test("phone entry groups digits while preserving a plus-prefixed canonical contact in save payload", async () => {
+  const writes: any[] = [];
+  try {
+    render(
+      <BusinessDetails
+        organizationId="org"
+        onboarding={initial}
+        canEdit
+        disabled={false}
+        save={async (...args) => {
+          writes.push(args);
+          return {
+            saved: true,
+            onboarding: { ...initial, data: args[2].data },
+          };
+        }}
+      />,
+    );
+    const phone = screen.getByLabelText("Phone") as HTMLInputElement;
+    fireEvent.change(phone, { target: { value: "+234 (801) 234-5678" } });
+    assert.equal(phone.value, "+234 801 234 5678");
+    assert.equal(phone.inputMode, "tel");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Save business details" }),
+    );
+    await waitFor(() => assert.equal(writes.length, 1));
+    assert.equal(writes[0][2].data.phone, "+2348012345678");
+  } finally {
+    cleanup();
+  }
+});

@@ -22,23 +22,31 @@ export function ReasonInput({
   name,
   disabled,
 }: ReasonInputProps) {
-  const id = useId(),
-    [other, setOther] = useState(!!value && !presets.includes(value));
-  const custom = other || (!!value && !presets.includes(value));
-  // Short preset labels are not silently padded: only valid presets are offered for the existing API contract.
   const usable = presets.filter(
     (preset) =>
       preset !== "Other" &&
       preset.length >= minLength &&
       preset.length <= maxLength,
   );
+  const matched = [...usable]
+    .sort((a, b) => b.length - a.length)
+    .find((preset) => value === preset || value.startsWith(preset + ": "));
+  const id = useId(),
+    [other, setOther] = useState(!!value && !matched),
+    [noteOpen, setNoteOpen] = useState(!!matched && value !== matched);
+  const custom = other || (!!value && !matched);
+  const note =
+    matched && value.startsWith(matched + ": ")
+      ? value.slice(matched.length + 2)
+      : "";
   return (
     <div className="mi-control mi-reason">
       <Chips
         label={label}
-        value={custom ? "__other" : value}
+        value={custom ? "__other" : matched || value}
         onChange={(next) => {
           setOther(next === "__other");
+          setNoteOpen(false);
           onChange(next === "__other" ? "" : next);
         }}
         options={[
@@ -62,6 +70,49 @@ export function ReasonInput({
             disabled={disabled}
           />
         </label>
+      )}
+      {!custom && matched && maxLength > matched.length + 2 && (
+        <div className="mi-reason-note">
+          {noteOpen || note ? (
+            <>
+              <label htmlFor={`${id}-note`}>
+                Additional note (optional)
+                <textarea
+                  id={`${id}-note`}
+                  aria-label={`${label} additional note`}
+                  value={note}
+                  disabled={disabled}
+                  maxLength={maxLength - matched.length - 2}
+                  onChange={(event) =>
+                    onChange(
+                      event.target.value
+                        ? `${matched}: ${event.target.value}`
+                        : matched,
+                    )
+                  }
+                />
+              </label>
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => {
+                  setNoteOpen(false);
+                  onChange(matched);
+                }}
+              >
+                Remove note
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => setNoteOpen(true)}
+            >
+              Add a note
+            </button>
+          )}
+        </div>
       )}
       {name && (
         <input type="hidden" name={name} value={value} disabled={disabled} />

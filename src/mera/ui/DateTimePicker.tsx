@@ -13,6 +13,7 @@ export type DateTimePickerProps = {
   min?: string;
   max?: string;
   slots?: string[];
+  suggestedSlots?: string[];
   unavailableSlots?: string[];
 };
 const localDate = (date: Date) =>
@@ -30,6 +31,7 @@ export function DateTimePicker({
   min,
   max,
   slots,
+  suggestedSlots,
   unavailableSlots = [],
 }: DateTimePickerProps) {
   const generated = useId(),
@@ -69,7 +71,8 @@ export function DateTimePicker({
       };
     });
   const times =
-    slots ||
+    suggestedSlots ??
+    slots ??
     Array.from(
       { length: 48 },
       (_, index) =>
@@ -136,8 +139,9 @@ export function DateTimePicker({
             ? options
             : options.filter(
                 (option, index) =>
-                  (slots ? index < 12 : index >= 16 && index < 28) ||
-                  option.value === time,
+                  (slots || suggestedSlots
+                    ? index < 12
+                    : index >= 16 && index < 28) || option.value === time,
               )
         }
       />

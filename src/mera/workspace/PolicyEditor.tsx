@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Stepper from "../ui/Stepper";
 import MoneyInput from "../ui/MoneyInput";
 import Segmented from "../ui/Segmented";
 type Props = {
@@ -39,7 +40,18 @@ export default function PolicyEditor({
     optional = false,
     step = "1",
   ) =>
-    ["monthlyPrice", "additionalBranchPrice"].includes(key) ? (
+    key === "includedBranches" ? (
+      <Stepper
+        label={label}
+        value={Number(draft.includedBranches)}
+        onChange={(value) =>
+          setDraft({ ...draft, includedBranches: String(value) })
+        }
+        min={1}
+        required
+        disabled={disabled}
+      />
+    ) : ["monthlyPrice", "additionalBranchPrice"].includes(key) ? (
       <MoneyInput
         label={label}
         value={draft[key]}
@@ -53,7 +65,7 @@ export default function PolicyEditor({
         <input
           required={!optional}
           type="number"
-          min={key === "includedBranches" ? "1" : "0"}
+          min={0}
           step={step}
           value={draft[key]}
           onChange={(event) =>
