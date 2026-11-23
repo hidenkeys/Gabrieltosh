@@ -5316,3 +5316,99 @@ test("creating a table submits the visible default one seat without requiring a 
     globalThis.fetch = originalFetch;
   }
 });
+
+test("native counter click submits two quoted items against the selected open table visit", async () => {
+  const originalFetch = globalThis.fetch;
+  const permissions = [...context.organizations[0].permissions];
+  context.organizations[0].permissions.push("orders.create", "tables.manage");
+  const products = [
+    { id: "tea", name: "Milk tea", available: true, price: 150000 },
+    { id: "soda", name: "Orange soda", available: true, price: 120000 },
+  ];
+  const posts: any[] = [];
+  let submitEvents = 0;
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    const path = String(input);
+    if (path.endsWith("/workspace"))
+      return Response.json({
+        ...snapshot("branch-1"),
+        branch: {
+          name: "Surulere",
+          settings: { pricingPolicy: { enabled: true, version: "p1" } },
+        },
+        menuVersion: 1,
+        products,
+        counterProducts: products,
+        tables: [{ id: "table-1", name: "Window table" }],
+        visits: [
+          {
+            id: "visit-1",
+            tableId: "table-1",
+            status: "open",
+            displayName: "Family",
+          },
+        ],
+      });
+    if (path.endsWith("/quote"))
+      return Response.json({
+        id: "reviewed-quote",
+        expiresAt: new Date(Date.now() + 300000).toISOString(),
+        subtotal: 270000,
+        total: 270000,
+        lines: [],
+        policyVersion: "p1",
+      });
+    if (path.endsWith("/orders") && init.method === "POST") {
+      posts.push(JSON.parse(init.body));
+      return Response.json({ id: "created" });
+    }
+    return originalFetch(input, init);
+  }) as any;
+  try {
+    render(<Workspace user={user} notify={() => {}} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Point of sale" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Add Milk tea to order" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add Orange soda to order" }),
+    );
+    chooseField(screen, fireEvent, "Fulfillment", "table_service");
+    chooseField(screen, fireEvent, "Open table visit", "visit-1");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Review current order total" }),
+    );
+    await screen.findByText("Reviewed order total");
+    const submit = screen.getByRole("button", {
+      name: "Submit order",
+    }) as HTMLButtonElement;
+    const form = submit.form!;
+    assert.equal(form, submit.closest("form"));
+    assert.equal(form.checkValidity(), true);
+    assert.equal(submit.matches(":disabled"), false);
+    form.addEventListener("submit", () => {
+      submitEvents++;
+    });
+    fireEvent.click(submit);
+    await waitFor(() => assert.equal(posts.length, 1));
+    assert.equal(submitEvents, 1);
+    assert.equal(posts[0].fulfillment, "table_service");
+    assert.equal(posts[0].visitId, "visit-1");
+    assert.equal(posts[0].quoteId, "reviewed-quote");
+    assert.equal(posts[0].items.length, 2);
+    await waitFor(() =>
+      assert.equal(
+        (
+          screen.getByRole("button", {
+            name: "Submit order",
+          }) as HTMLButtonElement
+        ).disabled,
+        true,
+      ),
+    );
+  } finally {
+    cleanup();
+    context.organizations[0].permissions = permissions;
+    globalThis.fetch = originalFetch;
+  }
+});
