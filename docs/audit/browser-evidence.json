@@ -1,0 +1,720 @@
+{
+  "environment": "isolated local app 3009 / database 55449",
+  "captured": "2026-11-24",
+  "screenshots": [
+    {
+      "screen": "after-floor",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/after-floor-1440.png"
+    },
+    {
+      "screen": "after-floor",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/after-floor-390.png"
+    },
+    {
+      "screen": "after-floor",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/after-floor-820.png"
+    },
+    {
+      "screen": "bill-collection",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/bill-collection-1440.png"
+    },
+    {
+      "screen": "bill-collection",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/bill-collection-390.png"
+    },
+    {
+      "screen": "bill-collection",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/bill-collection-820.png"
+    },
+    {
+      "screen": "bill-splitting",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/bill-splitting-1440.png"
+    },
+    {
+      "screen": "bill-splitting",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/bill-splitting-390.png"
+    },
+    {
+      "screen": "bill-splitting",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/bill-splitting-820.png"
+    },
+    {
+      "screen": "categories",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/categories-1440.png"
+    },
+    {
+      "screen": "categories",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/categories-390.png"
+    },
+    {
+      "screen": "categories",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/categories-820.png"
+    },
+    {
+      "screen": "commercial-policy",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/commercial-policy-1440.png"
+    },
+    {
+      "screen": "commercial-policy",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/commercial-policy-390.png"
+    },
+    {
+      "screen": "commercial-policy",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/commercial-policy-820.png"
+    },
+    {
+      "screen": "completed-order",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/completed-order-1440.png"
+    },
+    {
+      "screen": "completed-order",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/completed-order-390.png"
+    },
+    {
+      "screen": "completed-order",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/completed-order-820.png"
+    },
+    {
+      "screen": "deposit-policy",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/deposit-policy-1440.png"
+    },
+    {
+      "screen": "deposit-policy",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/deposit-policy-390.png"
+    },
+    {
+      "screen": "deposit-policy",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/deposit-policy-820.png"
+    },
+    {
+      "screen": "guest-basket",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/guest-basket-1440.png"
+    },
+    {
+      "screen": "guest-basket",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/guest-basket-390.png"
+    },
+    {
+      "screen": "guest-basket",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/guest-basket-820.png"
+    },
+    {
+      "screen": "guest-help",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/guest-help-1440.png"
+    },
+    {
+      "screen": "guest-help",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/guest-help-390.png"
+    },
+    {
+      "screen": "guest-help",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/guest-help-820.png"
+    },
+    {
+      "screen": "guest-help-expanded",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/guest-help-expanded-1440.png"
+    },
+    {
+      "screen": "guest-help-expanded",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/guest-help-expanded-390.png"
+    },
+    {
+      "screen": "guest-help-expanded",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/guest-help-expanded-820.png"
+    },
+    {
+      "screen": "guest-reservation",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/guest-reservation-1440.png"
+    },
+    {
+      "screen": "guest-reservation",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/guest-reservation-390.png"
+    },
+    {
+      "screen": "guest-reservation",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/guest-reservation-820.png"
+    },
+    {
+      "screen": "marketing-contact",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/marketing-contact-1440.png"
+    },
+    {
+      "screen": "marketing-contact",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/marketing-contact-390.png"
+    },
+    {
+      "screen": "marketing-contact",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/marketing-contact-820.png"
+    },
+    {
+      "screen": "marketing-legal",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/marketing-legal-1440.png"
+    },
+    {
+      "screen": "marketing-legal",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/marketing-legal-390.png"
+    },
+    {
+      "screen": "marketing-legal",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/marketing-legal-820.png"
+    },
+    {
+      "screen": "marketing-qr",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/marketing-qr-1440.png"
+    },
+    {
+      "screen": "marketing-qr",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/marketing-qr-390.png"
+    },
+    {
+      "screen": "marketing-qr",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/marketing-qr-820.png"
+    },
+    {
+      "screen": "payment-entry",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/payment-entry-1440.png"
+    },
+    {
+      "screen": "payment-entry",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/payment-entry-390.png"
+    },
+    {
+      "screen": "payment-entry",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/payment-entry-820.png"
+    },
+    {
+      "screen": "platform-directory",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/platform-directory-1440.png"
+    },
+    {
+      "screen": "platform-directory",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/platform-directory-390.png"
+    },
+    {
+      "screen": "platform-directory",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/platform-directory-820.png"
+    },
+    {
+      "screen": "platform-review",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/platform-review-1440.png"
+    },
+    {
+      "screen": "platform-review",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/platform-review-390.png"
+    },
+    {
+      "screen": "platform-review",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/platform-review-820.png"
+    },
+    {
+      "screen": "pos-cart",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/pos-cart-1440.png"
+    },
+    {
+      "screen": "pos-cart",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/pos-cart-390.png"
+    },
+    {
+      "screen": "pos-cart",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/pos-cart-820.png"
+    },
+    {
+      "screen": "preparation-notes",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/preparation-notes-1440.png"
+    },
+    {
+      "screen": "preparation-notes",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/preparation-notes-390.png"
+    },
+    {
+      "screen": "preparation-notes",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/preparation-notes-820.png"
+    },
+    {
+      "screen": "preparation-notes-expanded",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/preparation-notes-expanded-1440.png"
+    },
+    {
+      "screen": "preparation-notes-expanded",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/preparation-notes-expanded-390.png"
+    },
+    {
+      "screen": "preparation-notes-expanded",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/preparation-notes-expanded-820.png"
+    },
+    {
+      "screen": "pricing-policy",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/pricing-policy-1440.png"
+    },
+    {
+      "screen": "pricing-policy",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/pricing-policy-390.png"
+    },
+    {
+      "screen": "pricing-policy",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/pricing-policy-820.png"
+    },
+    {
+      "screen": "print-studio",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/print-studio-1440.png"
+    },
+    {
+      "screen": "print-studio",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/print-studio-390.png"
+    },
+    {
+      "screen": "print-studio",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/print-studio-820.png"
+    },
+    {
+      "screen": "project-brief",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/project-brief-1440.png"
+    },
+    {
+      "screen": "project-brief",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/project-brief-390.png"
+    },
+    {
+      "screen": "project-brief",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/project-brief-820.png"
+    },
+    {
+      "screen": "project-brief-details",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/project-brief-details-1440.png"
+    },
+    {
+      "screen": "project-brief-details",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/project-brief-details-390.png"
+    },
+    {
+      "screen": "project-brief-details",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/project-brief-details-820.png"
+    },
+    {
+      "screen": "report-detail",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/report-detail-1440.png"
+    },
+    {
+      "screen": "report-detail",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/report-detail-390.png"
+    },
+    {
+      "screen": "report-detail",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/report-detail-820.png"
+    },
+    {
+      "screen": "reservation-policy",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/reservation-policy-1440.png"
+    },
+    {
+      "screen": "reservation-policy",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/reservation-policy-390.png"
+    },
+    {
+      "screen": "reservation-policy",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/reservation-policy-820.png"
+    },
+    {
+      "screen": "setup-account",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/setup-account-1440.png"
+    },
+    {
+      "screen": "setup-account",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/setup-account-390.png"
+    },
+    {
+      "screen": "setup-account",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/setup-account-820.png"
+    },
+    {
+      "screen": "setup-branch",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/setup-branch-1440.png"
+    },
+    {
+      "screen": "setup-branch",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/setup-branch-390.png"
+    },
+    {
+      "screen": "setup-branch",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/setup-branch-820.png"
+    },
+    {
+      "screen": "setup-business",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/setup-business-1440.png"
+    },
+    {
+      "screen": "setup-business",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/setup-business-390.png"
+    },
+    {
+      "screen": "setup-business",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/setup-business-820.png"
+    },
+    {
+      "screen": "setup-payments",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/setup-payments-1440.png"
+    },
+    {
+      "screen": "setup-payments",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/setup-payments-390.png"
+    },
+    {
+      "screen": "setup-payments",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/setup-payments-820.png"
+    },
+    {
+      "screen": "setup-review",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/setup-review-1440.png"
+    },
+    {
+      "screen": "setup-review",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/setup-review-390.png"
+    },
+    {
+      "screen": "setup-review",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/setup-review-820.png"
+    },
+    {
+      "screen": "table-editor",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/table-editor-1440.png"
+    },
+    {
+      "screen": "table-editor",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/table-editor-390.png"
+    },
+    {
+      "screen": "table-editor",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/table-editor-820.png"
+    },
+    {
+      "screen": "travel-interest",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/travel-interest-1440.png"
+    },
+    {
+      "screen": "travel-interest",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/travel-interest-390.png"
+    },
+    {
+      "screen": "travel-interest",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/travel-interest-820.png"
+    },
+    {
+      "screen": "travel-interest-expanded",
+      "height": 900,
+      "scroll": 1440,
+      "width": 1440,
+      "file": "docs/audit/screenshots/travel-interest-expanded-1440.png"
+    },
+    {
+      "screen": "travel-interest-expanded",
+      "height": 844,
+      "scroll": 390,
+      "width": 390,
+      "file": "docs/audit/screenshots/travel-interest-expanded-390.png"
+    },
+    {
+      "screen": "travel-interest-expanded",
+      "height": 1180,
+      "scroll": 820,
+      "width": 820,
+      "file": "docs/audit/screenshots/travel-interest-expanded-820.png"
+    }
+  ]
+}

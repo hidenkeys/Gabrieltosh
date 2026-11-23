@@ -289,3 +289,19 @@ E. Protected platform action isolation and exact retry recovery; no backend chan
 F. Integration verification: synthetic journeys, responsive screenshots, keyboard/error checks, full concurrency2 tests, TypeScript/build.
 
 These are bounded frontend workstreams; no API contract changes, real customers, emails, payments or deployments. Each implementation workstream gets a separate commit/push. Detailed source rubric above is intentionally marked unverified where screenshots or active workflows are still required.
+
+
+## Post-implementation verification — 24 November 2026
+
+The baseline findings above are historical evidence, not a claim that fixes remain pending. Final implementation and acceptance are tracked in [the round-two board](../mera/ux-next/BOARD.md); [browser-evidence.json](browser-evidence.json) indexes 102 final captures at 390×844, 820×1180 and 1440×900.
+
+| Area | Implemented result | Verification |
+|---|---|---|
+| Owner setup | Five stages; one guided public contact; unused scalar service-mode ask removed; existing branch configured instead of creating it again; manual methods retained between Payments and review; one explicit guided Go live action | Focused success, rejection, busy/access and recovery tests; all five stages captured. Final local Go live click blocked by automatic approval review under the no-deployment instruction. |
+| Workspace | Eight infrequent tools under More; table service, floor layout and bills separated; drafts retained; one-seat default now submits 1 | Keyboard drawer check, table creation, populated bill split and responsive captures. |
+| Preparation and units | Collapsed note chip; structured instructions retained; bounded percentages/minutes/mm/count controls preserve values and nulls | Focused contract tests, captured unit forms and paid guest order completed through preparation and handoff. |
+| Customer and public forms | Optional notes and custom help disclosed; searchable preferred table; reason presets; compact project brief and optional Travel details; QR presentation simplified; legal footer fixed | Guest order/payment/service flow and 3-width captures; recovery/payload tests. Legal wording preserved. |
+| Platform | Each action has its own reason; status retries retain original intent; optional dates collapsed | Normal synthetic operator password and MFA login, 3-width directory/dialog captures, status/reason regression tests. |
+| Final checks | 907 tests: 904 passed, 3 skipped, 0 failed; typecheck/build clean; no server/shared changes | See board for skipped integration suites, local scroll/lazy-image limitations and publication approval block. |
+
+Retained deliberately: existing star feedback and reservation calendar; already-collapsed advanced order filters; legitimate owner commercial proposals (operator approval remains separate); required consultancy fields consumed by the backend; standalone additional-branch administration. No stored legacy contact/phone/service-mode data was deleted, and no production/staging deployment was performed.
