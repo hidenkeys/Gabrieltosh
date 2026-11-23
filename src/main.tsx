@@ -184,3 +184,8 @@ import "./mera/workspace/people.css";
 
 import "./mera/workspace/reservation-desk.css";
 import "./mera/workspace/shift-workspace.css";
+
+import "./mera/ui/inputs-v2.css";
+import "./mera/workspace/stock-inputs.css";
+
+import "./mera/workspace/settings-inputs.css";

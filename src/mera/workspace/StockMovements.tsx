@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { workspaceApi } from "./api";
+import StockAdjustment from "./StockAdjustment";
+import Combobox from "../ui/Combobox";
 export default function StockMovements({
   base,
   products,
@@ -17,21 +19,12 @@ export default function StockMovements({
   ) => Promise<any>;
 }) {
   const [productId, setProduct] = useState(""),
-    [variantId, setVariant] = useState(""),
-    [type, setType] = useState("restock"),
-    [quantity, setQuantity] = useState(""),
-    [reason, setReason] = useState(""),
-    [pending, setPending] = useState<any>(null),
     [rows, setRows] = useState<any[]>([]),
     [older, setOlder] = useState(false),
-    [error, setError] = useState(""),
     [loadError, setLoadError] = useState(""),
     [loading, setLoading] = useState(false),
     [revision, setRevision] = useState(0);
-  const product = products.find((p) => p.id === productId),
-    target = variantId
-      ? product?.variants?.find((v: any) => v.id === variantId)
-      : product;
+  const product = products.find((p) => p.id === productId);
   useEffect(() => {
     const controller = new AbortController();
     setRows([]);
@@ -66,22 +59,6 @@ export default function StockMovements({
       });
     return () => controller.abort();
   }, [base, productId, revision]);
-  const send = async (body: any) => {
-    setError("");
-    try {
-      await save(
-        base + "/stock/movements",
-        "POST",
-        body,
-        "Stock movement recorded.",
-      );
-      setPending(null);
-      setRevision((v) => v + 1);
-    } catch (e: any) {
-      setError(e.message);
-      if (!e.status || e.status >= 500) setPending(body);
-    }
-  };
   return (
     <section className="mw-card">
       <h2>Restock, waste & loss</h2>
@@ -89,104 +66,32 @@ export default function StockMovements({
         Counted stock only. These movements change inventory; refunds never
         automatically restock it.
       </p>
-      {error && <p role="alert">{error}</p>}
-      {pending ? (
-        <div className="mw-note">
-          <p>
-            Movement outcome unconfirmed. The original quantity and stock
-            expectation are retained.
-          </p>
-          <button disabled={disabled} onClick={() => void send(pending)}>
-            Retry original stock movement
-          </button>
-        </div>
-      ) : (
-        <form
-          className="mw-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void send({
-              requestKey: crypto.randomUUID(),
-              productId,
-              ...(variantId ? { variantId } : {}),
-              type,
-              quantity: Number(quantity),
-              expectedStock: target.stock,
-              reason,
-            });
+      <Combobox
+        label="Stock product"
+        value={productId}
+        onChange={setProduct}
+        options={products.map((p) => ({
+          value: p.id,
+          label: p.name,
+          description:
+            p.stockMode === "counted"
+              ? `${p.stock} in stock`
+              : "Unlimited stock",
+          searchText: `${p.name} ${p.code || ""} ${p.category || ""}`,
+        }))}
+      />
+      {product && (
+        <StockAdjustment
+          key={product.id}
+          product={product}
+          base={base}
+          disabled={disabled}
+          save={async (...args) => {
+            const result = await save(...args);
+            setRevision((v) => v + 1);
+            return result;
           }}
-        >
-          <label>
-            Stock product
-            <select
-              required
-              value={productId}
-              onChange={(e) => {
-                setProduct(e.target.value);
-                setVariant("");
-              }}
-            >
-              <option value="">Choose product</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Stock size
-            <select
-              value={variantId}
-              onChange={(e) => setVariant(e.target.value)}
-            >
-              <option value="">Product balance</option>
-              {product?.variants?.map((v: any) => (
-                <option key={v.id} value={v.id}>
-                  {v.name || v.size}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Movement type
-            <select value={type} onChange={(e) => setType(e.target.value)}>
-              <option value="restock">Restock</option>
-              <option value="waste">Waste</option>
-              <option value="loss">Loss</option>
-            </select>
-          </label>
-          <label>
-            Units
-            <input
-              required
-              type="number"
-              min="1"
-              step="1"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-            />
-          </label>
-          <label>
-            Movement reason
-            <input
-              required
-              minLength={10}
-              maxLength={500}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
-          </label>
-          <p>
-            Current balance:{" "}
-            {target?.stockMode === "counted"
-              ? target.stock
-              : "Unlimited; choose a counted balance"}
-          </p>
-          <button disabled={disabled || target?.stockMode !== "counted"}>
-            Record stock movement
-          </button>
-        </form>
+        />
       )}
       <h3>Latest movement history</h3>
       {rows.map((row) => (

@@ -3851,23 +3851,14 @@ test("typed stock loss preserves the exact original key and expected balance aft
         }}
       />,
     );
-    fireEvent.change(screen.getByLabelText("Stock product"), {
-      target: { value: "p1" },
-    });
-    fireEvent.change(screen.getByLabelText("Movement type"), {
-      target: { value: "loss" },
-    });
-    fireEvent.change(screen.getByLabelText("Units"), {
-      target: { value: "2" },
-    });
-    fireEvent.change(screen.getByLabelText("Movement reason"), {
-      target: { value: "Two sealed cartons missing" },
-    });
-    fireEvent.submit(
-      screen
-        .getByRole("button", { name: "Record stock movement" })
-        .closest("form")!,
-    );
+    fireEvent.focus(screen.getByLabelText("Stock product"));
+    fireEvent.click(screen.getByRole("option", {name: "Tea 12 in stock"}));
+    fireEvent.click(screen.getByRole("button", {name: "Adjust stock for Tea"}));
+    fireEvent.click(screen.getByRole("radio", {name: "Loss",exact:true}));
+    fireEvent.change(screen.getByLabelText("Stock change for Tea"), {target:{value:"2"}});
+    fireEvent.click(screen.getByRole("radio", {name:"Other",exact:true}));
+    fireEvent.change(screen.getByLabelText("Stock reason for Tea details"), {target:{value:"Two sealed cartons missing"}});
+    fireEvent.submit(screen.getByRole("button",{name:"Save stock change"}).closest("form")!);
     await screen.findByRole("button", {
       name: "Retry original stock movement",
     });

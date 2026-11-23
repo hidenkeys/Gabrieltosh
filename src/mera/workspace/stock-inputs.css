@@ -1,0 +1,27 @@
+.mera-workspace .mw-stock-sheet {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.mera-workspace .mw-stock-sheet p {
+  margin: 0;
+}
+.mera-workspace .mw-stock-sheet strong {
+  font:
+    700 1.5rem "Mera Display",
+    sans-serif;
+}
+.mera-workspace .mw-stock-sheet > button {
+  width: 100%;
+  min-height: 44px;
+}
+.mera-workspace .mw-stock-level {
+  display: grid;
+  gap: 4px;
+  min-width: 100px;
+}
+.mera-workspace .mw-stock-level meter {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--brand);
+}

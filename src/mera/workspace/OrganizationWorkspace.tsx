@@ -94,6 +94,12 @@ import OrderResponsibility from "./OrderResponsibility";
 import Categories, { categoryPath } from "./Categories";
 import CatalogOperations from "./CatalogOperations";
 import StockMovements from "./StockMovements";
+import MoneyInput from "../ui/MoneyInput";
+import Segmented from "../ui/Segmented";
+import Combobox from "../ui/Combobox";
+import ReasonInput from "../ui/ReasonInput";
+import Stepper from "../ui/Stepper";
+import StockAdjustment from "./StockAdjustment";
 import FloorMap from "./FloorMap";
 import HelpRequests from "./HelpRequests";
 import { hasHelpUpdateMarkers } from "./helpUpdateJournal";
@@ -2492,6 +2498,7 @@ export default function OrganizationWorkspace({
                                 ? `${product.stock} in stock`
                                 : "Unlimited stock"}
                           </span>
+                          {product.stockMode === "counted" && <span className="mw-stock-level"><meter aria-label={`Stock level for ${product.name}`} min={0} max={Math.max(100,product.stock||0)} value={product.stock||0}/></span>}
                           <span className="mw-pill">
                             {product.available === false
                               ? "Unavailable"
@@ -2505,86 +2512,7 @@ export default function OrganizationWorkspace({
                               () => beginProductEdit({ ...product }),
                               "menu.edit",
                             )}
-                            {allowed("stock.adjust") && (
-                              <details className="mw-menu-stock-adjust">
-                                <summary>Adjust stock</summary>
-                                <form
-                                  onSubmit={submit(async () => {
-                                    const form = document.getElementById(
-                                      "stock-" + product.id,
-                                    ) as HTMLInputElement;
-                                    const reason = document.getElementById(
-                                      "reason-" + product.id,
-                                    ) as HTMLInputElement;
-                                    const variant = document.getElementById(
-                                      "variant-" + product.id,
-                                    ) as HTMLSelectElement | null;
-                                    await mutate(
-                                      branchBase + "/stock",
-                                      "POST",
-                                      {
-                                        productId: product.id,
-                                        ...(variant?.value
-                                          ? { variantId: variant.value }
-                                          : {}),
-                                        quantity: Number(form.value),
-                                        reason: reason.value,
-                                      },
-                                      "Stock balance updated.",
-                                    );
-                                  })}
-                                  className="mw-actions"
-                                >
-                                  {!!product.variants?.length && (
-                                    <select
-                                      aria-label={
-                                        "Stock target for " + product.name
-                                      }
-                                      id={"variant-" + product.id}
-                                    >
-                                      <option value="">Product balance</option>
-                                      {product.variants.map((variant: any) => (
-                                        <option
-                                          key={variant.id}
-                                          value={variant.id}
-                                        >
-                                          {variant.name} ·{" "}
-                                          {variant.stockMode === "counted"
-                                            ? (variant.stock || 0) + " in stock"
-                                            : "unlimited"}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  )}
-                                  <input
-                                    id={"stock-" + product.id}
-                                    aria-label={
-                                      "Stock balance for " + product.name
-                                    }
-                                    type="number"
-                                    min="0"
-                                    required
-                                    placeholder="Count"
-                                    style={{ width: 90 }}
-                                  />
-                                  <input
-                                    id={"reason-" + product.id}
-                                    aria-label={
-                                      "Stock reason for " + product.name
-                                    }
-                                    required
-                                    placeholder="Adjustment reason"
-                                    style={{ width: 150 }}
-                                  />
-                                  <button
-                                    className="secondary"
-                                    disabled={busy || offline}
-                                  >
-                                    Set stock
-                                  </button>
-                                </form>
-                              </details>
-                            )}
+                            {allowed("stock.adjust") && <StockAdjustment product={product} base={branchBase} disabled={busy || offline} save={mutate} />}
                           </div>
                         </div>
                       ))}

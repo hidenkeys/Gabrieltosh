@@ -44,9 +44,8 @@ test("stock history requires a product and distinguishes failed loading from a s
     );
     assert(screen.getByText("Choose a product to see its stock movements."));
     assert.equal(requests.length, 0);
-    fireEvent.change(screen.getByLabelText("Stock product"), {
-      target: { value: "product-1" },
-    });
+    fireEvent.focus(screen.getByLabelText("Stock product"));
+    fireEvent.click(screen.getByRole("option", {name: "Tea 5 in stock"}));
     await screen.findByText("Stock movements could not be loaded. Try again.");
     assert.equal(
       screen.queryByText("No stock movements for this product."),
