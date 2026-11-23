@@ -1,3 +1,4 @@
+import { chooseField } from "./choice-field-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -285,12 +286,8 @@ test("O7 QR natural-destination retry retains original body and exports only sco
       />,
     );
     await screen.findByText("No menu codes have been created for this branch.");
-    fireEvent.change(screen.getByLabelText("Menu destination"), {
-      target: { value: "table" },
-    });
-    fireEvent.change(screen.getByLabelText("Table", { exact: true }), {
-      target: { value: "table-a" },
-    });
+    chooseField(screen, fireEvent, "Menu destination", String("table"));
+    chooseField(screen, fireEvent, "Table", String("table-a"));
     fireEvent.submit(
       screen.getByRole("button", { name: "Create menu code" }).closest("form")!,
     );

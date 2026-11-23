@@ -145,8 +145,12 @@ test("table scope changes cannot expose the old uncertain draft or late result, 
     );
     assert(!document.body.textContent?.includes("Private old party note"));
     assert.equal(
-      (screen.getByLabelText("Primary table") as HTMLSelectElement).value,
-      "a",
+      (
+        screen.getByRole("combobox", {
+          name: "Primary table",
+        }) as HTMLInputElement
+      ).value,
+      "Window",
     );
     view.rerender(
       <VisitTables

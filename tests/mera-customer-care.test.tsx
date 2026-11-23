@@ -1,3 +1,4 @@
+import { chooseField } from "./choice-field-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -63,10 +64,7 @@ test("care filters real records, selects one editor, and hides raw IDs without i
     false,
   );
   assert(screen.getByText("Order-linked feedback"));
-  fireEvent.change(
-    screen.getByRole("combobox", { name: "Filter care records" }),
-    { target: { value: "resolved" } },
-  );
+  chooseField(screen, fireEvent, "Filter care records", String("resolved"));
   assert(screen.getByText("1 of 2 records shown"));
   assert.equal(
     (screen.getByRole("textbox", { name: "Resolution" }) as HTMLTextAreaElement)
@@ -94,9 +92,7 @@ test("resolved care requires private notes and sends only original branch status
       }}
     />,
   );
-  fireEvent.change(screen.getByRole("combobox", { name: "Case status" }), {
-    target: { value: "resolved" },
-  });
+  chooseField(screen, fireEvent, "Case status", String("resolved"));
   const resolution = screen.getByRole("textbox", {
     name: "Resolution",
   }) as HTMLTextAreaElement;
@@ -124,9 +120,7 @@ test("unknown care update stays frozen across periodic matching snapshot and can
     throw Error("Connection interrupted");
   };
   const view = render(<CustomerCare {...props} save={save} />);
-  fireEvent.change(screen.getByRole("combobox", { name: "Case status" }), {
-    target: { value: "investigating" },
-  });
+  chooseField(screen, fireEvent, "Case status", String("investigating"));
   fireEvent.change(screen.getByRole("textbox", { name: "Resolution" }), {
     target: { value: "Counter is reviewing the delay" },
   });

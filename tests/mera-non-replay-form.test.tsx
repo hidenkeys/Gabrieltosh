@@ -1,3 +1,4 @@
+import { chooseField } from "./choice-field-helpers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
@@ -222,14 +223,13 @@ test("floor keeps names/zones and bounded coordinate callback while an unknown s
       save={save}
     />,
   );
+  fireEvent.focus(screen.getByRole("combobox", { name: "Map table" }));
   assert(screen.getByRole("option", { name: "Window · Main floor" }));
   assert.equal(
     document.body.textContent?.includes("private-table-alpha"),
     false,
   );
-  fireEvent.change(screen.getByRole("combobox", { name: "Map table" }), {
-    target: { value: tables[0].id },
-  });
+  chooseField(screen, fireEvent, "Map table", String(tables[0].id));
   const horizontal = screen.getByRole("slider", {
     name: "Horizontal position",
   });
@@ -281,9 +281,7 @@ test("table metadata uncertainty freezes service status too and disclosure closi
   await screen.findByRole("alert");
   assert.equal(
     (
-      screen.getByRole("combobox", {
-        name: "Table service status",
-      }) as HTMLSelectElement
+      screen.getByRole("radio", { name: "Available" }) as HTMLSelectElement
     ).matches(":disabled"),
     true,
   );
@@ -318,7 +316,7 @@ test("occupied or held service status remains blocked, and denied table edits hi
   await screen.findByRole("alert");
   assert.equal(screen.queryByRole("textbox", { name: "Table label" }), null);
   assert.equal(
-    screen.queryByRole("combobox", { name: "Table service status" }),
+    screen.queryByRole("group", { name: "Table service status" }),
     null,
   );
   view.rerender(
@@ -346,10 +344,7 @@ test("unknown service-status update also fences metadata writes with original re
     />,
   );
   fireEvent.click(screen.getByText("Edit table & service status"));
-  fireEvent.change(
-    screen.getByRole("combobox", { name: "Table service status" }),
-    { target: { value: "cleaning" } },
-  );
+  chooseField(screen, fireEvent, "Table service status", String("cleaning"));
   fireEvent.change(
     screen.getByRole("textbox", { name: "Table status reason" }),
     { target: { value: "Cleaning is in progress" } },
@@ -393,9 +388,7 @@ test("floor authorization loss hides its table view and does not unlock on refre
       save={save}
     />,
   );
-  fireEvent.change(screen.getByRole("combobox", { name: "Map table" }), {
-    target: { value: tables[0].id },
-  });
+  chooseField(screen, fireEvent, "Map table", String(tables[0].id));
   fireEvent.click(screen.getByRole("button", { name: "Save floor position" }));
   await screen.findByRole("alert");
   assert.equal(screen.queryByRole("combobox", { name: "Map table" }), null);

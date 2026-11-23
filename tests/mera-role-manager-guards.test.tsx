@@ -153,9 +153,29 @@ test("development token starts concealed, reveals deliberately and vanishes imme
   globalThis.fetch = async (input) => {
     if (String(input).includes("/create-attempts/")) {
       const { requestKey, ...intent } = invitationBody;
-      return Response.json({ status: "recorded", requestKey, actorId: "current-session", organizationId: "org", operation: "invitation_create", targetId: null,
-        resultBasis: "recorded_operation_snapshot", operationRecord: { id: "op-inv", requestKey, actorId: "current-session", operation: "invitation_create", targetId: null, intent },
-        result: { id: "inv", ...intent, delivery: "not_sent", developmentTokenRecoverable: false } });
+      return Response.json({
+        status: "recorded",
+        requestKey,
+        actorId: "current-session",
+        organizationId: "org",
+        operation: "invitation_create",
+        targetId: null,
+        resultBasis: "recorded_operation_snapshot",
+        operationRecord: {
+          id: "op-inv",
+          requestKey,
+          actorId: "current-session",
+          operation: "invitation_create",
+          targetId: null,
+          intent,
+        },
+        result: {
+          id: "inv",
+          ...intent,
+          delivery: "not_sent",
+          developmentTokenRecoverable: false,
+        },
+      });
     }
     return Response.json(String(input).endsWith("/roles") ? roles : []);
   };
@@ -223,7 +243,9 @@ for (const status of [401, 403, 404])
       await screen.findByText(/People access needs checking/);
       assert.equal(screen.queryByLabelText("Role name"), null);
       assert(!screen.queryByRole("button", { name: "Save custom role" }));
-      assert(!screen.queryByRole("button", { name: "Retry original access change" }));
+      assert(
+        !screen.queryByRole("button", { name: "Retry original access change" }),
+      );
     } finally {
       cleanup();
       window.sessionStorage.clear();
@@ -297,7 +319,7 @@ test("unknown role create cannot be repeated and write denial is sticky", async 
     fireEvent.change(screen.getByLabelText("Role name"), {
       target: { value: "New custom role" },
     });
-    fireEvent.click(screen.getByRole("checkbox", { name: "View orders" }));
+    fireEvent.click(screen.getByRole("switch", { name: "View orders" }));
     fireEvent.submit(
       screen.getByRole("button", { name: "Save custom role" }).closest("form")!,
     );
@@ -394,25 +416,55 @@ test("late acknowledgement without scoped proof retains recovery after unmount w
     view.unmount();
     await act(async () => resolve(custom));
     assert.equal(hasAccessWrite("late-actor", "org"), true);
-    const marker = JSON.parse(window.sessionStorage.getItem("mera:access-operation:v1:late-actor:org")!);
+    const marker = JSON.parse(
+      window.sessionStorage.getItem("mera:access-operation:v1:late-actor:org")!,
+    );
     let proofReads = 0;
     globalThis.fetch = async (input) => {
       if (String(input).includes("/update-attempts/")) {
         proofReads++;
-        const intent = { name: "Local role draft", permissions: ["orders.view"], active: true, version: 4 };
-        return Response.json({ ...marker, status: "recorded", resultBasis: "recorded_operation_snapshot",
-          operationRecord: { id: "recorded-update", requestKey: marker.requestKey, actorId: marker.actorId, operation: marker.operation, targetId: marker.targetId, intent },
-          result: { ...custom, ...intent, version: 5 } });
+        const intent = {
+          name: "Local role draft",
+          permissions: ["orders.view"],
+          active: true,
+          version: 4,
+        };
+        return Response.json({
+          ...marker,
+          status: "recorded",
+          resultBasis: "recorded_operation_snapshot",
+          operationRecord: {
+            id: "recorded-update",
+            requestKey: marker.requestKey,
+            actorId: marker.actorId,
+            operation: marker.operation,
+            targetId: marker.targetId,
+            intent,
+          },
+          result: { ...custom, ...intent, version: 5 },
+        });
       }
       return Response.json(String(input).endsWith("/roles") ? roles : []);
     };
     render(<RoleManager {...props} userId="late-actor" />);
     await screen.findByRole("button", { name: "Check access change outcome" });
-    assert.equal(proofReads, 0, "restoring a reference must not automatically check or write");
+    assert.equal(
+      proofReads,
+      0,
+      "restoring a reference must not automatically check or write",
+    );
     assert.equal(hasAccessWrite("late-actor", "org"), true);
-    fireEvent.click(screen.getByRole("button", { name: "Check access change outcome" }));
-    await waitFor(() => assert.equal(hasAccessWrite("late-actor", "org"), false));
-    assert.equal(proofReads, 1, "only exact scoped recorded proof clears the marker");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Check access change outcome" }),
+    );
+    await waitFor(() =>
+      assert.equal(hasAccessWrite("late-actor", "org"), false),
+    );
+    assert.equal(
+      proofReads,
+      1,
+      "only exact scoped recorded proof clears the marker",
+    );
     const descriptor = Object.getOwnPropertyDescriptor(
       window,
       "sessionStorage",
