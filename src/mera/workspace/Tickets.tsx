@@ -65,7 +65,12 @@ function ScopedTickets({
 }: Props) {
   const [station, setStation] = useState(""),
     [view, setView] = useState("active"),
-    [phoneStatus, setPhoneStatus] = useState("all"),
+    [phoneStatus, setPhoneStatus] = useState("active"),
+    [narrow, setNarrow] = useState(
+      () =>
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(max-width: 999px)").matches,
+    ),
     [optimistic, setOptimistic] = useState<
       Record<string, { quantity: number; version: number }>
     >({}),
@@ -154,14 +159,25 @@ function ScopedTickets({
           return receipt && receipt.version > ticket.version ? receipt : ticket;
         })
     : [];
-  const rows = permitted.filter(
-    (ticket) =>
-      (!station || ticket.station === station) &&
-      (view === "all" ||
-        (view === "ready"
-          ? ticket.status === "ready"
-          : ticket.status !== "cancelled")),
+  const shown = narrow ? phoneStatus : view;
+  const stationTickets = permitted.filter(
+    (ticket) => !station || ticket.station === station,
   );
+  const rows = stationTickets.filter(
+    (ticket) =>
+      shown === "all" ||
+      (shown === "active"
+        ? ticket.status !== "cancelled"
+        : ticket.status === shown),
+  );
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia("(max-width: 999px)");
+    const update = () => setNarrow(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
   const newer =
     pending &&
     permitted.find(
@@ -374,7 +390,7 @@ function ScopedTickets({
     "queued",
     "preparing",
     "ready",
-    ...(view === "all" ? ["cancelled"] : []),
+    ...(shown === "all" ? ["cancelled"] : []),
   ];
   return (
     <section
@@ -466,6 +482,7 @@ function ScopedTickets({
           />
         )}
         <Segmented
+          className="mw-preparation-desktop-view"
           label="Show tickets"
           value={view}
           onChange={setView}
@@ -477,17 +494,25 @@ function ScopedTickets({
         />
       </div>
       <div className="mw-preparation-phone-filter">
-        <Segmented
+        <Chips
           label="Preparation status"
           value={phoneStatus}
           onChange={setPhoneStatus}
           options={[
-            { value: "all", label: "All" },
-            ...statuses.map((value) => ({
+            {
+              value: "active",
+              label: "Active",
+              count: stationTickets.filter(
+                (ticket) => ticket.status !== "cancelled",
+              ).length,
+            },
+            ...["queued", "preparing", "ready"].map((value) => ({
               value,
               label: value[0].toUpperCase() + value.slice(1),
-              count: rows.filter((ticket) => ticket.status === value).length,
+              count: stationTickets.filter((ticket) => ticket.status === value)
+                .length,
             })),
+            { value: "all", label: "All", count: stationTickets.length },
           ]}
         />
       </div>
@@ -594,13 +619,6 @@ function ScopedTickets({
                 className="mw-preparation-ticket"
                 key={ticket.id}
                 data-lane={ticket.status}
-                data-phone-hidden={
-                  phoneStatus !== "all" &&
-                  phoneStatus !== ticket.status &&
-                  !keepRecovery
-                    ? "true"
-                    : undefined
-                }
                 hidden={!rows.includes(ticket) && !keepRecovery}
                 aria-label={`${order?.reference || "Order"} · ${ticket.station} · ${ticket.status}`}
               >

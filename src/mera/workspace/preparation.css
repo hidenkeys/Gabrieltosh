@@ -335,9 +335,6 @@
     padding: 8px 0 12px;
     margin-bottom: 12px;
   }
-  .mw-preparation-ticket[data-phone-hidden="true"] {
-    display: none;
-  }
   .mw-preparation-filters {
     align-items: stretch;
   }
@@ -383,4 +380,9 @@
 }
 .mw-preparation-dots [data-prepared="true"] {
   color: var(--prep-accent);
+}
+@media (max-width: 999px) {
+  .mw-preparation-desktop-view {
+    display: none;
+  }
 }

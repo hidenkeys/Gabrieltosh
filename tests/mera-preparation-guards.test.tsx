@@ -64,7 +64,12 @@ test("filter changes and loading retain prepared-count displays without mounting
   assert.ok(container.querySelector("article[hidden]"));
   assert.equal(count.isConnected, true);
   assert.ok(screen.getByText("No tickets in this view"));
-  fireEvent.click(screen.getByRole("radio", { name: "Active" }));
+  fireEvent.click(
+    within(screen.getByRole("group", { name: "Show tickets" })).getByRole(
+      "radio",
+      { name: "Active" },
+    ),
+  );
   assert.equal(
     screen.getByLabelText("Prepared quantity for Tea on kitchen"),
     count,
@@ -359,4 +364,65 @@ test("definite autosave rejection rolls back and leaves an inline error on only 
     screen.queryByRole("button", { name: "Retry original preparation update" }),
     null,
   );
+});
+
+test("phone status filter is independent of the previous desktop view", () => {
+  const original = window.matchMedia;
+  let change: (() => void) | undefined;
+  const media = {
+    matches: false,
+    addEventListener: (_event: string, callback: () => void) => {
+      change = callback;
+    },
+    removeEventListener: () => {},
+  };
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: () => media,
+  });
+  try {
+    const { container } = render(<Tickets {...props} />);
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Show tickets" })).getByRole(
+        "radio",
+        { name: "Ready" },
+      ),
+    );
+    assert.equal(
+      container.querySelector("article")?.hasAttribute("hidden"),
+      true,
+    );
+    act(() => {
+      media.matches = true;
+      change?.();
+    });
+    assert.equal(
+      container.querySelector("article")?.hasAttribute("hidden"),
+      false,
+    );
+    fireEvent.click(
+      within(
+        screen.getByRole("group", { name: "Preparation status" }),
+      ).getByRole("radio", { name: "Ready" }),
+    );
+    assert.equal(
+      container.querySelector("article")?.hasAttribute("hidden"),
+      true,
+    );
+    fireEvent.click(
+      within(
+        screen.getByRole("group", { name: "Preparation status" }),
+      ).getByRole("radio", { name: "Preparing" }),
+    );
+    assert.equal(
+      container.querySelector("article")?.hasAttribute("hidden"),
+      false,
+    );
+  } finally {
+    cleanup();
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: original,
+    });
+  }
 });
