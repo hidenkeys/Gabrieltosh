@@ -1,3 +1,8 @@
+import { Combobox } from "../ui/Combobox";
+import ReservationOptions from "./ReservationOptions";
+import { Chips } from "../ui/Chips";
+import { Segmented } from "../ui/Segmented";
+import { Stepper } from "../ui/Stepper";
 import { useEffect, useRef, useState } from "react";
 import { MeraLoading } from "../ui/MeraEntry";
 import { brandingStyle } from "../branding";
@@ -103,6 +108,7 @@ export default function CustomerExperience({
   const [checkoutError, setCheckoutError] = useState("");
   const [checkoutNotice, setCheckoutNotice] = useState("");
   const checkoutNoticeRef = useRef<HTMLDivElement>(null);
+  const customerHeaderRef = useRef<HTMLElement>(null);
   const [checkoutNameInvalid, setCheckoutNameInvalid] = useState(false);
   const checkoutErrorRef = useRef<HTMLDivElement>(null);
   const checkoutNameRef = useRef<HTMLInputElement>(null);
@@ -653,7 +659,7 @@ export default function CustomerExperience({
     reservationKey.current = requestId();
   }
   async function guest(
-    name = displayName.trim(),
+    name = displayName.trim() || "Guest",
     generation = checkoutGeneration.current,
   ) {
     if (!name.trim())
@@ -811,7 +817,7 @@ export default function CustomerExperience({
         );
         return;
       }
-      if (!displayName.trim() || displayName.trim().length > 100) {
+      if (displayName.trim().length > 100) {
         setCheckoutNameInvalid(true);
         setCheckoutError(
           "Enter the name we should call for your order (up to 100 characters).",
@@ -879,7 +885,7 @@ export default function CustomerExperience({
           requestKey: checkoutKey.current,
           ...(menu.pricingPolicy?.enabled ? { quoteId: currentQuote.id } : {}),
           menuVersion: menu.version,
-          displayName: displayName.trim(),
+          displayName: displayName.trim() || "Guest",
           fulfillment,
           visitId: visit?.visit?.id,
           items: JSON.parse(cartSignature),
@@ -1333,7 +1339,37 @@ export default function CustomerExperience({
       if (generation === checkoutGeneration.current) setBusy(false);
     }
   }
-  if (!menu) return <MeraLoading retryLabel="Refresh menu" title="Opening the menu…" description="Finding your venue and its current menu." error={error} onRetry={() => void load()} />;
+  useEffect(() => {
+    const header = customerHeaderRef.current;
+    if (!header) return;
+    const update = () => {
+      const height = header.getBoundingClientRect().height;
+      if (height > 0)
+        header.parentElement?.style.setProperty(
+          "--mc-header-height",
+          `${height}px`,
+        );
+    };
+    update();
+    const observer =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
+    observer?.observe(header);
+    window.addEventListener("resize", update);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [menu]);
+  if (!menu)
+    return (
+      <MeraLoading
+        retryLabel="Refresh menu"
+        title="Opening the menu…"
+        description="Finding your venue and its current menu."
+        error={error}
+        onRetry={() => void load()}
+      />
+    );
   return (
     <div
       className={"mera-customer" + (tab === "menu" ? " mc-menu-view" : "")}
@@ -1343,12 +1379,13 @@ export default function CustomerExperience({
         menu.organization.branding.font === "system"
           ? {
               fontFamily:
-                'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                '"Mera Text", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
             }
           : {}),
       }}
     >
       <header
+        ref={customerHeaderRef}
         className="mc-top"
         inert={!!selected}
         aria-hidden={selected ? true : undefined}
@@ -1379,13 +1416,17 @@ export default function CustomerExperience({
           </div>
           <a href="/mera">Hospitality, made simpler · Mera</a>
           {branches.length > 1 && (
-            <label className="mc-branch-selector">
-              Branch
-              <select
-                aria-label="Choose branch"
+            <div className="mc-branch-selector">
+              <Combobox
+                label="Choose branch"
                 value={branch}
                 disabled={checkoutLocked}
-                onChange={(event) => {
+                options={branches.map((option: any) => ({
+                  value: option.id,
+                  label: option.name,
+                }))}
+                onChange={(value) => {
+                  if (!value) return;
                   if (
                     cart.length &&
                     !window.confirm(
@@ -1394,17 +1435,11 @@ export default function CustomerExperience({
                   )
                     return;
                   window.location.assign(
-                    `/mera/menu/${encodeURIComponent(slug)}/${encodeURIComponent(event.target.value)}`,
+                    `/mera/menu/${encodeURIComponent(slug)}/${encodeURIComponent(value)}`,
                   );
                 }}
-              >
-                {branches.map((option: any) => (
-                  <option key={option.id} value={option.id}>
-                    {option.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+              />
+            </div>
           )}
         </div>
       </header>
@@ -1559,39 +1594,22 @@ export default function CustomerExperience({
                     </button>
                   )}
                 </div>
-                <label className="mc-category-select">
-                  Category
-                  <select
-                    value={category}
-                    onChange={(event) => setCategory(event.target.value)}
-                  >
-                    {categories.map((item) => (
-                      <option key={item.key} value={item.key}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
               </div>
               {!menu.orderingAvailable && (
                 <p className="mc-ordering-status" role="status">
                   Ordering is paused. You can still browse the menu.
                 </p>
               )}
-              <div
-                className="mc-tabs mc-categories"
-                aria-label="Menu categories"
-              >
-                {categories.map((c) => (
-                  <button
-                    key={c.key}
-                    aria-pressed={category === c.key}
-                    onClick={() => setCategory(c.key)}
-                  >
-                    {c.label}
-                  </button>
-                ))}
-              </div>
+              <Chips
+                className="mc-category-chips"
+                label="Menu categories"
+                value={category}
+                onChange={setCategory}
+                options={categories.map((c) => ({
+                  value: c.key,
+                  label: c.label,
+                }))}
+              />
               <div className="mc-products">
                 {visibleProducts.map((p) => (
                   <article className="mc-product" key={p.id}>
@@ -1768,11 +1786,15 @@ export default function CustomerExperience({
                           <strong>{line.name}</strong>
                           <small>{line.summary}</small>
                           <div className="mc-line-controls">
-                            <button
-                              type="button"
-                              aria-label={`Remove one ${line.name}${line.summary ? ` (${line.summary})` : ""}`}
+                            <Stepper
+                              label={`Quantity for ${line.name}${line.summary ? ` (${line.summary})` : ""}`}
+                              value={line.quantity}
+                              min={0}
+                              max={100}
                               disabled={checkoutLocked}
-                              onClick={() => {
+                              decrementLabel={`Remove one ${line.name}${line.summary ? ` (${line.summary})` : ""}`}
+                              incrementLabel={`Add one ${line.name}${line.summary ? ` (${line.summary})` : ""}`}
+                              onChange={(quantity) => {
                                 if (
                                   checkoutIntentRef.current ||
                                   checkoutInFlight.current
@@ -1780,41 +1802,16 @@ export default function CustomerExperience({
                                   return;
                                 setCart((old) =>
                                   old
-                                    .map((l) =>
-                                      l.key === line.key
-                                        ? { ...l, quantity: l.quantity - 1 }
-                                        : l,
+                                    .map((item) =>
+                                      item.key === line.key
+                                        ? { ...item, quantity }
+                                        : item,
                                     )
-                                    .filter((l) => l.quantity > 0),
+                                    .filter((item) => item.quantity > 0),
                                 );
                                 checkoutKey.current = requestId();
                               }}
-                            >
-                              −
-                            </button>
-                            <span>{line.quantity}</span>
-                            <button
-                              type="button"
-                              aria-label={`Add one ${line.name}${line.summary ? ` (${line.summary})` : ""}`}
-                              disabled={checkoutLocked || line.quantity >= 100}
-                              onClick={() => {
-                                if (
-                                  checkoutIntentRef.current ||
-                                  checkoutInFlight.current
-                                )
-                                  return;
-                                setCart((old) =>
-                                  old.map((l) =>
-                                    l.key === line.key
-                                      ? { ...l, quantity: l.quantity + 1 }
-                                      : l,
-                                  ),
-                                );
-                                checkoutKey.current = requestId();
-                              }}
-                            >
-                              +
-                            </button>
+                            />
                             <b>{money(line.unitPrice * line.quantity)}</b>
                           </div>
                         </div>
@@ -1827,10 +1824,9 @@ export default function CustomerExperience({
                   >
                     <legend>Order details</legend>
                     <label>
-                      Your name
+                      What should we call you?
                       <input
                         ref={checkoutNameRef}
-                        required={!checkoutIntent}
                         aria-invalid={checkoutNameInvalid || undefined}
                         aria-describedby={`mc-order-name-hint${checkoutNameInvalid ? " mc-checkout-error" : ""}`}
                         onInvalid={(event) => {
@@ -1856,25 +1852,24 @@ export default function CustomerExperience({
                       />
                     </label>
                     <p id="mc-order-name-hint" className="mc-checkout-hint">
-                      We’ll use this name when your order is ready.
+                      Optional. We’ll use “Guest” if you leave this blank.
                     </p>
-                    <label>
-                      Enjoy it
-                      <select
-                        value={fulfillment}
-                        disabled={checkoutLocked}
-                        onChange={(e) => {
-                          if (!checkoutLocked) setFulfillment(e.target.value);
-                        }}
-                      >
-                        <option value="counter_pickup">Counter pickup</option>
-                        <option value="takeaway">Takeaway</option>
-                        {(visit ||
-                          checkoutIntent?.fulfillment === "table_service") && (
-                          <option value="table_service">At my table</option>
-                        )}
-                      </select>
-                    </label>
+                    <Segmented
+                      label="Enjoy it"
+                      value={fulfillment}
+                      disabled={checkoutLocked}
+                      onChange={(value) => {
+                        if (!checkoutLocked) setFulfillment(value);
+                      }}
+                      options={[
+                        { value: "counter_pickup", label: "Counter pickup" },
+                        { value: "takeaway", label: "Takeaway" },
+                        ...(visit ||
+                        checkoutIntent?.fulfillment === "table_service"
+                          ? [{ value: "table_service", label: "At my table" }]
+                          : []),
+                      ]}
+                    />
                     {fulfillment === "table_service" && (
                       <p className="mc-checkout-hint">
                         {visit?.visit?.tableName
@@ -1882,6 +1877,41 @@ export default function CustomerExperience({
                           : "For your original joined table. Ask staff if you are unsure which table this request belongs to."}
                       </p>
                     )}
+                    <div
+                      className="mc-note-presets"
+                      role="group"
+                      aria-label="Quick order notes"
+                    >
+                      {[
+                        "Less ice",
+                        "No sugar",
+                        "Allergy — please ask me",
+                        "Extra napkins",
+                      ].map((preset) => (
+                        <button
+                          type="button"
+                          key={preset}
+                          aria-pressed={note.split("; ").includes(preset)}
+                          disabled={checkoutLocked}
+                          onClick={() => {
+                            if (checkoutLocked) return;
+                            const parts = note ? note.split("; ") : [];
+                            const next = (
+                              parts.includes(preset)
+                                ? parts.filter((part) => part !== preset)
+                                : [...parts, preset]
+                            ).join("; ");
+                            if (next.length <= 500) setNote(next);
+                            else
+                              setCheckoutError(
+                                "Keep order notes within 500 characters.",
+                              );
+                          }}
+                        >
+                          {preset.startsWith("Allergy") ? "Allergy" : preset}
+                        </button>
+                      ))}
+                    </div>
                     <label>
                       Anything we should know?
                       <textarea
@@ -1949,7 +1979,9 @@ export default function CustomerExperience({
                               ? "Items estimate"
                               : "Total"}
                       </span>
-                      <span key={String(currentQuote?.total ?? total)}>{money(currentQuote?.total ?? total)}</span>
+                      <span key={String(currentQuote?.total ?? total)}>
+                        {money(currentQuote?.total ?? total)}
+                      </span>
                     </div>
                     {menu.pricingPolicy?.enabled && !currentQuote && (
                       <p>
@@ -2085,7 +2117,7 @@ export default function CustomerExperience({
         {tab === "help" && (
           <HelpRequests
             prefix={prefix}
-            ensureGuest={guest}
+            ensureGuest={() => guest(displayName.trim() || "Guest")}
             hasGuest={hasGuest}
             displayName={displayName}
             onName={(value) => {
@@ -2391,53 +2423,11 @@ export default function CustomerExperience({
                         autoComplete="email"
                       />
                     </label>
-                    <label>
-                      Party size
-                      <input
-                        name="partySize"
-                        type="number"
-                        min={1}
-                        max={100}
-                        defaultValue={2}
-                        required
-                      />
-                    </label>
-                    {!!menu?.tables?.length && (
-                      <label>
-                        Preferred table (optional)
-                        <select name="tableId">
-                          <option value="">Any suitable table</option>
-                          {menu.tables.map((table: any) => (
-                            <option key={table.id} value={table.id}>
-                              {table.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    )}
-                    <div>
-                      <label htmlFor="mc-reservation-start">Date & time</label>
-                      <small id="mc-reservation-timezone">
-                        Enter your device’s local time (
-                        {Intl.DateTimeFormat().resolvedOptions().timeZone}). The
-                        venue is in {menu?.branch?.timezone || "Africa/Lagos"}.
-                      </small>
-                      <input
-                        id="mc-reservation-start"
-                        aria-describedby="mc-reservation-timezone"
-                        name="startsAt"
-                        type="datetime-local"
-                        required
-                      />
-                    </div>
-                    <label>
-                      Duration
-                      <select name="duration">
-                        <option value="60">1 hour</option>
-                        <option value="90">1½ hours</option>
-                        <option value="120">2 hours</option>
-                      </select>
-                    </label>
+                    <ReservationOptions
+                      tables={menu?.tables}
+                      timeZone={menu?.branch?.timezone}
+                      disabled={busy || !!reservationIntent}
+                    />
                   </div>
                   <label>
                     Notes
@@ -2649,20 +2639,18 @@ export default function CustomerExperience({
                       }}
                     />
                   </label>
-                  <label>
-                    Table
-                    <select
-                      value={joinTable}
-                      onChange={(event) => setJoinTable(event.target.value)}
-                    >
-                      <option value="">Use a visit reference instead</option>
-                      {(menu?.tables || []).map((table: any) => (
-                        <option key={table.id} value={table.id}>
-                          {table.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <Combobox
+                    label="Table"
+                    value={joinTable}
+                    onChange={setJoinTable}
+                    options={[
+                      { value: "", label: "Use a visit reference instead" },
+                      ...(menu?.tables || []).map((table: any) => ({
+                        value: table.id,
+                        label: table.name,
+                      })),
+                    ]}
+                  />
                   {!joinTable && (
                     <label>
                       Visit reference
@@ -2749,7 +2737,9 @@ export default function CustomerExperience({
                   {basketQuantity} {basketQuantity === 1 ? "item" : "items"}
                 </small>
               </span>
-              <strong key={String(currentQuote?.total ?? total)}>{money(currentQuote?.total ?? total)}</strong>
+              <strong key={String(currentQuote?.total ?? total)}>
+                {money(currentQuote?.total ?? total)}
+              </strong>
             </button>
           </div>
         )}
@@ -2818,7 +2808,9 @@ function Feedback({
 }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [done, setDone] = useState(false);
+    [done, setDone] = useState(false),
+    [rating, setRating] = useState(""),
+    [topic, setTopic] = useState("feedback");
   if (done) return <p role="status">Feedback received. Thank you.</p>;
   return (
     <form
@@ -2842,28 +2834,38 @@ function Feedback({
       }}
     >
       <h3>How was your visit?</h3>
-      <label>
-        Rating
-        <select name="rating" defaultValue="" required>
-          <option value="" disabled>
-            Choose your rating
-          </option>
-          {[5, 4, 3, 2, 1].map((n) => (
-            <option key={n} value={n}>
-              {n} / 5
-            </option>
+      <fieldset className="mc-feedback-stars" disabled={busy}>
+        <legend>Rating</legend>
+        <div role="radiogroup" aria-label="Rating">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <label key={n}>
+              <input
+                type="radio"
+                name="rating"
+                value={n}
+                checked={rating === String(n)}
+                required
+                onChange={() => setRating(String(n))}
+              />
+              <span aria-hidden="true">{Number(rating) >= n ? "★" : "☆"}</span>
+              <span className="mc-sr-only">{n} out of 5 stars</span>
+            </label>
           ))}
-        </select>
-      </label>
-      <label>
-        Topic
-        <select name="category">
-          <option value="feedback">General feedback</option>
-          <option value="food">Food or drink</option>
-          <option value="service">Service</option>
-          <option value="payment">Payment</option>
-        </select>
-      </label>
+        </div>
+      </fieldset>
+      <Segmented
+        label="Topic"
+        name="category"
+        value={topic}
+        onChange={setTopic}
+        disabled={busy}
+        options={[
+          { value: "feedback", label: "General feedback" },
+          { value: "food", label: "Food or drink" },
+          { value: "service", label: "Service" },
+          { value: "payment", label: "Payment" },
+        ]}
+      />
       <label>
         Tell the venue
         <textarea name="text" maxLength={2000} required />

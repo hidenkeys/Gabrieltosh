@@ -104,9 +104,9 @@ test("customization contains keyboard focus, preserves active controls on rerend
     true,
     "forward Tab wraps to close control",
   );
-  const size = screen.getByRole("combobox", { name: "Choose a size" });
+  const size = screen.getByRole("radio", { name: "Large · ₦3,500.00" });
   size.focus();
-  fireEvent.change(size, { target: { value: "large" } });
+  fireEvent.click(size);
   assert.equal(
     document.activeElement === size,
     true,
@@ -136,15 +136,13 @@ test("actual variants, modifier adjustment and dietary information use controlle
       onAdd={() => adds.push("add")}
     />,
   );
-  assert(screen.getByRole("option", { name: "Large · ₦3,500.00" }));
+  assert(screen.getByRole("radio", { name: "Large · ₦3,500.00" }));
   assert(screen.getByText("+₦500.00"));
   assert(screen.getByText("No extra charge"));
   assert(screen.getByText("₦777.00"));
   assert(screen.getByText("Dietary: Vegetarian"));
   assert(screen.getByText(/Milk/));
-  fireEvent.change(screen.getByRole("combobox", { name: "Choose a size" }), {
-    target: { value: "large" },
-  });
+  fireEvent.click(screen.getByRole("radio", { name: "Large · ₦3,500.00" }));
   fireEvent.click(screen.getByRole("checkbox", { name: "Extra pearls" }));
   fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
   assert.deepEqual(variants, ["large"]);
@@ -226,7 +224,7 @@ test("known sold-out variant cannot add, but an available chosen variant retains
   );
   assert.equal(
     (
-      screen.getByRole("option", {
+      screen.getByRole("radio", {
         name: "Regular · ₦2,000.00 · Sold out",
       }) as HTMLOptionElement
     ).disabled,

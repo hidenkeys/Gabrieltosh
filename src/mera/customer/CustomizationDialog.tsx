@@ -1,3 +1,4 @@
+import { Chips } from "../ui/Chips";
 import { useRef } from "react";
 import { useDialogFocus } from "../ui/useDialogFocus";
 type Choice = { id: string; name: string; price: number };
@@ -113,25 +114,17 @@ function SelectedCustomization({
               "Choose your options before adding this item to your basket."}
           </p>
           {!!product.variants?.length ? (
-            <label>
-              Choose a size
-              <select
-                value={variantId}
-                disabled={disabled}
-                onChange={(event) => onVariantChange(event.target.value)}
-              >
-                {product.variants.map((item) => (
-                  <option
-                    key={item.id}
-                    value={item.id}
-                    disabled={soldOut(item)}
-                  >
-                    {item.name} · {money(item.price)}
-                    {soldOut(item) ? " · Sold out" : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Chips
+              label="Choose a size"
+              value={variantId}
+              onChange={onVariantChange}
+              disabled={disabled}
+              options={product.variants.map((item) => ({
+                value: item.id,
+                label: `${item.name} · ${money(item.price)}${soldOut(item) ? " · Sold out" : ""}`,
+                disabled: soldOut(item),
+              }))}
+            />
           ) : product.size ? (
             <p className="mc-customization-size">Size: {product.size}</p>
           ) : null}
@@ -141,7 +134,7 @@ function SelectedCustomization({
             return (
               <fieldset
                 key={group.id}
-                className="mc-option-group"
+                className="mc-option-group mc-option-chips"
                 tabIndex={-1}
                 disabled={disabled}
                 aria-invalid={invalid || undefined}
@@ -237,12 +230,13 @@ function SelectedCustomization({
           <button
             type="button"
             className="mc-primary"
+            aria-label="Add to basket"
             disabled={disabled || unavailable || !validEstimate}
             onClick={() => {
               if (!disabled && !unavailable && validEstimate) onAdd();
             }}
           >
-            Add to basket
+            Add to basket · {validEstimate ? money(estimate) : "Unavailable"}
           </button>
         </footer>
       </div>

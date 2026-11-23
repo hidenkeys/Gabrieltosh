@@ -81,36 +81,46 @@ function api(
   });
   return writes;
 }
-test("native checkout exposes a required name and useful local error instead of silently disabling the action", async (t) => {
-  const writes = api(t);
+test("checkout name is optional and the first exact request uses the friendly Guest default", async (t) => {
+  const writes = api(t, (path) =>
+    path.endsWith("/orders")
+      ? Response.json({
+          id: "order-one",
+          reference: "M-GUEST",
+          status: "submitted",
+          paymentStatus: "unpaid",
+          paid: 0,
+          total: 100000,
+          items: [],
+          history: [],
+        })
+      : Response.json({
+          orders: [],
+          nextCursor: null,
+          reservations: [],
+          feedback: [],
+          marketing: false,
+        }),
+  );
   await mount();
   add();
   const name = screen.getByRole("textbox", {
-    name: "Your name",
+    name: "What should we call you?",
   }) as HTMLInputElement;
-  assert.equal(name.required, true);
+  assert.equal(name.required, false);
   assert.match(
     name.getAttribute("aria-describedby") || "",
     /mc-order-name-hint/,
   );
-  assert.equal(
-    (screen.getByRole("button", { name: "Submit order" }) as HTMLButtonElement)
-      .disabled,
-    false,
-  );
   fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
-  const error = await screen.findByRole("alert");
-  assert(error.closest("#mc-basket"));
-  assert.equal(name.getAttribute("aria-invalid"), "true");
+  await screen.findByText("M-GUEST", { selector: "b", exact: true });
   assert.equal(
-    document.activeElement === name,
-    true,
-    "missing-name error focuses the name field",
+    writes.find((write) => write.path.endsWith("/orders")).body.displayName,
+    "Guest",
   );
-  assert.equal(writes.length, 0);
-  assert.equal(screen.queryByRole("button", { name: "Refresh menu" }), null);
+  assert.equal(name.getAttribute("aria-invalid"), null);
 });
-test("direct form submission cannot bypass empty-basket or whitespace-name controller guards", async (t) => {
+test("direct form submission cannot bypass empty-basket or overlong-name controller guards", async (t) => {
   const writes = api(t);
   await mount();
   fireEvent.submit(screen.getByRole("form", { name: "Review your order" }));
@@ -119,9 +129,10 @@ test("direct form submission cannot bypass empty-basket or whitespace-name contr
   );
   assert.equal(writes.length, 0);
   add();
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "   " },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", { name: "What should we call you?" }),
+    { target: { value: "X".repeat(101) } },
+  );
   fireEvent.submit(screen.getByRole("form", { name: "Review your order" }));
   await screen.findByText(/Enter the name we should call/);
   assert.equal(writes.length, 0);
@@ -144,9 +155,14 @@ test("a paused fresh-order controller rejects programmatic submit even with a re
   );
   await mount();
   add();
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
   fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
   await screen.findByText("Menu changed");
   const count = writes.length;
@@ -176,9 +192,14 @@ test("checkout failure stays local and original retry ignores mutable fields and
   });
   await mount();
   add();
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
   fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
   const error = await screen.findByRole("alert");
   assert(error.closest("#mc-basket"));
@@ -196,7 +217,7 @@ test("checkout failure stays local and original retry ignores mutable fields and
     { target: { value: "ab" } },
   );
   const name = screen.getByRole("textbox", {
-    name: "Your name",
+    name: /^(?:Your name|What should we call you\?)$/,
   }) as HTMLInputElement;
   name.value = "";
   fireEvent.click(screen.getByRole("button", { name: "Retry original order" }));
@@ -249,9 +270,14 @@ test("expired server review is labelled previous and never silently refreshes or
   );
   await mount();
   add();
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
   fireEvent.click(screen.getByRole("button", { name: "Review total" }));
   await screen.findByRole("heading", { name: "Previous price review" });
   assert(screen.getByText("Previous reviewed total"));
@@ -278,7 +304,7 @@ test("variant catalog entry does not advertise base zero as the item price", asy
     "Choose size for price",
   );
   fireEvent.click(screen.getByRole("button", { name: "Choose: Tea" }));
-  assert(screen.getByRole("option", { name: "Large · ₦3,500.00" }));
+  assert(screen.getByRole("radio", { name: "Large · ₦3,500.00" }));
   assert(screen.getByText("₦3,500.00"));
 });
 
@@ -304,9 +330,14 @@ test("tracking and receipt present unpaid truth and branch-labelled activity dat
   );
   await mount();
   add();
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
   fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
   await screen.findByText("M-READABLE");
   assert.deepEqual(

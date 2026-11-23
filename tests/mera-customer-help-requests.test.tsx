@@ -69,9 +69,7 @@ test("help snapshots context before identity creation and verifies current cooki
     <HelpRequests {...props} ensureGuest={ensureGuest} orderId={orderId} />,
   );
   fill();
-  fireEvent.change(screen.getByRole("combobox", { name: "Related to" }), {
-    target: { value: "order" },
-  });
+  fireEvent.click(screen.getByRole("radio", { name: "My current order" }));
   fireEvent.click(screen.getByRole("button", { name: "Send help request" }));
   assert.equal(
     (
@@ -131,7 +129,12 @@ test("unknown help retries keep original body through auth/rate errors without r
     screen.getByRole("button", { name: "Retry original help request" }),
   );
   await screen.findByText("Guest access interrupted");
-  assert.equal(screen.queryByRole("textbox", { name: "Your name" }), null);
+  assert.equal(
+    screen.queryByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    null,
+  );
   assert.equal(
     screen.queryByRole("textbox", { name: "How can staff help?" }),
     null,
@@ -194,7 +197,12 @@ for (const mode of ["missing", "changed"] as const)
     );
     assert.equal(creates, 1);
     assert.equal(posts, mode === "missing" ? 0 : 1);
-    assert.equal(screen.queryByRole("textbox", { name: "Your name" }), null);
+    assert.equal(
+      screen.queryByRole("textbox", {
+        name: /^(?:Your name|What should we call you\?)$/,
+      }),
+      null,
+    );
     assert.equal(
       screen.queryByRole("textbox", { name: "How can staff help?" }),
       null,
@@ -341,7 +349,12 @@ test("a delayed history read cannot restore private requests after a concurrent 
   await screen.findByText("Guest authorization expired");
   await act(async () => resolveHistory(Response.json({ requests: [own] })));
   assert.equal(screen.queryByText("H-ORIGINAL"), null);
-  assert.equal(screen.queryByRole("textbox", { name: "Your name" }), null);
+  assert.equal(
+    screen.queryByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    null,
+  );
   assert.equal(
     screen.queryByRole("textbox", { name: "How can staff help?" }),
     null,
@@ -401,9 +414,7 @@ test("refresh restores the original help intent without a POST or guest recreati
     />,
   );
   fill();
-  fireEvent.change(screen.getByRole("combobox", { name: "Related to" }), {
-    target: { value: "order" },
-  });
+  fireEvent.click(screen.getByRole("radio", { name: "My current order" }));
   fireEvent.click(screen.getByRole("button", { name: "Send help request" }));
   await screen.findByRole("alert");
   assert.equal(bodies.length, 1);

@@ -706,3 +706,215 @@
     transform: none;
   }
 }
+
+/* Guest input workstream: shared controls inherit the venue, not Mera's accent. */
+.mera-customer .mi-control {
+  --mi-accent: var(--mc-primary);
+  --brand: var(--mc-primary);
+  --brand-dark: var(--mc-primary);
+  --mi-accent-foreground: var(--mc-primary-foreground);
+}
+.mera-customer .mc-category-chips {
+  position: sticky;
+  top: var(--mc-header-height, 76px);
+  z-index: 12;
+  padding: 10px 0;
+  background: var(--mc-paper);
+  border: 0;
+  margin: 0 0 16px;
+  min-width: 0;
+}
+.mera-customer .mc-category-chips legend {
+  font-size: 0.8125rem;
+  color: var(--mc-muted);
+}
+.mera-customer .mc-category-chips .mi-choice-options {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  gap: 8px;
+  padding: 3px 2px 7px;
+  scrollbar-width: thin;
+  max-width: 100%;
+}
+.mera-customer .mc-category-chips .mi-choice-option {
+  flex: 0 0 auto;
+}
+.mera-customer .mc-help-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+.mera-customer .mc-help-tiles button {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 16px;
+  min-height: 112px;
+  text-align: left;
+  border: 1px solid var(--mc-line);
+  border-radius: 16px;
+  background: var(--mc-bone);
+  color: var(--mc-ink);
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  overflow-wrap: anywhere;
+}
+.mera-customer .mc-help-tiles button svg {
+  color: var(--mc-primary);
+}
+.mera-customer .mc-help-tiles button span {
+  font-weight: 650;
+  font-size: 1rem;
+}
+.mera-customer .mc-help-tiles button small {
+  color: var(--mc-muted);
+}
+.mera-customer .mc-note-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 0;
+}
+.mera-customer .mc-note-presets button {
+  min-height: 44px;
+  padding: 8px 13px;
+  border: 1px solid var(--mc-line);
+  border-radius: 999px;
+  background: var(--mc-bone);
+  color: var(--mc-ink);
+}
+.mera-customer .mc-note-presets button[aria-pressed="true"] {
+  background: var(--mc-primary);
+  color: var(--mc-primary-foreground, #fff);
+  border-color: var(--mc-primary);
+}
+.mera-customer .mc-feedback-stars {
+  border: 0;
+  padding: 0;
+  margin: 14px 0;
+}
+.mera-customer .mc-feedback-stars [role="radiogroup"] {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.mera-customer .mc-feedback-stars label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  min-height: 48px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.mera-customer .mc-feedback-stars input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.mera-customer .mc-feedback-stars label > span[aria-hidden] {
+  font-size: 36px;
+  line-height: 1;
+  color: var(--mc-primary);
+}
+.mera-customer .mc-feedback-stars label:focus-within {
+  outline: 3px solid var(--mc-link, var(--mc-primary));
+  outline-offset: 3px;
+}
+.mera-customer .mc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.mera-customer .mc-option-chips .mc-modifier {
+  position: relative;
+  display: inline-flex;
+  min-height: 44px;
+  margin: 5px 7px 5px 0;
+  padding: 10px 15px;
+  border: 1px solid var(--mc-line);
+  border-radius: 999px;
+  background: var(--mc-bone);
+  cursor: pointer;
+  max-width: 100%;
+}
+.mera-customer .mc-option-chips .mc-modifier input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.mera-customer .mc-option-chips .mc-modifier:has(input:checked) {
+  background: var(--mc-primary);
+  border-color: var(--mc-primary);
+  color: var(--mc-primary-foreground, #fff);
+}
+.mera-customer .mc-option-chips .mc-modifier:has(input:checked) small {
+  color: inherit;
+}
+.mera-customer .mc-option-chips .mc-modifier:focus-within,
+.mera-customer .mc-help-tiles button:focus-visible,
+.mera-customer .mc-note-presets button:focus-visible {
+  outline: 3px solid var(--mc-link, var(--mc-primary));
+  outline-offset: 3px;
+}
+.mera-customer .mc-modal-actions {
+  position: sticky;
+  bottom: 0;
+  background: var(--mc-bone);
+  z-index: 2;
+}
+.mera-customer .mc-line-controls .mi-stepper {
+  min-width: 0;
+  flex: 1;
+}
+.mera-customer .mc-line-controls .mi-stepper > label {
+  font-size: 0.75rem;
+  color: var(--mc-muted);
+}
+@media (hover: hover) and (pointer: fine) {
+  .mera-customer .mc-help-tiles button:hover:not(:disabled) {
+    border-color: var(--mc-primary);
+  }
+}
+@media (max-width: 420px) {
+  .mera-customer .mc-help-tiles {
+    gap: 8px;
+  }
+  .mera-customer .mc-help-tiles button {
+    padding: 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mera-customer .mc-help-tiles button,
+  .mera-customer .mc-note-presets button {
+    transition: none;
+    transform: none !important;
+  }
+}
+.mera-customer .mc-reservation-options {
+  grid-column: 1/-1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  min-width: 0;
+}
+.mera-customer .mc-reservation-options > .mi-choice,
+.mera-customer .mc-reservation-options > div:has(.mi-datetime),
+.mera-customer .mc-reservation-options > .mc-note {
+  grid-column: 1/-1;
+}
+.mera-customer .mc-reservation-options .mi-control {
+  min-width: 0;
+}
+@media (max-width: 600px) {
+  .mera-customer .mc-reservation-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

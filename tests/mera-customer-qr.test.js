@@ -83,15 +83,20 @@ test("table QR context never fetches a private bill before code validation", asy
   fireEvent.click(screen.getByRole("button", { name: "Join a table" }));
   assert.equal(
     screen.getByRole("combobox", { name: "Table" }).value,
-    "table-one",
+    "Window table",
   );
   assert.equal(
     screen.queryByRole("textbox", { name: "Visit reference" }),
     null,
   );
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
   fireEvent.change(screen.getByRole("textbox", { name: "Joining code" }), {
     target: { value: "invalid" },
   });
@@ -266,9 +271,14 @@ test("configured charges require server review and uncertain retries preserve qu
     screen.getByRole("button", { name: "Choose: Brown Sugar Boba" }),
   );
   fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
   fireEvent.click(screen.getByRole("button", { name: "Review total" }));
   await screen.findByText("Service charge: ₦380");
   assert.equal(orders.length, 0);
@@ -438,9 +448,14 @@ test("minimum-spend visit terms require explicit acknowledgement before private 
   render(React.createElement(CustomerExperience));
   await screen.findByText("Brown Sugar Boba");
   fireEvent.click(screen.getByRole("button", { name: "Join a table" }));
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
   fireEvent.change(screen.getByRole("textbox", { name: "Visit reference" }), {
     target: { value: "visit-one" },
   });
@@ -528,23 +543,29 @@ test("reservation acknowledgement and original details survive uncertain deliver
   await screen.findByText("Brown Sugar Boba");
   fireEvent.click(screen.getByRole("button", { name: "Reserve a table" }));
   await screen.findByText(policy.disclosure);
-  fireEvent.change(
-    screen.getByRole("combobox", { name: "Preferred table (optional)" }),
-    { target: { value: "70000000-0000-4000-8000-000000000001" } },
-  );
+  fireEvent.click(screen.getByRole("radio", { name: "Window preference" }));
   assert.equal(
     screen.getByRole("button", { name: "Request reservation" }).disabled,
     true,
   );
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
   fireEvent.change(
     screen.getByRole("textbox", { name: "Contact email or phone" }),
     { target: { value: "fixture@example.invalid" } },
   );
-  fireEvent.change(document.querySelector('input[name="startsAt"]'), {
-    target: { value: "2026-12-10T12:00" },
+  fireEvent.click(screen.getByRole("button", { name: "Choose another date" }));
+  fireEvent.change(screen.getByLabelText("Date", { exact: true }), {
+    target: { value: "2026-12-10" },
+  });
+  fireEvent.change(screen.getByLabelText("Preferred time", { exact: true }), {
+    target: { value: "12:00" },
   });
   fireEvent.click(
     screen.getByRole("checkbox", {
@@ -653,15 +674,20 @@ test("published nested category IDs filter descendants and retain legacy categor
   await screen.findByText("Brown Sugar Boba");
   assert(screen.getByText("Dietary: Vegan"));
   assert.equal(
-    screen.queryByRole("button", { name: "Unpublished or inactive" }),
+    screen.queryByRole("radio", {
+      name: "Unpublished or inactive",
+      exact: true,
+    }),
     null,
   );
-  fireEvent.click(screen.getByRole("button", { name: "Drinks" }));
+  fireEvent.click(screen.getByRole("radio", { name: "Drinks", exact: true }));
   assert(screen.getByText("Brown Sugar Boba"));
   assert.equal(screen.queryByText("Legacy sundae"), null);
-  fireEvent.click(screen.getByRole("button", { name: "Drinks / Tea" }));
+  fireEvent.click(
+    screen.getByRole("radio", { name: "Drinks / Tea", exact: true }),
+  );
   assert(screen.getByText("Brown Sugar Boba"));
-  fireEvent.click(screen.getByRole("button", { name: "Desserts" }));
+  fireEvent.click(screen.getByRole("radio", { name: "Desserts", exact: true }));
   assert(screen.getByText("Legacy sundae"));
   assert.equal(screen.queryByText("Brown Sugar Boba"), null);
   cleanup();

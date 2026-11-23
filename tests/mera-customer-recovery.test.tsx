@@ -230,9 +230,14 @@ test("remount restores exact review only after cookie proof, with no automatic w
   await screen.findByRole("heading", { name: "Your basket" });
   fireEvent.click(screen.getByRole("button", { name: "Choose: Original tea" }));
   fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
   fireEvent.change(
     screen.getByRole("textbox", { name: "Anything we should know?" }),
     { target: { value: "Original note" } },
@@ -256,7 +261,9 @@ test("remount restores exact review only after cookie proof, with no automatic w
     "Original note",
   );
   assert.equal(
-    screen.getByRole("textbox", { name: "Your name" }).disabled,
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }).disabled,
     true,
   );
   assert(screen.getByText("Service charge: ₦100"));
@@ -347,9 +354,14 @@ test("storage refusal prevents order POST rather than claiming recoverability", 
   await screen.findByRole("heading", { name: "Your basket" });
   fireEvent.click(screen.getByRole("button", { name: "Choose: Original tea" }));
   fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
   fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
   await screen.findByRole("button", { name: "Check saved order and session" });
   assert.equal(orders, 0);

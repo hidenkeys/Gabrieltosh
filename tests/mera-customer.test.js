@@ -79,9 +79,14 @@ test("an uncertain checkout remains visible and retries retain the original idem
     screen.getByRole("button", { name: "Choose: Brown Sugar Boba" }),
   );
   fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
   fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
   await screen.findByRole("alert");
   assert.match(
@@ -140,9 +145,14 @@ test("an expired table visit removes the previous private bill", async (t) => {
   render(React.createElement(CustomerExperience));
   await screen.findByText("Brown Sugar Boba");
   fireEvent.click(screen.getByRole("button", { name: "Join a table" }));
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
   fireEvent.change(screen.getByRole("textbox", { name: "Visit reference" }), {
     target: { value: "visit-one" },
   });

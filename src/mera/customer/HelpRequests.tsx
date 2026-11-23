@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
+import { Bell, ReceiptText, GlassWater, MessageCircle } from "lucide-react";
+import { Segmented } from "../ui/Segmented";
 import { customerRequest, requestId } from "./client";
 import {
   readHelpJournal,
@@ -186,8 +188,17 @@ function ScopedHelpRequests({
       if (pendingRef.current?.postStarted) setPrivateBlocked(true);
     }
   }, [hasGuest]);
-  async function send() {
+  async function send(preset?: { category: string; message: string }) {
     if (sendInFlight.current || !journalReady) return;
+    const nextMessage = preset
+      ? preset.message + (message.trim() ? ` — ${message.trim()}` : "")
+      : message.trim();
+    if (!pendingRef.current && (!nextMessage || nextMessage.length > 500)) {
+      setWriteError(
+        "Keep your request and optional details within 500 characters.",
+      );
+      return;
+    }
     sendInFlight.current = true;
     setBusy(true);
     setWriteError("");
@@ -198,8 +209,8 @@ function ScopedHelpRequests({
       attempt = {
         body: {
           requestKey: requestId(),
-          category,
-          message: message.trim(),
+          category: preset?.category || category,
+          message: nextMessage,
           ...(context === "order" && orderId
             ? { orderId }
             : context === "visit" && visitId
@@ -298,6 +309,47 @@ function ScopedHelpRequests({
               {writeError}
             </p>
           )}
+          {!pending && !privateBlocked && (
+            <div className="mc-help-tiles" aria-label="Quick help requests">
+              {[
+                {
+                  label: "Call a waiter",
+                  category: "service",
+                  message: "Please call a waiter.",
+                  Icon: Bell,
+                },
+                {
+                  label: "Ask for the bill",
+                  category: "payment",
+                  message: "Please bring the bill.",
+                  Icon: ReceiptText,
+                },
+                {
+                  label: "Water or napkins",
+                  category: "service",
+                  message: "Please bring water or napkins.",
+                  Icon: GlassWater,
+                },
+                {
+                  label: "Something else",
+                  category: "other",
+                  message: "Please come over; I need some help.",
+                  Icon: MessageCircle,
+                },
+              ].map(({ label, category, message, Icon }) => (
+                <button
+                  type="button"
+                  key={label}
+                  disabled={busy || !journalReady}
+                  onClick={() => void send({ category, message })}
+                >
+                  <Icon aria-hidden="true" size={22} />
+                  <span>{label}</span>
+                  <small>Send request</small>
+                </button>
+              ))}
+            </div>
+          )}
           {pending && (
             <div className="mc-help-pending">
               <p>
@@ -350,34 +402,31 @@ function ScopedHelpRequests({
                   />
                 </label>
                 <div className="mc-help-form-row">
-                  <label>
-                    Help topic
-                    <select
-                      value={category}
-                      onChange={(event) => setCategory(event.target.value)}
-                    >
-                      {Object.entries(topics).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Related to
-                    <select
+                  <Segmented
+                    label="Help topic"
+                    value={category}
+                    onChange={setCategory}
+                    options={Object.entries(topics).map(([value, label]) => ({
+                      value,
+                      label,
+                    }))}
+                  />
+                  {(orderId || visitId) && (
+                    <Segmented
+                      label="Related to"
                       value={context}
-                      onChange={(event) => setContext(event.target.value)}
-                    >
-                      <option value="">General request</option>
-                      {orderId && (
-                        <option value="order">My current order</option>
-                      )}
-                      {visitId && (
-                        <option value="visit">My joined table visit</option>
-                      )}
-                    </select>
-                  </label>
+                      onChange={setContext}
+                      options={[
+                        { value: "", label: "General request" },
+                        ...(orderId
+                          ? [{ value: "order", label: "My current order" }]
+                          : []),
+                        ...(visitId
+                          ? [{ value: "visit", label: "My joined table visit" }]
+                          : []),
+                      ]}
+                    />
+                  )}
                 </div>
                 <label>
                   How can staff help?
@@ -391,7 +440,9 @@ function ScopedHelpRequests({
                   />
                 </label>
                 <p id="mc-help-message-hint" className="mc-help-hint">
-                  Keep it brief. Do not include passwords or card details.
+                  For a quick request, details are optional: add them before
+                  tapping a tile. Or write a message and choose Send help
+                  request. Never include passwords or card details.
                 </p>
                 <button
                   className="mc-primary"

@@ -318,11 +318,14 @@ for (const phase of ["terms", "private bill"] as const)
     fireEvent.click(screen.getByRole("button", { name: "Menu" }));
     await screen.findByRole("heading", { name: "Your basket" });
     assert.equal(
-      (screen.getByRole("combobox", { name: "Enjoy it" }) as HTMLSelectElement)
-        .value,
-      "counter_pickup",
+      (
+        screen.getByRole("radio", {
+          name: "Counter pickup",
+        }) as HTMLInputElement
+      ).checked,
+      true,
     );
-    assert.equal(screen.queryByRole("option", { name: "At my table" }), null);
+    assert.equal(screen.queryByRole("radio", { name: "At my table" }), null);
   });
 
 test("wrong joining code shows a local table error without a menu refresh or private bill read", async (t) => {

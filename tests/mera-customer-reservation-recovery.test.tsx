@@ -254,7 +254,7 @@ test("delayed initial guest response preserves explicit reservation tab and shor
   });
   await open();
   await screen.findByRole("heading", { name: "A table for your plans" });
-  const date = screen.getByLabelText("Date & time");
+  const date = screen.getByRole("group", { name: "Date & time", exact: true });
   assert.equal(
     date.getAttribute("aria-describedby"),
     "mc-reservation-timezone",

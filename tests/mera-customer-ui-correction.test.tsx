@@ -112,7 +112,7 @@ test("C1 browse is immediate, compact, and does not create a guest or write an o
   );
   assert.match(
     document.querySelector(".mera-customer")?.getAttribute("style") || "",
-    /Inter/,
+    /Mera Text/,
   );
   cleanup();
 });
@@ -120,9 +120,7 @@ test("C1 search and category recovery have a clear empty state", async (t) => {
   mockMenu(t);
   render(React.createElement(CustomerExperience));
   await screen.findByText("Brown Sugar Boba");
-  fireEvent.change(screen.getByRole("combobox", { name: "Category" }), {
-    target: { value: "legacy:Drinks" },
-  });
+  fireEvent.click(screen.getByRole("radio", { name: "Drinks", exact: true }));
   assert.equal(screen.queryByText("Seasonal smoothie"), null);
   fireEvent.change(screen.getByRole("textbox", { name: "Search menu" }), {
     target: { value: "missing menu item" },
@@ -133,7 +131,10 @@ test("C1 search and category recovery have a clear empty state", async (t) => {
   );
   assert(screen.getByText("Brown Sugar Boba"));
   assert(screen.getByText("Seasonal smoothie"));
-  assert.equal(screen.getByRole("combobox", { name: "Category" }).value, "All");
+  assert.equal(
+    screen.getByRole("radio", { name: "All", exact: true }).checked,
+    true,
+  );
   assert.equal(
     document.activeElement,
     screen.getByRole("textbox", { name: "Search menu" }),
@@ -309,12 +310,15 @@ test("C2 freezes the complete order intent through pending and uncertain deliver
   );
   fireEvent.click(screen.getByRole("checkbox", { name: "Less sugar" }));
   fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
-  fireEvent.change(screen.getByRole("combobox", { name: "Enjoy it" }), {
-    target: { value: "takeaway" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
+  fireEvent.click(screen.getByRole("radio", { name: "Takeaway", exact: true }));
   fireEvent.change(
     screen.getByRole("textbox", { name: "Anything we should know?" }),
     { target: { value: "Original note" } },
@@ -322,17 +326,16 @@ test("C2 freezes the complete order intent through pending and uncertain deliver
   fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
   await posted;
   assert.equal(
-    screen.getByRole("textbox", { name: "Your name" }).disabled,
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }).disabled,
     true,
   );
   assert.equal(
     screen.getByRole("textbox", { name: "Anything we should know?" }).disabled,
     true,
   );
-  assert.equal(
-    screen.getByRole("combobox", { name: "Enjoy it" }).disabled,
-    true,
-  );
+  assert.equal(screen.getByRole("group", { name: "Enjoy it" }).disabled, true);
   assert.equal(
     screen.getByRole("button", {
       name: "Add one Brown Sugar Boba (Regular · Less sugar)",
@@ -349,16 +352,21 @@ test("C2 freezes the complete order intent through pending and uncertain deliver
     screen.getByRole("button", { name: "Retry original order" }).disabled,
     false,
   );
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Changed name" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Changed name" },
+    },
+  );
   fireEvent.change(
     screen.getByRole("textbox", { name: "Anything we should know?" }),
     { target: { value: "Changed note" } },
   );
-  fireEvent.change(screen.getByRole("combobox", { name: "Enjoy it" }), {
-    target: { value: "counter_pickup" },
-  });
+  fireEvent.click(
+    screen.getByRole("radio", { name: "Counter pickup", exact: true }),
+  );
   fireEvent.click(
     screen.getByRole("button", {
       name: "Add one Brown Sugar Boba (Regular · Less sugar)",
@@ -403,9 +411,14 @@ test("C2 an explicit rejected checkout releases the basket for correction", asyn
   );
   fireEvent.click(screen.getByRole("checkbox", { name: "Less sugar" }));
   fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
   fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
   await screen.findByRole("alert");
   assert.equal(
@@ -413,7 +426,9 @@ test("C2 an explicit rejected checkout releases the basket for correction", asyn
     null,
   );
   assert.equal(
-    screen.getByRole("textbox", { name: "Your name" }).disabled,
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }).disabled,
     false,
   );
   assert.equal(
@@ -562,14 +577,21 @@ test("C2 an uncertain order survives auth and rate-limit rejections until origin
   );
   fireEvent.click(screen.getByRole("checkbox", { name: "Less sugar" }));
   fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
   fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
   for (let i = 0; i < 4; i++) {
     await screen.findByRole("button", { name: "Retry original order" });
     assert.equal(
-      screen.getByRole("textbox", { name: "Your name" }).disabled,
+      screen.getByRole("textbox", {
+        name: /^(?:Your name|What should we call you\?)$/,
+      }).disabled,
       true,
     );
     fireEvent.click(
@@ -634,9 +656,7 @@ test("C2 feedback confirmation resets when another completed order is selected",
   await screen.findByText("Brown Sugar Boba");
   fireEvent.click(screen.getByRole("button", { name: "Your order" }));
   await screen.findByText("M-FIRST");
-  fireEvent.change(screen.getByRole("combobox", { name: "Rating" }), {
-    target: { value: "4" },
-  });
+  fireEvent.click(screen.getByRole("radio", { name: "4 out of 5 stars" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Tell the venue" }), {
     target: { value: "Good service" },
   });
@@ -647,7 +667,10 @@ test("C2 feedback confirmation resets when another completed order is selected",
   fireEvent.click(screen.getByRole("button", { name: "Open order M-SECOND" }));
   await screen.findByText("M-SECOND");
   assert.equal(screen.queryByText("Feedback received. Thank you."), null);
-  assert.equal(screen.getByRole("combobox", { name: "Rating" }).value, "");
+  assert.equal(
+    screen.getByRole("radio", { name: "4 out of 5 stars" }).checked,
+    false,
+  );
   assert.equal(
     screen.getByRole("textbox", { name: "Tell the venue" }).value,
     "",
@@ -699,9 +722,14 @@ test("expired price review cannot submit and requires a deliberate fresh review"
   );
   fireEvent.click(screen.getByRole("checkbox", { name: "Less sugar" }));
   fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
-  fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), {
-    target: { value: "Ada" },
-  });
+  fireEvent.change(
+    screen.getByRole("textbox", {
+      name: /^(?:Your name|What should we call you\?)$/,
+    }),
+    {
+      target: { value: "Ada" },
+    },
+  );
   fireEvent.click(screen.getByRole("button", { name: "Review total" }));
   await screen.findByRole("button", { name: "Review latest total" });
   assert.equal(screen.queryByRole("button", { name: "Submit order" }), null);
