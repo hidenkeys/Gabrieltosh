@@ -25,6 +25,14 @@ Already done, do not redo:
   card, clock chip, progress dots, `−`/`+` stepper where `+` saves immediately, filter chips with counts.
   Reuse this pattern for any other queue. Known gap: tickets are still one grid, not three status columns.
 
+- **Reason chips (workstream B, partly done):** item cancellation reason (`ItemCancellation.tsx`) and refund
+  request and review reasons (`RefundRequests.tsx`) now use `ReasonInput`. Tests select a chip, or choose
+  Other and type in "<label> details". Still to convert: the Transactions "Refund reason" and "Reason" fields,
+  `MenuPublication.tsx` Reason, `ReservationRequest.tsx` and `ShiftOperation.tsx` "Reason for stopping",
+  `PrintStudio.tsx` "Reason for reprint", stock "Adjustment reason" (OrganizationWorkspace ~line 2576),
+  cash movement notes. Several tests guard that a private reason draft is dropped or kept across permission
+  loss (print studio, reservation, shift); keep that behaviour when converting.
+
 Tests: 833 total, 830 pass, 3 skipped, 0 fail. Keep it that way.
 
 ## Step 1: audit before you build (do not skip)
