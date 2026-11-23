@@ -674,3 +674,14 @@
   text-transform: none;
   letter-spacing: normal;
 }
+
+.mera-owner-setup fieldset {
+  border: 0;
+  min-width: 0;
+  margin-inline: 0;
+}
+.mera-owner-setup .mera-owner-optional > .mi-setup-panel,
+.mera-owner-setup .mera-owner-optional > .mi-setup-review {
+  padding: 0;
+  margin-top: 12px;
+}

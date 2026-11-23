@@ -165,14 +165,18 @@ export default function LaunchReadiness({
     <section className="mw-card mw-management mw-management-panel">
       <header className="mw-management-heading">
         <div>
-          <span className="mw-management-eyebrow">Publish your menu</span>
+          {!guidedStage && (
+            <span className="mw-management-eyebrow">Publish your menu</span>
+          )}
           <h2>
             {guidedStage === "payments"
               ? "Manual payment handling"
               : "Ready for customers?"}
           </h2>
           <p>
-            Review the essentials before making this branch’s menu available.
+            {guidedStage === "payments"
+              ? "Choose how staff will record payments at this branch."
+              : "Review the essentials before making this branch’s menu available."}
           </p>
         </div>
       </header>
@@ -192,6 +196,7 @@ export default function LaunchReadiness({
           </p>
           <button
             type="button"
+            className="secondary"
             disabled={disabled || checking}
             onClick={() => setRevision((value) => value + 1)}
           >
@@ -441,6 +446,7 @@ export default function LaunchReadiness({
               </button>
             )}
             <button
+              className="secondary"
               disabled={busy}
               onClick={async () => {
                 setError("");

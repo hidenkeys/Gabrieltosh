@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import Switch from "../ui/Switch";
 import Stepper from "../ui/Stepper";
 import Combobox from "../ui/Combobox";
@@ -7,6 +7,24 @@ import TimeWindows from "./TimeWindows";
 import MediaUpload from "../MediaUpload";
 import { brandingTokens } from "../branding";
 import BrandColorField from "./BrandColorField";
+function OptionalSettings({
+  guided,
+  title,
+  children,
+}: {
+  guided: boolean;
+  title: string;
+  children: ReactNode;
+}) {
+  return guided ? (
+    <details className="mw-wide mera-owner-optional">
+      <summary>{title}</summary>
+      {children}
+    </details>
+  ) : (
+    <>{children}</>
+  );
+}
 type Props = {
   guided?: boolean;
   branch: any;
@@ -155,6 +173,8 @@ export default function BranchSettings({
               "[data-setup-step]",
             );
             if (panel) {
+              const disclosure = panel.closest("details");
+              if (disclosure) disclosure.open = true;
               setSetupStep(Number(panel.dataset.setupStep));
               setTimeout(() => (event.target as HTMLElement).focus(), 0);
             }
@@ -172,6 +192,10 @@ export default function BranchSettings({
               )
             ) {
               setSetupStep(2);
+              const disclosure = operationsForm.current
+                ?.querySelector('[data-setup-step="2"]')
+                ?.closest("details");
+              if (disclosure) disclosure.open = true;
               setError("Choose service days and an end time after the start.");
               return;
             }
@@ -296,40 +320,42 @@ export default function BranchSettings({
               }
             />
           </fieldset>
-          <fieldset
-            className="mw-wide mi-setup-panel"
-            data-setup-step="2"
-            hidden={!guided && setupStep !== 2}
-            disabled={disabled}
-          >
-            <legend>Hours</legend>
-            <label>
-              Trading day starts
-              <input
-                required
-                type="time"
-                value={
-                  String(Math.floor(settings.cutoff / 60)).padStart(2, "0") +
-                  ":" +
-                  String(settings.cutoff % 60).padStart(2, "0")
-                }
-                onChange={(event) => {
-                  const [hours, minutes] = event.target.value
-                    .split(":")
-                    .map(Number);
-                  setSettings({ ...settings, cutoff: hours * 60 + minutes });
-                }}
-              />
-            </label>
-            <TimeWindows
-              label="Branch service hours"
-              value={settings.serviceHours}
+          <OptionalSettings guided={guided} title="Trading hours">
+            <fieldset
+              className="mw-wide mi-setup-panel"
+              data-setup-step="2"
+              hidden={!guided && setupStep !== 2}
               disabled={disabled}
-              onChange={(serviceHours) =>
-                setSettings({ ...settings, serviceHours })
-              }
-            />
-          </fieldset>
+            >
+              <legend>Hours</legend>
+              <label>
+                Trading day starts
+                <input
+                  required
+                  type="time"
+                  value={
+                    String(Math.floor(settings.cutoff / 60)).padStart(2, "0") +
+                    ":" +
+                    String(settings.cutoff % 60).padStart(2, "0")
+                  }
+                  onChange={(event) => {
+                    const [hours, minutes] = event.target.value
+                      .split(":")
+                      .map(Number);
+                    setSettings({ ...settings, cutoff: hours * 60 + minutes });
+                  }}
+                />
+              </label>
+              <TimeWindows
+                label="Branch service hours"
+                value={settings.serviceHours}
+                disabled={disabled}
+                onChange={(serviceHours) =>
+                  setSettings({ ...settings, serviceHours })
+                }
+              />
+            </fieldset>
+          </OptionalSettings>
           <fieldset
             className="mw-wide mi-setup-panel"
             data-setup-step="3"
@@ -347,103 +373,108 @@ export default function BranchSettings({
               not confirm payment or enable a payment provider.
             </p>
           </fieldset>
-          <fieldset
-            className="mw-wide mi-setup-panel"
-            data-setup-step="4"
-            hidden={!guided && setupStep !== 4}
-            disabled={disabled}
-          >
-            <legend>Reservations</legend>
-            <Switch
-              label="Accept reservations"
-              checked={settings.reservationsEnabled}
-              onChange={(reservationsEnabled) =>
-                setSettings({ ...settings, reservationsEnabled })
-              }
-            />
-            <Stepper
-              label="Reservation capacity"
-              value={settings.capacity}
-              min={1}
-              max={1000}
-              required
-              onChange={(capacity) => setSettings({ ...settings, capacity })}
-            />
-            <p>
-              Timing, deposits and minimum-spend rules have their own reviewed
-              settings.
-            </p>
-          </fieldset>
-          <section
-            className="mw-wide mi-setup-review"
-            data-setup-step="5"
-            hidden={!guided && setupStep !== 5}
-            aria-label="Review branch settings"
-          >
-            <h3>Review before saving</h3>
-            <dl>
-              <div>
-                <dt>Branch</dt>
-                <dd>
-                  {settings.address || "Address not set"} · {settings.timezone}
-                </dd>
-              </div>
-              <div>
-                <dt>Service modes</dt>
-                <dd>
-                  {settings.serviceModes.length
-                    ? settings.serviceModes
-                        .map(
-                          (mode) =>
-                            ({
-                              counter_takeaway: "Counter & takeaway",
-                              table_service: "Table service",
-                              reservations: "Reservations",
-                              lounge_club: "Lounge & club",
-                            })[mode] || mode,
-                        )
-                        .join(", ")
-                    : "No service modes selected"}
-                </dd>
-              </div>
-              <div>
-                <dt>Ordering</dt>
-                <dd>
-                  {settings.orderingPaused
-                    ? "New orders paused"
-                    : "New orders accepted"}
-                </dd>
-              </div>
-              <div>
-                <dt>Payments</dt>
-                <dd>
-                  {settings.payLater
-                    ? "Preparation before full payment allowed"
-                    : "Full payment required before preparation"}
-                </dd>
-              </div>
-              <div>
-                <dt>Reservations</dt>
-                <dd>
-                  {settings.reservationsEnabled
-                    ? `Accepted · capacity ${settings.capacity}`
-                    : "Not accepted"}
-                </dd>
-              </div>
-              <div>
-                <dt>Hours</dt>
-                <dd>
-                  {settings.serviceHours.length
-                    ? `${settings.serviceHours.length} service windows`
-                    : "Always available"}
-                </dd>
-              </div>
-            </dl>
-            <p>
-              Saving applies these branch preferences. Other launch checks and
-              payment approvals remain separate.
-            </p>
-          </section>
+          <OptionalSettings guided={guided} title="Reservations and capacity">
+            <fieldset
+              className="mw-wide mi-setup-panel"
+              data-setup-step="4"
+              hidden={!guided && setupStep !== 4}
+              disabled={disabled}
+            >
+              <legend>Reservations</legend>
+              <Switch
+                label="Accept reservations"
+                checked={settings.reservationsEnabled}
+                onChange={(reservationsEnabled) =>
+                  setSettings({ ...settings, reservationsEnabled })
+                }
+              />
+              <Stepper
+                label="Reservation capacity"
+                value={settings.capacity}
+                min={1}
+                max={1000}
+                required
+                onChange={(capacity) => setSettings({ ...settings, capacity })}
+              />
+              <p>
+                Timing, deposits and minimum-spend rules have their own reviewed
+                settings.
+              </p>
+            </fieldset>
+          </OptionalSettings>
+          <OptionalSettings guided={guided} title="Review branch settings">
+            <section
+              className="mw-wide mi-setup-review"
+              data-setup-step="5"
+              hidden={!guided && setupStep !== 5}
+              aria-label="Review branch settings"
+            >
+              <h3>Review before saving</h3>
+              <dl>
+                <div>
+                  <dt>Branch</dt>
+                  <dd>
+                    {settings.address || "Address not set"} ·{" "}
+                    {settings.timezone}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Service modes</dt>
+                  <dd>
+                    {settings.serviceModes.length
+                      ? settings.serviceModes
+                          .map(
+                            (mode) =>
+                              ({
+                                counter_takeaway: "Counter & takeaway",
+                                table_service: "Table service",
+                                reservations: "Reservations",
+                                lounge_club: "Lounge & club",
+                              })[mode] || mode,
+                          )
+                          .join(", ")
+                      : "No service modes selected"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Ordering</dt>
+                  <dd>
+                    {settings.orderingPaused
+                      ? "New orders paused"
+                      : "New orders accepted"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Payments</dt>
+                  <dd>
+                    {settings.payLater
+                      ? "Preparation before full payment allowed"
+                      : "Full payment required before preparation"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Reservations</dt>
+                  <dd>
+                    {settings.reservationsEnabled
+                      ? `Accepted · capacity ${settings.capacity}`
+                      : "Not accepted"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Hours</dt>
+                  <dd>
+                    {settings.serviceHours.length
+                      ? `${settings.serviceHours.length} service windows`
+                      : "Always available"}
+                  </dd>
+                </div>
+              </dl>
+              <p>
+                Saving applies these branch preferences. Other launch checks and
+                payment approvals remain separate.
+              </p>
+            </section>
+          </OptionalSettings>
           <div className="mw-wide mi-setup-actions">
             {!guided && setupStep > 0 && (
               <button
