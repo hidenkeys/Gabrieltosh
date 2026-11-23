@@ -38,7 +38,10 @@ test("O4 category read failure offers explicit retry and never claims an empty c
         onCategories={(rows) => published.push(rows)}
       />,
     );
-    assert(screen.getByRole("status"));
+    assert.equal(
+      screen.getByText("Loading categories…").getAttribute("role"),
+      "status",
+    );
     assert.equal(screen.queryByText(/No category groups yet/), null);
     const retry = await screen.findByRole("button", {
       name: "Retry loading categories",
