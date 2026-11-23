@@ -29,16 +29,13 @@ type Props = LegacyProps & {
   ) => Promise<any>;
 };
 const steps = [
-  ["Your account", "Review your signed-in owner access."],
-  ["Your business", "A name, a contact and the way you serve."],
-  ["First branch", "Set the location where service begins."],
-  ["Brand & address", "Make your customer-facing experience your own."],
-  ["Menu", "Build a menu people can explore and order from."],
-  ["Service", "Set up tables and bookings when you need them."],
-  ["Your team", "Give each person the access their job needs."],
-  ["Payments & plan", "Review payment readiness and commercial terms."],
-  ["Preview & launch", "Check the essentials before welcoming customers."],
+  ["Account", "Review your verified owner access."],
+  ["Business", "Set the contact customers can use."],
+  ["Branch", "Configure your location, service and customer experience."],
+  ["Payments", "Review manual payment handling and commercial readiness."],
+  ["Go live", "Review this branch and confirm publication deliberately."],
 ];
+const legacyStages = [0, 1, 2, 2, 2, 2, 2, 3, 4];
 export default function OwnerSetup(props: Props) {
   const [guided, setGuided] = useState(
     () => new URLSearchParams(window.location.search).get("setup") === "1",
@@ -80,13 +77,27 @@ function GuidedSetup(props: Props & { onClose: () => void }) {
     onOpen,
     save,
   } = props;
-  const progressKey = `ownerGuideStep_${branch.id}`;
+  const progressKey = `ownerGuideV2Step_${branch.id}`;
+  const legacyStep = onboarding?.data?.[`ownerGuideStep_${branch.id}`];
   const savedStep = onboarding?.data?.[progressKey];
   const [step, setStep] = useState(
     Number.isInteger(savedStep) && savedStep >= 0 && savedStep < steps.length
       ? savedStep
-      : 0,
+      : (legacyStages[legacyStep] ?? 0),
   );
+  const [publicContact, setPublicContact] = useState<string>(
+    onboarding?.data?.contact ||
+      branch.settings?.publicContact ||
+      onboarding?.data?.phone ||
+      "",
+  );
+  const guidedChild = (
+    child: React.ReactNode,
+    extra: Record<string, unknown>,
+  ) =>
+    React.isValidElement(child) && typeof child.type !== "string"
+      ? React.cloneElement(child as React.ReactElement<any>, extra)
+      : child;
   const [pendingStep, setPendingStep] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -156,7 +167,7 @@ function GuidedSetup(props: Props & { onClose: () => void }) {
         review access.
       </p>
     );
-  const panels = [
+  const legacyPanels = [
     <section className="mera-owner-account" key="account">
       <ShieldCheck size={30} aria-hidden="true" />
       <h3>Signed in as {actorName}</h3>
@@ -169,7 +180,11 @@ function GuidedSetup(props: Props & { onClose: () => void }) {
           : "Signed-in access is separate from email verification and payment-provider approval. The launch checklist checks the required readiness independently."}
       </p>
     </section>,
-    props.basics,
+    guidedChild(props.basics, {
+      guided: true,
+      initialContact: publicContact,
+      onContactSaved: setPublicContact,
+    }),
     props.branchAdministration,
     <div key="brand">
       <div className="mera-owner-address">
@@ -180,7 +195,7 @@ function GuidedSetup(props: Props & { onClose: () => void }) {
           checked separately; address changes require authorized support.
         </small>
       </div>
-      {props.operations || props.appearance}
+      {guidedChild(props.operations || props.appearance, { guided: true })}
     </div>,
     <section className="mera-owner-task" key="menu">
       <h3>A menu that works for your service.</h3>
@@ -253,8 +268,22 @@ function GuidedSetup(props: Props & { onClose: () => void }) {
           unpublished branch may not be available yet.
         </p>
       </div>
-      {props.readiness}
     </div>,
+  ];
+  const panels = [
+    legacyPanels[0],
+    legacyPanels[1],
+    <div key="branch">
+      {legacyPanels[3]}
+      <details className="mera-owner-optional">
+        <summary>Menu, tables and team</summary>
+        {legacyPanels[4]}
+        {legacyPanels[5]}
+        {legacyPanels[6]}
+      </details>
+    </div>,
+    legacyPanels[7],
+    legacyPanels[8],
   ];
   return (
     <section
@@ -278,7 +307,7 @@ function GuidedSetup(props: Props & { onClose: () => void }) {
       </header>
       <div className="mera-owner-grid">
         <nav className="mera-owner-nav" aria-label="Owner setup steps">
-          <p>YOUR SETUP GUIDE</p>
+          <p>Your setup guide</p>
           <ChoiceField
             label={<>Setup step</>}
             className="mera-owner-mobile-steps"
@@ -313,7 +342,7 @@ function GuidedSetup(props: Props & { onClose: () => void }) {
         </nav>
         <div className="mera-owner-main">
           <p className="mera-owner-step-count">
-            STEP {step + 1} OF {steps.length}
+            Step {step + 1} of {steps.length}
           </p>
           <h2 ref={heading} tabIndex={-1}>
             {steps[step][0]}
@@ -346,6 +375,12 @@ function GuidedSetup(props: Props & { onClose: () => void }) {
               {content}
             </div>
           ))}
+          <div hidden={step !== 3 && step !== 4}>
+            {guidedChild(props.readiness, {
+              guidedStage: step === 3 ? "payments" : "review",
+              publicContact,
+            })}
+          </div>
           <footer className="mera-owner-step-footer">
             <button
               className="secondary"
@@ -355,7 +390,11 @@ function GuidedSetup(props: Props & { onClose: () => void }) {
             >
               <ArrowLeft size={15} aria-hidden="true" /> Back
             </button>
-            <span>Save form changes before continuing.</span>
+            <span>
+              {step === 3
+                ? "Payment choices stay in this page until you choose Go live."
+                : "Save form changes before continuing."}
+            </span>
             {step < steps.length - 1 ? (
               <button
                 className="primary"
@@ -382,7 +421,7 @@ function GuidedSetup(props: Props & { onClose: () => void }) {
           className="mera-owner-preview"
           aria-label="Saved business preview"
         >
-          <p>SAVED BUSINESS DETAILS</p>
+          <p>Saved business details</p>
           {organization.branding?.logo && (
             <img
               src={organization.branding.logo}

@@ -640,3 +640,37 @@
   justify-self: start;
   max-width: 100%;
 }
+
+/* A single guided journey; optional operational tasks stay discoverable. */
+.mera-owner-optional {
+  margin-top: 20px;
+  border: 1px solid var(--mera-border);
+  border-radius: 12px;
+  padding: 16px;
+}
+.mera-owner-optional > summary {
+  min-height: 44px;
+  align-content: center;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mera-owner-optional > summary:focus-visible {
+  outline: 2px solid var(--mera-forest);
+  outline-offset: 4px;
+}
+.mera-owner-optional > section,
+.mera-owner-optional > div {
+  margin-top: 16px;
+}
+.mera-owner-setup .mi-setup-panel {
+  min-width: 0;
+}
+.mera-owner-setup .mw-form > fieldset {
+  gap: 12px;
+}
+.mera-owner-setup .mera-owner-nav > p,
+.mera-owner-setup .mera-owner-step-count,
+.mera-owner-setup .mera-owner-preview > p:first-child {
+  text-transform: none;
+  letter-spacing: normal;
+}

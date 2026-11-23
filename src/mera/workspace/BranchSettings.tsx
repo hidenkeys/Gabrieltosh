@@ -8,6 +8,7 @@ import MediaUpload from "../MediaUpload";
 import { brandingTokens } from "../branding";
 import BrandColorField from "./BrandColorField";
 type Props = {
+  guided?: boolean;
   branch: any;
   organization: any;
   base: string;
@@ -25,6 +26,7 @@ export default function BranchSettings({
   base,
   disabled,
   save,
+  guided = false,
 }: Props) {
   const [settings, setSettings] = useState({
     orderingPaused: branch.settings?.orderingPaused ?? true,
@@ -159,7 +161,7 @@ export default function BranchSettings({
           }}
           onSubmit={(event) => {
             event.preventDefault();
-            if (setupStep !== 5) {
+            if (!guided && setupStep !== 5) {
               goToStep(5);
               return;
             }
@@ -180,7 +182,7 @@ export default function BranchSettings({
             );
           }}
         >
-          <div className="mw-wide mi-setup-progress">
+          <div className="mw-wide mi-setup-progress" hidden={guided}>
             <p>
               Step {setupStep + 1} of {setupSteps.length}:{" "}
               {setupSteps[setupStep]}
@@ -206,7 +208,7 @@ export default function BranchSettings({
           <fieldset
             className="mw-wide mi-setup-panel"
             data-setup-step="0"
-            hidden={setupStep !== 0}
+            hidden={!guided && setupStep !== 0}
             disabled={disabled}
           >
             <legend>Business</legend>
@@ -241,7 +243,7 @@ export default function BranchSettings({
           <fieldset
             className="mw-wide mi-setup-panel"
             data-setup-step="1"
-            hidden={setupStep !== 1}
+            hidden={!guided && setupStep !== 1}
             disabled={disabled}
           >
             <legend>Service modes</legend>
@@ -297,7 +299,7 @@ export default function BranchSettings({
           <fieldset
             className="mw-wide mi-setup-panel"
             data-setup-step="2"
-            hidden={setupStep !== 2}
+            hidden={!guided && setupStep !== 2}
             disabled={disabled}
           >
             <legend>Hours</legend>
@@ -331,7 +333,7 @@ export default function BranchSettings({
           <fieldset
             className="mw-wide mi-setup-panel"
             data-setup-step="3"
-            hidden={setupStep !== 3}
+            hidden={!guided && setupStep !== 3}
             disabled={disabled}
           >
             <legend>Payments</legend>
@@ -348,7 +350,7 @@ export default function BranchSettings({
           <fieldset
             className="mw-wide mi-setup-panel"
             data-setup-step="4"
-            hidden={setupStep !== 4}
+            hidden={!guided && setupStep !== 4}
             disabled={disabled}
           >
             <legend>Reservations</legend>
@@ -375,7 +377,7 @@ export default function BranchSettings({
           <section
             className="mw-wide mi-setup-review"
             data-setup-step="5"
-            hidden={setupStep !== 5}
+            hidden={!guided && setupStep !== 5}
             aria-label="Review branch settings"
           >
             <h3>Review before saving</h3>
@@ -443,7 +445,7 @@ export default function BranchSettings({
             </p>
           </section>
           <div className="mw-wide mi-setup-actions">
-            {setupStep > 0 && (
+            {!guided && setupStep > 0 && (
               <button
                 type="button"
                 className="secondary"
@@ -452,7 +454,7 @@ export default function BranchSettings({
                 Back
               </button>
             )}
-            {setupStep < 5 ? (
+            {!guided && setupStep < 5 ? (
               <button
                 type="button"
                 className="primary"

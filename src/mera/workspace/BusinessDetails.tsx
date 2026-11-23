@@ -1,4 +1,3 @@
-import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useRef, useState } from "react";
 export const normalizeBusinessPhone = (value: string) =>
   `${value.trimStart().startsWith("+") ? "+" : ""}${value.replace(/\D/g, "")}`;
@@ -35,6 +34,9 @@ function details(value: any): Draft {
   };
 }
 type Props = {
+  guided?: boolean;
+  initialContact?: string;
+  onContactSaved?: (contact: string) => void;
   organizationId: string;
   onboarding: any;
   canEdit: boolean;
@@ -55,8 +57,14 @@ function ScopedBusinessDetails({
   canEdit,
   disabled,
   save,
+  guided = false,
+  initialContact,
+  onContactSaved,
 }: Props) {
-  const saved = details(onboarding),
+  const saved = {
+      ...details(onboarding),
+      ...(guided && initialContact ? { contact: initialContact } : {}),
+    },
     signature = JSON.stringify(saved);
   const [draft, setDraft] = useState<Draft>(saved),
     [working, setWorking] = useState(false),
@@ -124,6 +132,7 @@ function ScopedBusinessDetails({
         return;
       if (result?.saved !== true)
         throw new Error("The save result could not be confirmed.");
+      onContactSaved?.(original.contact);
       setDraft(original);
       changed.current = false;
       setPending(null);
@@ -203,38 +212,39 @@ function ScopedBusinessDetails({
           style={{ border: 0, padding: 0, margin: 0 }}
         >
           <label>
-            Business contact
+            {guided ? "Public customer contact" : "Business contact"}
             <input
               required
+              minLength={guided ? 3 : undefined}
               maxLength={100}
+              aria-describedby={
+                guided ? "mera-business-contact-hint" : undefined
+              }
               value={draft.contact}
               onChange={(event) => edit({ contact: event.target.value })}
             />
           </label>
-          <label>
-            Phone
-            <input
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              maxLength={60}
-              value={formatBusinessPhone(draft.phone)}
-              onChange={(event) =>
-                edit({ phone: normalizeBusinessPhone(event.target.value) })
-              }
-            />
-          </label>
-          <ChoiceField
-            label={<>Primary service</>}
-            value={draft.serviceMode}
-            onChange={(nextValue) => edit({ serviceMode: nextValue })}
-          >
-            {Object.entries(modes).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </ChoiceField>
+          {guided && (
+            <small id="mera-business-contact-hint">
+              Use the phone number or email customers should contact. Confirm
+              this public contact before going live.
+            </small>
+          )}
+          {!guided && (
+            <label>
+              Phone
+              <input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                maxLength={60}
+                value={formatBusinessPhone(draft.phone)}
+                onChange={(event) =>
+                  edit({ phone: normalizeBusinessPhone(event.target.value) })
+                }
+              />
+            </label>
+          )}
           {!pending && canEdit && (
             <div className="mw-wide mw-actions">
               <button className="primary" disabled={working || disabled}>
