@@ -342,3 +342,27 @@
   max-width: 60ch;
   line-height: 1.5;
 }
+/* A ticket quantity is an indivisible touch control: wrap its row instead of clipping +. */
+.mw-pos-basket-body .mw-row:has(> .mi-stepper) {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+}
+.mw-pos-basket-body .mw-row:has(> .mi-stepper) > span {
+  flex: 1 1 130px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mw-pos-basket-body .mw-row > .mi-stepper {
+  flex: 0 0 174px;
+  min-width: 174px;
+  max-width: 100%;
+}
+.mw-pos-basket-body .mi-stepper-row {
+  width: 174px;
+}
+@media (min-width: 861px) {
+  .mw-pos-basket-body {
+    max-height: min(60dvh, 560px);
+  }
+}
