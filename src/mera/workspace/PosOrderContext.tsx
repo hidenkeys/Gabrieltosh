@@ -1,3 +1,5 @@
+import Segmented from "../ui/Segmented";
+import Combobox from "../ui/Combobox";
 import React from "react";
 export type PosContextDraft = {
   displayName: string;
@@ -32,67 +34,48 @@ export default function PosOrderContext({
   return (
     <div className="mw-pos-context">
       <div className="mw-pos-context-service">
-        <label>
-          Fulfillment
-          <select
-            required
-            disabled={disabled}
-            value={unavailableTableSelection ? "" : draft.fulfillment}
-            onChange={(event) =>
-              onChange({ fulfillment: event.target.value, visitId: undefined })
-            }
-          >
-            {unavailableTableSelection && (
-              <option value="">Choose fulfillment</option>
-            )}
-            <option value="counter_pickup">Counter pickup</option>
-            <option value="takeaway">Takeaway</option>
-            {canUseTables && (
-              <option value="table_service">Table service</option>
-            )}
-          </select>
-        </label>
+        <Segmented
+          label="Fulfillment"
+          required
+          disabled={disabled}
+          value={unavailableTableSelection ? "" : draft.fulfillment}
+          onChange={(value) =>
+            onChange({ fulfillment: value, visitId: undefined })
+          }
+          options={[
+            { value: "counter_pickup", label: "Counter pickup" },
+            { value: "takeaway", label: "Takeaway" },
+            ...(canUseTables
+              ? [{ value: "table_service", label: "Table service" }]
+              : []),
+          ]}
+        />
         {canUseTables && draft.fulfillment === "table_service" && (
-          <label>
-            Open table visit
-            <select
+          <div>
+            <Combobox
+              label="Open table visit"
+              value={draft.visitId || ""}
+              onChange={(value) => onChange({ visitId: value })}
               required
               disabled={disabled}
-              value={draft.visitId || ""}
-              onChange={(event) => onChange({ visitId: event.target.value })}
-            >
-              <option value="">Select an open visit</option>
-              {openVisits.map((visit) => {
-                const tableIds = Array.isArray(visit.tableIds)
-                  ? visit.tableIds
-                  : [visit.tableId];
-                const names = knownTables
-                  .filter(
-                    (table) =>
-                      table &&
-                      tableIds.includes(table.id) &&
-                      typeof table.name === "string" &&
-                      table.name.trim(),
-                  )
-                  .map((table) => table.name);
-                const party =
-                  typeof visit.displayName === "string" &&
-                  visit.displayName.trim()
-                    ? visit.displayName
-                    : "Current party";
-                return (
-                  <option key={visit.id} value={visit.id}>
-                    {names.join(" + ") || "Table"} · {party}
-                  </option>
-                );
-              })}
-            </select>
+              options={openVisits.map((visit) => ({
+                value: visit.id,
+                label:
+                  knownTables
+                    .filter((table) =>
+                      (visit.tableIds || [visit.tableId]).includes(table.id),
+                    )
+                    .map((table) => table.name)
+                    .join(" + ") || "Table",
+                description: visit.displayName || "Current party",
+              }))}
+            />
             {!openVisits.length && (
               <span className="mw-pos-context-empty">
                 No open visits. Open a table visit before adding a table order.
               </span>
             )}
-          </label>
+          </div>
         )}
       </div>
       <details className="mw-pos-context-extra">

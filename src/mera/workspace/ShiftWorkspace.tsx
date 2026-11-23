@@ -1,3 +1,4 @@
+import Chips from "../ui/Chips";
 import { useState, type ReactNode } from "react";
 
 type Queue = "all" | "attention" | "open" | "pending_approval" | "closed";
@@ -58,19 +59,15 @@ export default function ShiftWorkspace({
         </div>
       </header>
       <div className="mw-shift-workspace-toolbar">
-        <label>
-          Shift queue
-          <select
-            value={queue}
-            onChange={(event) => setQueue(event.target.value as Queue)}
-          >
-            {(Object.keys(labels) as Queue[]).map((key) => (
-              <option key={key} value={key}>
-                {labels[key]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Chips
+          label="Show shifts"
+          value={queue}
+          onChange={(v) => setQueue(v as Queue)}
+          options={(Object.keys(labels) as Queue[]).map((key) => ({
+            value: key,
+            label: labels[key],
+          }))}
+        />
         {selected && (
           <button
             type="button"

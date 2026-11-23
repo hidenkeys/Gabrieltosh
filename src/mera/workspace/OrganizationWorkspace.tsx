@@ -1,3 +1,5 @@
+import PaymentEntry from "./PaymentEntry";
+import ChoiceField from "../ui/ChoiceField";
 import { useDialogFocus } from "../ui/useDialogFocus";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -1027,19 +1029,53 @@ export default function OrganizationWorkspace({
     type = "text",
     required = true,
     step?: number,
-  ) => (
-    <label>
-      {label}
-      <input
-        type={type}
-        step={step}
-        min={step ? 0 : undefined}
+  ) =>
+    type === "number" && /amount|naira|₦/i.test(label) ? (
+      <MoneyInput
+        label={label}
+        value={String(tabForm[key] ?? "")}
+        onChange={(value) => updateForm(key, value)}
         required={required}
-        value={tabForm[key] ?? ""}
-        onChange={(event) => updateForm(key, event.target.value)}
+        min={step || 0}
       />
-    </label>
-  );
+    ) : key === "capacity" ? (
+      <Stepper
+        label={label}
+        value={Number(tabForm[key] || 1)}
+        onChange={(value) => updateForm(key, value)}
+        min={1}
+        max={1000}
+        required={required}
+      />
+    ) : key === "reason" ? (
+      <ReasonInput
+        label={label}
+        value={tabForm[key] || ""}
+        onChange={(value) => updateForm(key, value)}
+        presets={[
+          "Wrong item entered",
+          "Quality issue",
+          "Overcharged",
+          "Duplicate payment",
+          "Service issue",
+        ]}
+        required={required}
+        minLength={3}
+        maxLength={300}
+      />
+    ) : (
+      <label>
+        {label}
+        <input
+          type={type}
+          step={step}
+          min={step ? 0 : undefined}
+          required={required}
+          value={tabForm[key] ?? ""}
+          onChange={(event) => updateForm(key, event.target.value)}
+        />
+      </label>
+    );
   const submit =
     (callback: () => Promise<any> | void) => (event: React.FormEvent) => {
       event.preventDefault();
@@ -1417,34 +1453,32 @@ export default function OrganizationWorkspace({
           mera<span>.</span>
         </a>
         <div className="mw-context">
-          <label>
-            Organization
-            <select
-              value={organizationId}
-              disabled={busy}
-              onChange={(event) => setOrganizationId(event.target.value)}
-            >
-              {organizations.map((org: any) => (
-                <option value={org.id} key={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Branch
-            <select
-              value={branchId}
-              disabled={busy}
-              onChange={(event) => setBranchId(event.target.value)}
-            >
-              {branches.map((row: any) => (
-                <option value={row.id} key={row.id}>
-                  {row.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <ChoiceField
+            label="Organization"
+            searchable
+            value={organizationId}
+            disabled={busy}
+            onChange={(value) => setOrganizationId(value)}
+          >
+            {organizations.map((org: any) => (
+              <option value={org.id} key={org.id}>
+                {org.name}
+              </option>
+            ))}
+          </ChoiceField>
+          <ChoiceField
+            label="Branch"
+            searchable
+            value={branchId}
+            disabled={busy}
+            onChange={(value) => setBranchId(value)}
+          >
+            {branches.map((row: any) => (
+              <option value={row.id} key={row.id}>
+                {row.name}
+              </option>
+            ))}
+          </ChoiceField>
           <WorkspaceAccount
             triggerRef={accountTrigger}
             name={context?.user?.name || user?.name || "Staff member"}
@@ -2281,7 +2315,7 @@ export default function OrganizationWorkspace({
                             <dd>
                               {Number.isSafeInteger(data.policy?.monthlyPrice)
                                 ? formatMoney(data.policy.monthlyPrice)
-                                : "Unresolved"}
+                                : "Not set"}
                             </dd>
                           </div>
                           <div>
@@ -2291,7 +2325,7 @@ export default function OrganizationWorkspace({
                                 data.policy?.includedBranches,
                               )
                                 ? data.policy.includedBranches
-                                : "Unresolved"}
+                                : "Not set"}
                             </dd>
                           </div>
                           <div>
@@ -2301,7 +2335,7 @@ export default function OrganizationWorkspace({
                                 data.policy?.additionalBranchPrice,
                               )
                                 ? formatMoney(data.policy.additionalBranchPrice)
-                                : "Unresolved"}
+                                : "Not set"}
                             </dd>
                           </div>
                         </dl>
@@ -2315,7 +2349,7 @@ export default function OrganizationWorkspace({
                           Proposed integrated collection rate:{" "}
                           {Number.isSafeInteger(data.policy?.integratedFeeBps)
                             ? `${data.policy.integratedFeeBps / 100}%`
-                            : "Unresolved"}
+                            : "Not set"}
                           . Recorded cash, external POS and manually verified
                           external transfers are excluded from the integrated
                           collection fee.
@@ -2498,7 +2532,16 @@ export default function OrganizationWorkspace({
                                 ? `${product.stock} in stock`
                                 : "Unlimited stock"}
                           </span>
-                          {product.stockMode === "counted" && <span className="mw-stock-level"><meter aria-label={`Stock level for ${product.name}`} min={0} max={Math.max(100,product.stock||0)} value={product.stock||0}/></span>}
+                          {product.stockMode === "counted" && (
+                            <span className="mw-stock-level">
+                              <meter
+                                aria-label={`Stock level for ${product.name}`}
+                                min={0}
+                                max={Math.max(100, product.stock || 0)}
+                                value={product.stock || 0}
+                              />
+                            </span>
+                          )}
                           <span className="mw-pill">
                             {product.available === false
                               ? "Unavailable"
@@ -2512,7 +2555,15 @@ export default function OrganizationWorkspace({
                               () => beginProductEdit({ ...product }),
                               "menu.edit",
                             )}
-                            {allowed("stock.adjust") && <StockAdjustment product={product} base={branchBase} disabled={busy || offline} save={mutate} />}
+                            {allowed("stock.adjust") && (
+                              <StockAdjustment
+                                key={branchBase + "/" + product.id}
+                                product={product}
+                                base={branchBase}
+                                disabled={busy || offline}
+                                save={mutate}
+                              />
+                            )}
                           </div>
                         </div>
                       ))}
@@ -2537,6 +2588,7 @@ export default function OrganizationWorkspace({
                               allergensText,
                               dietaryText,
                               imagePreview,
+                              priceDraft,
                               ...product
                             } = productEdit;
                             for (const [key, text] of [
@@ -2597,39 +2649,38 @@ export default function OrganizationWorkspace({
                               />
                             </label>
                           ))}
-                          <label>
-                            Menu category
-                            <select
-                              value={productEdit.categoryId || ""}
-                              onChange={(event) => {
-                                const category = categories.find(
-                                  (row) => row.id === event.target.value,
-                                );
-                                setProductEdit({
-                                  ...productEdit,
-                                  categoryId: event.target.value || null,
-                                  ...(category
-                                    ? {
-                                        category: category.name,
-                                        categoryPath: categoryPath(
-                                          category,
-                                          categories,
-                                        ),
-                                      }
-                                    : {}),
-                                });
-                              }}
-                            >
-                              <option value="">Use a category name</option>
-                              {categories
-                                .filter((category) => category.active)
-                                .map((category) => (
-                                  <option key={category.id} value={category.id}>
-                                    {categoryPath(category, categories)}
-                                  </option>
-                                ))}
-                            </select>
-                          </label>
+                          <ChoiceField
+                            label="Menu category"
+                            searchable
+                            value={productEdit.categoryId || ""}
+                            onChange={(value) => {
+                              const category = categories.find(
+                                (row) => row.id === value,
+                              );
+                              setProductEdit({
+                                ...productEdit,
+                                categoryId: value || null,
+                                ...(category
+                                  ? {
+                                      category: category.name,
+                                      categoryPath: categoryPath(
+                                        category,
+                                        categories,
+                                      ),
+                                    }
+                                  : {}),
+                              });
+                            }}
+                          >
+                            <option value="">Use a category name</option>
+                            {categories
+                              .filter((category) => category.active)
+                              .map((category) => (
+                                <option key={category.id} value={category.id}>
+                                  {categoryPath(category, categories)}
+                                </option>
+                              ))}
+                          </ChoiceField>
                           {!productEdit.categoryId && (
                             <>
                               <label>
@@ -2660,89 +2711,75 @@ export default function OrganizationWorkspace({
                               </label>
                             </>
                           )}
-                          <label>
-                            Low-stock alert threshold
-                            <input
-                              required
-                              type="number"
-                              min={0}
-                              max={1000000}
-                              step={1}
-                              value={productEdit.lowStockThreshold ?? 5}
-                              onChange={(event) =>
-                                setProductEdit({
-                                  ...productEdit,
-                                  lowStockThreshold: Number(event.target.value),
-                                })
-                              }
-                            />
-                          </label>
-                          <label>
-                            Price in naira
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={productEdit.price / 100}
-                              required
-                              onChange={(event) =>
-                                setProductEdit({
-                                  ...productEdit,
-                                  price: Math.round(
-                                    Number(event.target.value) * 100,
-                                  ),
-                                })
-                              }
-                            />
-                          </label>
-                          <label>
-                            Stock mode
-                            <select
-                              value={productEdit.stockMode}
-                              disabled={!!productEdit.id}
-                              onChange={(event) =>
-                                setProductEdit({
-                                  ...productEdit,
-                                  stockMode: event.target.value,
-                                })
-                              }
-                            >
-                              <option value="unlimited">Unlimited</option>
-                              <option value="counted">
-                                Counted sellable stock
-                              </option>
-                            </select>
-                          </label>
-                          <label>
-                            Preparation station
-                            <select
-                              value={productEdit.station}
-                              onChange={(event) =>
-                                setProductEdit({
-                                  ...productEdit,
-                                  station: event.target.value,
-                                })
-                              }
-                            >
-                              <option value="bar">Bar</option>
-                              <option value="kitchen">Kitchen</option>
-                            </select>
-                          </label>
-                          <label>
-                            Available
-                            <select
-                              value={String(productEdit.available)}
-                              onChange={(event) =>
-                                setProductEdit({
-                                  ...productEdit,
-                                  available: event.target.value === "true",
-                                })
-                              }
-                            >
-                              <option value="true">Available</option>
-                              <option value="false">Unavailable</option>
-                            </select>
-                          </label>
+                          <Stepper
+                            label="Low-stock alert threshold"
+                            value={productEdit.lowStockThreshold ?? 5}
+                            min={0}
+                            max={1000000}
+                            onChange={(value) =>
+                              setProductEdit({
+                                ...productEdit,
+                                lowStockThreshold: value,
+                              })
+                            }
+                          />
+                          <MoneyInput
+                            label="Price in naira"
+                            value={
+                              productEdit.priceDraft ??
+                              String(productEdit.price / 100)
+                            }
+                            required
+                            onChange={(value) =>
+                              setProductEdit({
+                                ...productEdit,
+                                priceDraft: value,
+                                price: Math.round(Number(value) * 100),
+                              })
+                            }
+                          />
+                          <ChoiceField
+                            label="Stock mode"
+                            value={productEdit.stockMode}
+                            disabled={!!productEdit.id}
+                            onChange={(value) =>
+                              setProductEdit({
+                                ...productEdit,
+                                stockMode: value,
+                              })
+                            }
+                          >
+                            <option value="unlimited">Unlimited</option>
+                            <option value="counted">
+                              Counted sellable stock
+                            </option>
+                          </ChoiceField>
+                          <ChoiceField
+                            label="Preparation station"
+                            value={productEdit.station}
+                            onChange={(value) =>
+                              setProductEdit({
+                                ...productEdit,
+                                station: value,
+                              })
+                            }
+                          >
+                            <option value="bar">Bar</option>
+                            <option value="kitchen">Kitchen</option>
+                          </ChoiceField>
+                          <ChoiceField
+                            label="Available"
+                            value={String(productEdit.available)}
+                            onChange={(value) =>
+                              setProductEdit({
+                                ...productEdit,
+                                available: value === "true",
+                              })
+                            }
+                          >
+                            <option value="true">Available</option>
+                            <option value="false">Unavailable</option>
+                          </ChoiceField>
                           <label className="mw-wide">
                             Description
                             <textarea
@@ -3038,110 +3075,103 @@ export default function OrganizationWorkspace({
                           }
                         />
                       </label>
-                      <label>
-                        Service queue
-                        <select
-                          value={orderFilters.serviceQueue}
-                          onChange={(event) =>
-                            setOrderFilters({
-                              ...orderFilters,
-                              serviceQueue: event.target.value,
-                              unassigned: false,
-                            })
-                          }
-                        >
-                          <option value="all">All recent orders</option>
-                          <option value="active">Active service orders</option>
-                          <option value="delayed">Waiting-time alerts</option>
-                          <option value="mine">Assigned to me</option>
-                          <option value="unassigned">Unassigned orders</option>
-                          <option value="ready">Ready for service</option>
-                        </select>
-                      </label>
+                      <ChoiceField
+                        label="Show orders"
+                        value={orderFilters.serviceQueue}
+                        onChange={(value) =>
+                          setOrderFilters({
+                            ...orderFilters,
+                            serviceQueue: value,
+                            unassigned: false,
+                          })
+                        }
+                      >
+                        <option value="all">All recent orders</option>
+                        <option value="active">Active service orders</option>
+                        <option value="delayed">Waiting-time alerts</option>
+                        <option value="mine">Assigned to me</option>
+                        <option value="unassigned">Unassigned orders</option>
+                        <option value="ready">Ready for service</option>
+                      </ChoiceField>
                     </div>
                     <Disclosure summary="More order filters">
                       <div className="mw-form">
-                        <label>
-                          Order status
-                          <select
-                            value={orderFilters.status}
-                            onChange={(event) =>
-                              setOrderFilters({
-                                ...orderFilters,
-                                status: event.target.value,
-                              })
-                            }
-                          >
-                            <option value="">All states</option>
-                            {[
-                              "submitted",
-                              "accepted",
-                              "preparing",
-                              "ready",
-                              "collected",
-                              "completed",
-                              "rejected",
-                              "cancelled",
-                            ].map((status) => (
-                              <option key={status} value={status}>
-                                {orderStatusLabel(status)}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label>
-                          Order channel
-                          <select
-                            value={orderFilters.source}
-                            onChange={(event) =>
-                              setOrderFilters({
-                                ...orderFilters,
-                                source: event.target.value,
-                              })
-                            }
-                          >
-                            <option value="">All channels</option>
-                            {Array.from(
-                              new Set(
-                                orders
-                                  .map((order: any) => order.source)
-                                  .filter(Boolean),
-                              ),
-                            ).map((source) => (
-                              <option key={source} value={source}>
-                                {sourceLabel(source)}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label>
-                          Payment state
-                          <select
-                            value={orderFilters.payment}
-                            onChange={(event) =>
-                              setOrderFilters({
-                                ...orderFilters,
-                                payment: event.target.value,
-                              })
-                            }
-                          >
-                            <option value="">All payment states</option>
-                            {[
-                              "unpaid",
-                              "pending",
-                              "partially_paid",
-                              "paid",
-                              "partially_refunded",
-                              "refunded",
-                              "failed",
-                              "expired",
-                            ].map((state) => (
-                              <option key={state} value={state}>
-                                {paymentStatusLabel(state)}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
+                        <ChoiceField
+                          label="Order status"
+                          value={orderFilters.status}
+                          onChange={(value) =>
+                            setOrderFilters({
+                              ...orderFilters,
+                              status: value,
+                            })
+                          }
+                        >
+                          <option value="">All states</option>
+                          {[
+                            "submitted",
+                            "accepted",
+                            "preparing",
+                            "ready",
+                            "collected",
+                            "completed",
+                            "rejected",
+                            "cancelled",
+                          ].map((status) => (
+                            <option key={status} value={status}>
+                              {orderStatusLabel(status)}
+                            </option>
+                          ))}
+                        </ChoiceField>
+                        <ChoiceField
+                          label="Order channel"
+                          searchable
+                          value={orderFilters.source}
+                          onChange={(value) =>
+                            setOrderFilters({
+                              ...orderFilters,
+                              source: value,
+                            })
+                          }
+                        >
+                          <option value="">All channels</option>
+                          {Array.from(
+                            new Set(
+                              orders
+                                .map((order: any) => order.source)
+                                .filter(Boolean),
+                            ),
+                          ).map((source) => (
+                            <option key={source} value={source}>
+                              {sourceLabel(source)}
+                            </option>
+                          ))}
+                        </ChoiceField>
+                        <ChoiceField
+                          label="Payment state"
+                          value={orderFilters.payment}
+                          onChange={(value) =>
+                            setOrderFilters({
+                              ...orderFilters,
+                              payment: value,
+                            })
+                          }
+                        >
+                          <option value="">All payment states</option>
+                          {[
+                            "unpaid",
+                            "pending",
+                            "partially_paid",
+                            "paid",
+                            "partially_refunded",
+                            "refunded",
+                            "failed",
+                            "expired",
+                          ].map((state) => (
+                            <option key={state} value={state}>
+                              {paymentStatusLabel(state)}
+                            </option>
+                          ))}
+                        </ChoiceField>
                       </div>
                     </Disclosure>
                     {liveOrders.map((order) => (
@@ -3654,35 +3684,32 @@ export default function OrganizationWorkspace({
                           captureVisitAccess(visit);
                         }}
                       >
-                        <label>
-                          Table
-                          <select
-                            required
-                            value={tabForm.tableId || ""}
-                            onChange={(event) =>
-                              updateForm("tableId", event.target.value)
-                            }
-                          >
-                            <option value="">Choose a table</option>
-                            {list(data.tables)
-                              .filter(
-                                (table: any) =>
-                                  table.status === "available" &&
-                                  !list(data.visits).some(
-                                    (visit: any) =>
-                                      visit.status === "open" &&
-                                      (
-                                        visit.tableIds || [visit.tableId]
-                                      ).includes(table.id),
-                                  ),
-                              )
-                              .map((table: any) => (
-                                <option key={table.id} value={table.id}>
-                                  {table.name}
-                                </option>
-                              ))}
-                          </select>
-                        </label>
+                        <ChoiceField
+                          label="Table"
+                          searchable
+                          required
+                          value={tabForm.tableId || ""}
+                          onChange={(value) => updateForm("tableId", value)}
+                        >
+                          <option value="">Choose a table</option>
+                          {list(data.tables)
+                            .filter(
+                              (table: any) =>
+                                table.status === "available" &&
+                                !list(data.visits).some(
+                                  (visit: any) =>
+                                    visit.status === "open" &&
+                                    (
+                                      visit.tableIds || [visit.tableId]
+                                    ).includes(table.id),
+                                ),
+                            )
+                            .map((table: any) => (
+                              <option key={table.id} value={table.id}>
+                                {table.name}
+                              </option>
+                            ))}
+                        </ChoiceField>
                         {field("Guest display name", "visitName")}
                         {minimumSpendField}
                         <div className="mw-wide">
@@ -3926,46 +3953,56 @@ export default function OrganizationWorkspace({
                         ),
                       )}
                     >
-                      <label>
-                        Order
-                        <select
-                          required
-                          value={tabForm.orderId || ""}
-                          onChange={(event) =>
-                            updateForm("orderId", event.target.value)
-                          }
-                        >
-                          <option value="">Choose an order</option>
-                          {liveOrders.map((order) => (
-                            <option key={order.id} value={order.id}>
-                              {order.reference || order.id.slice(0, 8)} ·{" "}
-                              {order.displayName} · {formatMoney(order.total)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      {field(
-                        "Amount received (naira)",
-                        "amount",
-                        "number",
-                        true,
-                        0.01,
-                      )}
-                      <label>
-                        Payment origin
-                        <select
-                          value={tabForm.method || "cash"}
-                          onChange={(event) =>
-                            updateForm("method", event.target.value)
-                          }
-                        >
-                          <option value="cash">Cash</option>
-                          <option value="external_pos">External POS</option>
-                          <option value="external_transfer">
-                            Verified external transfer
-                          </option>
-                        </select>
-                      </label>
+                      <Combobox
+                        label="Order"
+                        value={tabForm.orderId || ""}
+                        onChange={(value) =>
+                          setTabForm((current) => ({
+                            ...current,
+                            orderId: value,
+                            amount: "",
+                            cashTender: "",
+                          }))
+                        }
+                        required
+                        options={liveOrders.map((order) => ({
+                          value: order.id,
+                          label: order.reference || order.id.slice(0, 8),
+                          description: `${order.displayName || ""} · ${formatMoney(order.total)} · ${order.status}`,
+                          searchText: `${order.tableName || ""} ${order.tableId || ""}`,
+                        }))}
+                      />
+                      <PaymentEntry
+                        order={liveOrders.find(
+                          (order) => order.id === tabForm.orderId,
+                        )}
+                        method={tabForm.method || "cash"}
+                        amount={tabForm.amount || ""}
+                        tender={tabForm.cashTender || ""}
+                        onChange={(patch) =>
+                          setTabForm((current) => ({ ...current, ...patch }))
+                        }
+                      />
+
+                      <Segmented
+                        label="Payment origin"
+                        value={tabForm.method || "cash"}
+                        onChange={(value) =>
+                          setTabForm((current) => ({
+                            ...current,
+                            method: value,
+                            cashTender: "",
+                          }))
+                        }
+                        options={[
+                          { value: "cash", label: "Cash" },
+                          { value: "external_pos", label: "External POS" },
+                          {
+                            value: "external_transfer",
+                            label: "Verified external transfer",
+                          },
+                        ]}
+                      />
                       {field(
                         "Receipt / transfer reference",
                         "reference",
@@ -4007,49 +4044,41 @@ export default function OrganizationWorkspace({
                           ),
                         )}
                       >
-                        <label>
-                          Refund order
-                          <select
-                            required
-                            value={tabForm.refundOrder || ""}
-                            onChange={(event) =>
-                              updateForm("refundOrder", event.target.value)
-                            }
-                          >
-                            <option value="">Choose order</option>
-                            {liveOrders.map((order) => (
-                              <option key={order.id} value={order.id}>
-                                {order.reference || order.id.slice(0, 8)}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
+                        <Combobox
+                          label="Refund order"
+                          value={tabForm.refundOrder || ""}
+                          onChange={(value) => updateForm("refundOrder", value)}
+                          required
+                          options={liveOrders.map((order) => ({
+                            value: order.id,
+                            label: order.reference || order.id.slice(0, 8),
+                            description: `${order.displayName || ""} · ${formatMoney(order.total)}`,
+                          }))}
+                        />
                         {field(
                           "Amount returned (naira)",
                           "refundAmount",
                           "number",
                         )}
-                        <label>
-                          Refund payout method
-                          <select
-                            required
-                            value={tabForm.refundMethod || ""}
-                            onChange={(event) =>
-                              updateForm("refundMethod", event.target.value)
-                            }
-                          >
-                            <option value="">
-                              Choose how money was actually returned
-                            </option>
-                            <option value="cash">Cash returned</option>
-                            <option value="external_pos">
-                              External POS refund
-                            </option>
-                            <option value="external_transfer">
-                              External transfer returned
-                            </option>
-                          </select>
-                        </label>
+                        <Segmented
+                          label="Refund payout method"
+                          value={tabForm.refundMethod || ""}
+                          onChange={(value) =>
+                            updateForm("refundMethod", value)
+                          }
+                          required
+                          options={[
+                            { value: "cash", label: "Cash returned" },
+                            {
+                              value: "external_pos",
+                              label: "External POS refund",
+                            },
+                            {
+                              value: "external_transfer",
+                              label: "External transfer returned",
+                            },
+                          ]}
+                        />
                         {field("Refund reason", "reason")}
                         <div className="mw-wide">
                           <button

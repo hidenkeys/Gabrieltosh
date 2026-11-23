@@ -34,7 +34,7 @@ test("P1 optional context starts closed and retains controlled drafts after clos
     const { container } = render(<Harness />);
     const details = container.querySelector("details")!;
     assert.equal(details.open, false);
-    assert(screen.getByLabelText("Fulfillment"));
+    assert(screen.getByRole("group", {name:"Fulfillment"}));
     details.open = true;
     fireEvent.change(screen.getByLabelText("Customer name (optional)"), {
       target: { value: "Ada" },
@@ -79,13 +79,11 @@ test("P1 fulfillment patches reset visit without owning request keys or cart sta
         onChange={(patch) => patches.push(patch)}
       />,
     );
-    fireEvent.change(screen.getByLabelText("Fulfillment"), {
-      target: { value: "takeaway" },
-    });
+    fireEvent.click(screen.getByRole("radio", {name:"Takeaway"}));
     assert.deepEqual(patches, [
       { fulfillment: "takeaway", visitId: undefined },
     ]);
-    assert.equal(screen.queryByRole("option", { name: "Table service" }), null);
+    assert.equal(screen.queryByRole("radio", { name: "Table service" }), null);
     assert.equal(screen.queryByLabelText("Open table visit"), null);
   } finally {
     cleanup();
@@ -123,15 +121,12 @@ test("P1 table choice uses only open current parties and readable table names", 
     assert(
       (screen.getByLabelText("Open table visit") as HTMLSelectElement).required,
     );
-    assert(
-      screen.getByRole("option", { name: "Garden 1 + Garden 2 · Ada’s party" }),
-    );
-    assert(screen.getByRole("option", { name: "Table · Current party" }));
+    fireEvent.focus(screen.getByLabelText("Open table visit"));
+    assert(screen.getByRole("option", { name: "Garden 1 + Garden 2 Ada’s party" }));
+    assert(screen.getByRole("option", { name: "Table Current party" }));
     assert.equal(screen.queryByRole("option", { name: /Old party/ }), null);
     assert.equal(screen.queryByText("private-open-id"), null);
-    fireEvent.change(screen.getByLabelText("Open table visit"), {
-      target: { value: "private-open-id" },
-    });
+    fireEvent.click(screen.getByRole("option", {name:"Garden 1 + Garden 2 Ada’s party"}));
     assert.deepEqual(patches, [{ visitId: "private-open-id" }]);
   } finally {
     cleanup();
@@ -153,9 +148,9 @@ test("P1 revoked table access exposes no party data and never silently rewrites 
       />,
     );
     assert.equal(screen.queryByText(/Private party/), null);
-    assert.equal(screen.queryByRole("option", { name: "Table service" }), null);
+    assert.equal(screen.queryByRole("radio", { name: "Table service" }), null);
     assert(
-      (screen.getByLabelText("Fulfillment") as HTMLSelectElement).disabled,
+      (screen.getByRole("group", {name:"Fulfillment"}) as HTMLFieldSetElement).disabled,
     );
     assert.deepEqual(patches, []);
   } finally {
