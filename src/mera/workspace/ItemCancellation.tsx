@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { uuid } from "../../api";
 import { WorkspaceError, formatMoney } from "./api";
+import { ReasonInput } from "../ui/ReasonInput";
 export default function ItemCancellation({
   base,
   order,
@@ -170,16 +171,20 @@ export default function ItemCancellation({
                 }}
               />
             </label>
-            <label>
-              Cancellation reason
-              <input
-                required
-                minLength={3}
-                maxLength={300}
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
-              />
-            </label>
+            <ReasonInput
+              label="Cancellation reason"
+              required
+              minLength={3}
+              maxLength={300}
+              value={reason}
+              onChange={setReason}
+              presets={[
+                "Customer changed their order",
+                "Item is unavailable",
+                "Wrong item was entered",
+                "Order took too long",
+              ]}
+            />
           </div>
           {requiresReview && (
             <div className="mw-note">

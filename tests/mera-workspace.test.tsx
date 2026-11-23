@@ -1354,9 +1354,9 @@ test("unpaid item cancellation respects prepared quantities and paid orders stay
       (screen.getByLabelText("Quantity to cancel") as HTMLInputElement).max,
       "2",
     );
-    fireEvent.change(screen.getByLabelText("Cancellation reason"), {
-      target: { value: "Customer changed their order" },
-    });
+    fireEvent.click(
+      screen.getByRole("radio", { name: "Customer changed their order" }),
+    );
     await act(async () =>
       fireEvent.click(
         screen.getByRole("button", {
@@ -1385,9 +1385,9 @@ test("unpaid item cancellation respects prepared quantities and paid orders stay
       }),
     );
     assert.equal(
-      (
-        screen.getByLabelText("Cancellation reason") as HTMLInputElement
-      ).closest("fieldset")?.disabled,
+      screen
+        .getByRole("radio", { name: "Customer changed their order" })
+        .matches(":disabled"),
       true,
     );
     assert(
@@ -1621,7 +1621,8 @@ test("paid item cancellation allocates existing approved refund credit without i
     fireEvent.change(screen.getByLabelText("Item to cancel"), {
       target: { value: "line" },
     });
-    fireEvent.change(screen.getByLabelText("Cancellation reason"), {
+    fireEvent.click(screen.getByRole("radio", { name: "Other" }));
+    fireEvent.change(screen.getByLabelText("Cancellation reason details"), {
       target: { value: "Refund approved for this item" },
     });
     assert.equal(
@@ -2401,7 +2402,8 @@ test("priced item cancellation reviews original-policy totals then records only 
     fireEvent.change(screen.getByLabelText("Item to cancel"), {
       target: { value: "line" },
     });
-    fireEvent.change(screen.getByLabelText("Cancellation reason"), {
+    fireEvent.click(screen.getByRole("radio", { name: "Other" }));
+    fireEvent.change(screen.getByLabelText("Cancellation reason details"), {
       target: { value: "Customer cancelled one unprepared drink" },
     });
     assert.equal(
