@@ -89,7 +89,7 @@ test("day report leads with real totals, aggregates recorded product snapshots a
     "details.mw-report-accounting",
   ) as HTMLDetailsElement;
   assert.equal(accounting.open, false);
-  assert.equal(screen.getAllByText("Unresolved").length, 2);
+  assert.equal(screen.getAllByText("Not available").length, 2);
 });
 test("missing or malformed breakdowns are unavailable while valid zero is actually zero", () => {
   const view = render(
@@ -115,7 +115,7 @@ test("missing or malformed breakdowns are unavailable while valid zero is actual
     .getByRole("heading", { name: "Collections by payment method" })
     .closest("section")!;
   assert(within(methodSection).getByText("₦0.00"));
-  assert(within(methodSection).getByText("Unresolved"));
+  assert(within(methodSection).getByText("Not available"));
   assert(within(methodSection).getByText("Unavailable"));
   assert(within(methodSection).getByText("Unrecognized payment method"));
   assert.equal(

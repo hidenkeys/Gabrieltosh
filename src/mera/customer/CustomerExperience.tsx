@@ -2424,6 +2424,7 @@ export default function CustomerExperience({
                       />
                     </label>
                     <ReservationOptions
+                      serviceHours={menu?.branch?.settings?.serviceHours}
                       tables={menu?.tables}
                       timeZone={menu?.branch?.timezone}
                       disabled={busy || !!reservationIntent}

@@ -22,7 +22,7 @@ Object.defineProperty(globalThis, "navigator", {
   configurable: true,
 });
 const React = await import("react");
-const { render, screen, fireEvent, cleanup, waitFor } =
+const { render, screen, fireEvent, cleanup, waitFor, within } =
   await import("@testing-library/react");
 const { default: Inbox } =
   await import("../src/mera/company/PlatformCompanyInbox");
@@ -421,4 +421,39 @@ test("refresh exposes concurrent saved status, version, handler and follow-up wh
     "Unsaved operator note",
   );
   assert.equal(mock.requests.filter((r) => r.method === "PATCH").length, 0);
+});
+
+test("UTC follow-up calendar preserves incomplete drafts and serializes only a complete instant", async () => {
+  reset();
+  const mock = server();
+  await open();
+  const group = within(
+    screen.getByRole("group", { name: "Follow-up date (UTC)", exact: true }),
+  );
+  fireEvent.click(group.getByRole("button", { name: "Choose another date" }));
+  fireEvent.change(group.getByLabelText("Date", { exact: true }), {
+    target: { value: "2026-12-02" },
+  });
+  assert.equal(
+    (
+      group.getByLabelText("Preferred time", {
+        exact: true,
+      }) as HTMLInputElement
+    ).checkValidity(),
+    false,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Save update" }));
+  assert.equal(
+    mock.requests.filter((request) => request.method === "PATCH").length,
+    0,
+  );
+  fireEvent.change(group.getByLabelText("Preferred time", { exact: true }), {
+    target: { value: "14:30" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Save update" }));
+  await screen.findByText("Update saved. Notes and follow-up remain internal.");
+  const writes = mock.requests.filter((request) => request.method === "PATCH");
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].body.followUp.dueAt, "2026-12-02T14:30:00.000Z");
+  assert.equal(writes[0].headers["X-Mera-Actor-Id"], actor);
 });

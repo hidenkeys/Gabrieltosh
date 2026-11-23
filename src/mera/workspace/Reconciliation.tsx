@@ -26,7 +26,7 @@ type Props = {
 const human = (value: any) =>
   String(value || "Not recorded").replaceAll("_", " ");
 const money = (value: any) =>
-  Number.isSafeInteger(value) ? formatMoney(value) : "Unresolved";
+  Number.isSafeInteger(value) ? formatMoney(value) : "Not available";
 export default function Reconciliation(props: Props) {
   return <ScopedReconciliation key={props.base} {...props} />;
 }

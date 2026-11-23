@@ -1,3 +1,4 @@
+import { serviceHourSuggestions } from "./serviceHourSuggestions";
 import { useState } from "react";
 import { Chips } from "../ui/Chips";
 import { Stepper } from "../ui/Stepper";
@@ -6,15 +7,22 @@ export default function ReservationOptions({
   tables = [],
   disabled = false,
   timeZone,
+  serviceHours,
 }: {
   tables?: { id: string; name: string }[];
   disabled?: boolean;
   timeZone?: string;
+  serviceHours?: unknown;
 }) {
   const [party, setParty] = useState(2),
     [duration, setDuration] = useState("60"),
     [table, setTable] = useState(""),
     [startsAt, setStartsAt] = useState("");
+  const now = new Date(),
+    selectedDay =
+      startsAt.split("T")[0] ||
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const guidance = serviceHourSuggestions(selectedDay, serviceHours, timeZone);
   return (
     <div className="mc-reservation-options">
       <Stepper
@@ -58,6 +66,12 @@ export default function ReservationOptions({
         <DateTimePicker
           id="mc-reservation-start"
           label="Date & time"
+          suggestedSlots={guidance.configured ? guidance.times : undefined}
+          availabilityHint={
+            guidance.configured
+              ? "Suggested starts follow the branch’s service hours. They do not confirm a table is free; you can enter another preferred time for the team to review."
+              : undefined
+          }
           ariaDescribedBy="mc-reservation-timezone"
           name="startsAt"
           value={startsAt}
@@ -65,6 +79,12 @@ export default function ReservationOptions({
           disabled={disabled}
           required
         />
+        {guidance.configured && !guidance.times.length && (
+          <p role="status">
+            There are no starts within the branch’s service hours on this device
+            date. Enter a preferred time or ask the team.
+          </p>
+        )}
         <small id="mc-reservation-timezone">
           Choose your device’s local time (
           {Intl.DateTimeFormat().resolvedOptions().timeZone}). The venue is in{" "}

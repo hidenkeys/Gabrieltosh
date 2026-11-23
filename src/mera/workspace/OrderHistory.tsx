@@ -1,3 +1,4 @@
+import DateTimePicker from "../ui/DateTimePicker";
 import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useRef, useState } from "react";
 import { formatMoney, workspaceApi } from "./api";
@@ -67,7 +68,7 @@ const labels: Record<string, string> = {
   legacy_paid_basis: "Legacy paid basis",
   fulfilled_only: "Fulfilled only",
   immutable_collected_at: "Recorded collection time",
-  unresolved_source_tax_breakdown: "Source tax breakdown unresolved",
+  unresolved_source_tax_breakdown: "Source tax details unavailable",
 };
 const human = (value: unknown) =>
   typeof value === "string" && value.trim()
@@ -493,22 +494,20 @@ function ScopedOrderHistory({
                   ))}
                 </datalist>
               </label>
-              <label>
-                History from (device local time)
-                <input
-                  type="datetime-local"
-                  value={draft.from}
-                  onChange={(event) => update("from", event.target.value)}
-                />
-              </label>
-              <label>
-                History until (exclusive, device local time)
-                <input
-                  type="datetime-local"
-                  value={draft.to}
-                  onChange={(event) => update("to", event.target.value)}
-                />
-              </label>
+              <DateTimePicker
+                label="History from (device local time)"
+                value={draft.from}
+                onChange={(value) => update("from", value)}
+                availabilityHint={false}
+              />
+
+              <DateTimePicker
+                label="History until (exclusive, device local time)"
+                value={draft.to}
+                onChange={(value) => update("to", value)}
+                availabilityHint={false}
+              />
+
               <ChoiceField
                 label={<>Orders per page</>}
                 value={draft.take}

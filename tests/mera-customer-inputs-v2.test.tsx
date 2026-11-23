@@ -130,3 +130,45 @@ test("guest reservation chips and stepper retain native form values and disclose
     "mc-reservation-timezone",
   );
 });
+
+test("branch-hour suggestions guide device-local starts without claiming capacity or rejecting another preferred time", () => {
+  const old = process.env.TZ;
+  process.env.TZ = "UTC";
+  try {
+    render(
+      <form aria-label="Hours-guided request">
+        <ReservationOptions
+          timeZone="Pacific/Honolulu"
+          serviceHours={[{ days: [2], start: "14:00", end: "16:00" }]}
+        />
+      </form>,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Choose another date" }),
+    );
+    fireEvent.change(screen.getByLabelText("Date", { exact: true }), {
+      target: { value: "2030-01-02" },
+    });
+    assert(screen.getByRole("radio", { name: "00:30", exact: true }));
+    assert.equal(
+      screen.queryByRole("radio", { name: "12:00", exact: true }),
+      null,
+    );
+    assert(screen.getByText(/do not confirm a table is free/));
+    fireEvent.change(screen.getByLabelText("Preferred time", { exact: true }), {
+      target: { value: "12:00" },
+    });
+    const form = screen.getByRole("form", {
+      name: "Hours-guided request",
+    }) as HTMLFormElement;
+    assert.equal(
+      form.checkValidity(),
+      true,
+      "ordering service hours are guidance, not a fabricated reservation-capacity policy",
+    );
+    assert.equal(new FormData(form).get("startsAt"), "2030-01-02T12:00");
+  } finally {
+    if (old === undefined) delete process.env.TZ;
+    else process.env.TZ = old;
+  }
+});

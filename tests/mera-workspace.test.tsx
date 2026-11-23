@@ -3359,7 +3359,7 @@ test("tax-dependent revenue remains explicitly unresolved when historical tax ev
         },
       }),
     );
-    assert.equal(screen.getAllByText("Unresolved").length, 2);
+    assert.equal(screen.getAllByText("Not available").length, 2);
   } finally {
     cleanup();
   }

@@ -204,7 +204,7 @@ test("reference-only recovery never retries private details and explicit confirm
       }),
     );
     fireEvent.click(
-      screen.getByRole("button", { name: "Check and stop original request" }),
+      screen.getByRole("button", { name: "Stop this unconfirmed request" }),
     );
     await screen.findByText(/unconfirmed request was stopped/);
     assert.equal(journal.readStaffReservationJournal(scope), null);

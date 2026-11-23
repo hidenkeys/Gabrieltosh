@@ -1,3 +1,4 @@
+import DateTimePicker from "../ui/DateTimePicker";
 import ChoiceField from "../ui/ChoiceField";
 import { useEffect, useRef, useState } from "react";
 import { workspaceApi, WorkspaceError } from "../workspace/api";
@@ -614,24 +615,16 @@ export default function PlatformCompanyInbox({
                     <option value="discovery">Discovery</option>
                     <option value="proposal">Proposal</option>
                   </ChoiceField>
-                  <label>
-                    Follow-up date (UTC)
-                    <input
-                      type="datetime-local"
-                      value={draft.followUp.dueAt?.slice(0, 16) || ""}
-                      onChange={(e) =>
-                        setDraft({
-                          ...draft,
-                          followUp: {
-                            ...draft.followUp,
-                            dueAt: e.target.value
-                              ? new Date(e.target.value + "Z").toISOString()
-                              : null,
-                          },
-                        })
-                      }
-                    />
-                  </label>
+                  <UtcFollowUpDate
+                    key={detail.id}
+                    value={draft.followUp.dueAt || null}
+                    onChange={(dueAt) =>
+                      setDraft({
+                        ...draft,
+                        followUp: { ...draft.followUp, dueAt },
+                      })
+                    }
+                  />
                   <label>
                     Follow-up summary
                     <textarea
@@ -688,5 +681,44 @@ export default function PlatformCompanyInbox({
         </>
       )}
     </section>
+  );
+}
+
+/** Keep an incomplete calendar draft local; only complete UTC instants cross the saved-record boundary. */
+function UtcFollowUpDate({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (value: string | null) => void;
+}) {
+  const [raw, setRaw] = useState(value?.slice(0, 16) || "");
+  const emitted = useRef(value);
+  useEffect(() => {
+    if (value !== emitted.current) {
+      setRaw(value?.slice(0, 16) || "");
+      emitted.current = value;
+    }
+  }, [value]);
+  return (
+    <DateTimePicker
+      label="Follow-up date (UTC)"
+      value={raw}
+      availabilityHint={false}
+      onChange={(next) => {
+        setRaw(next);
+        if (next === "") {
+          emitted.current = null;
+          onChange(null);
+          return;
+        }
+        if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(next)) return;
+        const date = new Date(next + "Z");
+        if (!Number.isFinite(date.getTime())) return;
+        const instant = date.toISOString();
+        emitted.current = instant;
+        onChange(instant);
+      }}
+    />
   );
 }

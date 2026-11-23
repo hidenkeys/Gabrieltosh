@@ -105,7 +105,7 @@ export default function TableServiceView({
             <p>Keep each party’s rounds, tables and access together.</p>
           </div>
           <ChoiceField
-            label={<>Party view</>}
+            label={<>Show visits</>}
             value={view}
             onChange={(nextValue) => setView(nextValue)}
           >

@@ -1,3 +1,4 @@
+import DateTimePicker from "./ui/DateTimePicker";
 import ChoiceField from "./ui/ChoiceField";
 import { useEffect, useState, useRef } from "react";
 import { workspaceApi, formatMoney, WorkspaceError } from "./workspace/api";
@@ -581,7 +582,7 @@ export default function Platform() {
                   [
                     "Proposed monthly base",
                     data.policy?.monthlyPrice == null
-                      ? "Unresolved"
+                      ? "Not set"
                       : formatMoney(data.policy.monthlyPrice),
                   ],
                   ["Live collections", "Disabled"],
@@ -986,20 +987,19 @@ export default function Platform() {
                         ["paidThrough", "Paid through (UTC)"],
                         ["dueAt", "Payment due (UTC)"],
                       ].map(([key, label]) => (
-                        <label key={key}>
-                          {label}
-                          <input
-                            type="datetime-local"
-                            value={dates[key]}
-                            disabled={!!pendingChange}
-                            onChange={(e) =>
-                              setDates({ ...dates, [key]: e.target.value })
-                            }
-                          />
-                        </label>
+                        <DateTimePicker
+                          key={key}
+                          label={label}
+                          value={dates[key]}
+                          disabled={!!pendingChange}
+                          availabilityHint={false}
+                          onChange={(value) =>
+                            setDates({ ...dates, [key]: value })
+                          }
+                        />
                       ))}
                       <p>
-                        Blank dates stay unresolved. A production trial needs an
+                        Leave unagreed dates blank. A production trial needs an
                         explicit end date; grace periods require approved
                         policy. Manual activation does not collect a payment.
                       </p>
@@ -1168,7 +1168,7 @@ export default function Platform() {
                             <dt>{label}</dt>
                             <dd>
                               {selected.policy[field] == null
-                                ? "Unresolved"
+                                ? "Not set"
                                 : field.toLowerCase().includes("price")
                                   ? formatMoney(selected.policy[field])
                                   : String(selected.policy[field]).replaceAll(

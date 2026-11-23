@@ -24,7 +24,7 @@ const paymentStates: Record<string, string> = {
 };
 const activities: Record<string, string> = {
   ...orderStates,
-  assigned: "Order handler updated",
+  assigned: "Your service team was updated",
   payment_recorded: "Payment recorded",
   refund_recorded: "Refund recorded",
   refund_requested: "Refund requested",

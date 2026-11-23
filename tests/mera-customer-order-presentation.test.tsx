@@ -110,3 +110,13 @@ test("session orders show readable separate states and branch time without rende
     globalThis.fetch = original;
   }
 });
+
+test("service-assignment activity uses guest language without exposing internal handler terms", async () => {
+  const { activityLabel } =
+    await import("../src/mera/customer/orderPresentation");
+  assert.equal(activityLabel("assigned"), "Your service team was updated");
+  assert.equal(
+    activityLabel("unknown_private_actor"),
+    "Order activity recorded",
+  );
+});

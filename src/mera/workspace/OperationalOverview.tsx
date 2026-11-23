@@ -15,7 +15,7 @@ const money = (value: any) =>
   Number.isSafeInteger(value)
     ? formatMoney(value)
     : value === null
-      ? "Unresolved"
+      ? "Not available"
       : "Unavailable";
 export default function OperationalOverview({
   data,

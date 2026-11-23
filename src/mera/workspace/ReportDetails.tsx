@@ -32,7 +32,7 @@ function amount(value: unknown) {
   return integer(value)
     ? formatMoney(value)
     : value === null
-      ? "Unresolved"
+      ? "Not available"
       : value === undefined
         ? "Not reported"
         : "Unavailable";
@@ -41,7 +41,7 @@ function quantity(value: unknown) {
   return integer(value) && value >= 0
     ? String(value)
     : value === null
-      ? "Unresolved"
+      ? "Not available"
       : value === undefined
         ? "Not reported"
         : "Unavailable";
@@ -278,7 +278,7 @@ export default function ReportDetails({ report }: { report: unknown }) {
               .join(", ")}
             , rather than assuming a new collection occurred on this date.
             {report.historicalTaxStatus
-              ? " Source tax breakdown is unresolved; tax-dependent totals remain unresolved."
+              ? " Source tax details are not available; totals that depend on tax cannot be shown."
               : ""}
           </p>
         </div>
@@ -288,8 +288,9 @@ export default function ReportDetails({ report }: { report: unknown }) {
           <div className="mw-note">
             <strong>Tax breakdown needs review</strong>
             <p>
-              Some source tax amounts remain unresolved. Tax-dependent revenue
-              and liability totals remain unresolved until reviewed.
+              Some source tax amounts are not yet recorded. Revenue and
+              liability totals that depend on them cannot be shown until
+              reviewed.
             </p>
           </div>
         )}
@@ -460,7 +461,7 @@ export default function ReportDetails({ report }: { report: unknown }) {
         <p>
           These figures are separate measures. Deposits received are included in
           collections; do not add them to collections again. Tax-dependent
-          amounts may remain unresolved.
+          amounts may be unavailable.
         </p>
         <p>
           <strong>

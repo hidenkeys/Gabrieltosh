@@ -467,7 +467,7 @@ function ScopedRequest(props: Props) {
               }
               onClick={() => void stop()}
             >
-              Check and stop original request
+              Stop this unconfirmed request
             </Action>
           </Disclosure>
         </section>

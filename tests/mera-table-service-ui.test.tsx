@@ -83,13 +83,13 @@ test("party filtering preserves mounted drafts and resolves combined table names
     fireEvent.change(screen.getByLabelText("Party note"), {
       target: { value: "Keep this draft" },
     });
-    chooseField(screen, fireEvent, "Party view", String("closed"));
+    chooseField(screen, fireEvent, "Show visits", String("closed"));
     assert.ok(screen.getByText("No visits in this view."));
     assert.equal(
       screen.getByLabelText("Party note").closest("article")?.hidden,
       true,
     );
-    chooseField(screen, fireEvent, "Party view", String("open"));
+    chooseField(screen, fireEvent, "Show visits", String("open"));
     assert.equal(
       (screen.getByLabelText("Party note") as HTMLInputElement).value,
       "Keep this draft",
