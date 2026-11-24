@@ -4,11 +4,13 @@ import StockAdjustment from "./StockAdjustment";
 import Combobox from "../ui/Combobox";
 export default function StockMovements({
   base,
+  onTransfers,
   products,
   disabled,
   save,
 }: {
   base: string;
+  onTransfers?: () => void;
   products: any[];
   disabled: boolean;
   save: (
@@ -62,6 +64,11 @@ export default function StockMovements({
   return (
     <section className="mw-card">
       <h2>Restock, waste & loss</h2>
+      {onTransfers && (
+        <button className="secondary" onClick={onTransfers}>
+          Stock transfers
+        </button>
+      )}
       <p>
         Counted stock only. These movements change inventory; refunds never
         automatically restock it.

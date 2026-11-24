@@ -25,6 +25,7 @@ type Props = {
   base: string;
   disabled: boolean;
   canPay: boolean;
+  canRoomCharge?: boolean;
   save: (
     path: string,
     method: string,
@@ -62,6 +63,7 @@ function ScopedBills({
   base,
   disabled,
   canPay,
+  canRoomCharge = false,
   save,
 }: Props) {
   const available =
@@ -768,7 +770,10 @@ function ScopedBills({
                         requestKey: uuid(),
                         amount: Math.round(Number(form.paymentAmount) * 100),
                         method: form.method || "cash",
-                        reference: form.reference || "",
+                        reference:
+                          form.method === "room_charge"
+                            ? `${form.roomNumber || ""} ${form.surname || ""}`
+                            : form.reference || "",
                       },
                       "Bill collection recorded.",
                     );
@@ -791,6 +796,9 @@ function ScopedBills({
                     value={form.method || "cash"}
                     onChange={(value) => update("method", value)}
                     options={[
+                      ...(canRoomCharge
+                        ? [{ value: "room_charge", label: "Charge to room" }]
+                        : []),
                       { value: "cash", label: "Cash" },
                       { value: "external_pos", label: "External POS" },
                       {
@@ -799,6 +807,30 @@ function ScopedBills({
                       },
                     ]}
                   />
+                  {form.method === "room_charge" && (
+                    <>
+                      <label>
+                        Room number
+                        <input
+                          required
+                          pattern="[A-Za-z0-9 -]+"
+                          maxLength={20}
+                          value={form.roomNumber || ""}
+                          onChange={(e) => update("roomNumber", e.target.value)}
+                        />
+                      </label>
+                      <label>
+                        Guest surname
+                        <input
+                          required
+                          pattern="[A-Za-z -]+"
+                          maxLength={39}
+                          value={form.surname || ""}
+                          onChange={(e) => update("surname", e.target.value)}
+                        />
+                      </label>
+                    </>
+                  )}
                   <label>
                     Verified reference
                     <input

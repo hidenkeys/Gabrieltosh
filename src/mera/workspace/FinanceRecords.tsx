@@ -8,6 +8,7 @@ const method = (value: string) =>
   (
     ({
       cash: "Cash",
+      room_charge: "Charged to room",
       external_pos: "Card / POS",
       external_transfer: "External transfer",
     }) as Record<string, string>

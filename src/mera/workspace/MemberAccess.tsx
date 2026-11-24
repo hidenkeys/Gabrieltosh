@@ -33,6 +33,9 @@ const roleNames: Record<string, string> = {
   front_desk: "Front desk",
   stock_controller: "Stock controller",
   reports_only: "Reports only",
+  area_manager: "Area manager",
+  finance: "Finance",
+  central_stock: "Central stock",
 };
 export default function MemberAccess(props: Props) {
   return (
@@ -230,17 +233,31 @@ function ScopedMembers({
         .includes(query),
   );
   const scope = (member: any) =>
-    member.organizationWide === true
-      ? "All organization branches"
-      : member.branchIds.length
-        ? member.branchIds
-            .map(
-              (id: string) =>
-                branches.find((branch) => branch.id === id)?.name ||
-                "Other branch",
-            )
-            .join(", ")
-        : "No branch access";
+    Object.keys(member.branchRoles || {}).length
+      ? [
+          ...new Set<string>([
+            ...(member.organizationWide
+              ? branches.map((b) => b.id)
+              : member.branchIds),
+            ...Object.keys(member.branchRoles),
+          ]),
+        ]
+          .map(
+            (id) =>
+              `${branches.find((b) => b.id === id)?.name || "Other location"}: ${roleNames[member.branchRoles[id]?.role || member.role] || "Custom role"}`,
+          )
+          .join(", ")
+      : member.organizationWide === true
+        ? "All organization branches"
+        : member.branchIds.length
+          ? member.branchIds
+              .map(
+                (id: string) =>
+                  branches.find((branch) => branch.id === id)?.name ||
+                  "Other branch",
+              )
+              .join(", ")
+          : "No branch access";
   return (
     <section className="mw-card mw-member-access">
       <header className="mw-member-heading">

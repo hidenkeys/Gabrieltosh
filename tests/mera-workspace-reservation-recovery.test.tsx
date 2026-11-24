@@ -50,6 +50,7 @@ const context = {
         {
           id: branch,
           name: "Surulere",
+          settings: { capabilities: ["table_service", "reservations"] },
           timezone: "Africa/Lagos",
           currency: "NGN",
         },

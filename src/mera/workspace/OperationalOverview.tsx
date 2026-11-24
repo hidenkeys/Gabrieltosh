@@ -80,6 +80,15 @@ export default function OperationalOverview({
       );
   return (
     <div className="mw-overview">
+      {canNavigate("organization") && (
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => onNavigate("organization")}
+        >
+          All locations
+        </button>
+      )}
       {stale && (
         <p role="status" className="mw-note">
           Showing previously loaded records. Refresh the workspace to confirm

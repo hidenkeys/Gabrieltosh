@@ -1,0 +1,135 @@
+.mera-workspace .mw-location-switcher {
+  position: relative;
+  min-width: 210px;
+}
+.mera-workspace .mw-location-current {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.mera-workspace .mw-location-current input {
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+}
+.mera-workspace .mw-location-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.mera-workspace .mw-location-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--location-color, #153f32);
+  border: 1px solid currentColor;
+}
+.mw-location-lime {
+  --location-color: #d9eb92;
+}
+.mw-location-clay {
+  --location-color: #b96145;
+}
+.mw-location-ocean {
+  --location-color: #236b85;
+}
+.mw-location-plum {
+  --location-color: #735176;
+}
+.mw-location-sun {
+  --location-color: #d3a72c;
+}
+.mw-location-stone {
+  --location-color: #77796d;
+}
+.mw-location-rose {
+  --location-color: #bd6680;
+}
+.mera-workspace .mw-location-options {
+  position: absolute;
+  z-index: 50;
+  top: 100%;
+  left: 0;
+  width: max(100%, 270px);
+  max-width: 85vw;
+  max-height: 360px;
+  overflow: auto;
+  background: var(--wx-paper, #f7f6f0);
+  border: 1px solid var(--wx-line, #d3d8cf);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px #153f3220;
+}
+.mera-workspace .mw-location-options [role="option"] {
+  padding: 12px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.mera-workspace .mw-location-options [aria-selected="true"] {
+  background: #d9eb9240;
+}
+.mera-workspace .mw-location-options small {
+  display: block;
+  margin-top: 4px;
+}
+.mera-workspace .mw-location-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding: 20px 0;
+  border-block: 1px solid var(--wx-line, #d3d8cf);
+}
+.mera-workspace .mw-location-totals dd {
+  margin: 6px 0 0;
+  font-size: 24px;
+  font-family: "Mera Display", sans-serif;
+}
+.mera-workspace .mw-all-locations {
+  font-variant-numeric: tabular-nums;
+}
+.mera-workspace .mw-location-table {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.mera-workspace .mw-location-table th,
+.mera-workspace .mw-location-table td {
+  padding: 10px;
+  text-align: left;
+  white-space: nowrap;
+}
+.mera-workspace .mw-status-chip {
+  display: inline-block;
+  border: 1px solid var(--wx-line, #d3d8cf);
+  border-radius: 10px;
+  padding: 4px 10px;
+}
+.mera-workspace .mw-stock-transfers article,
+.mera-workspace .mw-door-guest-list article {
+  padding-block: 16px;
+  border-bottom: 1px solid var(--wx-line, #d3d8cf);
+}
+.mera-workspace .mw-all-locations button,
+.mera-workspace .mw-location-table button {
+  min-height: 44px;
+}
+.mera-workspace .mw-location-switcher :focus-visible {
+  outline: 2px solid var(--brand, #153f32);
+  outline-offset: 3px;
+}
+
+.mera-workspace .mw-stock-transfers button,
+.mera-workspace .mw-door-guest-list button {
+  min-height: 44px;
+}
+.mera-workspace .mw-stock-transfers fieldset,
+.mera-workspace .mw-door-guest-list fieldset {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.mera-workspace .mw-location-options [data-active="true"] {
+  outline: 2px solid var(--brand, #153f32);
+  outline-offset: -3px;
+}

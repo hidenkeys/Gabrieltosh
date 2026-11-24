@@ -23,6 +23,9 @@ import {
   ChevronDown,
 } from "lucide-react";
 const pageIcons: Record<string, typeof LayoutGrid> = {
+  organization: ChartNoAxesCombined,
+  door: Users,
+  transfers: Package,
   counter: LayoutGrid,
   orders: ClipboardList,
   preparation: ChefHat,
@@ -55,10 +58,22 @@ const groups = [
       "tables",
       "reservations",
       "waitlist",
+      "door",
       "help",
     ],
   ],
-  ["Management", ["overview", "menu", "payments", "shifts", "team"]],
+  [
+    "Management",
+    [
+      "organization",
+      "overview",
+      "menu",
+      "transfers",
+      "payments",
+      "shifts",
+      "team",
+    ],
+  ],
 ] as const;
 const moreIds = [
   "care",
@@ -72,6 +87,7 @@ const moreIds = [
 ];
 export default function WorkspaceNavigation({
   sections,
+  turnedOffSections = [],
   active,
   onSelect,
   organization,
@@ -80,6 +96,7 @@ export default function WorkspaceNavigation({
   connectionState = "unknown",
 }: {
   sections: string[][];
+  turnedOffSections?: string[];
   active: string;
   onSelect: (id: string, options?: { focusDestination: boolean }) => void;
   organization: string;
@@ -87,12 +104,13 @@ export default function WorkspaceNavigation({
   logo?: string;
   connectionState?: "unknown" | "connecting" | "connected" | "offline";
 }) {
+  const extraMoreIds = [...moreIds, ...turnedOffSections];
   const [open, setOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(() => moreIds.includes(active));
+  const [moreOpen, setMoreOpen] = useState(() => extraMoreIds.includes(active));
   const moreToggle = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    if (moreIds.includes(active)) setMoreOpen(true);
-  }, [active]);
+    if (extraMoreIds.includes(active)) setMoreOpen(true);
+  }, [active, turnedOffSections.join("|")]);
   const [logoFailed, setLogoFailed] = useState(false);
   useEffect(() => setLogoFailed(false), [logo]);
   const navigation = useRef<HTMLElement>(null);
@@ -158,6 +176,12 @@ export default function WorkspaceNavigation({
                 : id === "overview"
                   ? "Overview"
                   : name}
+              {turnedOffSections.includes(id) && (
+                <>
+                  {" "}
+                  <small>Turned off</small>
+                </>
+              )}
             </button>
           ))}
         </div>
@@ -173,7 +197,7 @@ export default function WorkspaceNavigation({
         aria-expanded={open}
         aria-controls="mw-operational-navigation"
         onClick={() => {
-          if (!open && moreIds.includes(active)) setMoreOpen(true);
+          if (!open && extraMoreIds.includes(active)) setMoreOpen(true);
           setOpen(!open);
         }}
       >
@@ -284,9 +308,14 @@ export default function WorkspaceNavigation({
             aria-label="Workspace pages"
             aria-orientation="vertical"
           >
-            {groups.map(([label, ids]) => renderGroup(label, [...ids]))}
+            {groups.map(([label, ids]) =>
+              renderGroup(
+                label,
+                ids.filter((id) => !turnedOffSections.includes(id)),
+              ),
+            )}
           </div>
-          {moreIds.some((id) =>
+          {extraMoreIds.some((id) =>
             sections.some((section) => section[0] === id),
           ) && (
             <div className="mw-nav-more">
@@ -311,7 +340,7 @@ export default function WorkspaceNavigation({
                 aria-orientation="vertical"
                 hidden={!moreOpen}
               >
-                {renderGroup("", moreIds)}
+                {renderGroup("", extraMoreIds)}
               </div>
             </div>
           )}

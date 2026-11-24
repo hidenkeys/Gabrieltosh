@@ -1,3 +1,10 @@
+import AllLocations from "./AllLocations";
+import StockTransfers, { useVenueWrite } from "./StockTransfers";
+import DoorGuestList from "./DoorGuestList";
+import LocationSwitcher from "./LocationSwitcher";
+// @ts-expect-error Shared venue contract is plain JavaScript.
+import * as venues from "../../../shared/mera-venues.js";
+const { effectiveCapabilities, sectionEnabled } = venues;
 import PaymentEntry from "./PaymentEntry";
 import ChoiceField from "../ui/ChoiceField";
 import { useDialogFocus } from "../ui/useDialogFocus";
@@ -130,6 +137,9 @@ const nextState: Record<string, string> = {
   collected: "completed",
 };
 const sections = [
+  ["organization", "All locations", "organization.overview"],
+  ["door", "Door & guest list", "door.manage"],
+  ["transfers", "Stock transfers", "stock.transfer"],
   ["overview", "Your branch", "reports.view"],
   ["onboarding", "Getting started", "organization.manage"],
   ["menu", "Menu & stock", "menu.edit"],
@@ -151,7 +161,10 @@ const sections = [
   ["help", "Customer requests", "help.manage"],
   ["support", "Mera support", "support.manage"],
 ];
-const sourceLabel = (value: string) => value?.replaceAll("_", " ") || "—";
+const sourceLabel = (value: string) =>
+  value === "room_charge"
+    ? "Charged to room"
+    : value?.replaceAll("_", " ") || "—";
 const list = (value: any) => (Array.isArray(value) ? value : []);
 const dateLabel = (value: any) =>
   value
@@ -258,14 +271,28 @@ export default function OrganizationWorkspace({
   const organization = organizations.find(
     (row: any) => row.id === organizationId,
   );
-  const permissions = list(organization?.permissions);
-  const allowed = (permission: string) => permissions.includes(permission);
-  const branches = list(organization?.branches).filter(
-    (branch: any) =>
-      organization?.organizationWide === true ||
-      !organization?.branchIds?.length ||
-      organization.branchIds.includes(branch.id),
+  const membershipPermissions = list(organization?.permissions);
+  const branches = list(organization?.branches);
+  const selectedBranch = branches.find((row: any) => row.id === branchId);
+  const permissions = list(
+    selectedBranch?.permissions ?? organization?.permissions,
   );
+  const allowed = (permission: string) => permissions.includes(permission);
+  const capabilities = effectiveCapabilities(selectedBranch?.settings);
+  const turnedOffSections = [
+    ...(!sectionEnabled("tables", capabilities) &&
+    list(data?.visits).some((v: any) => v.status === "open")
+      ? ["tables"]
+      : []),
+    ...(!sectionEnabled("reservations", capabilities) &&
+    list(data?.reservations).some(
+      (r: any) =>
+        ["requested", "confirmed"].includes(r.status) &&
+        Date.parse(r.startsAt) >= Date.now(),
+    )
+      ? ["reservations"]
+      : []),
+  ];
   const branchScopeKey = branches.map((branch: any) => branch.id).join("|");
   const activeScope = useRef("");
   const contextGeneration = useRef(0);
@@ -276,26 +303,37 @@ export default function OrganizationWorkspace({
   const lastDenialCheck = useRef(0);
   const mutationGeneration = useRef(0);
   const branchBase = `/organizations/${encodeURIComponent(organizationId)}/branches/${encodeURIComponent(branchId)}`;
-  const visibleSections = sections.filter(([section, , permission]) =>
-    section === "menu"
-      ? allowed("menu.edit") || allowed("stock.adjust")
-      : permission === "support.manage"
-        ? allowed("organization.manage") &&
-          organization?.organizationWide === true
-        : permission === "help.manage"
-          ? permissions.some((permission: string) =>
-              [
-                "orders.fulfill",
-                "tables.manage",
-                "payments.record",
-                "refunds.approve",
-                "reservations.manage",
-                "organization.manage",
-              ].includes(permission),
-            )
-          : permission === "qr.manage"
-            ? allowed("menu.publish") || allowed("tables.manage")
-            : allowed(permission),
+  const permissionSections = sections.filter(([section, , permission]) =>
+    section === "organization"
+      ? membershipPermissions.includes("organization.overview")
+      : section === "transfers"
+        ? (branches.filter((b: any) => b.settings?.role !== "stock_room")
+            .length >= 2 ||
+            organization?.operating?.inventoryMode === "central") &&
+          (allowed("stock.transfer") || allowed("stock.receive"))
+        : section === "menu"
+          ? allowed("menu.edit") || allowed("stock.adjust")
+          : permission === "support.manage"
+            ? allowed("organization.manage") &&
+              organization?.organizationWide === true
+            : permission === "help.manage"
+              ? permissions.some((permission: string) =>
+                  [
+                    "orders.fulfill",
+                    "tables.manage",
+                    "payments.record",
+                    "refunds.approve",
+                    "reservations.manage",
+                    "organization.manage",
+                  ].includes(permission),
+                )
+              : permission === "qr.manage"
+                ? allowed("menu.publish") || allowed("tables.manage")
+                : allowed(permission),
+  );
+  const visibleSections = permissionSections.filter(
+    ([id]) =>
+      sectionEnabled(id, capabilities) || turnedOffSections.includes(id),
   );
   const navigationScope = JSON.stringify([
     context?.user?.id || principal,
@@ -307,16 +345,24 @@ export default function OrganizationWorkspace({
     organization?.organizationWide === true &&
     allowed("organization.manage") &&
     !sectionSelection;
-  const activeSection = guideRequested
-    ? "onboarding"
-    : chooseWorkspaceLanding({
-        role: organization?.role,
-        permissions,
-        visibleSectionIds: visibleSections.map(([id]) => id),
-        organizationWide: organization?.organizationWide === true,
-        scopeKey: navigationScope,
-        selection: sectionSelection,
-      }) || "";
+  const newSections = ["organization", "transfers", "door"];
+  const activeSection: string =
+    sectionSelection?.scopeKey === navigationScope &&
+    newSections.includes(sectionSelection.section) &&
+    visibleSections.some(([id]) => id === sectionSelection.section)
+      ? sectionSelection.section
+      : guideRequested
+        ? "onboarding"
+        : chooseWorkspaceLanding({
+            role: organization?.role,
+            permissions,
+            visibleSectionIds: visibleSections.map(([id]) => id),
+            organizationWide: organization?.organizationWide === true,
+            scopeKey: navigationScope,
+            selection: sectionSelection,
+          }) ||
+          visibleSections.find(([id]) => newSections.includes(id))?.[0] ||
+          "";
   const selectSection = (
     section: string,
     options?: { focusDestination: boolean },
@@ -394,7 +440,14 @@ export default function OrganizationWorkspace({
     }
     panel.scrollIntoView?.({ block: "center" });
   });
-  const pagePresentation = getSectionPresentation(activeSection);
+  const pagePresentation = newSections.includes(activeSection)
+    ? {
+        title:
+          visibleSections.find(([id]) => id === activeSection)?.[1] ||
+          "Workspace",
+        description: "",
+      }
+    : getSectionPresentation(activeSection);
   useEffect(() => {
     if (!productEdit) {
       if (productEditorTrigger.current?.isConnected)
@@ -531,7 +584,12 @@ export default function OrganizationWorkspace({
             permissions: org.permissions,
             branchIds: org.branchIds,
             organizationWide: org.organizationWide,
-            branches: org.branches.map((branch: any) => branch.id),
+            branches: org.branches.map((branch: any) => ({
+              id: branch.id,
+              permissions: branch.permissions,
+              role: branch.role,
+              settings: branch.settings,
+            })),
           })),
         );
         if (
@@ -639,9 +697,29 @@ export default function OrganizationWorkspace({
         : branches[0]?.id || "",
     );
   }, [organizationId, branchScopeKey]);
+  const selectedBranchRef = useRef(selectedBranch);
+  selectedBranchRef.current = selectedBranch;
+  const canReadWorkspace = permissions.some((p: string) =>
+    [
+      "orders.view",
+      "orders.create",
+      "menu.edit",
+      "stock.adjust",
+      "reports.view",
+      "reservations.manage",
+      "tables.manage",
+      "shifts.manage",
+    ].includes(p),
+  );
   const refresh = useCallback(
     async (signal?: AbortSignal) => {
       if (!organizationId || !branchId || accessDenied.current) return;
+      if (!canReadWorkspace) {
+        setData({ branch: selectedBranchRef.current });
+        setOffline(false);
+        setReadError("");
+        return;
+      }
       const authorizationVersion = authorizationEpoch.current;
       try {
         const response = await workspaceApi(
@@ -675,7 +753,7 @@ export default function OrganizationWorkspace({
         }
       }
     },
-    [organizationId, branchId, branchBase, scopeVersion],
+    [organizationId, branchId, branchBase, scopeVersion, canReadWorkspace],
   );
   useEffect(() => {
     accessDenied.current = false;
@@ -725,12 +803,41 @@ export default function OrganizationWorkspace({
   useEffect(() => {
     setTabForm({});
   }, [activeSection, organizationId, branchBase]);
+  const roomWrite = useVenueWrite(principal || user.id, branchBase + "/");
   const mutate = async (
     path: string,
     method: string,
     body: any,
     success: string,
   ) => {
+    if (body?.method === "room_charge") {
+      if (
+        !allowed("room_charge.post") ||
+        !allowed("payments.record") ||
+        !capabilities.includes("room_charge")
+      )
+        throw new WorkspaceError(
+          "Room charges are turned off for your access at this location.",
+          403,
+        );
+      if (financialRequests.current.has(branchBase))
+        throw new WorkspaceError(
+          "Resolve the original financial request before recording a room charge.",
+          409,
+        );
+      const result = await roomWrite.write(path, method, body);
+      await refresh();
+      notify("Charged to room.");
+      return result;
+    }
+    if (
+      roomWrite.pending &&
+      /\/(payments|refunds|deposits|movements|writeoffs)$/.test(path)
+    )
+      throw new WorkspaceError(
+        "Resolve the original room charge before recording another payment.",
+        409,
+      );
     const requestedScope = activeScope.current;
     const requestedActor = confirmedPrincipal.current;
     const authorizationVersion = authorizationEpoch.current;
@@ -1466,19 +1573,16 @@ export default function OrganizationWorkspace({
               </option>
             ))}
           </ChoiceField>
-          <ChoiceField
-            label="Branch"
-            searchable
+          <LocationSwitcher
+            branches={branches}
             value={branchId}
             disabled={busy}
-            onChange={(value) => setBranchId(value)}
-          >
-            {branches.map((row: any) => (
-              <option value={row.id} key={row.id}>
-                {row.name}
-              </option>
-            ))}
-          </ChoiceField>
+            allLocations={membershipPermissions.includes(
+              "organization.overview",
+            )}
+            onChange={setBranchId}
+            onAllLocations={() => selectSection("organization")}
+          />
           <WorkspaceAccount
             triggerRef={accountTrigger}
             name={context?.user?.name || user?.name || "Staff member"}
@@ -2023,6 +2127,7 @@ export default function OrganizationWorkspace({
           {branchId && branches.some((row: any) => row.id === branchId) && (
             <WorkspaceNavigation
               sections={visibleSections}
+              turnedOffSections={turnedOffSections}
               active={activeSection}
               onSelect={selectSection}
               organization={organization?.name || "Organization"}
@@ -2054,6 +2159,85 @@ export default function OrganizationWorkspace({
               aria-labelledby={"mw-tab-" + activeSection}
               tabIndex={0}
             >
+              {roomWrite.pending && (
+                <section className="mw-card" role="alert">
+                  <h2>Room charge needs checking</h2>
+                  <p>
+                    Retry the original room charge before recording another
+                    payment.
+                  </p>
+                  <button
+                    disabled={
+                      busy ||
+                      roomWrite.busy ||
+                      roomWrite.pending.blocked ||
+                      !allowed("room_charge.post")
+                    }
+                    onClick={() => {
+                      const p = roomWrite.pending;
+                      void mutate(
+                        p.path,
+                        p.method,
+                        p.body,
+                        "Charged to room.",
+                      ).catch(() => {});
+                    }}
+                  >
+                    Retry original room charge
+                  </button>
+                </section>
+              )}
+              {roomWrite.error && <p role="alert">{roomWrite.error}</p>}
+              {activeSection === "organization" && (
+                <AllLocations
+                  key={organizationId}
+                  organizationId={organizationId}
+                  actorId={principal || user.id}
+                  branchBase={branchBase}
+                  branches={branches}
+                  canExport={membershipPermissions.includes("reports.export")}
+                  onLocation={(id) => {
+                    setBranchId(id);
+                  }}
+                />
+              )}
+              {activeSection === "transfers" && (
+                <StockTransfers
+                  key={branchBase}
+                  organizationId={organizationId}
+                  actorId={principal || user.id}
+                  branches={branches}
+                  branchId={branchId}
+                  central={organization?.operating?.inventoryMode === "central"}
+                  membershipPermissions={membershipPermissions}
+                />
+              )}
+              {activeSection === "door" && (
+                <DoorGuestList
+                  key={branchBase}
+                  base={branchBase}
+                  actorId={principal || user.id}
+                  branch={branch}
+                  disabled={busy || offline}
+                  onCollectEntry={(productId) => {
+                    const product = counterProducts.find(
+                      (p: any) => p.id === productId,
+                    );
+                    if (!product) {
+                      notify("Entry product is unavailable at point of sale.");
+                      return;
+                    }
+                    setOrderDraft({
+                      ...orderDraft,
+                      serviceMode: "counter_takeaway",
+                      items: [{ productId, quantity: 1, extras: [] }],
+                      fulfillment: "counter_pickup",
+                      visitId: "",
+                    });
+                    selectSection("counter");
+                  }}
+                />
+              )}
               {activeSection === "onboarding" && (
                 <OwnerSetup
                   key={branchBase}
@@ -2953,6 +3137,11 @@ export default function OrganizationWorkspace({
                           key={branchBase}
                           base={branchBase}
                           products={products}
+                          onTransfers={
+                            visibleSections.some(([id]) => id === "transfers")
+                              ? () => selectSection("transfers")
+                              : undefined
+                          }
                           disabled={busy || offline}
                           save={mutate}
                         />
@@ -3729,6 +3918,10 @@ export default function OrganizationWorkspace({
                     }
                     bills={
                       <Bills
+                        canRoomCharge={
+                          capabilities.includes("room_charge") &&
+                          allowed("room_charge.post")
+                        }
                         key={branchBase + financialRevision}
                         bills={data.bills}
                         actorId={principal || user.id}
@@ -3950,7 +4143,10 @@ export default function OrganizationWorkspace({
                             requestKey: uuid(),
                             amount: Math.round(Number(tabForm.amount) * 100),
                             method: tabForm.method || "cash",
-                            reference: tabForm.reference || "",
+                            reference:
+                              tabForm.method === "room_charge"
+                                ? `${tabForm.roomNumber || ""} ${tabForm.surname || ""}`
+                                : tabForm.reference || "",
                           },
                           "Collection recorded.",
                         ),
@@ -3998,6 +4194,15 @@ export default function OrganizationWorkspace({
                           }))
                         }
                         options={[
+                          ...(capabilities.includes("room_charge") &&
+                          allowed("room_charge.post")
+                            ? [
+                                {
+                                  value: "room_charge",
+                                  label: "Charge to room",
+                                },
+                              ]
+                            : []),
                           { value: "cash", label: "Cash" },
                           { value: "external_pos", label: "External POS" },
                           {
@@ -4006,6 +4211,34 @@ export default function OrganizationWorkspace({
                           },
                         ]}
                       />
+                      {tabForm.method === "room_charge" && (
+                        <>
+                          <label>
+                            Room number
+                            <input
+                              required
+                              pattern="[A-Za-z0-9 -]+"
+                              maxLength={20}
+                              value={tabForm.roomNumber || ""}
+                              onChange={(e) =>
+                                updateForm("roomNumber", e.target.value)
+                              }
+                            />
+                          </label>
+                          <label>
+                            Guest surname
+                            <input
+                              required
+                              pattern="[A-Za-z -]+"
+                              maxLength={39}
+                              value={tabForm.surname || ""}
+                              onChange={(e) =>
+                                updateForm("surname", e.target.value)
+                              }
+                            />
+                          </label>
+                        </>
+                      )}
                       {field(
                         "Receipt / transfer reference",
                         "reference",
@@ -4013,7 +4246,15 @@ export default function OrganizationWorkspace({
                         false,
                       )}
                       <div className="mw-wide">
-                        <button className="primary" disabled={busy || offline}>
+                        <button
+                          className="primary"
+                          disabled={
+                            busy ||
+                            offline ||
+                            roomWrite.busy ||
+                            !!roomWrite.pending
+                          }
+                        >
                           Record verified collection
                         </button>
                       </div>
@@ -4195,7 +4436,8 @@ export default function OrganizationWorkspace({
                       userId={user.id}
                       organizationId={organizationId}
                       branchId={branchId}
-                      permissions={permissions}
+                      permissions={membershipPermissions}
+                      branches={branches}
                       canGrantOwner={organization?.role === "owner"}
                       onAccessChanged={() => void loadContext(true)}
                       disabled={busy || offline}
