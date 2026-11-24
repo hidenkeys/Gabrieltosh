@@ -28,6 +28,7 @@ export default function AllLocations({
     [sort, setSort] = useState("revenue"),
     [descending, setDescending] = useState(true),
     [exportMessage, setExportMessage] = useState(""),
+    [exportDate, setExportDate] = useState(today),
     [exporting, setExporting] = useState(false);
   const exportWrite = useVenueWrite(actorId, branchBase + "/exports");
   const exportRequest = useRef<any>(null);
@@ -67,7 +68,10 @@ export default function AllLocations({
     );
   const paymentMix =
     data?.paymentMix.filter(
-      (p: any) => p.method !== "room_charge" || hasCapability("room_charge"),
+      (p: any) =>
+        p.method !== "room_charge" ||
+        p.amount !== 0 ||
+        hasCapability("room_charge"),
     ) || [];
   return (
     <section className="mw-card mw-all-locations">
@@ -121,6 +125,7 @@ export default function AllLocations({
               .filter(
                 ([, key]) =>
                   (key !== "roomCharges" && key !== "covers") ||
+                  Number(data.totals[key]) !== 0 ||
                   hasCapability(
                     key === "roomCharges" ? "room_charge" : "guest_list",
                   ),
@@ -278,40 +283,59 @@ export default function AllLocations({
         </>
       )}
       {canExport && (
-        <button
-          className="secondary"
-          disabled={
-            exporting || exportWrite.busy || exportWrite.pending?.blocked
-          }
-          onClick={async () => {
-            if (exporting) return;
-            setExporting(true);
-            exportRequest.current ||= {
-              date: range.to,
-              requestKey: uuid(),
-              scope: "organization",
-            };
-            try {
-              await exportWrite.write(
-                branchBase + "/exports",
-                "POST",
-                exportRequest.current,
-              );
-              exportRequest.current = null;
-              setExportMessage(
-                "Organization CSV queued. Open Report exports to download it.",
-              );
-            } catch (e: any) {
-              setExportMessage(
-                e.message + " Retry to check the same export request.",
-              );
-            } finally {
-              setExporting(false);
+        <section className="mw-form" aria-label="Daily organization export">
+          <label>
+            Export trading date
+            <input
+              type="date"
+              value={exportWrite.pending?.body?.date || exportDate}
+              disabled={exporting || exportWrite.busy || !!exportWrite.pending}
+              onChange={(e) => setExportDate(e.target.value)}
+              aria-describedby="organization-export-date-help"
+            />
+          </label>
+          <p id="organization-export-date-help">
+            Exports this trading date for every location. Overview filters do
+            not change this date.
+          </p>
+          <button
+            className="secondary"
+            disabled={
+              exporting ||
+              exportWrite.busy ||
+              exportWrite.pending?.blocked ||
+              (!exportWrite.pending && !exportDate)
             }
-          }}
-        >
-          Export organization CSV
-        </button>
+            onClick={async () => {
+              if (exporting) return;
+              setExporting(true);
+              exportRequest.current ||= {
+                date: exportDate,
+                requestKey: uuid(),
+                scope: "organization",
+              };
+              try {
+                await exportWrite.write(
+                  branchBase + "/exports",
+                  "POST",
+                  exportRequest.current,
+                );
+                exportRequest.current = null;
+                setExportMessage(
+                  "Organization CSV queued. Open Report exports to download it.",
+                );
+              } catch (e: any) {
+                setExportMessage(
+                  e.message + " Retry to check the same export request.",
+                );
+              } finally {
+                setExporting(false);
+              }
+            }}
+          >
+            Export organization CSV
+          </button>
+        </section>
       )}
       <p role="status">
         {exportMessage ||

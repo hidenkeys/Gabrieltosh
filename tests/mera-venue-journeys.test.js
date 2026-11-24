@@ -34,9 +34,18 @@ async function fixture(t) {
       onError: () => {},
     });
     t.after(async () => {
-      await pool?.end();
-      await cluster.stop();
-      await rm(directory, { recursive: true, force: true });
+      try {
+        await pool?.end();
+      } finally {
+        let stopped = false;
+        try {
+          await cluster.stop();
+          stopped = true;
+        } finally {
+          // Never remove files from a cluster whose shutdown failed.
+          if (stopped) await rm(directory, { recursive: true, force: true });
+        }
+      }
     });
     await cluster.initialise();
     await cluster.start();

@@ -196,8 +196,8 @@ test("all locations renders kobo totals, comparison, null valuation and row dest
     });
     const table = screen.getByRole("table");
     assert(within(table).getByText("₦1,200.00"));
-    assert.equal(screen.queryByText("Covers"), null);
-    assert.equal(screen.queryByText("Charged to rooms"), null);
+    assert(screen.getByText("Covers"));
+    assert(screen.getByText("Charged to rooms"));
     fireEvent.click(
       within(table).getByRole("button", { name: /CLB Nightclub/ }),
     );
@@ -634,11 +634,11 @@ test("visible outlet capabilities control room charges and covers and presets re
         orders: 0,
         averageOrder: 0,
         refunds: 0,
-        roomCharges: 100,
-        covers: 2,
+        roomCharges: 0,
+        covers: 0,
       },
       branches: [{ id: "a", name: "A", capabilities }],
-      paymentMix: [{ method: "room_charge", amount: 100 }],
+      paymentMix: [{ method: "room_charge", amount: 0 }],
       stock: { lowStock: [], valueByBranch: [], inTransit: [] },
     });
   };
@@ -673,6 +673,133 @@ test("visible outlet capabilities control room charges and covers and presets re
     }
   } finally {
     cleanup();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("historical room charges and covers stay visible after their capabilities are disabled", async () => {
+  globalThis.fetch = async () =>
+    Response.json({
+      totals: {
+        revenue: 20000,
+        orders: 1,
+        averageOrder: 20000,
+        refunds: 0,
+        roomCharges: 20000,
+        covers: 3,
+      },
+      branches: [{ id: "a", name: "A", capabilities: [] }],
+      paymentMix: [{ method: "room_charge", amount: 20000 }],
+      stock: { lowStock: [], valueByBranch: [], inTransit: [] },
+    });
+  try {
+    render(
+      <AllLocations
+        organizationId="org"
+        branchBase="/organizations/org/branches/a"
+        onLocation={() => {}}
+      />,
+    );
+    await screen.findByRole("table");
+    assert(screen.getByText("Covers"));
+    assert(screen.getByText("Charged to rooms"));
+    assert(
+      screen.getByText("Charged to rooms (settled by the hotel): ₦200.00"),
+    );
+    assert.equal(screen.queryByLabelText("Export trading date"), null);
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("daily organization export keeps its chosen date apart from overview filters and retries the original date", async () => {
+  const attempts: any[] = [];
+  const reads: string[] = [];
+  globalThis.fetch = async (input, init) => {
+    if (init?.method === "POST") {
+      attempts.push(JSON.parse(String(init.body)));
+      if (attempts.length === 1) throw Error("Lost export response");
+      return Response.json({ id: "export", status: "queued" }, { status: 202 });
+    }
+    reads.push(String(input));
+    return Response.json({
+      totals: {
+        revenue: 0,
+        orders: 0,
+        averageOrder: 0,
+        refunds: 0,
+        roomCharges: 0,
+        covers: 0,
+      },
+      branches: [{ id: "a", name: "A", capabilities: [] }],
+      paymentMix: [],
+      stock: { lowStock: [], valueByBranch: [], inTransit: [] },
+    });
+  };
+  const props = {
+    organizationId: "org",
+    actorId: "actor",
+    branchBase: "/organizations/org/branches/a",
+    onLocation: () => {},
+    canExport: true,
+  };
+  try {
+    const view = render(<AllLocations {...props} />);
+    await screen.findByRole("table");
+    fireEvent.change(screen.getByLabelText("Export trading date"), {
+      target: { value: "2026-11-17" },
+    });
+    fireEvent.click(
+      screen.getByRole("radio", { name: "This month", exact: true }),
+    );
+    await waitFor(() => assert(reads.at(-1)?.endsWith("preset=this_month")));
+    assert.equal(
+      (screen.getByLabelText("Export trading date") as HTMLInputElement).value,
+      "2026-11-17",
+    );
+    fireEvent.click(screen.getByRole("radio", { name: "Custom", exact: true }));
+    fireEvent.change(screen.getByLabelText("From", { exact: true }), {
+      target: { value: "2026-11-01" },
+    });
+    fireEvent.change(screen.getByLabelText("To", { exact: true }), {
+      target: { value: "2026-11-20" },
+    });
+    await waitFor(() =>
+      assert(reads.at(-1)?.endsWith("from=2026-11-01&to=2026-11-20")),
+    );
+    assert(
+      screen.getByText(
+        "Exports this trading date for every location. Overview filters do not change this date.",
+      ),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Export organization CSV" }),
+    );
+    await screen.findByText(/Connection lost.*Retry to check the same export request/);
+    assert.equal(attempts[0].date, "2026-11-17");
+    assert.equal(attempts[0].scope, "organization");
+    assert.equal(
+      (screen.getByLabelText("Export trading date") as HTMLInputElement)
+        .disabled,
+      true,
+    );
+    view.unmount();
+    render(<AllLocations {...props} />);
+    assert.equal(
+      (screen.getByLabelText("Export trading date") as HTMLInputElement).value,
+      "2026-11-17",
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Export organization CSV" }),
+    );
+    await screen.findByText(
+      "Organization CSV queued. Open Report exports to download it.",
+    );
+    assert.deepEqual(attempts[1], attempts[0]);
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
     globalThis.fetch = originalFetch;
   }
 });
