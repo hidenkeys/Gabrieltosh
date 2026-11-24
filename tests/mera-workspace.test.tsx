@@ -565,7 +565,7 @@ test("QR administration exports scoped real codes and clearly labels preview rea
       download.getAttribute("href"),
       "/api/mera/v1/organizations/org/branches/branch/qr-codes/qr-1/image.svg",
     );
-    assert.deepEqual(calls[1].body, { kind: "branch" });
+    assert.deepEqual(calls.find((call) => call.body)?.body, { kind: "branch" });
   } finally {
     cleanup();
     globalThis.fetch = originalFetch;

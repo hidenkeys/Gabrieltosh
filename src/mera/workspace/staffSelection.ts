@@ -73,6 +73,39 @@ export function validateStaffSelection(
           else unit += option.price;
         }
       }
+      const choices = Array.isArray(line.choices) ? line.choices : [];
+      const used = new Set<string>();
+      for (const group of product.choiceGroups || []) {
+        const chosen = choices.filter((c: any) => c.groupId === group.id);
+        if (chosen.length < group.min || chosen.length > group.max)
+          messages.push(
+            `Choose ${group.min}–${group.max} options for ${group.name}.`,
+          );
+        for (const c of chosen) {
+          const key = JSON.stringify([
+            c.groupId,
+            c.productId,
+            c.variantId || null,
+          ]);
+          const option = group.options.find(
+            (o: any) =>
+              o.productId === c.productId &&
+              (o.variantId || null) === (c.variantId || null),
+          );
+          if (!option || used.has(key)) messages.push("Review combo choices.");
+          else if (unit !== null && money(option.priceDelta))
+            unit += option.priceDelta;
+          else unit = null;
+          used.add(key);
+        }
+      }
+      if (
+        choices.some(
+          (c: any) =>
+            !(product.choiceGroups || []).some((g: any) => g.id === c.groupId),
+        )
+      )
+        messages.push("Review combo choices.");
       if (selected.size)
         messages.push("Remove add-ons that are no longer available.");
       if (unit === null && !needsVariant)

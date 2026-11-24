@@ -182,3 +182,8 @@
 .mw-menu-products > .mw-heading .mw-actions > .mw-publication > button {
   width: 100%;
 }
+
+.mw-item-kind { min-width: 0; border: 1px solid var(--wx-line, #e2e5dc); border-radius: 14px; padding: 16px; }
+.mw-item-kind > * + * { margin-top: 12px; }
+.mw-item-kind fieldset { min-width: 0; }
+.mw-pos-choice { --mc-primary: var(--brand, #153f32); --mc-accent: var(--brand, #153f32); }

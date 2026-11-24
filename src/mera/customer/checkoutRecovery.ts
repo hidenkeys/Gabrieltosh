@@ -8,6 +8,18 @@ const item = z
     quantity: z.number().int().min(1).max(100),
     variantId: z.string().max(100).optional(),
     modifiers: z.array(z.string().max(100)).max(30),
+    choices: z
+      .array(
+        z
+          .object({
+            groupId: z.string().min(1),
+            productId: z.string().uuid(),
+            variantId: z.string().nullable().optional(),
+          })
+          .strict(),
+      )
+      .max(240)
+      .optional(),
   })
   .strict();
 export const checkoutIntentSchema = z
@@ -22,6 +34,7 @@ export const checkoutIntentSchema = z
       .refine((value) => value.trim() === value),
     fulfillment: z.enum(["counter_pickup", "takeaway", "table_service"]),
     visitId: z.string().uuid().optional(),
+    reservationId: z.string().uuid().optional(),
     items: z.array(item).min(1).max(100),
     note: z.string().max(500),
   })
@@ -35,6 +48,18 @@ const line = z
     unitPrice: money,
     variantId: z.string().max(100).optional(),
     modifiers: z.array(z.string().max(100)).max(30),
+    choices: z
+      .array(
+        z
+          .object({
+            groupId: z.string().min(1),
+            productId: z.string().uuid(),
+            variantId: z.string().nullable().optional(),
+          })
+          .strict(),
+      )
+      .max(240)
+      .optional(),
     summary: z.string().max(4000),
   })
   .strict();

@@ -1,3 +1,4 @@
+import ItemContents, { ComboChoices, choiceComplete } from "./ItemContents";
 import { Chips } from "../ui/Chips";
 import { useRef } from "react";
 import { useDialogFocus } from "../ui/useDialogFocus";
@@ -13,6 +14,11 @@ type Group = {
 export type CustomizationProduct = {
   id: string;
   name: string;
+  kind?: string;
+  components?: any[];
+  choiceGroups?: any[];
+  serves?: number | null;
+  requiresTable?: boolean;
   description?: string;
   size?: string;
   available?: boolean;
@@ -25,6 +31,11 @@ export type CustomizationProduct = {
 };
 export type CustomizationDialogProps = {
   product: CustomizationProduct;
+  addLabel?: string;
+  products?: any[];
+  choiceKeys?: string[];
+  onChoicesChange?: (keys: string[]) => void;
+  hasTable?: boolean;
   variantId: string;
   modifierIds: string[];
   estimate: number;
@@ -51,6 +62,11 @@ export default function CustomizationDialog(props: CustomizationDialogProps) {
 }
 function SelectedCustomization({
   product,
+  addLabel = "Add to basket",
+  products = [],
+  choiceKeys = [],
+  onChoicesChange = () => {},
+  hasTable = false,
   variantId,
   modifierIds,
   estimate,
@@ -82,6 +98,9 @@ function SelectedCustomization({
     soldOut(product) ||
     (!!product.variants?.length &&
       (!selectedVariant || soldOut(selectedVariant)));
+  const incomplete =
+    !choiceComplete(product.choiceGroups || [], choiceKeys) ||
+    !!(product.requiresTable && !hasTable);
   const validEstimate = Number.isSafeInteger(estimate) && estimate >= 0;
   return (
     <div className="mc-modal-backdrop">
@@ -113,6 +132,14 @@ function SelectedCustomization({
             {product.description ||
               "Choose your options before adding this item to your basket."}
           </p>
+          <ItemContents item={product} products={products} />
+          <ComboChoices
+            groups={product.choiceGroups || []}
+            keys={choiceKeys}
+            products={products}
+            onChange={onChoicesChange}
+            disabled={disabled}
+          />
           {!!product.variants?.length ? (
             <Chips
               label="Choose a size"
@@ -230,13 +257,14 @@ function SelectedCustomization({
           <button
             type="button"
             className="mc-primary"
-            aria-label="Add to basket"
-            disabled={disabled || unavailable || !validEstimate}
+            aria-label={addLabel}
+            disabled={disabled || unavailable || incomplete || !validEstimate}
             onClick={() => {
-              if (!disabled && !unavailable && validEstimate) onAdd();
+              if (!disabled && !unavailable && !incomplete && validEstimate)
+                onAdd();
             }}
           >
-            Add to basket · {validEstimate ? money(estimate) : "Unavailable"}
+            {addLabel} · {validEstimate ? money(estimate) : "Unavailable"}
           </button>
         </footer>
       </div>

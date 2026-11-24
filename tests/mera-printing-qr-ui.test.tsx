@@ -232,10 +232,16 @@ test("O7 unknown format save freezes changed writes while reading a saved versio
 test("O7 QR address failure has retry and never claims successful empty or public reachability", async () => {
   const original = globalThis.fetch;
   let reads = 0;
-  globalThis.fetch = async () =>
-    ++reads === 1
-      ? Response.json({ error: "HTTPS origin unavailable" }, { status: 503 })
-      : Response.json({ codes: [] });
+  globalThis.fetch = async (input) =>
+    String(input).includes("/qr-preview")
+      ? Response.json({
+          url: "https://menu.example.test/mera/menu/venue/branch?preview=test",
+          opensAs: "menu_only",
+          warnings: [],
+        })
+      : ++reads === 1
+        ? Response.json({ error: "HTTPS origin unavailable" }, { status: 503 })
+        : Response.json({ codes: [] });
   try {
     render(<QrCodes base={base} tables={[]} demo={false} />);
     await screen.findByText(

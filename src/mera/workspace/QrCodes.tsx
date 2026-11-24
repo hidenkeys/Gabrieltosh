@@ -1,3 +1,4 @@
+import QrLinkPreview from "./QrLinkPreview";
 import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
@@ -132,6 +133,7 @@ function ScopedQrCodes({ base, tables, demo }: Props) {
           Refresh menu codes
         </button>
       </header>
+      <QrLinkPreview base={base} tables={knownTables} />
       <div className="mw-qr-address" role="note">
         <strong>{demo ? "Preview address" : "Public menu address"}</strong>
         <p>

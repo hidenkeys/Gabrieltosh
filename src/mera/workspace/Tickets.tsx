@@ -1,3 +1,4 @@
+import ItemContents from "../customer/ItemContents";
 import React, { useState, useRef, useEffect } from "react";
 import {
   Bell,
@@ -700,6 +701,7 @@ function ScopedTickets({
                         </span>
                         <span className="mw-preparation-item-copy">
                           <strong>{item.name}</strong>
+                          <ItemContents item={item} />
                           {item.size && <small>{item.size}</small>}
                         </span>
                       </>

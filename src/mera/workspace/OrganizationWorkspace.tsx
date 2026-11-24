@@ -5,6 +5,7 @@ import LocationSwitcher from "./LocationSwitcher";
 // @ts-expect-error Shared venue contract is plain JavaScript.
 import * as venues from "../../../shared/mera-venues.js";
 const { effectiveCapabilities, sectionEnabled } = venues;
+import ItemKindEditor, { itemKindBody } from "./ItemKindEditor";
 import PaymentEntry from "./PaymentEntry";
 import ChoiceField from "../ui/ChoiceField";
 import { useDialogFocus } from "../ui/useDialogFocus";
@@ -2243,6 +2244,7 @@ export default function OrganizationWorkspace({
                   key={branchBase}
                   organization={organization}
                   branch={branch}
+                  branches={branches}
                   onboarding={data.onboarding || organization?.onboarding}
                   actorName={context?.user?.name || user.name}
                   canGuide={
@@ -2704,6 +2706,9 @@ export default function OrganizationWorkspace({
                             )}
                             <div>
                               <b>{product.name}</b>
+                              {product.kind === "package" && <span className="mw-pill">Package</span>}
+                              {product.kind === "combo" && <span className="mw-pill">Combo</span>}
+                              {product.serves && <span className="mw-pill">Serves {product.serves}</span>}
                               <small>
                                 {product.category} · {product.size} ·{" "}
                                 {catalogPriceLabel(product)}
@@ -2740,7 +2745,7 @@ export default function OrganizationWorkspace({
                               () => beginProductEdit({ ...product }),
                               "menu.edit",
                             )}
-                            {allowed("stock.adjust") && (
+                            {allowed("stock.adjust") && (product.kind || "single") === "single" && (
                               <StockAdjustment
                                 key={branchBase + "/" + product.id}
                                 product={product}
@@ -2799,6 +2804,7 @@ export default function OrganizationWorkspace({
                                 "Variants and modifier groups must be valid JSON arrays.",
                               );
                             }
+                            Object.assign(product, itemKindBody(product));
                             await mutate(
                               branchBase +
                                 "/products" +
@@ -2834,6 +2840,7 @@ export default function OrganizationWorkspace({
                               />
                             </label>
                           ))}
+                          <ItemKindEditor value={productEdit} products={data.products || []} onChange={setProductEdit} disabled={busy || offline} />
                           <ChoiceField
                             label="Menu category"
                             searchable
@@ -2896,7 +2903,7 @@ export default function OrganizationWorkspace({
                               </label>
                             </>
                           )}
-                          <Stepper
+                          {(productEdit.kind || "single") === "single" && <Stepper
                             label="Low-stock alert threshold"
                             value={productEdit.lowStockThreshold ?? 5}
                             min={0}
@@ -2908,6 +2915,7 @@ export default function OrganizationWorkspace({
                               })
                             }
                           />
+                          }
                           <MoneyInput
                             label="Price in naira"
                             value={
@@ -2923,7 +2931,7 @@ export default function OrganizationWorkspace({
                               })
                             }
                           />
-                          <ChoiceField
+                          {(productEdit.kind || "single") === "single" && <ChoiceField
                             label="Stock mode"
                             value={productEdit.stockMode}
                             disabled={!!productEdit.id}
@@ -2939,6 +2947,7 @@ export default function OrganizationWorkspace({
                               Counted sellable stock
                             </option>
                           </ChoiceField>
+                          }
                           <ChoiceField
                             label="Preparation station"
                             value={productEdit.station}
@@ -3023,7 +3032,7 @@ export default function OrganizationWorkspace({
                               final totals are checked before an order is
                               accepted.
                             </p>
-                            <VariantsEditor
+                            {(productEdit.kind || "single") === "single" && <VariantsEditor
                               value={productEdit.variants || []}
                               onChange={(variants) =>
                                 setProductEdit({
@@ -3033,6 +3042,7 @@ export default function OrganizationWorkspace({
                                 })
                               }
                             />
+                            }
                             <TimeWindows
                               label="Product availability schedule"
                               value={productEdit.availabilityWindows || []}
@@ -3561,6 +3571,7 @@ export default function OrganizationWorkspace({
                       <StaffPos
                         key={branchBase}
                         products={counterProducts}
+                        hasTable={!!orderDraft.visitId}
                         lines={orderDraft.items}
                         disabled={busy || offline || !!uncertainOrder}
                         staffName={context?.user?.name || user?.name || "Staff"}

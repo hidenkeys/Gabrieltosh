@@ -1,3 +1,9 @@
+import ItemContents, {
+  choiceKey,
+  choiceComplete,
+  selectedChoices,
+  contentName,
+} from "./ItemContents";
 import ReasonInput from "../ui/ReasonInput";
 import { Combobox } from "../ui/Combobox";
 import ReservationOptions from "./ReservationOptions";
@@ -51,6 +57,11 @@ import { money } from "../../api";
 import { customerRequest, requestId } from "./client";
 
 type Product = {
+  kind?: string;
+  components?: any[];
+  choiceGroups?: any[];
+  serves?: number | null;
+  requiresTable?: boolean;
   id: string;
   name: string;
   code: string;
@@ -83,6 +94,7 @@ type Product = {
   dietary: string[];
 };
 type CartLine = {
+  choices?: any[];
   key: string;
   productId: string;
   name: string;
@@ -99,6 +111,10 @@ export default function CustomerExperience({
   const route = window.location.pathname.split("/").filter(Boolean);
   const slug = organizationSlug || route[2] || "bing-chun";
   const branch = branchId || route[3] || "20000000-0000-4000-8000-000000000001";
+  const previewToken = new URLSearchParams(window.location.search).get(
+    "preview",
+  );
+  const [choiceKeys, setChoiceKeys] = useState<string[]>([]);
   const prefix = `/public/${encodeURIComponent(slug)}/${encodeURIComponent(branch)}`;
   const bingChun = slug === "bing-chun";
   const requestedTable = new URLSearchParams(window.location.search).get(
@@ -238,7 +254,15 @@ export default function CustomerExperience({
   async function load() {
     setError("");
     try {
-      setMenu(await customerRequest(prefix + "/menu"));
+      setMenu(
+        await customerRequest(
+          prefix +
+            "/menu" +
+            (previewToken
+              ? "?preview=" + encodeURIComponent(previewToken)
+              : ""),
+        ),
+      );
     } catch (e) {
       setError((e as Error).message);
     }
@@ -296,6 +320,13 @@ export default function CustomerExperience({
     reservationRecoveryGeneration.current++;
     setReservationReview(null);
     setReservationRecovery("checking");
+    if (previewToken) {
+      setCheckoutRecovery({ phase: "ready", message: "" });
+      setReservationRecovery("ready");
+      return () => {
+        active = false;
+      };
+    }
     customerRequest(prefix + "/guest")
       .then(async (session) => {
         if (!active) return;
@@ -578,6 +609,12 @@ export default function CustomerExperience({
     };
   }, [visit?.visit?.id]);
   const products: Product[] = menu?.products || [];
+  const bookedReservationId =
+    reservation &&
+    ["confirmed", "arrived", "seated"].includes(reservation.status)
+      ? reservation.id
+      : undefined;
+  const hasTableContext = !!visit?.visit?.id || !!bookedReservationId;
   const publishedCategories = menu?.categories || [];
   const categories = [
     { key: "All", label: "All", depth: 0 },
@@ -672,7 +709,13 @@ export default function CustomerExperience({
   }
   function addProduct() {
     if (checkoutIntentRef.current || checkoutInFlight.current) return;
-    if (!selected) return;
+    if (
+      !selected ||
+      previewToken ||
+      (selected.requiresTable && !hasTableContext) ||
+      !choiceComplete(selected.choiceGroups || [], choiceKeys)
+    )
+      return;
     const selectedVariant = selected.variants?.find(
       (choice) => choice.id === variant,
     );
@@ -709,7 +752,15 @@ export default function CustomerExperience({
     const extras = (selected.modifierGroups || [])
       .flatMap((g) => g.options)
       .filter((o) => modifiers.includes(o.id));
-    const key = [selected.id, variant, ...[...modifiers].sort()].join(":");
+    const comboExtras = (selected.choiceGroups || []).flatMap((g) =>
+      g.options.filter((o: any) => choiceKeys.includes(choiceKey(g.id, o))),
+    );
+    const key = [
+      selected.id,
+      variant,
+      ...[...modifiers].sort(),
+      ...[...choiceKeys].sort(),
+    ].join(":");
     setCart((old) =>
       old.some((l) => l.key === key)
         ? old.map((l) =>
@@ -724,10 +775,22 @@ export default function CustomerExperience({
               quantity: 1,
               variantId: variant || undefined,
               modifiers: [...modifiers],
+              choices: selectedChoices(selected.choiceGroups || [], choiceKeys),
               unitPrice:
                 (chosen?.price ?? selected.price) +
-                extras.reduce((sum, o) => sum + o.price, 0),
-              summary: [chosen?.name, ...extras.map((o) => o.name)]
+                extras.reduce((sum, o) => sum + o.price, 0) +
+                comboExtras.reduce(
+                  (sum: number, o: any) => sum + o.priceDelta,
+                  0,
+                ),
+              summary: [
+                chosen?.name,
+                ...extras.map((o) => o.name),
+                ...comboExtras.map((o: any) => contentName(o, products)),
+                ...(selected.components || []).map(
+                  (r: any) => `${r.quantity} × ${contentName(r, products)}`,
+                ),
+              ]
                 .filter(Boolean)
                 .join(" · "),
             },
@@ -738,11 +801,12 @@ export default function CustomerExperience({
     setError("");
   }
   const cartSignature = JSON.stringify(
-    cart.map(({ productId, quantity, variantId, modifiers }) => ({
+    cart.map(({ productId, quantity, variantId, modifiers, choices }) => ({
       productId,
       quantity,
       variantId,
       modifiers,
+      ...(choices?.length ? { choices } : {}),
     })),
   );
   const bookingMinimumPolicy =
@@ -860,6 +924,12 @@ export default function CustomerExperience({
           {
             menuVersion: menu.version,
             items: JSON.parse(cartSignature),
+            ...(visit?.visit?.id
+              ? { visitId: visit.visit.id, fulfillment }
+              : {}),
+            ...(bookedReservationId
+              ? { reservationId: bookedReservationId }
+              : {}),
           },
           {
             onServerDate: (date) => {
@@ -889,6 +959,9 @@ export default function CustomerExperience({
           displayName: displayName.trim() || "Guest",
           fulfillment,
           visitId: visit?.visit?.id,
+          ...(bookedReservationId
+            ? { reservationId: bookedReservationId }
+            : {}),
           items: JSON.parse(cartSignature),
           note,
         };
@@ -1385,6 +1458,11 @@ export default function CustomerExperience({
           : {}),
       }}
     >
+      {previewToken && (
+        <div className="mc-preview-bar" role="status">
+          Preview - orders are off
+        </div>
+      )}
       <header
         ref={customerHeaderRef}
         className="mc-top"
@@ -1631,6 +1709,7 @@ export default function CustomerExperience({
                     <div>
                       <h3>{p.name}</h3>
                       <p>{p.description || p.size}</p>
+                      <ItemContents item={p} products={products} />
                       {p.dietary?.length > 0 && (
                         <p>Dietary: {p.dietary.join(", ")}</p>
                       )}
@@ -1648,10 +1727,13 @@ export default function CustomerExperience({
                           checkoutLocked ||
                           !p.available ||
                           (p.stockMode === "counted" && p.stock <= 0) ||
-                          !menu.orderingAvailable
+                          !menu.orderingAvailable ||
+                          !!previewToken ||
+                          (p.requiresTable && !hasTableContext)
                         }
                         onClick={() => {
                           setSelected(p);
+                          setChoiceKeys([]);
                           setModifierError(null);
                           setCustomizationError("");
                           setVariant(p.variants?.[0]?.id || "");
@@ -2213,6 +2295,7 @@ export default function CustomerExperience({
                               .join(", ")
                           : ""}
                       </small>
+                      <ItemContents item={line} products={products} />
                       <p>{money(line.total ?? line.lineTotal ?? 0)}</p>
                     </div>
                   ))}
@@ -2768,6 +2851,10 @@ export default function CustomerExperience({
       {selected && (
         <CustomizationDialog
           product={selected}
+          products={products}
+          choiceKeys={choiceKeys}
+          onChoicesChange={setChoiceKeys}
+          hasTable={hasTableContext}
           variantId={variant}
           modifierIds={modifiers}
           estimate={
@@ -2776,9 +2863,16 @@ export default function CustomerExperience({
             (selected.modifierGroups || [])
               .flatMap((group) => group.options)
               .filter((option) => modifiers.includes(option.id))
-              .reduce((sum, option) => sum + option.price, 0)
+              .reduce((sum, option) => sum + option.price, 0) +
+            (selected.choiceGroups || [])
+              .flatMap((g) =>
+                g.options.filter((o: any) =>
+                  choiceKeys.includes(choiceKey(g.id, o)),
+                ),
+              )
+              .reduce((sum: number, o: any) => sum + o.priceDelta, 0)
           }
-          disabled={checkoutLocked}
+          disabled={checkoutLocked || !!previewToken}
           error={customizationError}
           errorGroupId={modifierError}
           onVariantChange={(id) => {
