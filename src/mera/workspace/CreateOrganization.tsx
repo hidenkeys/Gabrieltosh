@@ -31,6 +31,7 @@ export default function CreateOrganization({
   const [name, setName] = useState(""),
     [slug, setSlug] = useState(""),
     [branch, setBranch] = useState("");
+  const slugEdited = useRef(false);
   const [busy, setBusy] = useState(false),
     [checking, setChecking] = useState(false),
     [error, setError] = useState("");
@@ -223,7 +224,23 @@ export default function CreateOrganization({
                 Organization name
                 <input
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (!slugEdited.current) {
+                      setSlug(
+                        e.target.value
+                          .toLowerCase()
+                          .normalize("NFD")
+                          .replace(/[\u0300-\u036f]/g, "")
+                          .replace(/[^a-z0-9]+/g, "-")
+                          .replace(/^-|-$/g, "")
+                          .slice(0, 50),
+                      );
+                      checkSequence.current++;
+                      setAvailability(null);
+                      setChecking(false);
+                    }
+                  }}
                   required
                   maxLength={100}
                   autoComplete="organization"
@@ -235,6 +252,7 @@ export default function CreateOrganization({
                   id="mera-owner-address"
                   value={slug}
                   onChange={(e) => {
+                    slugEdited.current = true;
                     setSlug(e.target.value);
                     checkSequence.current++;
                     setChecking(false);

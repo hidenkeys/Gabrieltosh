@@ -1018,8 +1018,13 @@ test("branch service windows save local timezone and trading cutoff without assu
       target: { value: "05:30" },
     });
     fireEvent.click(screen.getByRole("button", { name: "3. Hours" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add availability window" }),
+    assert.equal(
+      (screen.getByLabelText("Window 1 starts") as HTMLInputElement).value,
+      "08:00",
+    );
+    assert.equal(
+      (screen.getByLabelText("Window 1 ends") as HTMLInputElement).value,
+      "22:00",
     );
     fireEvent.change(screen.getByLabelText("Window 1 starts"), {
       target: { value: "10:00" },

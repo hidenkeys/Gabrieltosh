@@ -47,42 +47,46 @@ const base = {
     <input aria-label="Business contact draft" defaultValue="Saved contact" />
   ),
 };
-test("guided setup preserves form drafts, saves resume position and never equates a visited step with readiness", async () => {
+test("guided setup autosaves business on Continue, preserves drafts and resumes without claiming readiness", async () => {
   let persisted: any = {};
+  const writes: any[] = [];
   const save = async (path: string, method: string, body: any) => {
-    assert.equal(path, "/organizations/org-one/onboarding");
+    writes.push({ path, body });
     assert.equal(method, "PATCH");
-    persisted = { data: { ...body.data } };
+    if (path.endsWith("/operating")) return { version: 2 };
+    persisted = { data: { ...persisted.data, ...body.data } };
     return { saved: true, onboarding: persisted };
   };
   try {
     const view = render(<OwnerSetup {...base} save={save} />);
-    fireEvent.click(screen.getByRole("button", { name: "02 Business" }));
-    await screen.findByRole("heading", { name: "Business" });
-    fireEvent.change(screen.getByLabelText("Business contact draft"), {
-      target: { value: "Unsaved draft" },
-    });
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    await screen.findByRole("heading", { name: "Branch" });
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    const title = await screen.findByRole("heading", { name: "Business" });
-    assert.equal(
-      (screen.getByLabelText("Business contact draft") as HTMLInputElement)
-        .value,
-      "Unsaved draft",
-    );
+    const title = await screen.findByRole("heading", { name: "Your business" });
     await waitFor(() => assert.equal(document.activeElement, title));
-    assert.deepEqual(persisted, { data: { "ownerGuideV2Step_branch-one": 1 } });
+    fireEvent.change(screen.getByLabelText("Public customer contact"), {
+      target: { value: "owner@example.invalid" },
+    });
+    assert.equal(writes.length, 1);
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByRole("heading", { name: "Kind of venue" });
+    assert.ok(
+      writes.some((w) => w.body.data?.contact === "owner@example.invalid"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    await screen.findByRole("heading", { name: "Your business" });
+    assert.equal(
+      (screen.getByLabelText("Public customer contact") as HTMLInputElement)
+        .value,
+      "owner@example.invalid",
+    );
+    assert.equal(persisted.data["ownerGuideV3Step_branch-one"], 1);
     view.unmount();
     render(<OwnerSetup {...base} onboarding={persisted} save={save} />);
-    assert.ok(screen.getByRole("heading", { name: "Business" }));
-    assert.ok(
-      screen.getByText("Visiting a step does not mark it complete.", {
-        exact: false,
-      }),
-    );
+    assert.ok(screen.getByRole("heading", { name: "Your business" }));
+    assert.ok(screen.getByText("Visiting a step does not mark it complete."));
+    assert.equal(screen.queryByRole("button", { name: "Menu & stock" }), null);
   } finally {
     cleanup();
+    window.sessionStorage.clear();
   }
 });
 test("unknown progress save locks navigation until exact step retry; branch-scoped users retain existing setup", async () => {
@@ -97,14 +101,17 @@ test("unknown progress save locks navigation until exact step retry; branch-scop
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByRole("alert");
     assert.equal(
-      (screen.getByRole("button", { name: "05 Go live" }) as HTMLButtonElement)
-        .disabled,
+      (
+        screen.getByRole("button", {
+          name: "Review & go live",
+        }) as HTMLButtonElement
+      ).disabled,
       true,
     );
     fireEvent.click(
       screen.getByRole("button", { name: "Retry saving this step" }),
     );
-    await screen.findByRole("heading", { name: "Business" });
+    await screen.findByRole("heading", { name: "Your business" });
     assert.deepEqual(bodies[0], bodies[1]);
     view.unmount();
     render(<OwnerSetup {...base} canGuide={false} save={save} />);
@@ -462,7 +469,7 @@ test("unavailable owner status is not treated as missing identity and requires a
   cleanup();
 });
 
-test("legacy nine-step progress maps to five stages and never mounts additional branch creation", () => {
+test("legacy nine-step progress maps forward to the review stage and never mounts additional branch creation", () => {
   try {
     render(
       <OwnerSetup
@@ -472,7 +479,7 @@ test("legacy nine-step progress maps to five stages and never mounts additional 
         save={async () => ({})}
       />,
     );
-    assert.ok(screen.getByRole("heading", { name: "Go live" }));
+    assert.ok(screen.getByRole("heading", { name: "Review & go live" }));
     assert.equal(
       screen.queryByRole("button", { name: "Create another branch" }),
       null,
@@ -481,9 +488,307 @@ test("legacy nine-step progress maps to five stages and never mounts additional 
       screen
         .getByRole("navigation", { name: "Owner setup steps" })
         .querySelectorAll("ol button").length,
-      5,
+      6,
     );
   } finally {
     cleanup();
+  }
+});
+
+test("venue cards use keyboard selection, real capabilities and save the selected preset on Continue", async () => {
+  window.sessionStorage.clear();
+  const writes: any[] = [];
+  try {
+    render(
+      <OwnerSetup
+        {...base}
+        onboarding={{ data: { "ownerGuideV3Step_branch-one": 2 } }}
+        save={async (path, method, body) => {
+          writes.push({ path, body });
+          return path.endsWith("/operating")
+            ? { version: 2 }
+            : path.endsWith("/settings")
+              ? { version: 2 }
+              : { saved: true, onboarding: { data: body.data } };
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("radio", { name: "Club & nightlife" }));
+    assert.equal(
+      screen
+        .getByRole("button", { name: "Door and guest list" })
+        .getAttribute("aria-pressed"),
+      "true",
+    );
+    fireEvent.keyDown(
+      screen.getByRole("radiogroup", { name: "Kind of venue" }),
+      { key: "ArrowDown" },
+    );
+    assert.equal(
+      (
+        screen.getByRole("radio", {
+          name: "Hotel food & beverage",
+        }) as HTMLInputElement
+      ).checked,
+      true,
+    );
+    assert.equal(
+      screen
+        .getByRole("button", { name: "Charge to room" })
+        .getAttribute("aria-pressed"),
+      "true",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByRole("heading", { name: "Locations" });
+    const body = writes.find((w) => w.path.endsWith("/settings")).body;
+    assert.equal(body.venueType, "hotel_fb");
+    assert.ok(body.capabilities.includes("room_charge"));
+    assert.ok(body.requestKey);
+    assert.equal(body.version, 1);
+    assert.ok(screen.getByText(/single items, packages like bottle service/));
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
+  }
+});
+
+test("location count adapts setup and autosaves the operating choice", async () => {
+  window.sessionStorage.clear();
+  const writes: any[] = [];
+  try {
+    render(
+      <OwnerSetup
+        {...base}
+        onboarding={{
+          data: {
+            "ownerGuideV3Step_branch-one": 1,
+            contact: "owner@example.invalid",
+          },
+        }}
+        save={async (path, method, body) => {
+          writes.push({ path, body });
+          return path.endsWith("/operating")
+            ? { version: 2 }
+            : { saved: true, onboarding: { data: body.data } };
+        }}
+      />,
+    );
+    assert.equal(screen.queryByRole("button", { name: "Menu & stock" }), null);
+    fireEvent.click(screen.getByRole("radio", { name: "2–5" }));
+    assert.ok(screen.getByRole("button", { name: "Menu & stock" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByRole("heading", { name: "Kind of venue" });
+    assert.equal(
+      writes.find((w) => w.path.endsWith("/operating")).body.locationCount,
+      "few",
+    );
+    assert.ok(
+      screen.getByRole("switch", {
+        name: "Are all your locations the same kind?",
+      }),
+    );
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
+  }
+});
+
+test("venue settings retry after remount reuses the original request and does not advance on failure", async () => {
+  window.sessionStorage.clear();
+  const writes: any[] = [];
+  let fail = true;
+  const save = async (path: string, method: string, body: any) => {
+    writes.push({ path, body: structuredClone(body) });
+    if (fail) throw Error("offline");
+    return path.endsWith("/operating")
+      ? { version: 2 }
+      : path.endsWith("/settings")
+        ? { version: 2 }
+        : { saved: true, onboarding: { data: body.data } };
+  };
+  try {
+    const view = render(
+      <OwnerSetup
+        {...base}
+        onboarding={{ data: { "ownerGuideV3Step_branch-one": 2 } }}
+        save={save}
+      />,
+    );
+    fireEvent.click(screen.getByRole("radio", { name: "Club & nightlife" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByRole("alert");
+    view.unmount();
+    fail = false;
+    render(
+      <OwnerSetup
+        {...base}
+        onboarding={{ data: { "ownerGuideV3Step_branch-one": 2 } }}
+        save={save}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry saving this step" }),
+    );
+    await screen.findByRole("heading", { name: "Locations" });
+    assert.deepEqual(writes[0], writes[1]);
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
+  }
+});
+
+test("payments Continue saves reviewed manual methods, preserves caveats verbatim and never launches", async () => {
+  window.sessionStorage.clear();
+  const writes: any[] = [];
+  globalThis.fetch = async () =>
+    Response.json({
+      checks: [{ id: "menu", label: "Menu", status: "ready" }],
+      canPublish: true,
+      launchState: "draft",
+      paymentProviderState: "not_verified",
+      publicHostingVerified: false,
+    });
+  try {
+    render(
+      <OwnerSetup
+        {...base}
+        onboarding={{
+          data: {
+            "ownerGuideV3Step_branch-one": 5,
+            contact: "owner@example.invalid",
+          },
+        }}
+        save={async (path, method, body) => {
+          writes.push({ path, body });
+          return path.endsWith("/onboarding")
+            ? { saved: true, onboarding: { data: body.data } }
+            : { checks: [], canPublish: true };
+        }}
+      />,
+    );
+    await screen.findByRole("checkbox", { name: "Cash" });
+    assert.equal(
+      screen.getByText(/This publishes the branch’s configured menu state/)
+        .textContent,
+      "This publishes the branch’s configured menu state within Mera. Public hosting, verified payment providers and physical printer output require separate validation. No website deployment or live payment activation happens here.",
+    );
+    assert.equal(
+      screen.getByText(/These choices are not saved yet/).textContent,
+      "These choices are not saved yet. Continue to Go live to review and submit them. Leaving or reloading this page discards unsaved payment choices.",
+    );
+    fireEvent.click(screen.getByRole("checkbox", { name: "Cash" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByRole("heading", { name: "Review & go live" });
+    assert.deepEqual(
+      writes.find((w) => w.path.endsWith("/launch-policy")).body,
+      {
+        manualPaymentMethods: ["cash"],
+        launchAcknowledged: true,
+        publicContact: "owner@example.invalid",
+      },
+    );
+    assert.equal(
+      writes.some((w) => w.path.endsWith("/launch")),
+      false,
+    );
+    assert.ok(screen.getByRole("button", { name: "Go live" }));
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
+  }
+});
+
+test("organization address follows the business name until the owner edits it", () => {
+  window.sessionStorage.clear();
+  try {
+    render(
+      <CreateOrganization
+        actorId="slug-owner"
+        actorName="Owner"
+        disabled={false}
+        demo={true}
+        save={async () => {
+          throw Error("No writes expected");
+        }}
+        onCreated={async () => {}}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Organization name"), {
+      target: { value: "Fictional Café" },
+    });
+    assert.equal(
+      (screen.getByLabelText("Requested Mera address") as HTMLInputElement)
+        .value,
+      "fictional-cafe",
+    );
+    fireEvent.change(screen.getByLabelText("Requested Mera address"), {
+      target: { value: "my-cafe" },
+    });
+    fireEvent.change(screen.getByLabelText("Organization name"), {
+      target: { value: "Another name" },
+    });
+    assert.equal(
+      (screen.getByLabelText("Requested Mera address") as HTMLInputElement)
+        .value,
+      "my-cafe",
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("new locations retain their exact creation key and overnight hours are split before settings save", async () => {
+  window.sessionStorage.clear();
+  const writes: any[] = [];
+  let loseCreate = true;
+  const save = async (path: string, method: string, body: any) => {
+    writes.push({ path, method, body: structuredClone(body) });
+    if (method === "POST") {
+      if (loseCreate) {
+        loseCreate = false;
+        throw Error("lost response");
+      }
+      return { id: "second-location" };
+    }
+    return path.endsWith("/operating")
+      ? { version: 2 }
+      : path.endsWith("/settings")
+        ? { version: body.version + 1 }
+        : { saved: true, onboarding: { data: body.data } };
+  };
+  try {
+    render(
+      <OwnerSetup
+        {...base}
+        organization={{ ...org, operating: { locationCount: "few" } }}
+        branch={{ ...branch, settings: { venueType: "club" } }}
+        onboarding={{ data: { "ownerGuideV3Step_branch-one": 3 } }}
+        save={save}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add another location" }),
+    );
+    const names = screen.getAllByLabelText("Location name");
+    fireEvent.change(names[1], { target: { value: "Fictional North" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByRole("alert");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry saving this step" }),
+    );
+    await screen.findByRole("heading", { name: "Menu & stock" });
+    const creations = writes.filter((w) => w.method === "POST");
+    assert.equal(creations.length, 2);
+    assert.deepEqual(creations[0], creations[1]);
+    assert.equal(creations[0].body.code, "FIC");
+    const second = writes.find((w) =>
+      w.path.endsWith("/second-location/settings"),
+    );
+    assert.ok(second);
+    assert.equal(second.body.serviceHours.length, 2);
+    assert.ok(second.body.serviceHours.every((w: any) => w.end > w.start));
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
   }
 });

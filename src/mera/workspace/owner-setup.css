@@ -685,3 +685,159 @@
   padding: 0;
   margin-top: 12px;
 }
+
+/* The owner guide occupies its own calm setup surface. */
+.mera-setup-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  overflow: auto;
+  background: #f7f6f0;
+  color: #153f32;
+  --brand: #153f32;
+  padding: clamp(16px, 3vw, 40px);
+  font-family: "Mera Text", sans-serif;
+}
+.mera-setup-fullscreen .mera-owner-header {
+  max-width: 1100px;
+  margin: 0 auto 24px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.mera-setup-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  max-width: 1100px;
+  margin: 0 auto 32px;
+}
+.mera-setup-progress button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+}
+.mera-setup-progress button[aria-current="step"] {
+  background: #d9eb92;
+  font-weight: 700;
+}
+.mera-setup-main {
+  max-width: 800px;
+  margin: auto;
+  min-width: 0;
+}
+.mera-setup-main h2 {
+  font-family: "Mera Display", sans-serif;
+  font-size: clamp(30px, 5vw, 46px);
+  margin: 8px 0 24px;
+}
+.mera-setup-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  gap: 20px;
+}
+.mera-setup-fields label {
+  display: grid;
+  gap: 8px;
+}
+.mera-setup-fields input:not([type="radio"]) {
+  min-height: 44px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #c5cfc5;
+  border-radius: 10px;
+  background: #fcfbf6;
+  color: inherit;
+}
+.mera-venue-types {
+  border: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.mera-venue-card {
+  display: flex !important;
+  flex-direction: row;
+  align-items: start;
+  padding: 20px;
+  border: 1px solid #c5cfc5;
+  border-radius: 14px;
+  background: #fcfbf6;
+  cursor: pointer;
+}
+.mera-venue-card:has(input:checked) {
+  border: 2px solid #153f32;
+  background: #f0f3df;
+  padding: 19px;
+}
+.mera-venue-card input {
+  margin-top: 5px;
+  accent-color: #153f32;
+}
+.mera-venue-card strong {
+  font-size: 20px;
+}
+.mera-venue-card p {
+  margin: 8px 0;
+}
+.mera-setup-chips {
+  border: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mera-setup-chips button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #aebcaf;
+  background: #fcfbf6;
+  color: #153f32;
+}
+.mera-setup-chips button[aria-pressed="true"] {
+  background: #d9eb92;
+  border-color: #153f32;
+}
+.mera-setup-location {
+  display: grid;
+  gap: 16px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #c5cfc5;
+  min-width: 0;
+}
+.mera-setup-fullscreen :is(button, input):focus-visible {
+  outline: 3px solid #153f32;
+  outline-offset: 3px;
+}
+.mera-setup-fullscreen button {
+  min-height: 44px;
+  white-space: normal;
+}
+.mera-setup-fullscreen [hidden] {
+  display: none !important;
+}
+@media (max-width: 600px) {
+  .mera-setup-progress {
+    gap: 2px;
+  }
+  .mera-setup-progress button {
+    font-size: 12px;
+    padding: 6px;
+  }
+  .mera-owner-step-footer {
+    flex-wrap: wrap;
+  }
+}
