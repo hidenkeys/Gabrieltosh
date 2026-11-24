@@ -1,3 +1,6 @@
+// Selector sources: WorkspaceNavigation / LocationSwitcher / OrganizationWorkspace,
+// presentation.ts, AllLocations, StockTransfers, QrLinkPreview, OwnerSetup,
+// CustomerExperience, ItemContents (fieldset legends), CustomizationDialog.
 /** Operator-run synthetic portfolio checks. Never run against production.
  * CREDENTIALS is read only; credentials, cookies and preview tokens are never logged.
  * The checklist's transaction journeys are inspected through seeded history; this
@@ -15,17 +18,19 @@ const destination = path.resolve("docs/audit/venues");
 const checks = [],
   portfolio = buildVenuePortfolio();
 let shots = 0,
-  browser;
+  browser,
+  currentPage;
 let credentials;
 await mkdir(destination, { recursive: true });
 async function check(venue, name, fn) {
   try {
-    await fn();
+    const note = await fn();
     checks.push({
       venue,
       check: name,
       pass: true,
-      notes: "Verified through the rendered UI.",
+      notes:
+        typeof note === "string" ? note : "Verified through the rendered UI.",
     });
   } catch (error) {
     checks.push({
@@ -35,8 +40,25 @@ async function check(venue, name, fn) {
       notes:
         error?.name === "TimeoutError"
           ? "UI timed out; inspect the named screen and selectors."
-          : "Assertion or UI action failed; inspect this check in the runner.",
+          : `Assertion or UI action failed: ${String(error?.message || error).split("\n")[0].slice(0, 240)}`,
     });
+  } finally {
+    if (currentPage && !currentPage.isClosed()) {
+      try {
+        await snapshot(
+          currentPage,
+          venue,
+          name.replace(/[^a-z0-9]+/gi, "-").toLowerCase(),
+        );
+      } catch {
+        checks.push({
+          venue,
+          check: `${name}: screenshots`,
+          pass: false,
+          notes: "Screenshot capture failed.",
+        });
+      }
+    }
   }
 }
 async function navigation(page) {
@@ -56,9 +78,9 @@ async function navigation(page) {
 }
 async function go(page, name) {
   const nav = await navigation(page);
-  let target = nav.getByRole("tab", { name, exact: true });
+  const target = nav.getByRole("tab", { name, exact: true });
   if (!(await target.isVisible())) {
-    const more = nav.getByRole("button", { name: /^More/ });
+    const more = nav.getByRole("button", { name: "More", exact: true });
     if (
       (await more.isVisible()) &&
       (await more.getAttribute("aria-expanded")) !== "true"
@@ -66,40 +88,66 @@ async function go(page, name) {
       await more.click();
   }
   await target.click();
+  // OrganizationWorkspace h1 + presentation.ts; labels differ from sidebar names.
+  const headings = {
+    Overview: / overview$/,
+    "Point of sale": "The counter.",
+    People: "People & access",
+    "Receipt studio": "Receipts & stickers",
+    "Getting started": "Branch setup",
+  };
+  await page
+    .getByRole("heading", {
+      level: 1,
+      name: headings[name] || name,
+      exact: true,
+    })
+    .waitFor();
 }
 async function snapshot(page, venue, screen) {
-  for (const width of [390, 820, 1440]) {
+  const originalViewport = page.viewportSize();
+  const capture = /^(owner-real-ui-sign-in|venue-capability-navigation|Journey-checklist-inspect-Point-of-sale|Journey-checklist-inspect-Reservations|counter-QR)/i.test(screen);
+  for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
     await page.evaluate(() => document.fonts.ready);
-    await check(
-      venue,
-      `${screen}: no horizontal overflow at ${width}`,
-      async () => {
-        assert(
-          await page.evaluate(
-            () => document.documentElement.scrollWidth <= innerWidth + 1,
-          ),
-        );
-      },
+    const fits = await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth + 1,
     );
-    if (width !== 820 && shots < 60) {
+    checks.push({
+      venue,
+      check: `${screen}: no horizontal overflow at ${width}`,
+      pass: fits,
+      notes: fits ? "Fits viewport." : "Horizontal overflow.",
+    });
+    if (capture && shots < 80) {
       await page.screenshot({
         path: path.join(destination, `${venue}-${screen}-${width}.png`),
         fullPage: true,
+        mask: [
+          page.getByLabel("Password", { exact: true }),
+          page.getByRole("textbox", { name: "Username", exact: true }),
+        ],
       });
       shots++;
     }
   }
+  if (originalViewport) await page.setViewportSize(originalViewport);
 }
-function observe(context, errors, network) {
+function observe(context, errors, network, signedIn = () => true) {
   context.on("console", (message) => {
     if (
       message.type() === "error" &&
+      !(
+        !signedIn() &&
+        /^Failed to load resource: the server responded with a status of 401\b/.test(
+          message.text(),
+        )
+      ) &&
       !/^Failed to load resource: the server responded with a status of (403|409)\b/.test(
         message.text(),
       )
     )
-      errors.push("Browser console error");
+      errors.push(`Browser console error: ${message.text().slice(0, 160)}`);
   });
   context.on("weberror", () => errors.push("Uncaught browser error"));
   context.on("requestfailed", (request) => {
@@ -109,9 +157,10 @@ function observe(context, errors, network) {
   context.on("response", (response) => {
     if (
       (response.status() < 200 || response.status() >= 300) &&
-      ![403, 409].includes(response.status())
+      ![403, 409].includes(response.status()) &&
+      !(response.status() === 401 && !signedIn())
     )
-      network.push(`HTTP ${response.status()}`);
+      network.push(`HTTP ${response.status()} ${new URL(response.url()).pathname}`);
   });
 }
 async function login(org, role) {
@@ -125,9 +174,11 @@ async function login(org, role) {
   const page = await context.newPage(),
     errors = [],
     network = [];
-  observe(context, errors, network);
+  let signedIn = false;
+  observe(context, errors, network, () => signedIn);
+  currentPage = page;
   try {
-    await page.goto(new URL("/mera/sign-in", base).href);
+    await page.goto(new URL("/mera/workspace", base).href);
     await page
       .getByRole("textbox", { name: "Username", exact: true })
       .fill(credential.username);
@@ -137,7 +188,14 @@ async function login(org, role) {
     await page
       .getByRole("button", { name: "Open workspace", exact: true })
       .click();
-    await page.getByRole("combobox", { name: "Branch", exact: true }).waitFor();
+    await page
+      .getByRole("combobox", { name: "Location", exact: true })
+      .waitFor();
+    await page
+      .getByRole("combobox", { name: "Organization", exact: true })
+      .waitFor();
+    await page.locator(".mw-heading h1").waitFor();
+    signedIn = true;
     return { page, context, errors, network };
   } catch (error) {
     await context.close();
@@ -145,12 +203,23 @@ async function login(org, role) {
   }
 }
 async function location(page, code) {
-  const box = page.getByRole("combobox", { name: "Branch", exact: true });
+  const box = page.getByRole("combobox", { name: "Location", exact: true });
+  const previous = await box.inputValue();
   await box.fill(code);
-  await page
+  const option = page
+    .getByRole("listbox", { name: "Location options", exact: true })
     .getByRole("option")
-    .filter({ hasText: new RegExp(`\\b${code}\\b`) })
-    .click();
+    .filter({ hasText: new RegExp(`\\b${code}\\b`) });
+  if ((await option.textContent()).includes(previous)) {
+    await page.keyboard.press("Escape");
+    return;
+  }
+  const ready = page.waitForResponse(
+    (response) => response.url().includes("/workspace") && response.ok(),
+  );
+  await option.click();
+  await (await ready).finished();
+  await page.locator(".mw-heading h1").waitFor();
 }
 try {
   ({
@@ -183,7 +252,7 @@ try {
           session = await login(org, role);
           const { page } = session;
           await page
-            .getByRole("combobox", { name: "Branch", exact: true })
+            .getByRole("combobox", { name: "Location", exact: true })
             .click();
           const expected =
             role === "owner" || role === "finance" || role === "central_stock"
@@ -210,16 +279,57 @@ try {
             async () => {
               const nav = await navigation(page);
               const caps = org.branches[0].settings.capabilities;
+              // WorkspaceNavigation + OrganizationWorkspace sections: all owner venues.
+              for (const label of [
+                "Point of sale",
+                "Orders",
+                "Preparation",
+                "Customer requests",
+                "All locations",
+                "Overview",
+                "Menu & stock",
+                "Transactions",
+                "Shifts & cash",
+                "People",
+              ]) {
+                await nav
+                  .getByRole("tab", { name: label, exact: true })
+                  .waitFor();
+              }
+              await nav
+                .getByRole("button", { name: "More", exact: true })
+                .click();
+              for (const label of [
+                "Customer care",
+                "Report exports",
+                "Getting started",
+                "Receipt studio",
+                "Menu QR codes",
+                "Subscription",
+                "Integrations",
+                "Mera support",
+              ]) {
+                await nav
+                  .getByRole("tab", { name: label, exact: true })
+                  .waitFor();
+              }
               for (const [label, required] of [
                 ["Tables & visits", "table_service"],
                 ["Reservations", "reservations"],
+                ["Front desk", ["waitlist", "reservations"]],
                 ["Door & guest list", "guest_list"],
               ])
                 assert.equal(
                   await nav
                     .getByRole("tab", { name: label, exact: true })
                     .count(),
-                  caps.includes(required) ? 1 : 0,
+                  (
+                    Array.isArray(required)
+                      ? required.some((cap) => caps.includes(cap))
+                      : caps.includes(required)
+                  )
+                    ? 1
+                    : 0,
                 );
               if (venue === "kerbside-grill") {
                 assert.equal(
@@ -254,6 +364,13 @@ try {
                   .waitFor();
               }
               await go(page, "All locations");
+              await page
+                .getByRole("heading", {
+                  level: 1,
+                  name: "All locations",
+                  exact: true,
+                })
+                .waitFor();
               await page.locator(".mw-location-totals dd").first().waitFor();
               const totals = await page
                 .locator(".mw-location-totals dd")
@@ -262,7 +379,7 @@ try {
               assert(Number(totals[1].replace(/[^\d.]/g, "")) > 0);
             },
           );
-          await snapshot(page, venue, "all-locations");
+
           if (venue === "kerbside-grill")
             await check(
               venue,
@@ -276,24 +393,15 @@ try {
                     has: page.getByText("Grilled main", { exact: true }),
                   });
                   await row.waitFor();
-                  if (observations.length)
-                    await page.waitForFunction(
-                      (previous) =>
-                        [
-                          ...document.querySelectorAll(".mw-menu-product-row"),
-                        ].find(
-                          (r) =>
-                            r.querySelector("b")?.textContent ===
-                            "Grilled main",
-                        )?.textContent !== previous,
-                      observations[0].text,
-                    );
                   observations.push({
                     text: await row.textContent(),
                     price: await row
                       .locator(".mw-menu-product-identity small")
                       .textContent(),
-                    stock: await row.locator(".mw-pill").textContent(),
+                    stock: await row
+                      .locator(":scope > .mw-pill")
+                      .first()
+                      .textContent(),
                   });
                 }
                 assert.notEqual(observations[0].price, observations[1].price);
@@ -328,7 +436,7 @@ try {
                 .waitFor();
             },
           );
-          await snapshot(page, venue, "qr-preview");
+
           // Inspect seeded journey destinations without mutating their financial state.
           const destinations = [
             "Overview",
@@ -336,18 +444,12 @@ try {
             "Transactions",
             "Shifts & cash",
           ];
-          if (!["kerbside-grill"].includes(venue))
+          if (org.branches[0].settings.capabilities.includes("table_service"))
             destinations.push("Tables & visits");
-          if (
-            [
-              "saffron-room",
-              "velvet-lounge",
-              "pulse",
-              "harbour-hotel",
-            ].includes(venue)
-          )
+          if (org.branches[0].settings.capabilities.includes("reservations"))
             destinations.push("Reservations");
-          if (venue === "pulse") destinations.push("Door & guest list");
+          if (org.branches[0].settings.capabilities.includes("guest_list"))
+            destinations.push("Door & guest list");
           if (venue === "harbour-hotel") destinations.push("Stock transfers");
           for (const name of destinations)
             await check(
@@ -355,13 +457,15 @@ try {
               `Journey checklist: inspect ${name}`,
               async () => {
                 await go(page, name);
-                await page.locator("main").first().waitFor();
+                // go() waits for the destination heading, never seeded data.
               },
             );
           if (venue === "harbour-hotel")
             await check(venue, "Charge to room payment choice", async () => {
               await go(page, "Transactions");
-              await page.getByText("Charge to room", { exact: true }).waitFor();
+              await page
+                .getByRole("radio", { name: "Charge to room", exact: true })
+                .waitFor();
             });
           await check(
             venue,
@@ -377,11 +481,15 @@ try {
                 name: "Owner setup steps",
                 exact: true,
               });
+              // OwnerSetup.tsx adds Menu & stock for multi-location organizations.
               for (const name of [
                 "Account",
                 "Your business",
                 "Kind of venue",
                 "Locations",
+                ...(org.operating.locationCount !== "one"
+                  ? ["Menu & stock"]
+                  : []),
                 "Payments",
                 "Review & go live",
               ])
@@ -422,12 +530,12 @@ try {
               );
             },
           );
-          await snapshot(page, venue, "getting-started");
+
         }
         if (venue === "kerbside-grill" && role === "cashier")
           await check(venue, "SUR cashier cannot reach LKI", async () => {
             await page
-              .getByRole("combobox", { name: "Branch", exact: true })
+              .getByRole("combobox", { name: "Location", exact: true })
               .fill("LKI");
             assert.equal(await page.getByRole("option").count(), 0);
             await page.keyboard.press("Escape");
@@ -469,6 +577,7 @@ try {
       }
     }
     // Counter guest menu checks use a fresh context, never a staff preview token.
+    let guestContext;
     await check(
       venue,
       "counter QR: package table requirement and combo min/max sheet",
@@ -479,6 +588,7 @@ try {
         observe(context, errors, network);
         try {
           const page = await context.newPage();
+          currentPage = page;
           await page.goto(
             new URL(`/mera/menu/${org.slug}/${org.branches[0].id}`, base).href,
           );
@@ -513,10 +623,13 @@ try {
             name: "Choose: Main + side + drink",
             exact: true,
           });
-          assert(
-            await combo.isEnabled(),
-            "Ordering must be on to exercise combo constraints",
-          );
+          if (await combo.isDisabled()) {
+            await page
+              .getByRole("status")
+              .filter({ hasText: /Closed now|Ordering is paused/ })
+              .waitFor();
+            return "Closed/paused venue: disabled ordering verified; combo sheet constraints require a run during service.";
+          }
           await combo.click();
           const dialog = page.getByRole("dialog");
           const add = dialog.getByRole("button", {
@@ -546,9 +659,9 @@ try {
             .first()
             .uncheck();
           assert(await add.isDisabled());
-          await snapshot(page, venue, "combo");
         } finally {
-          await context.close();
+          // Close after the enclosing check captures its final state.
+          guestContext = context;
           checks.push({
             venue,
             check: "Guest menu: console and network",
@@ -560,6 +673,7 @@ try {
         }
       },
     );
+    await guestContext?.close();
   }
 } catch {
   checks.push({

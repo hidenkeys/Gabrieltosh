@@ -29,27 +29,45 @@ export function contentName(ref: any, products: any[] = []) {
 export default function ItemContents({
   item,
   products = [],
+  summary = false,
 }: {
   item: any;
   products?: any[];
+  summary?: boolean;
 }) {
   return (
     <>
       {item.kind === "package" && (
         <span className="mc-kind-badge">Package</span>
       )}
-      {item.kind === "combo" && <span className="mc-kind-badge">Combo</span>}
+      {item.kind === "combo" && <span className="mc-kind-badge">Meal</span>}
       {item.serves && (
         <span className="mc-kind-badge">Serves {item.serves}</span>
       )}
       {!!item.components?.length && (
         <ul className="mc-item-contents">
-          {item.components.map((r: any, i: number) => (
-            <li key={i}>
-              {r.quantity || 1} × {contentName(r, products)}
-            </li>
-          ))}
+          {(summary ? item.components.slice(0, 3) : item.components).map(
+            (r: any, i: number) => (
+              <li key={i}>
+                {r.quantity || 1} × {contentName(r, products)}
+              </li>
+            ),
+          )}
         </ul>
+      )}
+      {summary && !!item.choiceGroups?.length && (
+        <p className="mc-item-contents">
+          {item.choiceGroups
+            .slice(0, 3)
+            .map(
+              (group: any) =>
+                `${group.name}: ${(group.options || [])
+                  .slice(0, 2)
+                  .map((option: any) => contentName(option, products))
+                  .join(" or ")}`,
+            )
+            .join(" · ")}
+        </p>
       )}
       {item.requiresTable && <p>Available for booked or seated tables</p>}
     </>

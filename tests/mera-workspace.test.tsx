@@ -165,7 +165,7 @@ test("workspace scopes visible navigation and discards the previous branch recor
   await screen.findByText("Surulere customer", { exact: false });
   assert.equal(screen.queryByRole("tab", { name: "People" }), null);
   assert.equal(screen.queryByRole("tab", { name: "Subscription" }), null);
-  chooseField(screen, fireEvent, "Branch", "branch-2");
+  chooseField(screen, fireEvent, "Location", "branch-2");
   await screen.findByText("Ikeja customer", { exact: false });
   assert.equal(screen.queryByText("Surulere customer", { exact: false }), null);
   cleanup();
@@ -369,7 +369,7 @@ test("slow manual refresh cannot overwrite the new branch after switching", asyn
     deferOldRefresh = true;
     fireEvent.click(screen.getByRole("button", { name: "Refresh workspace" }));
     await waitFor(() => assert(resolveOldRefresh));
-    chooseField(screen, fireEvent, "Branch", "branch-2");
+    chooseField(screen, fireEvent, "Location", "branch-2");
     await screen.findByText("Ikeja customer", { exact: false });
     await act(async () => {
       resolveOldRefresh!(Response.json(snapshot("branch-1")));
@@ -811,10 +811,10 @@ test("returning to the same branch still rejects a response from its earlier sco
     fireEvent.click(screen.getByRole("button", { name: "Refresh workspace" }));
     await waitFor(() => assert(resolveOldRefresh));
     const staleResolver = resolveOldRefresh!;
-    chooseField(screen, fireEvent, "Branch", "branch-2");
+    chooseField(screen, fireEvent, "Location", "branch-2");
     await screen.findByText("Ikeja customer", { exact: false });
     deferOldRefresh = false;
-    chooseField(screen, fireEvent, "Branch", "branch-1");
+    chooseField(screen, fireEvent, "Location", "branch-1");
     await screen.findByText("Surulere customer", { exact: false });
     await act(async () => {
       const stale = snapshot("branch-1");
@@ -2996,7 +2996,7 @@ test("staff visit opening acknowledges exact minimum terms and reveals its joini
         ),
       );
     }
-    chooseField(screen, fireEvent, "Branch", "branch-2");
+    chooseField(screen, fireEvent, "Location", "branch-2");
     await waitFor(() => assert.equal(screen.queryByText("PRIVATE123"), null));
     assert.equal(screen.queryByText("Private access · Ada"), null);
   } finally {
@@ -4164,7 +4164,7 @@ test("F5 integrated selection resets at branch switch and falls back promptly af
     await screen.findByRole("heading", { name: "The whole collection" });
     fireEvent.click(screen.getByRole("tab", { name: "Orders" }));
     await screen.findByText("Surulere customer", { exact: false });
-    chooseField(screen, fireEvent, "Branch", "branch-2");
+    chooseField(screen, fireEvent, "Location", "branch-2");
     await waitFor(() =>
       assert.equal(
         screen

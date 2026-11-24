@@ -1563,6 +1563,7 @@ export default function OrganizationWorkspace({
         <div className="mw-context">
           <ChoiceField
             label="Organization"
+            id="mw-organization-switcher"
             searchable
             value={organizationId}
             disabled={busy}
@@ -1683,7 +1684,7 @@ export default function OrganizationWorkspace({
           </div>
           <h1 ref={taskHeading} tabIndex={-1}>
             {activeSection === "overview"
-              ? "Branch overview."
+              ? `${branch?.name || "Location"} overview`
               : activeSection === "counter"
                 ? "The counter."
                 : pagePresentation.title}

@@ -1,3 +1,4 @@
+import { orderingStatus } from "./orderingStatus";
 import ItemContents, {
   choiceKey,
   choiceComplete,
@@ -329,7 +330,7 @@ export default function CustomerExperience({
     }
     customerRequest(prefix + "/guest")
       .then(async (session) => {
-        if (!active) return;
+        if (!active || session.guest === null) return;
         if (!checkoutIntentRef.current)
           setDisplayName(session.displayName || "");
         setHasGuest(true);
@@ -1676,7 +1677,7 @@ export default function CustomerExperience({
               </div>
               {!menu.orderingAvailable && (
                 <p className="mc-ordering-status" role="status">
-                  Ordering is paused. You can still browse the menu.
+                  {orderingStatus(menu.branch)}
                 </p>
               )}
               <Chips
@@ -1709,7 +1710,7 @@ export default function CustomerExperience({
                     <div>
                       <h3>{p.name}</h3>
                       <p>{p.description || p.size}</p>
-                      <ItemContents item={p} products={products} />
+                      <ItemContents item={p} products={products} summary />
                       {p.dietary?.length > 0 && (
                         <p>Dietary: {p.dietary.join(", ")}</p>
                       )}

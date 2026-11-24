@@ -425,6 +425,11 @@
   margin: 24px 0 20px;
   align-items: center;
 }
+.mw-operational .mw-heading > div {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
 .mw-operational .mw-heading h1 {
   font-size: 30px;
   color: var(--brand-ink);
@@ -513,6 +518,9 @@
   margin-bottom: 20px;
 }
 .mw-overview-metrics .mw-card {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   margin: 0;
   padding: 20px;
 }
@@ -952,6 +960,11 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
 }
+.mw-attention-grid > section {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
 .mw-attention-grid > section + section {
   border-left: 1px solid var(--line);
   padding-left: 20px;
@@ -999,7 +1012,7 @@
 }
 @media (max-width: 620px) {
   .mw-attention-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
   .mw-attention-grid > section + section {

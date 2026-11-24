@@ -107,7 +107,7 @@ test("venue navigation hides tables/reservations for quick service and exposes D
       screen.queryByRole("tab", { name: "Door & guest list" }),
       null,
     );
-    fireEvent.focus(screen.getByRole("combobox", { name: "Branch" }));
+    fireEvent.focus(screen.getByRole("combobox", { name: "Location" }));
     fireEvent.click(screen.getByRole("option", { name: /Nightclub/ }));
     await screen.findByRole("tab", { name: "Door & guest list" });
     assert(screen.getByRole("tab", { name: "Tables & visits" }));
@@ -141,7 +141,7 @@ test("selected branch permissions override membership grants including explicit 
       null,
     );
     assert.equal(screen.queryByRole("tab", { name: "Transactions" }), null);
-    fireEvent.focus(screen.getByRole("combobox", { name: "Branch" }));
+    fireEvent.focus(screen.getByRole("combobox", { name: "Location" }));
     fireEvent.click(screen.getByRole("option", { name: /No access/ }));
     await screen.findByText("No tasks assigned");
   } finally {
@@ -438,8 +438,8 @@ test("room charge records the room and surname with one durable request key", as
     };
     render(<Workspace user={user} notify={() => {}} onLogout={() => {}} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Transactions" }));
-    fireEvent.focus(screen.getByRole("combobox", { name: "Order" }));
-    fireEvent.click(screen.getByRole("option", { name: /ORDER 1/ }));
+    fireEvent.focus(await screen.findByRole("combobox", { name: "Order" }));
+    fireEvent.click(await screen.findByRole("option", { name: /ORDER 1/ }));
     fireEvent.change(screen.getByLabelText("Amount received (naira)"), {
       target: { value: "100" },
     });
@@ -548,12 +548,35 @@ test("Door-only staff can use the guest list without requesting forbidden operat
       return fetchBase(input, init);
     };
     render(<Workspace user={user} notify={() => {}} onLogout={() => {}} />);
-    await screen.findByRole("heading", { name: "Door & guest list" });
+    await screen.findByRole("heading", { name: "Door & guest list", level: 1 });
+    assert.equal(screen.getAllByRole("heading", { name: "Door & guest list", exact: true }).length, 1);
     assert.equal(workspaceReads, 0);
     assert(await screen.findByText(/Tonight’s list/));
   } finally {
     cleanup();
     window.sessionStorage.clear();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("workspace names both switchers and identifies the location overview", async () => {
+  try {
+    workspaceFetch(
+      [
+        {
+          id: "sur",
+          name: "Surulere",
+          settings: { venueType: "quick_service" },
+        },
+      ],
+      ["reports.view"],
+    );
+    render(<Workspace user={user} onLogout={() => {}} />);
+    await screen.findByRole("heading", { name: "Surulere overview", level: 1 });
+    assert.ok(screen.getByRole("combobox", { name: "Organization" }));
+    assert.ok(screen.getByRole("combobox", { name: "Location" }));
+  } finally {
+    cleanup();
     globalThis.fetch = originalFetch;
   }
 });

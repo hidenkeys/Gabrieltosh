@@ -61,6 +61,7 @@ export function Combobox({
         ref={input}
         id={id || generated}
         role="combobox"
+        aria-label={label}
         autoComplete="off"
         aria-expanded={open}
         aria-controls={`${generated}-options`}

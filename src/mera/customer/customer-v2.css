@@ -937,6 +937,6 @@
   margin-bottom: 8px;
 }
 
-.mc-kind-badge { display: inline-block; font-size: .8rem; margin: 4px 8px 4px 0; color: var(--mc-primary); font-weight: 650; }
+.mc-kind-badge { display: inline-block; font-size: .8rem; margin: 4px 8px 4px 0; padding: 3px 8px; border: 1px solid var(--mc-line); border-radius: 10px; background: var(--mc-tint); color: var(--mc-ink); font-weight: 650; }
 .mc-item-contents { padding-left: 20px; font-size: .9rem; }
 .mc-preview-bar { position: sticky; top: 0; z-index: 20; padding: 12px; text-align: center; background: var(--mc-paper); color: var(--mc-primary); border-bottom: 1px solid var(--mc-line); font-weight: 650; }

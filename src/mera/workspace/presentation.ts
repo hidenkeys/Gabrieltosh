@@ -1,7 +1,7 @@
 /** Presentation only: role names prioritize existing grants; they never grant access. */
 export const sectionPresentation = {
   overview: {
-    title: "Branch overview",
+    title: "Location overview",
     description:
       "See today’s service, money received and work needing attention.",
   },

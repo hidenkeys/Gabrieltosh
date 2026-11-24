@@ -55,7 +55,6 @@ export default function AllLocations({
     "Location";
   return (
     <section className="mw-card mw-all-locations">
-      <h2>All locations</h2>
       <DateRangePresets
         value={preset}
         onPresetChange={setPreset}

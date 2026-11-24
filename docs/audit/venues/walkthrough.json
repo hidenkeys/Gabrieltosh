@@ -1,0 +1,3193 @@
+{
+  "generatedAt": "2026-11-24T03:45:21.017Z",
+  "screenshots": 50,
+  "scope": "UI assertions and seeded journey inspection; transaction journeys require operator completion.",
+  "checks": [
+    {
+      "venue": "kerbside-grill",
+      "check": "owner: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "owner-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "owner-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "venue capability navigation and All locations",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "venue-capability-navigation-and-all-locations: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "venue-capability-navigation-and-all-locations: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "SUR/LKI main price override and independent stock",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "sur-lki-main-price-override-and-independent-stock: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "sur-lki-main-price-override-and-independent-stock: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "QR URL and phone preview with orders off",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "qr-url-and-phone-preview-with-orders-off: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "qr-url-and-phone-preview-with-orders-off: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "Journey checklist: inspect Overview",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "journey-checklist-inspect-overview: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "journey-checklist-inspect-overview: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "Journey checklist: inspect Orders",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "journey-checklist-inspect-orders: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "journey-checklist-inspect-orders: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "Journey checklist: inspect Transactions",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "journey-checklist-inspect-transactions: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "journey-checklist-inspect-transactions: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "Journey checklist: inspect Shifts & cash",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "journey-checklist-inspect-shifts-cash: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "journey-checklist-inspect-shifts-cash: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "Getting started: venue cards and guided steps (no Go live)",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "getting-started-venue-cards-and-guided-steps-no-go-live-: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "getting-started-venue-cards-and-guided-steps-no-go-live-: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "owner: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "branch_manager: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "branch-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "branch-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "SUR manager becomes LKI cashier",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "sur-manager-becomes-lki-cashier: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "sur-manager-becomes-lki-cashier: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "branch_manager: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "cashier: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "cashier-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "cashier-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "SUR cashier cannot reach LKI",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "sur-cashier-cannot-reach-lki: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "sur-cashier-cannot-reach-lki: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "cashier: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "waiter: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "waiter-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "waiter-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "waiter: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "kitchen: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "kitchen-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "kitchen-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "kitchen: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "bar: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "bar-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "bar-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "bar: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "front_desk: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "front-desk-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "front-desk-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "front_desk: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "stock_controller: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "stock-controller-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "stock-controller-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "stock_controller: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "area_manager: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "area-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "area-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "area_manager: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "finance: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "finance-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "finance-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "finance: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "central_stock: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "central-stock-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "central-stock-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "central_stock: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "Guest menu: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "counter QR: package table requirement and combo min/max sheet",
+      "pass": true,
+      "notes": "Closed/paused venue: disabled ordering verified; combo sheet constraints require a run during service."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "counter-qr-package-table-requirement-and-combo-min-max-sheet: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "counter-qr-package-table-requirement-and-combo-min-max-sheet: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "owner: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "owner-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "owner-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "venue capability navigation and All locations",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "venue-capability-navigation-and-all-locations: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "venue-capability-navigation-and-all-locations: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "QR URL and phone preview with orders off",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "qr-url-and-phone-preview-with-orders-off: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "qr-url-and-phone-preview-with-orders-off: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Journey checklist: inspect Overview",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "journey-checklist-inspect-overview: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "journey-checklist-inspect-overview: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Journey checklist: inspect Orders",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "journey-checklist-inspect-orders: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "journey-checklist-inspect-orders: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Journey checklist: inspect Transactions",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "journey-checklist-inspect-transactions: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "journey-checklist-inspect-transactions: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Journey checklist: inspect Shifts & cash",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "journey-checklist-inspect-shifts-cash: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "journey-checklist-inspect-shifts-cash: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Journey checklist: inspect Tables & visits",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "journey-checklist-inspect-tables-visits: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "journey-checklist-inspect-tables-visits: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Getting started: venue cards and guided steps (no Go live)",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "getting-started-venue-cards-and-guided-steps-no-go-live-: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "getting-started-venue-cards-and-guided-steps-no-go-live-: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "owner: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "branch_manager: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "branch-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "branch-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "branch_manager: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "cashier: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "cashier-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "cashier-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "cashier: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "waiter: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "waiter-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "waiter-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "waiter: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "kitchen: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "kitchen-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "kitchen-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "kitchen: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "bar: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "bar-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "bar-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "bar: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "front_desk: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "front-desk-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "front-desk-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "front_desk: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "stock_controller: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "stock-controller-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "stock-controller-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "stock_controller: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "area_manager: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "area-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "area-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "area_manager: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "finance: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "finance-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "finance-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "finance: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "central_stock: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "central-stock-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "central-stock-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "central_stock: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Guest menu: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "counter QR: package table requirement and combo min/max sheet",
+      "pass": true,
+      "notes": "Closed/paused venue: disabled ordering verified; combo sheet constraints require a run during service."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "counter-qr-package-table-requirement-and-combo-min-max-sheet: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "counter-qr-package-table-requirement-and-combo-min-max-sheet: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "owner: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "owner-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "owner-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "venue capability navigation and All locations",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "venue-capability-navigation-and-all-locations: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "venue-capability-navigation-and-all-locations: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "QR URL and phone preview with orders off",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "qr-url-and-phone-preview-with-orders-off: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "qr-url-and-phone-preview-with-orders-off: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "Journey checklist: inspect Overview",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "journey-checklist-inspect-overview: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "journey-checklist-inspect-overview: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "Journey checklist: inspect Orders",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "journey-checklist-inspect-orders: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "journey-checklist-inspect-orders: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "Journey checklist: inspect Transactions",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "journey-checklist-inspect-transactions: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "journey-checklist-inspect-transactions: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "Journey checklist: inspect Shifts & cash",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "journey-checklist-inspect-shifts-cash: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "journey-checklist-inspect-shifts-cash: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "Journey checklist: inspect Tables & visits",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "journey-checklist-inspect-tables-visits: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "journey-checklist-inspect-tables-visits: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "Journey checklist: inspect Reservations",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "journey-checklist-inspect-reservations: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "journey-checklist-inspect-reservations: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "Getting started: venue cards and guided steps (no Go live)",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "getting-started-venue-cards-and-guided-steps-no-go-live-: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "getting-started-venue-cards-and-guided-steps-no-go-live-: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "owner: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "branch_manager: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "branch-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "branch-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "branch_manager: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "cashier: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "cashier-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "cashier-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "cashier: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "waiter: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "waiter-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "waiter-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "waiter: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "kitchen: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "kitchen-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "kitchen-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "kitchen: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "bar: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "bar-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "bar-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "bar: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "front_desk: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "front-desk-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "front-desk-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "front_desk: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "stock_controller: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "stock-controller-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "stock-controller-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "stock_controller: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "area_manager: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "area-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "area-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "area_manager: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "finance: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "finance-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "finance-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "finance: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "central_stock: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "central-stock-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "central-stock-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "central_stock: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "Guest menu: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "counter QR: package table requirement and combo min/max sheet",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "counter-qr-package-table-requirement-and-combo-min-max-sheet: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "saffron-room",
+      "check": "counter-qr-package-table-requirement-and-combo-min-max-sheet: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "owner: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "owner-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "owner-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "venue capability navigation and All locations",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "venue-capability-navigation-and-all-locations: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "venue-capability-navigation-and-all-locations: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "QR URL and phone preview with orders off",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "qr-url-and-phone-preview-with-orders-off: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "qr-url-and-phone-preview-with-orders-off: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "Journey checklist: inspect Overview",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "journey-checklist-inspect-overview: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "journey-checklist-inspect-overview: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "Journey checklist: inspect Orders",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "journey-checklist-inspect-orders: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "journey-checklist-inspect-orders: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "Journey checklist: inspect Transactions",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "journey-checklist-inspect-transactions: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "journey-checklist-inspect-transactions: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "Journey checklist: inspect Shifts & cash",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "journey-checklist-inspect-shifts-cash: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "journey-checklist-inspect-shifts-cash: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "Journey checklist: inspect Tables & visits",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "journey-checklist-inspect-tables-visits: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "journey-checklist-inspect-tables-visits: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "Journey checklist: inspect Reservations",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "journey-checklist-inspect-reservations: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "journey-checklist-inspect-reservations: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "Getting started: venue cards and guided steps (no Go live)",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "getting-started-venue-cards-and-guided-steps-no-go-live-: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "getting-started-venue-cards-and-guided-steps-no-go-live-: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "owner: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "branch_manager: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "branch-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "branch-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "branch_manager: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "cashier: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "cashier-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "cashier-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "cashier: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "waiter: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "waiter-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "waiter-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "waiter: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "kitchen: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "kitchen-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "kitchen-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "kitchen: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "bar: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "bar-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "bar-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "bar: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "front_desk: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "front-desk-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "front-desk-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "front_desk: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "stock_controller: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "stock-controller-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "stock-controller-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "stock_controller: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "area_manager: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "area-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "area-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "area_manager: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "finance: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "finance-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "finance-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "finance: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "central_stock: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "central-stock-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "central-stock-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "central_stock: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "Guest menu: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "counter QR: package table requirement and combo min/max sheet",
+      "pass": true,
+      "notes": "Closed/paused venue: disabled ordering verified; combo sheet constraints require a run during service."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "counter-qr-package-table-requirement-and-combo-min-max-sheet: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "counter-qr-package-table-requirement-and-combo-min-max-sheet: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "owner: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "owner-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "owner-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "venue capability navigation and All locations",
+      "pass": false,
+      "notes": "Assertion or UI action failed: The expression evaluated to a falsy value:"
+    },
+    {
+      "venue": "pulse",
+      "check": "venue-capability-navigation-and-all-locations: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "venue-capability-navigation-and-all-locations: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "QR URL and phone preview with orders off",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "qr-url-and-phone-preview-with-orders-off: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "qr-url-and-phone-preview-with-orders-off: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "Journey checklist: inspect Overview",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "journey-checklist-inspect-overview: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "journey-checklist-inspect-overview: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "Journey checklist: inspect Orders",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "journey-checklist-inspect-orders: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "journey-checklist-inspect-orders: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "Journey checklist: inspect Transactions",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "journey-checklist-inspect-transactions: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "journey-checklist-inspect-transactions: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "Journey checklist: inspect Shifts & cash",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "journey-checklist-inspect-shifts-cash: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "journey-checklist-inspect-shifts-cash: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "Journey checklist: inspect Tables & visits",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "journey-checklist-inspect-tables-visits: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "journey-checklist-inspect-tables-visits: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "Journey checklist: inspect Reservations",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "journey-checklist-inspect-reservations: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "journey-checklist-inspect-reservations: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "Journey checklist: inspect Door & guest list",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "journey-checklist-inspect-door-guest-list: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "journey-checklist-inspect-door-guest-list: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "Getting started: venue cards and guided steps (no Go live)",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "getting-started-venue-cards-and-guided-steps-no-go-live-: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "getting-started-venue-cards-and-guided-steps-no-go-live-: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "owner: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "pulse",
+      "check": "branch_manager: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "branch-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "branch-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "branch_manager: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "pulse",
+      "check": "cashier: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "cashier-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "cashier-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "cashier: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "pulse",
+      "check": "waiter: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "waiter-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "waiter-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "waiter: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "pulse",
+      "check": "kitchen: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "kitchen-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "kitchen-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "kitchen: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "pulse",
+      "check": "bar: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "bar-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "bar-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "bar: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "pulse",
+      "check": "front_desk: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "front-desk-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "front-desk-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "front_desk: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "pulse",
+      "check": "stock_controller: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "stock-controller-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "stock-controller-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "stock_controller: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "pulse",
+      "check": "area_manager: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "area-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "area-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "area_manager: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "pulse",
+      "check": "finance: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "finance-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "finance-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "finance: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "pulse",
+      "check": "central_stock: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "central-stock-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "central-stock-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "central_stock: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "pulse",
+      "check": "Guest menu: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "pulse",
+      "check": "counter QR: package table requirement and combo min/max sheet",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "pulse",
+      "check": "counter-qr-package-table-requirement-and-combo-min-max-sheet: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "pulse",
+      "check": "counter-qr-package-table-requirement-and-combo-min-max-sheet: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "owner: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "owner-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "owner-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "venue capability navigation and All locations",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "venue-capability-navigation-and-all-locations: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "venue-capability-navigation-and-all-locations: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "QR URL and phone preview with orders off",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "qr-url-and-phone-preview-with-orders-off: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "qr-url-and-phone-preview-with-orders-off: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Journey checklist: inspect Overview",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "journey-checklist-inspect-overview: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "journey-checklist-inspect-overview: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Journey checklist: inspect Orders",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "journey-checklist-inspect-orders: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "journey-checklist-inspect-orders: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Journey checklist: inspect Transactions",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "journey-checklist-inspect-transactions: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "journey-checklist-inspect-transactions: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Journey checklist: inspect Shifts & cash",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "journey-checklist-inspect-shifts-cash: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "journey-checklist-inspect-shifts-cash: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Journey checklist: inspect Tables & visits",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "journey-checklist-inspect-tables-visits: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "journey-checklist-inspect-tables-visits: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Journey checklist: inspect Reservations",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "journey-checklist-inspect-reservations: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "journey-checklist-inspect-reservations: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Journey checklist: inspect Stock transfers",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "journey-checklist-inspect-stock-transfers: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "journey-checklist-inspect-stock-transfers: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Charge to room payment choice",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "charge-to-room-payment-choice: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "charge-to-room-payment-choice: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Getting started: venue cards and guided steps (no Go live)",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "getting-started-venue-cards-and-guided-steps-no-go-live-: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "getting-started-venue-cards-and-guided-steps-no-go-live-: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "owner: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "branch_manager: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "branch-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "branch-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "branch_manager: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "cashier: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "cashier-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "cashier-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "cashier: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "waiter: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "waiter-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "waiter-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "waiter: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "kitchen: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "kitchen-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "kitchen-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "kitchen: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "bar: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "bar-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "bar-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "bar: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "front_desk: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "front-desk-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "front-desk-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "front_desk: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "stock_controller: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "stock-controller-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "stock-controller-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "stock_controller: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "area_manager: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "area-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "area-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "area_manager: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "finance: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "finance-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "finance-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "finance: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "central_stock: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "central-stock-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "central-stock-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "central_stock: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Guest menu: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "counter QR: package table requirement and combo min/max sheet",
+      "pass": true,
+      "notes": "Closed/paused venue: disabled ordering verified; combo sheet constraints require a run during service."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "counter-qr-package-table-requirement-and-combo-min-max-sheet: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "counter-qr-package-table-requirement-and-combo-min-max-sheet: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "owner: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "owner-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "owner-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "venue capability navigation and All locations",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "venue-capability-navigation-and-all-locations: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "venue-capability-navigation-and-all-locations: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "QR URL and phone preview with orders off",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "qr-url-and-phone-preview-with-orders-off: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "qr-url-and-phone-preview-with-orders-off: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "Journey checklist: inspect Overview",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "journey-checklist-inspect-overview: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "journey-checklist-inspect-overview: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "Journey checklist: inspect Orders",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "journey-checklist-inspect-orders: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "journey-checklist-inspect-orders: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "Journey checklist: inspect Transactions",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "journey-checklist-inspect-transactions: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "journey-checklist-inspect-transactions: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "Journey checklist: inspect Shifts & cash",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "journey-checklist-inspect-shifts-cash: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "journey-checklist-inspect-shifts-cash: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "Journey checklist: inspect Tables & visits",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "journey-checklist-inspect-tables-visits: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "journey-checklist-inspect-tables-visits: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "Getting started: venue cards and guided steps (no Go live)",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "getting-started-venue-cards-and-guided-steps-no-go-live-: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "getting-started-venue-cards-and-guided-steps-no-go-live-: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "owner: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "branch_manager: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "branch-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "branch-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "branch_manager: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "cashier: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "cashier-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "cashier-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "cashier: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "waiter: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "waiter-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "waiter-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "waiter: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "kitchen: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "kitchen-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "kitchen-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "kitchen: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "bar: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "bar-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "bar-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "bar: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "front_desk: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "front-desk-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "front-desk-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "front_desk: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "stock_controller: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "stock-controller-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "stock-controller-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "stock_controller: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "area_manager: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "area-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "area-manager-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "area_manager: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "finance: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "finance-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "finance-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "finance: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "central_stock: real UI sign-in and authorized location codes",
+      "pass": true,
+      "notes": "Verified through the rendered UI."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "central-stock-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "central-stock-real-ui-sign-in-and-authorized-location-codes: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "central_stock: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "Guest menu: console and network",
+      "pass": true,
+      "notes": "No console errors or unexpected failed requests."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "counter QR: package table requirement and combo min/max sheet",
+      "pass": true,
+      "notes": "Closed/paused venue: disabled ordering verified; combo sheet constraints require a run during service."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "counter-qr-package-table-requirement-and-combo-min-max-sheet: no horizontal overflow at 390",
+      "pass": true,
+      "notes": "Fits viewport."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "counter-qr-package-table-requirement-and-combo-min-max-sheet: no horizontal overflow at 1440",
+      "pass": true,
+      "notes": "Fits viewport."
+    }
+  ]
+}

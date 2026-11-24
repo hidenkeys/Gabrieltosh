@@ -833,3 +833,68 @@ test("C1 unrelated organization without a product photo gets a neutral placehold
     null,
   );
 });
+
+test("Pulse menu at 11am explains the next local opening and keeps ordering disabled", async (t) => {
+  t.mock.timers.enable({
+    apis: ["Date"],
+    now: new Date("2026-11-24T10:00:00Z"),
+  });
+  mockMenu(t, {
+    ...menu,
+    orderingAvailable: false,
+    branch: {
+      ...menu.branch,
+      timezone: "Africa/Lagos",
+      settings: {
+        serviceHours: [
+          { days: [0, 1, 2, 3, 4, 5, 6], start: "22:00", end: "23:59" },
+          { days: [0, 1, 2, 3, 4, 5, 6], start: "00:00", end: "05:00" },
+        ],
+      },
+    },
+  });
+  render(React.createElement(CustomerExperience));
+  await screen.findByText(
+    "Closed now. Opens today at 22:00 (Africa/Lagos). You can still browse the menu.",
+  );
+  assert.equal(
+    screen.getByRole("button", { name: "Choose: Brown Sugar Boba" }).disabled,
+    true,
+  );
+  assert.equal(
+    screen.queryByText("Ordering is paused. You can still browse the menu."),
+    null,
+  );
+});
+
+test("guest menu cards show package and meal badges, portions and contents before choosing", async (t) => {
+  mockMenu(t, {
+    ...menu,
+    products: [
+      {
+        ...product,
+        id: "pack",
+        kind: "package",
+        serves: 4,
+        name: "Bottle service",
+        components: [{ name: "Bottle", quantity: 1 }],
+      },
+      {
+        ...product,
+        id: "meal",
+        kind: "combo",
+        serves: 1,
+        name: "Lunch",
+        choiceGroups: [{ name: "Main", options: [{ name: "Grilled main" }] }],
+      },
+    ],
+  });
+  render(React.createElement(CustomerExperience));
+  await screen.findByText("Package");
+  assert.ok(screen.getByText("Meal"));
+  assert.ok(screen.getByText("Serves 4"));
+  assert.ok(screen.getByText("Serves 1"));
+  assert.ok(screen.getByText("1 × Bottle"));
+  assert.ok(screen.getByText("Main: Grilled main"));
+  assert.equal(screen.queryByRole("dialog"), null);
+});

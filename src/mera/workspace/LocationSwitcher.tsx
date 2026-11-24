@@ -53,12 +53,13 @@ export default function LocationSwitcher({
   }
   return (
     <div className="mw-location-switcher mi-control">
-      <label htmlFor={id}>Branch</label>
+      <label htmlFor={id}>Location</label>
       <div className="mw-location-current">
         {current && <LocationTag location={current} />}
         <input
           id={id}
           role="combobox"
+          aria-label="Location"
           aria-expanded={open}
           aria-controls={id + "-options"}
           aria-autocomplete="list"
@@ -99,7 +100,7 @@ export default function LocationSwitcher({
         <div
           className="mw-location-options"
           role="listbox"
-          aria-label="Branch options"
+          aria-label="Location options"
           id={id + "-options"}
         >
           {options.map((b, index) => (

@@ -323,3 +323,35 @@ test("guest staff preview loads draft token without a guest session or writes", 
     window.history.replaceState({}, "", "/");
   }
 });
+
+test("guest cards visibly identify packages and meals with portions and first contents", async () => {
+  const { default: ItemContents } =
+    await import("../src/mera/customer/ItemContents");
+  render(
+    <ItemContents
+      summary
+      item={{
+        kind: "package",
+        serves: 4,
+        components: [{ name: "Bottle", quantity: 1 }],
+      }}
+    />,
+  );
+  assert.ok(screen.getByText("Package"));
+  assert.ok(screen.getByText("Serves 4"));
+  assert.ok(screen.getByText("1 × Bottle"));
+  cleanup();
+  render(
+    <ItemContents
+      summary
+      item={{
+        kind: "combo",
+        serves: 1,
+        choiceGroups: [{ name: "Main", options: [{ name: "Grilled main" }] }],
+      }}
+    />,
+  );
+  assert.ok(screen.getByText("Meal"));
+  assert.ok(screen.getByText("Serves 1"));
+  assert.ok(screen.getByText("Main: Grilled main"));
+});

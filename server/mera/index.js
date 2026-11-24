@@ -2474,6 +2474,8 @@ export function createMeraRouter(db) {
   router.get(P + "/guest", async (req, res) => {
     res.set("Cache-Control", "no-store");
     const { organization, s } = await publicContext(req);
+    if (!req.cookies?.[guestCookieName(organization.id)] && !req.cookies?.mera_guest)
+      return res.json({ guest: null });
     const g = await guest(req, organization.id);
     const orders = (
       await q(

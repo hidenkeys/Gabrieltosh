@@ -156,7 +156,6 @@ export default function DoorGuestList({
   }
   return (
     <section className="mw-card mw-door-guest-list">
-      <h2>Door & guest list</h2>
       <p>Tonight’s list · {tradingDate}</p>
       <p role="status">
         {rows.reduce((n, e) => n + e.arrivedCount, 0)} arrived ·{" "}

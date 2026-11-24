@@ -196,7 +196,6 @@ export default function StockTransfers({
   }));
   return (
     <section className="mw-card mw-stock-transfers">
-      <h2>Stock transfers</h2>
       {(error || durable.error) && <p role="alert">{error || durable.error}</p>}
       {savedRequest?.blocked && (
         <p role="alert">

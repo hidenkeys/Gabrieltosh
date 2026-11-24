@@ -229,3 +229,21 @@ test("a stalled customer write times out without silently retrying or confirming
   await rejected;
   assert.equal(attempts, 1);
 });
+
+ test("anonymous successful guest probe leaves browsing outside a guest session", async (t) => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  let probed = false;
+  globalThis.fetch = async (input) => {
+    if (String(input).endsWith("/guest")) {
+      probed = true;
+      return Response.json({ guest: null });
+    }
+    if (String(input).endsWith("/menu")) return Response.json(menu);
+    throw new Error("Unexpected request");
+  };
+  render(React.createElement(CustomerExperience));
+  await screen.findByRole("region", { name: "Products" });
+  assert.equal(probed, true);
+  assert.equal(screen.queryByRole("button", { name: /end.*session/i }), null);
+});
