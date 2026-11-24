@@ -267,6 +267,6 @@ export function report(records, branch, date) {
     collections:sum(payments),refunds:sum(refunds),writeOffs:sum(onDay(data("writeoff"))),
     outstanding:orders.filter(o=>!["cancelled","rejected"].includes(o.status)).reduce((n,o)=>n+orderBalance(o),0),
     orders:orders.length,products:recognized.flatMap(o=>o.items),
-    paymentMethods:Object.fromEntries(["cash","external_pos","external_transfer"].map(method=>[method,sum(payments.filter(p=>p.method===method))])),
+    paymentMethods:Object.fromEntries(["cash","external_pos","external_transfer","room_charge"].map(method=>[method,sum(payments.filter(p=>p.method===method))])),
   };
 }

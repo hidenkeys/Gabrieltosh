@@ -48,6 +48,7 @@ function fixture() {
       return { rows: p[0] === "org" ? [{ id: "org" }] : [] };
     if (sql.startsWith("SELECT data FROM mera_records") && sql.includes("kind='branch_creation'")) return { rows: branchCreations.filter(r => r.org === p[0] && r.data.requestKey === p[1]).map(r => ({data:r.data})) };
     if (sql.startsWith("INSERT INTO mera_records") && sql.includes("'branch_creation'")) {branchCreations.push({org:p[1],data:JSON.parse(p[3])});return {rows:[]};}
+    if (sql.startsWith("SELECT id,settings FROM mera_branches"))return {rows:branchInserts.map(p=>({id:p[0],settings:JSON.parse(p[6])}))};
     if (sql.startsWith("INSERT INTO mera_branches")) {
       branchInserts.push(p);
       return { rows: [] };

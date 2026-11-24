@@ -61,7 +61,7 @@ export function mountMeraQr(router, services) {
       )
     ).rows;
     res.json({
-      branches: rows.map((b) => ({
+      branches: rows.filter(b=>b.settings?.role!=='stock_room').map((b) => ({
         id: b.id,
         name: b.name,
         timezone: b.timezone,
@@ -153,7 +153,8 @@ export function mountMeraQr(router, services) {
       const values = input.parse(req.body),
         origin = qrOrigin(req),
         s = scope(req);
-      const code = await locked(s, async (c) => {
+      const code = await locked(s, async (c,b) => {
+        if(b.settings?.role==='stock_room')throw Object.assign(new Error("Stock rooms do not have guest QR codes."),{status:409,code:"CAPABILITY_OFF"});
         if (values.tableId) await find(c, s, "table", values.tableId);
         const existing = (
           await readRecords(c, s.organizationId, s.branchId, "qr_code")
@@ -219,11 +220,11 @@ export function mountMeraQr(router, services) {
     ).rows[0];
     const branch = (
       await db.query(
-        "SELECT id FROM mera_branches WHERE id=$1 AND organization_id=$2",
+        "SELECT id,settings FROM mera_branches WHERE id=$1 AND organization_id=$2",
         [row.branch_id, row.organization_id],
       )
     ).rows[0];
-    if (!org || !branch)
+    if (!org || !branch || branch.settings?.role==='stock_room')
       return res.status(404).json({ error: "This menu code is unavailable." });
     let suffix = row.data.kind === "organization" ? "?chooseBranch=1" : "";
     if (row.data.kind === "table") {

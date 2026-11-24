@@ -1,3 +1,8 @@
+import { hasCapability } from "../../shared/mera-venues.js";
+import { locationFields, locationSettings, effectiveBranchAccess, canSeeBranch, assertCapability, assertBranchFeature } from "./venue-access.js";
+import { mountMeraOperating } from "./operating.js";
+import { mountMeraOverview } from "./overview.js";
+import { mountMeraGuestList } from "./guest-list.js";
 import { migrateInboundForwarding } from "./inbound-forwarding.js";
 import { migrateCompanyLeads, mountCompanyLeads } from "./company-leads.js";
 import {withAccessLock,authorizeAccessTarget,beginAccessOperation,recordAccessOperation,recordAccess,mountMeraAccessAttempts} from "./access-attempts.js";
@@ -335,15 +340,15 @@ export function createMeraRouter(db) {
   });
   async function membership(req, org, branch, permission) {
     if (!req.user) throw fail("Sign in to continue.", 401, "UNAUTHENTICATED");
-    const m = (
+    let m = (
       await q(
         "SELECT * FROM mera_memberships WHERE user_id=$1 AND organization_id=$2 AND active=true",
         [req.user.id, org],
       )
     ).rows[0];
+    m = effectiveBranchAccess(m, branch);
     if (
       !m ||
-      (!m.organization_wide && (!branch || !m.branch_ids.includes(branch))) ||
       !(Array.isArray(permission)
         ? permission.some((p) => m.permissions.includes(p))
         : m.permissions.includes(permission))
@@ -382,7 +387,7 @@ export function createMeraRouter(db) {
     if (!req.user) throw fail("Sign in to continue.", 401);
     const rows = (
       await q(
-        "SELECT m.*,o.name,o.slug,o.branding,o.onboarding,o.subscription,o.policy,o.platform_flags FROM mera_memberships m JOIN mera_organizations o ON o.id=m.organization_id WHERE m.user_id=$1 AND m.active=true",
+        "SELECT m.*,o.name,o.slug,o.branding,o.onboarding,o.subscription,o.policy,o.platform_flags,o.operating FROM mera_memberships m JOIN mera_organizations o ON o.id=m.organization_id WHERE m.user_id=$1 AND m.active=true",
         [req.user.id],
       )
     ).rows;
@@ -393,7 +398,7 @@ export function createMeraRouter(db) {
           "SELECT * FROM mera_branches WHERE organization_id=$1 ORDER BY name",
           [m.organization_id],
         )
-      ).rows.filter((b) => m.organization_wide || m.branch_ids.includes(b.id));
+      ).rows.filter((b) => canSeeBranch(m,b.id));
       organizations.push({
         id: m.organization_id,
         name: m.name,
@@ -404,10 +409,12 @@ export function createMeraRouter(db) {
         policy:commercial(m.permissions)?m.policy:null,
         features:organizationFeatures(m),
         entitlements:subscriptionEntitlement(m.subscription,m.subscription?.approvedPolicySnapshot||m.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production"),
-        branches: branches.map(branchView),
-        permissions: m.permissions,
+        branches: branches.map(b=>({...branchView(b),permissions:effectiveBranchAccess(m,b.id).permissions,role:effectiveBranchAccess(m,b.id).role})),
+        permissions: effectiveBranchAccess(m).permissions,
+        operating:m.operating||{},
         role: m.role,
         branchIds: m.branch_ids,
+        branchRoles:m.branch_roles||{},
         organizationWide:!!m.organization_wide,
       });
     }
@@ -735,6 +742,7 @@ export function createMeraRouter(db) {
   });
   async function assertManualMethod(c,s,method) {
     const branch=(await c.query("SELECT settings FROM mera_branches WHERE id=$1 AND organization_id=$2",[s.branchId,s.organizationId])).rows[0];
+    if(method==="room_charge") { assertCapability(branch,"room_charge"); return; }
     const allowed=branch.settings.manualPaymentMethods;
     if(Array.isArray(allowed) && !allowed.includes(method)) throw fail("This manual payment method is not enabled by the branch launch policy.",409,"PAYMENT_METHOD_DISABLED");
   }
@@ -880,6 +888,7 @@ export function createMeraRouter(db) {
     if (source === "customer_qr" || source === "staff") {
       await assertOrderRequestActive(c, s, input.requestKey, source === "customer_qr" ? "guest" : "staff", guestId || actor.id);
     }
+    if(b.settings.role==="stock_room")throw fail("Stock rooms cannot take orders.",409,"CAPABILITY_OFF");
     await releaseExpired(c, s);
     const organization = (
       await c.query(
@@ -887,8 +896,8 @@ export function createMeraRouter(db) {
         [s.organizationId],
       )
     ).rows[0];
-    if(source==="customer_qr")assertOrganizationFeature(organization,"customer_ordering");
-    if(source==="zidi")assertOrganizationFeature(organization,"zidi");
+    if(source==="customer_qr") { assertCapability(b,"qr_ordering"); assertBranchFeature(b,"customer_ordering"); assertOrganizationFeature(organization,"customer_ordering"); }
+    if(source==="zidi") { assertBranchFeature(b,"zidi"); assertOrganizationFeature(organization,"zidi"); }
     const entitlements=subscriptionEntitlement(organization.subscription,organization.subscription?.approvedPolicySnapshot||organization.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production");
     if (!entitlements.newOrdersAllowed)
       throw fail(
@@ -900,7 +909,7 @@ export function createMeraRouter(db) {
     const branchCount = Number(
       (
         await c.query(
-          "SELECT COUNT(*) AS count FROM mera_branches WHERE organization_id=$1",
+          "SELECT COUNT(*) AS count FROM mera_branches WHERE organization_id=$1 AND settings->>'role' IS DISTINCT FROM 'stock_room'",
           [s.organizationId],
         )
       ).rows[0].count,
@@ -997,6 +1006,7 @@ export function createMeraRouter(db) {
       displayName: input.displayName,
       fulfillment: input.fulfillment,
       visitId: input.visitId || null,
+      payLaterAllowed:!!input.visitId && (b.settings.payLater || hasCapability(b.settings,"open_tabs")),
       source,
       staffCreatorId: source === "zidi" ? null : actor?.id || null,
       staffCreatorName:source==="zidi"?null:actor?.name||null,
@@ -1078,7 +1088,8 @@ export function createMeraRouter(db) {
           const tickets = (await readRecords(c, scope(req).organizationId, scope(req).branchId, "ticket")).map(r=>r.data).filter(t=>t.orderId===o.id);
           if (!tickets.length || !tickets.every(t=>["ready","cancelled"].includes(t.status))) throw fail("All required station tickets must be ready first.",409,"STATIONS_PENDING");
         }
-        transition(o, input.status, { payLater: b.settings.payLater });
+        if(o.visitId && !o.payLaterAllowed && !b.settings.payLater && ["preparing","ready","collected"].includes(input.status) && paidForBill(o)<o.total)assertCapability(b,"open_tabs");
+        transition(o, input.status, { payLater: o.payLaterAllowed || b.settings.payLater || (!!o.visitId && hasCapability(b.settings,"open_tabs")) });
         if (o.holdExpired && ["accepted", "preparing"].includes(input.status))
           throw fail(
             "The stock hold expired. Create a new order or resolve the exception.",
@@ -1202,7 +1213,7 @@ export function createMeraRouter(db) {
           if (
             !member ||
             (!member.organization_wide &&
-              !member.branch_ids.includes(req.params.branchId))
+              !canSeeBranch(member,req.params.branchId))
           )
             throw fail("The assignee does not have branch access.");
           const o = assertHistoricalWritable(await find(c, scope(req), "order", req.params.id));
@@ -1228,6 +1239,7 @@ export function createMeraRouter(db) {
     guard("payments.record"),
     async (req, res) => {
       const input = paymentInputSchema.parse(req.body);
+      if(input.method==="room_charge") await membership(req,req.params.organizationId,req.params.branchId,"room_charge.post");
       if (input.method === "external_transfer" && !input.reference)
         throw fail("A verified transfer reference is required.");
       res.json(
@@ -1465,6 +1477,8 @@ export function createMeraRouter(db) {
     res.status(201).json(
       await locked(scope(req), async (c,b) => {
         const organization=(await c.query("SELECT platform_flags FROM mera_organizations WHERE id=$1",[b.organization_id])).rows[0];
+        assertCapability(b,"table_service");
+        assertBranchFeature(b,"new_table_visits");
         assertOrganizationFeature(organization,"new_table_visits");
         const minimumSpendPolicy=minimumSpendSnapshot(b);
         assertMinimumSpendAcknowledged(minimumSpendPolicy,input);
@@ -1618,8 +1632,11 @@ export function createMeraRouter(db) {
     if (guestId && !actor) await assertReservationRequestActive(c,s,input.requestKey,guestId);
     if(actor && actor.type!=="integration" && !guestId) await assertStaffReservationRequestActive(c,s,input.requestKey,actor.id);
     const organization=(await c.query("SELECT platform_flags FROM mera_organizations WHERE id=$1",[s.organizationId])).rows[0];
+    assertCapability(b,"reservations");
+    assertBranchFeature(b,"new_reservations");
+    if(b.settings.depositPolicy?.enabled || b.settings.depositRequired) assertCapability(b,"deposits");
     assertOrganizationFeature(organization,"new_reservations");
-    if(actor?.type==="integration")assertOrganizationFeature(organization,"zidi");
+    if(actor?.type==="integration") { assertBranchFeature(b,"zidi"); assertOrganizationFeature(organization,"zidi"); }
     if (!b.settings.reservationsEnabled)
       throw fail("Reservations are not enabled at this branch.", 409);
     if (
@@ -1858,25 +1875,34 @@ export function createMeraRouter(db) {
       res.json(
         (
           await q(
-            'SELECT m.id,m.user_id AS "userId",m.role,m.permissions,m.branch_ids AS "branchIds",m.organization_wide AS "organizationWide",m.active,u.name FROM mera_memberships m JOIN users u ON u.id=m.user_id WHERE m.organization_id=$1',
+            'SELECT m.id,m.user_id AS "userId",m.role,m.permissions,m.branch_ids AS "branchIds",m.branch_roles AS "branchRoles",m.organization_wide AS "organizationWide",m.active,u.name FROM mera_memberships m JOIN users u ON u.id=m.user_id WHERE m.organization_id=$1',
             [req.params.organizationId],
           )
         ).rows,
       ),
   );
-  router.get("/organizations/:organizationId/invitations",guard("members.manage"),async(req,res)=>res.json((await q('SELECT id,email,role,branch_ids AS "branchIds",expires_at AS "expiresAt",revoked,accepted FROM mera_invitations WHERE organization_id=$1 ORDER BY expires_at DESC',[req.params.organizationId])).rows.map(i=>({...i,delivery:"not_sent"}))));
+  router.get("/organizations/:organizationId/invitations",guard("members.manage"),async(req,res)=>res.json((await q('SELECT id,email,role,branch_ids AS "branchIds",branch_roles AS "branchRoles",expires_at AS "expiresAt",revoked,accepted FROM mera_invitations WHERE organization_id=$1 ORDER BY expires_at DESC',[req.params.organizationId])).rows.map(i=>({...i,delivery:"not_sent"}))));
   router.post("/organizations/:organizationId/invitations",guard("members.manage"),async(req,res)=>{
-    const input=z.object({requestKey:uuid.optional(),email:z.string().email().max(200),role:z.string().min(1).max(100),branchIds:z.array(uuid).max(100).transform(v=>[...new Set(v)].sort())}).parse(req.body);
+    const input=z.object({requestKey:uuid.optional(),email:z.string().email().max(200),role:z.string().min(1).max(100),branchRoles:z.record(uuid,z.object({role:z.string().min(1).max(100),permissions:z.array(z.enum(permissions)).optional()}).strict()).optional(),branch_roles:z.record(uuid,z.object({role:z.string().min(1).max(100),permissions:z.array(z.enum(permissions)).optional()}).strict()).optional(),branchIds:z.array(uuid).max(100).transform(v=>[...new Set(v)].sort())}).parse(req.body);
     let immediateToken=null;
     const result=await withAccessLock(db,req,async c=>{
-      const intent={email:input.email,role:input.role,branchIds:input.branchIds},attempt={requestKey:input.requestKey,operation:"invitation_create",targetId:null,intent};
+      const branchRoles=input.branch_roles||input.branchRoles||{};
+      if(Object.keys(branchRoles).length&&!input.requestKey)throw fail("Branch role invitations require a request key.",400);
+      const intent={email:input.email,role:input.role,branchIds:input.branchIds,...(Object.keys(branchRoles).length?{branch_roles:structuredClone(branchRoles)}:{})},attempt={requestKey:input.requestKey,operation:"invitation_create",targetId:null,intent};
       await authorizeAccessTarget(c,req,attempt.operation,null,intent);
       const prior=await beginAccessOperation(c,req,attempt);if(prior)return prior;
       const grants=(await resolveRole(c,req.params.organizationId,input.role)).permissions;
       const branches=(await c.query("SELECT id FROM mera_branches WHERE organization_id=$1",[req.params.organizationId])).rows.map(b=>b.id);
       if(input.branchIds.some(id=>!branches.includes(id)))throw fail("Invalid branch scope.",403);
+      for(const [id,grant] of Object.entries(branchRoles)) {
+        if(!branches.includes(id))throw fail("Invalid branch scope.",403);
+        const role=await resolveRole(c,req.params.organizationId,grant.role);
+        grant.permissions ||= role.permissions;
+        if(grant.permissions.some(p=>!role.permissions.includes(p)||!req.meraMembership.permissions.includes(p)) || (grant.role==='owner' && req.meraMembership.role!=='owner'))throw fail("Cannot grant privileges beyond your authority.",403);
+      }
       const token=randomBytes(32).toString("hex"),id=randomUUID(),expiresAt=new Date(Date.now()+48*3600000).toISOString();
       await c.query("INSERT INTO mera_invitations(id,organization_id,token_hash,email,role,permissions,branch_ids,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",[id,req.params.organizationId,hash(token),input.email,input.role,JSON.stringify(grants),JSON.stringify(input.branchIds),expiresAt]);
+      if(Object.keys(branchRoles).length)await c.query("UPDATE mera_invitations SET branch_roles=$1 WHERE id=$2 AND organization_id=$3",[JSON.stringify(branchRoles),id,req.params.organizationId]);
       const demo=process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production";
       const safe={id,email:input.email,role:input.role,branchIds:input.branchIds,expiresAt,delivery:"not_sent",reason:providers.email.reason,developmentTokenRecoverable:false,developmentTokenUnavailable:true,needsExplicitRevokeAndReinvite:demo};
       await recordAccessOperation(c,req,attempt,safe);
@@ -1942,7 +1968,7 @@ export function createMeraRouter(db) {
         throw fail("Invitation is invalid, expired or revoked.", 409);
       const currentRole=await resolveRole(c,invite.organization_id,invite.role);
       await c.query(
-        "INSERT INTO mera_memberships(id,user_id,organization_id,role,permissions,branch_ids,organization_wide) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(user_id,organization_id) DO NOTHING",
+        "INSERT INTO mera_memberships(id,user_id,organization_id,role,permissions,branch_ids,organization_wide,branch_roles) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(user_id,organization_id) DO NOTHING",
         [
           randomUUID(),
           req.user.id,
@@ -1951,6 +1977,7 @@ export function createMeraRouter(db) {
           JSON.stringify(currentRole.permissions),
           JSON.stringify(invite.branch_ids),
           invite.role==="owner",
+          JSON.stringify(invite.branch_roles||{}),
         ],
       );
       await c.query("UPDATE mera_invitations SET accepted=true WHERE id=$1", [
@@ -1969,6 +1996,7 @@ export function createMeraRouter(db) {
       )
     ).rows[0];
     if (!b) throw fail("Branch not found.", 404);
+    if(b.settings.role==="stock_room")throw fail("Menu not found.",404);
     if(process.env.MERA_DEMO!=="true" && (organization.onboarding?.status!=="published" || b.settings.launchState!=="published")) throw fail("Menu not found.",404);
     return {
       organization,
@@ -2068,11 +2096,11 @@ export function createMeraRouter(db) {
       categories:b.settings.publishedCategories||[],
       tables,
       providers,
-      orderingAvailable: organizationFeatures(organization).flags.customer_ordering && !b.settings.orderingPaused && !!b.menu_version && availableNow(b.settings.serviceHours,b.timezone) && subscriptionEntitlement(organization.subscription,organization.subscription?.approvedPolicySnapshot||organization.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production").newOrdersAllowed,
+      orderingAvailable: hasCapability(b.settings,"qr_ordering") && b.settings.platformFlags?.flags?.customer_ordering!==false && organizationFeatures(organization).flags.customer_ordering && !b.settings.orderingPaused && !!b.menu_version && availableNow(b.settings.serviceHours,b.timezone) && subscriptionEntitlement(organization.subscription,organization.subscription?.approvedPolicySnapshot||organization.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production").newOrdersAllowed,
       pricingPolicy:b.settings.pricingPolicy||null,
       reservationPolicy: {
         minimumSpendPolicy:publicMinimumSpend(b.settings.minimumSpendPolicy),
-        enabled: !!b.settings.reservationsEnabled,
+        enabled: hasCapability(b.settings,"reservations") && b.settings.platformFlags?.flags?.new_reservations!==false && !!b.settings.reservationsEnabled,
         depositRequired: !!b.settings.depositRequired,
         minimumSpend: b.settings.minimumSpend || 0,
         depositPolicy: b.settings.depositPolicy
@@ -2296,6 +2324,9 @@ export function createMeraRouter(db) {
     async (req, res) => {
       const input = z
         .object({
+          ...locationFields,
+          requestKey:z.string().uuid().optional(),
+          version:z.number().int().positive().optional(),
           orderingPaused: z.boolean().optional(),
           payLater: z.boolean().optional(),
           reservationsEnabled: z.boolean().optional(),
@@ -2321,8 +2352,14 @@ export function createMeraRouter(db) {
         .parse(req.body);
       res.json(
         await locked(scope(req), async (c, b) => {
-          const {timezone,cutoff,...settingsInput}=input;
-          const settings = { ...b.settings, ...settingsInput };
+          const {timezone,cutoff,requestKey,version,...settingsInput}=input;
+          const attempt={requestKey,operation:"branch_settings",targetId:b.id,intent:input};
+          const prior=await beginAccessOperation(c,req,attempt); if(prior)return prior;
+          if(version!==undefined && version!==(b.settings.version||1))throw fail("Location settings changed. Refresh before editing.",409,"STALE_VERSION");
+          if(Object.keys(locationFields).some(key=>input[key]!==undefined) && (!requestKey || version===undefined))throw fail("Location changes require a request key and version.",400);
+          if(input.code) { const duplicate=(await c.query("SELECT id FROM mera_branches WHERE organization_id=$1 AND settings->>'code'=$2 AND id<>$3",[b.organization_id,input.code,b.id])).rows[0]; if(duplicate)throw fail("Location code is already in use.",409); }
+          const settings = { ...b.settings, ...locationSettings(settingsInput),version:(b.settings.version||1)+1 };
+          await recordAccessOperation(c,req,attempt,settings);
           if(timezone!==undefined || cutoff!==undefined) await c.query("UPDATE mera_branches SET timezone=$1,cutoff=$2 WHERE id=$3 AND organization_id=$4",[timezone??b.timezone,cutoff??b.cutoff,b.id,b.organization_id]);
           await c.query(
             "UPDATE mera_branches SET settings=$1 WHERE id=$2 AND organization_id=$3",
@@ -2647,6 +2684,7 @@ export function createMeraRouter(db) {
     guard("payments.record"),
     async (req, res) => {
       const input = paymentInputSchema.parse(req.body);
+      if(input.method==="room_charge") await membership(req,req.params.organizationId,req.params.branchId,"room_charge.post");
       if (input.method === "external_transfer" && !input.reference)
         throw fail("A verified transfer reference is required.");
       res.json(
@@ -2798,6 +2836,7 @@ export function createMeraRouter(db) {
         .parse(req.body);
       res.json(
         await locked(scope(req), async (c, b) => {
+          if(input.enabled)assertCapability(b,"deposits");
           const settings = {
             ...b.settings,
             depositPolicy: input,
@@ -2820,6 +2859,7 @@ export function createMeraRouter(db) {
     guard("payments.record"),
     async (req, res) => {
       const input = paymentInputSchema.parse(req.body);
+      if(input.method==="room_charge") await membership(req,req.params.organizationId,req.params.branchId,"room_charge.post");
       res.json(
         await locked(scope(req), async (c, b) => {
           const reservation = await find(
@@ -3135,6 +3175,9 @@ export function createMeraRouter(db) {
 
   mountMeraRefundRequests(router,{db,guard,scope,locked,readRecords,find,record,update,event});
   mountMeraWorkspaceAdmin(router,{db,guard,scope,event});
+  mountMeraOperating(router,{db,guard,event});
+  mountMeraOverview(router,{db,guard});
+  mountMeraGuestList(router,{db,guard,scope,locked,record,readRecords,find,update,event});
   mountMeraStockHistory(router,{db,guard,scope,locked,find,record,update,event});
   mountMeraReservationAttempts(router,{publicContext,guest,locked,record,event,guard,scope});
   mountMeraShiftAttempts(router,{guard,scope,locked,record,event});

@@ -171,6 +171,7 @@ export function mountMeraReadiness(
       .parse(req.body);
     res.json(
       await locked(scope(req), async (c, b) => {
+        if(b.settings.role==="stock_room")throw error("Stock rooms cannot go live.");
         const readiness = await inspect(c, scope(req), b);
         if (!readiness.canPublish)
           throw error(

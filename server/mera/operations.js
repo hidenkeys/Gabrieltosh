@@ -1,3 +1,5 @@
+import { buildOverview } from "./overview.js";
+import { effectiveBranchAccess,canSeeBranch } from "./venue-access.js";
 import { z } from "zod";
 import { loadBranchReportRecords } from "./queries.js";
 import { subscriptionEntitlement } from "./subscriptions.js";
@@ -34,7 +36,7 @@ export function exportReportCSV(summary, branch, window = {}) {
     products.set(key,r);
   }
   for(const p of products.values())rows.push([p.size?`${p.name} — ${p.size}`:p.name,p.quantity===null?"Unavailable":p.quantity,major(p.total)]);
-  rows.push([],["Payment method","Receipts including deposits ("+(branch.currency||"NGN")+")"]);for(const [method,amount]of Object.entries(summary.paymentMethods||{}))rows.push([({cash:"Cash",external_pos:"External POS",external_transfer:"External transfer"})[method]||method,major(amount)]);
+  rows.push([],["Payment method","Receipts including deposits ("+(branch.currency||"NGN")+")"]);for(const [method,amount]of Object.entries(summary.paymentMethods||{}))rows.push([({cash:"Cash",external_pos:"External POS",external_transfer:"External transfer",room_charge:"Charged to rooms (settled by the hotel)"})[method]||method,major(amount)]);
   rows.push([],["Staff activity basis",summary.staffActivity?.basis||"Unavailable"],["Recorded actor name","Actor type","Order history events","Action","Action count"]);for(const e of summary.staffActivity?.entries||[])for(const [action,count]of Object.entries(e.actions))rows.push([e.name||"Identity unavailable",e.actorType,e.eventCount,action.replaceAll("_"," "),count]);
   return rows.map(row=>row.map(cell).join(",")).join("\r\n");
 }
@@ -70,8 +72,8 @@ export async function processMeraJobs(db) {
     ).rows[0];
     if (
       !m ||
-      !m.permissions.includes("reports.export") ||
-      (!m.organization_wide && !m.branch_ids.includes(job.branch_id))
+      !effectiveBranchAccess(m,job.branch_id).permissions.includes("reports.export") ||
+      (job.data.scope==="organization" && (!effectiveBranchAccess(m).permissions.includes("organization.overview") || job.data.branchIds.some(id=>!canSeeBranch(m,id))))
     ) {
       job.data.status = "cancelled";
       job.data.error = "Export permission was revoked.";
@@ -84,12 +86,21 @@ export async function processMeraJobs(db) {
           [job.branch_id, job.organization_id],
         )
       ).rows[0];
+      let csv;
+      if(job.data.scope==='organization') {
+        const branches=(await db.query('SELECT * FROM mera_branches WHERE organization_id=$1 AND id = ANY($2::text[])',[job.organization_id,job.data.branchIds])).rows;
+        const records=(await db.query('SELECT * FROM mera_records WHERE organization_id=$1 AND branch_id = ANY($2::text[])',[job.organization_id,job.data.branchIds])).rows;
+        const overview=buildOverview(branches,records,{from:job.data.from||job.data.date,to:job.data.to||job.data.date});
+        csv=[['Location','Code','Revenue (kobo)','Orders','Average order (kobo)','Refunds (kobo)'],...overview.branches.map(b=>[b.name,b.code,b.revenue,b.orders,b.averageOrder,b.refunds]),['All locations','',overview.totals.revenue,overview.totals.orders,overview.totals.averageOrder,overview.totals.refunds],[],['Payment method','Amount (kobo)'],...overview.paymentMix.map(p=>[p.method==='room_charge'?'Charged to rooms (settled by the hotel)':p.method,p.amount])].map(row=>row.map(cell).join(',')).join('\r\n');
+      } else {
       const reportData=await loadBranchReportRecords(db,{organizationId:job.organization_id,branchId:job.branch_id},branch,job.data.date);
       const summary={...report(reportData.reportRecords,branch,job.data.date),reservationLiability:reportData.reservationLiabilityAsOf};
-      const csv = exportReportCSV(summary,branch,reportData.window);
+      csv = exportReportCSV(summary,branch,reportData.window);
+      }
       artifact = {
         id: job.data.artifactId,
         jobId: job.id,
+        ...(job.data.scope?{scope:job.data.scope,branchIds:job.data.branchIds}:{}),
         date: job.data.date,
         contentType: "text/csv",
         content: csv,
@@ -111,7 +122,7 @@ export async function processMeraJobs(db) {
     if (!current || current.data.status !== "processing" || current.data.leaseToken !== job.data.leaseToken) return;
     // A stale worker can neither publish an artifact nor overwrite a newer lease.
     const member = (await c.query("SELECT m.* FROM mera_memberships m JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND m.organization_id=$2 AND m.active=true AND u.active=true FOR SHARE OF m,u", [job.data.requestedBy, job.organization_id])).rows[0];
-    if (!member || !member.permissions.includes("reports.export") || (!member.organization_wide && !member.branch_ids.includes(job.branch_id))) {
+    if (!member || !effectiveBranchAccess(member,job.branch_id).permissions.includes("reports.export") || (job.data.scope==="organization" && (!effectiveBranchAccess(member).permissions.includes("organization.overview") || job.data.branchIds.some(id=>!canSeeBranch(member,id))))) {
       job.data.status = "cancelled";
       job.data.error = "Export permission was revoked.";
       artifact = null;
@@ -145,10 +156,18 @@ export function mountMeraOperations(
   );
   router.post(B + "/exports", guard("reports.export"), async (req, res) => {
     const input = z
-      .object({ date: z.string().date(), requestKey: z.string().uuid() })
+      .object({ date: z.string().date(), requestKey: z.string().uuid(),scope:z.literal("organization").optional(),branchIds:z.array(z.string().uuid()).min(1).max(100).optional() })
       .parse(req.body);
     res.status(202).json(
       await locked(scope(req), async (c) => {
+        if(input.scope==='organization') {
+          const m=(await c.query('SELECT * FROM mera_memberships WHERE user_id=$1 AND organization_id=$2 AND active=true',[req.user.id,req.params.organizationId])).rows[0];
+          if(!effectiveBranchAccess(m).permissions.includes('organization.overview'))throw fail('Organization overview access is required.',403);
+          const branches=(await c.query('SELECT id FROM mera_branches WHERE organization_id=$1',[req.params.organizationId])).rows;
+          const ids=input.branchIds||branches.filter(b=>canSeeBranch(m,b.id)).map(b=>b.id);
+          if(ids.some(id=>!branches.some(b=>b.id===id)||!canSeeBranch(m,id)))throw fail('Invalid location scope.',403);
+          input.branchIds=[...new Set(ids)].sort();
+        } else if(input.branchIds)throw fail('Location selection requires organization scope.',400);
         const existing = (
           await readRecords(
             c,
@@ -160,7 +179,7 @@ export function mountMeraOperations(
         if (existing) {
           if (
             existing.data.date !== input.date ||
-            existing.data.requestedBy !== req.user.id
+            existing.data.requestedBy !== req.user.id || existing.data.scope!==input.scope || JSON.stringify(existing.data.branchIds)!==JSON.stringify(input.branchIds)
           )
             throw fail("Export request key conflict.", 409);
           return existing.data;
@@ -187,6 +206,10 @@ export function mountMeraOperations(
     guard("reports.export"),
     async (req, res) => {
       const artifact = await find(db, scope(req), "export", req.params.id);
+      if(artifact.scope==='organization') {
+        const m=(await db.query('SELECT * FROM mera_memberships WHERE user_id=$1 AND organization_id=$2 AND active=true',[req.user.id,req.params.organizationId])).rows[0];
+        if(!effectiveBranchAccess(m).permissions.includes('organization.overview') || artifact.branchIds.some(id=>!canSeeBranch(m,id)))throw fail('Organization export access is unavailable.',403);
+      }
       res
         .attachment("mera-trading-day-" + artifact.date + ".csv")
         .type("text/csv")
