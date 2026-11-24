@@ -32,7 +32,9 @@ export default function MeraSignIn({
       setPassword("");
       if (onSignedIn) onSignedIn(user);
       else
-        window.location.assign(operator ? "/mera/platform" : "/mera/workspace");
+        window.location.assign(
+          operator ? "/mera/platform" : safeMeraNext(window.location.search),
+        );
     } catch (cause) {
       const message =
         cause instanceof Error
@@ -140,7 +142,7 @@ export default function MeraSignIn({
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 required
-                maxLength={80}
+                maxLength={200}
                 disabled={busy}
               />
             </label>
@@ -225,4 +227,17 @@ export default function MeraSignIn({
       </footer>
     </div>
   );
+}
+
+export function safeMeraNext(search: string) {
+  const next = new URLSearchParams(search).get("next");
+  if (next?.startsWith("/mera/") && !/[\\\x00-\x20]/.test(next)) {
+    const url = new URL(next, window.location.origin);
+    if (
+      url.origin === window.location.origin &&
+      url.pathname.startsWith("/mera/")
+    )
+      return url.pathname + url.search + url.hash;
+  }
+  return "/mera/workspace";
 }

@@ -186,7 +186,7 @@ export function createApp() {
       throw fail("Too many attempts. Try again in 15 minutes.", 429);
     const { username, password } = z
       .object({
-        username: z.string().min(1).max(80),
+        username: z.string().min(1).max(200),
         password: z.string().min(1).max(200),
       })
       .parse(req.body);

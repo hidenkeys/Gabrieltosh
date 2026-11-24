@@ -14,6 +14,7 @@ import "./mera/company/company-forms.css";
 import "./mera/signup.css";
 import "./mera/mera-signin.css";
 const MeraSignIn = React.lazy(() => import("./mera/MeraSignIn"));
+const InviteAccept = React.lazy(() => import("./mera/InviteAccept"));
 const Signup = React.lazy(() => import("./mera/Signup"));
 import "./mera/marketing/marketing.css";
 import "./mera/marketing/marketing-v2.css";
@@ -122,22 +123,27 @@ createRoot(document.getElementById("root")!).render(
           />
         }
       >
-        {[
-          "/mera",
-          "/mera/",
-          "/mera/products",
-          "/mera/qr",
-          "/mera/travel",
-          "/mera/consultancy",
-          "/mera/about",
-          "/mera/contact",
-          "/mera/sign-in",
-        ].includes(window.location.pathname) ? (
+        {window.location.pathname === "/mera/sign-in" &&
+        new URLSearchParams(window.location.search).has("next") ? (
+          <MeraSignIn />
+        ) : [
+            "/mera",
+            "/mera/",
+            "/mera/products",
+            "/mera/qr",
+            "/mera/travel",
+            "/mera/consultancy",
+            "/mera/about",
+            "/mera/contact",
+            "/mera/sign-in",
+          ].includes(window.location.pathname) ? (
           <MeraSiteEntry>
             <Marketing />
           </MeraSiteEntry>
         ) : window.location.pathname === "/mera/legal" ? (
           <LegalInformation />
+        ) : window.location.pathname === "/mera/invite" ? (
+          <InviteAccept />
         ) : window.location.pathname === "/mera/signup" ? (
           <Signup />
         ) : /^\/mera\/(menu|store)\//.test(window.location.pathname) ? (

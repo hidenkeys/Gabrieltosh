@@ -612,12 +612,12 @@ function ScopedRoleManager({
             )}
             {invitation && tokenAuthority.current === authorityKey && (
               <div className="mw-note">
-                <strong>Delivery: {deliveryLabel(invitation.delivery)}</strong>
+                <strong>{invitation.delivery === "sent" ? `Invitation emailed to ${invitation.email}` : `Delivery: ${deliveryLabel(invitation.delivery)}`}</strong>
                 <p>
                   {invitation.reason ||
                     "Creating an invitation is not evidence that an email was sent."}
                 </p>
-                {invitation.developmentTokenUnavailable && (
+                {invitation.developmentTokenUnavailable && invitation.delivery === "not_sent" && (
                   <p>
                     The one-time development invitation token is unavailable.
                     This invitation was not emailed. If a new token is needed,

@@ -1,3 +1,6 @@
+import bcrypt from "bcryptjs";
+import { sendMeraEmail, getEmailReadiness } from "./email-provider.js";
+import { renderMeraEmail } from "./email-template.js";
 import { validPublicContact } from "./public-contact.js";
 import { memberUpdateSchema, validateMemberAssignment } from "./member-assignment.js";
 import { hasCapability } from "../../shared/mera-venues.js";
@@ -145,6 +148,7 @@ export async function migrateMera(db) {
   await db.query(
     await readFile(new URL("./schema.sql", import.meta.url), "utf8"),
   );
+  await db.query("ALTER TABLE mera_invitations ADD COLUMN IF NOT EXISTS delivery TEXT");
   await migrateMeraPlatform(db);
   await migrateMeraIdentity(db);
   await migrateInboundForwarding(db);
@@ -271,7 +275,7 @@ export function projectStationTickets(tickets, role, permissions) {
     : tickets;
 }
 
-export function createMeraRouter(db) {
+export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.env} = {}) {
   const router = express.Router();
   const commercial=(access=[])=>access.includes("billing.manage")||access.includes("organization.manage");
   const safeSubscription=(value={},access=[])=>commercial(access)?value:Object.fromEntries(["status","trialEndsAt","paidThrough","dueAt","billingEnabled"].filter(k=>value[k]!==undefined).map(k=>[k,value[k]]));
@@ -286,7 +290,7 @@ export function createMeraRouter(db) {
   const previewTokens = createPreviewTokens();
   router.use("/public", previewWriteGuard);
   const rateBuckets = new Map();
-  router.use("/public", (req, res, next) => {
+  router.use(["/public", "/invitations"], (req, res, next) => {
     const key = req.ip + ":" + (req.method === "GET" ? "read" : "write");
     const stamp = Date.now();
     let bucket = rateBuckets.get(key);
@@ -1942,17 +1946,18 @@ export function createMeraRouter(db) {
         ).rows,
       ),
   );
-  router.get("/organizations/:organizationId/invitations",guard("members.manage"),async(req,res)=>res.json((await q('SELECT id,email,role,branch_ids AS "branchIds",branch_roles AS "branchRoles",expires_at AS "expiresAt",revoked,accepted FROM mera_invitations WHERE organization_id=$1 ORDER BY expires_at DESC',[req.params.organizationId])).rows.map(i=>({...i,delivery:"not_sent"}))));
+  router.get("/organizations/:organizationId/invitations",guard("members.manage"),async(req,res)=>res.json((await q('SELECT id,email,role,branch_ids AS "branchIds",branch_roles AS "branchRoles",expires_at AS "expiresAt",revoked,accepted,delivery FROM mera_invitations WHERE organization_id=$1 ORDER BY expires_at DESC',[req.params.organizationId])).rows.map(i=>({...i,delivery:i.delivery||"not_sent"}))));
   router.post("/organizations/:organizationId/invitations",guard("members.manage"),async(req,res)=>{
     const input=z.object({requestKey:uuid.optional(),email:z.string().email().max(200),role:z.string().min(1).max(100),branchRoles:z.record(uuid,z.object({role:z.string().min(1).max(100),permissions:z.array(z.enum(permissions)).optional()}).strict()).optional(),branch_roles:z.record(uuid,z.object({role:z.string().min(1).max(100),permissions:z.array(z.enum(permissions)).optional()}).strict()).optional(),branchIds:z.array(uuid).max(100).transform(v=>[...new Set(v)].sort())}).parse(req.body);
-    let immediateToken=null;
+    let immediateToken=null, emailAttempt=null;
     const result=await withAccessLock(db,req,async c=>{
       const branchRoles=input.branch_roles||input.branchRoles||{};
       if(Object.keys(branchRoles).length&&!input.requestKey)throw fail("Branch role invitations require a request key.",400);
       const intent={email:input.email,role:input.role,branchIds:input.branchIds,...(Object.keys(branchRoles).length?{branch_roles:structuredClone(branchRoles)}:{})},attempt={requestKey:input.requestKey,operation:"invitation_create",targetId:null,intent};
       await authorizeAccessTarget(c,req,attempt.operation,null,intent);
       const prior=await beginAccessOperation(c,req,attempt);if(prior)return prior;
-      const grants=(await resolveRole(c,req.params.organizationId,input.role)).permissions;
+      const resolvedRole=await resolveRole(c,req.params.organizationId,input.role);
+      const grants=resolvedRole.permissions;
       const branches=(await c.query("SELECT id FROM mera_branches WHERE organization_id=$1",[req.params.organizationId])).rows.map(b=>b.id);
       if(input.branchIds.some(id=>!branches.includes(id)))throw fail("Invalid branch scope.",403);
       for(const [id,grant] of Object.entries(branchRoles)) {
@@ -1964,13 +1969,34 @@ export function createMeraRouter(db) {
       const token=randomBytes(32).toString("hex"),id=randomUUID(),expiresAt=new Date(Date.now()+48*3600000).toISOString();
       await c.query("INSERT INTO mera_invitations(id,organization_id,token_hash,email,role,permissions,branch_ids,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",[id,req.params.organizationId,hash(token),input.email,input.role,JSON.stringify(grants),JSON.stringify(input.branchIds),expiresAt]);
       if(Object.keys(branchRoles).length)await c.query("UPDATE mera_invitations SET branch_roles=$1 WHERE id=$2 AND organization_id=$3",[JSON.stringify(branchRoles),id,req.params.organizationId]);
-      const demo=process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production";
-      const safe={id,email:input.email,role:input.role,branchIds:input.branchIds,expiresAt,delivery:"not_sent",reason:providers.email.reason,developmentTokenRecoverable:false,developmentTokenUnavailable:true,needsExplicitRevokeAndReinvite:demo};
+      const demo=env.MERA_DEMO==="true"&&env.NODE_ENV!=="production";
+      const safe={id,email:input.email,role:input.role,branchIds:input.branchIds,expiresAt,delivery:getEmailReadiness(env).configured?"pending":"not_sent",reason:getEmailReadiness(env).configured?"Invitation email sending is pending.":providers.email.reason,developmentTokenRecoverable:false,developmentTokenUnavailable:true,needsExplicitRevokeAndReinvite:demo};
+      await c.query("UPDATE mera_invitations SET delivery=$1 WHERE id=$2",[safe.delivery,id]);
       await recordAccessOperation(c,req,attempt,safe);
       await recordAccess(c,req,"audit",{action:"invitation_created",actorId:req.user.id,details:{invitationId:id,role:input.role},createdAt:now()});
+      emailAttempt={token,role:resolvedRole.name||input.role.replaceAll("_"," ")};
       if(demo)immediateToken=token;
       return safe;
     });
+    if(emailAttempt && getEmailReadiness(env).configured){
+      // The access operation has committed. Only its creator holds the token;
+      // request replays never attempt transport again.
+      let delivery="pending", reason="Email sending could not be confirmed. Check with the recipient before inviting again.";
+      try {
+        const org=(await q("SELECT name FROM mera_organizations WHERE id=$1",[req.params.organizationId])).rows[0];
+        const message=renderMeraEmail({eyebrow:"Team invitation",title:`You're invited to join ${org.name}`,paragraphs:[`${req.user.name} invited you to join ${org.name} as ${emailAttempt.role}.`],details:[{label:"Business",value:org.name},{label:"Role",value:emailAttempt.role},{label:"Expires",value:new Date(result.expiresAt).toUTCString()}],action:{label:"Accept invitation",url:`${env.MERA_PUBLIC_ORIGIN.replace(/\/$/, "")}/mera/invite#token=${emailAttempt.token}`},note:"This link expires in 48 hours. If you weren't expecting this invitation, you can ignore this email."});
+        await sendEmail({to:result.email,subject:`You're invited to join ${org.name} on Mera`,...message,idempotencyKey:"mera-invitation:"+result.id},{env});
+        delivery="sent";reason="Invitation email sent.";
+      } catch(error) {
+        if(["rejected","not_sent"].includes(error?.outcome)){delivery="failed";reason="The invitation email could not be sent. Review the email address and invite again.";}
+      }
+      // A persistence failure after transport must not turn creation into a failure.
+      try { await q("UPDATE mera_invitations SET delivery=$1 WHERE id=$2",[delivery,result.id]); } catch { /* Keep the committed invitation. */ }
+      result.delivery=delivery;result.reason=reason;
+    } else if(!emailAttempt) {
+      const stored=(await q("SELECT delivery FROM mera_invitations WHERE id=$1",[result.id])).rows[0];
+      if(stored?.delivery){result.delivery=stored.delivery;result.reason=stored.delivery==="sent"?"Invitation email sent.":"Check invitation history for the email sending status.";}
+    }
     res.status(201).json(immediateToken?{...result,developmentToken:immediateToken,developmentTokenUnavailable:false,needsExplicitRevokeAndReinvite:false}:result);
   });
   router.delete("/organizations/:organizationId/invitations/:id",guard("members.manage"),async(req,res)=>{
@@ -2008,20 +2034,21 @@ export function createMeraRouter(db) {
     }));
   });
 
+  router.post("/invitations/preview",async(req,res)=>{
+    res.set("Cache-Control","no-store");
+    const token=typeof req.body?.token==="string"?req.body.token:"";
+    if(!/^[a-f0-9]{64}$/.test(token))throw fail("Invitation is invalid, expired or revoked.",409);
+    const invite=(await q("SELECT * FROM mera_invitations WHERE token_hash=$1",[hash(token)])).rows[0];
+    if(!invite||invite.revoked||invite.accepted||new Date(invite.expires_at)<=new Date())throw fail("Invitation is invalid, expired or revoked.",409);
+    const org=(await q("SELECT name FROM mera_organizations WHERE id=$1",[invite.organization_id])).rows[0];
+    const role=await resolveRole(db,invite.organization_id,invite.role);
+    const account=(await q("SELECT id FROM users WHERE lower(username)=lower($1)",[invite.email])).rows[0];
+    res.json({organizationName:org.name,role:role.name||invite.role.replaceAll("_"," "),email:invite.email,expiresAt:invite.expires_at,accountExists:!!account,signedInAsInvitee:!!req.user&&req.user.username.toLowerCase()===invite.email.toLowerCase()});
+  });
   router.post("/invitations/accept", async (req, res) => {
-    if (!req.user) throw fail("Sign in to accept an invitation.", 401);
-    if (
-      process.env.MERA_DEMO !== "true" ||
-      process.env.NODE_ENV === "production"
-    )
-      throw fail(
-        "Verified email acceptance requires the configured identity/email provider.",
-        503,
-        "PROVIDER_BLOCKED",
-      );
-    const { token } = z
-      .object({ token: z.string().regex(/^[a-f0-9]{64}$/) })
-      .parse(req.body);
+    const token=typeof req.body?.token === "string" ? req.body.token : "";
+    if(!/^[a-f0-9]{64}$/.test(token))throw fail("Invitation is invalid, expired or revoked.",409);
+    let sessionToken=null;
     await db.transaction(async (c) => {
       const preliminary=(await c.query("SELECT organization_id FROM mera_invitations WHERE token_hash=$1",[hash(token)])).rows[0];
       if(!preliminary)throw fail("Invitation is invalid, expired or revoked.",409);
@@ -2039,12 +2066,24 @@ export function createMeraRouter(db) {
         new Date(invite.expires_at) <= new Date()
       )
         throw fail("Invitation is invalid, expired or revoked.", 409);
+      let user=req.user;
+      if(user && user.username.toLowerCase()!==invite.email.toLowerCase())
+        throw fail(`Sign in with ${invite.email} to accept this invitation.`,403);
+      if(!user){
+        const existing=(await c.query("SELECT id FROM users WHERE lower(username)=lower($1)",[invite.email])).rows[0];
+        if(existing)throw fail(`Sign in with ${invite.email} to accept this invitation.`,401,"SIGN_IN_REQUIRED");
+        const input=z.object({name:z.string().trim().min(1).max(100),password:z.string().min(12).max(200)}).parse(req.body);
+        user={id:randomUUID(),username:invite.email.toLowerCase(),name:input.name};
+        await c.query("INSERT INTO users(id,name,username,password_hash,role,active) VALUES($1,$2,$3,$4,'cashier',true)",[user.id,user.name,user.username,await bcrypt.hash(input.password,12)]);
+        sessionToken=randomBytes(32).toString("hex");
+        await c.query("INSERT INTO sessions(token,user_id,expires_at) VALUES($1,$2,$3)",[hash(sessionToken),user.id,new Date(Date.now()+12*3600000)]);
+      }
       const currentRole=await resolveRole(c,invite.organization_id,invite.role);
       await c.query(
         "INSERT INTO mera_memberships(id,user_id,organization_id,role,permissions,branch_ids,organization_wide,branch_roles) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(user_id,organization_id) DO NOTHING",
         [
           randomUUID(),
-          req.user.id,
+          user.id,
           invite.organization_id,
           invite.role,
           JSON.stringify(currentRole.permissions),
@@ -2056,8 +2095,11 @@ export function createMeraRouter(db) {
       await c.query("UPDATE mera_invitations SET accepted=true WHERE id=$1", [
         invite.id,
       ]);
+      await recordAccess(c,{params:{organizationId:invite.organization_id}},"audit",{action:"invitation_accepted",actorId:user.id,details:{invitationId:invite.id},createdAt:now()});
     });
-    res.json({ accepted: true, simulation: true, emailVerified: false });
+    if(sessionToken)res.cookie("pos_session",sessionToken,{httpOnly:true,sameSite:"strict",secure:env.COOKIE_SECURE==="true",maxAge:12*3600000});
+    const demo=env.MERA_DEMO==="true"&&env.NODE_ENV!=="production";
+    res.json({ accepted: true, simulation: demo, emailVerified: !demo });
   });
   async function publicContext(req) {
     const organization=await resolveOrganizationSlug(db,req.params.slug);
