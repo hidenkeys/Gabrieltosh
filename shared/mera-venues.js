@@ -212,11 +212,12 @@ export const INVENTORY_MODES = ["per_location", "central"];
 export const ITEM_KINDS = ["single", "package", "combo"];
 
 export function defaultLocationCode(name = "", taken = []) {
-  const base =
+  let base =
     String(name)
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, "")
       .slice(0, 3) || "LOC";
+  base = base.padEnd(2, "X");
   const used = new Set(taken);
   if (!used.has(base)) return base;
   for (let i = 2; i < 100; i++) {

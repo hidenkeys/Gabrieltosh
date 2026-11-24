@@ -1,3 +1,5 @@
+import { locationFields, locationSettings } from "./venue-access.js";
+import { defaultLocationCode,deriveVenueType } from "../../shared/mera-venues.js";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { resolveRole } from "./roles.js";
@@ -84,6 +86,7 @@ export function mountMeraWorkspaceAdmin(router, { db, guard, scope, event }) {
         throw fail("Organization-wide management access is required.", 403);
       const input = z
         .object({
+          ...locationFields,
           requestKey: z.string().uuid(),
           name: z.string().trim().min(1).max(100),
           timezone: z
@@ -132,13 +135,15 @@ export function mountMeraWorkspaceAdmin(router, { db, guard, scope, event }) {
             const same = previous.actorId === req.user.id &&
               ["name", "timezone", "currency", "cutoff"].every(key => previous.intent[key] === input[key]) &&
               previous.intent.serviceModes.length === input.serviceModes.length &&
-              previous.intent.serviceModes.every((mode,index) => mode === input.serviceModes[index]);
+              previous.intent.serviceModes.every((mode,index) => mode === input.serviceModes[index]) &&
+              Object.keys(locationFields).every(key=>JSON.stringify(previous.intent[key])===JSON.stringify(input[key]));
             if (!same) throw Object.assign(fail("This request key belongs to a different branch creation intent."), { code: "IDEMPOTENCY_CONFLICT" });
             return previous.result;
           }
           const branchId = randomUUID(),
             settings = {
-              serviceModes: [...new Set(input.serviceModes)],
+              ...locationSettings(Object.fromEntries(Object.keys(locationFields).filter(k=>input[k]!==undefined).map(k=>[k,input[k]]))),
+              serviceModes: locationSettings(input).serviceModes,
               orderingPaused: true,
               reservationsEnabled: false,
               payLater: false,
@@ -146,6 +151,11 @@ export function mountMeraWorkspaceAdmin(router, { db, guard, scope, event }) {
               capacity: 30,
               holdMinutes: 10,
             };
+          const existing=(await c.query("SELECT id,settings FROM mera_branches WHERE organization_id=$1",[org.id])).rows;
+          settings.code=input.code||defaultLocationCode(input.name,existing.map(b=>b.settings?.code));
+          if(existing.some(b=>b.settings?.code===settings.code))throw fail("Location code is already in use.");
+          settings.venueType ||= deriveVenueType(settings);
+          settings.role ||= 'outlet'; settings.colorTag ||= 'forest';settings.version=1;
           await c.query(
             "INSERT INTO mera_branches(id,organization_id,name,timezone,currency,cutoff,settings,menu_version,published_menu) VALUES($1,$2,$3,$4,$5,$6,$7,0,$8)",
             [
