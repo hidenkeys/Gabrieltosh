@@ -1,3 +1,5 @@
+> Subsequent staging deployment is recorded in [STAGING-VERIFICATION.md](STAGING-VERIFICATION.md). This document preserves the preceding local-only round.
+
 # Venue verification — 24 November 2026
 
 Scope: finish local acceptance checks on `mera-ux-next`, preserve the existing checkout and seeded venue database, commit/push verified changes. **No deployment authorized this round.** Staging and production remain untouched.

@@ -1,0 +1,115 @@
+{
+  "at": "2026-11-24T04:32:01.662Z",
+  "origin": "https://mera-web-staging.up.railway.app",
+  "checks": [
+    {
+      "venue": "kerbside-grill",
+      "check": "owner login, persisted venue/location configuration, overview and tenant/platform boundaries",
+      "status": "passed"
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "cashier permitted workspace and denied organization/other-location access",
+      "status": "passed"
+    },
+    {
+      "venue": "oak-ember",
+      "check": "owner login, persisted venue/location configuration, overview and tenant/platform boundaries",
+      "status": "passed"
+    },
+    {
+      "venue": "oak-ember",
+      "check": "cashier permitted workspace and denied organization/other-location access",
+      "status": "passed"
+    },
+    {
+      "venue": "saffron-room",
+      "check": "owner login, persisted venue/location configuration, overview and tenant/platform boundaries",
+      "status": "passed"
+    },
+    {
+      "venue": "saffron-room",
+      "check": "cashier permitted workspace and denied organization/other-location access",
+      "status": "passed"
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "owner login, persisted venue/location configuration, overview and tenant/platform boundaries",
+      "status": "passed"
+    },
+    {
+      "venue": "velvet-lounge",
+      "check": "cashier permitted workspace and denied organization/other-location access",
+      "status": "passed"
+    },
+    {
+      "venue": "pulse",
+      "check": "owner login, persisted venue/location configuration, overview and tenant/platform boundaries",
+      "status": "passed"
+    },
+    {
+      "venue": "pulse",
+      "check": "cashier permitted workspace and denied organization/other-location access",
+      "status": "passed"
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "owner login, persisted venue/location configuration, overview and tenant/platform boundaries",
+      "status": "passed"
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "cashier permitted workspace and denied organization/other-location access",
+      "status": "passed"
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "owner login, persisted venue/location configuration, overview and tenant/platform boundaries",
+      "status": "passed"
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "check": "cashier permitted workspace and denied organization/other-location access",
+      "status": "passed"
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "manager per-location role downgrade and hidden third outlet",
+      "status": "passed"
+    },
+    {
+      "venue": "pulse",
+      "check": "synthetic door entry check-in persists",
+      "status": "passed"
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "synthetic central transfer send/receive and separate cancellation",
+      "status": "passed"
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "combo order lifecycle",
+      "status": "blocked",
+      "detail": "Venue is outside configured service hours; settings unchanged."
+    },
+    {
+      "venue": "oak-ember",
+      "check": "package order lifecycle",
+      "status": "blocked",
+      "detail": "Venue is outside configured service hours; settings unchanged."
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "single order lifecycle",
+      "status": "blocked",
+      "detail": "Venue is outside configured service hours; settings unchanged."
+    }
+  ],
+  "limitations": [
+    "API checks do not replace browser verification.",
+    "Service hours are preserved; closed-venue checkout is reported as blocked.",
+    "Only synthetic manual payment records are created; no real funds or email."
+  ],
+  "finishedAt": "2026-11-24T04:32:52.704Z"
+}

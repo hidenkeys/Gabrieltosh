@@ -1,0 +1,16 @@
+{
+  "at": "2026-11-24T04:44:17.931Z",
+  "origin": "https://mera-web-staging.up.railway.app",
+  "path": "/api/mera/v1/organizations/f90e3fd0-f777-4e39-a3fd-e794015c9878/branches/eee66a2b-34c4-4476-a4a0-61742cf26deb/exports/7248d054-ee98-4226-b87f-ffdc14c350ae/download",
+  "status": 200,
+  "contentType": "text/csv; charset=utf-8",
+  "downloadAttachment": true,
+  "locationCodes": [
+    "SUR",
+    "LKI",
+    "IKJ"
+  ],
+  "allLocationsTotal": true,
+  "moneyUnit": "kobo",
+  "scope": "Read-only download of existing organization CSV job created through the browser. No new export queued."
+}

@@ -5,6 +5,7 @@
  * CREDENTIALS is read only; credentials, cookies and preview tokens are never logged.
  * The checklist's transaction journeys are inspected through seeded history; this
  * runner does not settle bills, change stock, launch venues or send messages.
+ * OUTPUT_DIR optionally overrides the target-specific evidence directory.
  */
 import { createRequire } from "node:module";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
@@ -14,7 +15,15 @@ import { buildVenuePortfolio } from "../server/mera/venue-portfolio.js";
 const require = createRequire(import.meta.url);
 let chromium;
 const base = process.env.BASE_URL || "http://127.0.0.1:3011";
-const destination = path.resolve("docs/audit/venues");
+const stagingBase = "https://mera-web-staging.up.railway.app";
+assert.ok(
+  ["http://127.0.0.1:3011", "http://localhost:3011", stagingBase].includes(base),
+  "BASE_URL must be the approved local preview on port 3011 or the exact Mera staging origin.",
+);
+const destination = path.resolve(
+  process.env.OUTPUT_DIR ||
+    (base === stagingBase ? "docs/audit/venues-staging" : "docs/audit/venues"),
+);
 const checks = [],
   portfolio = buildVenuePortfolio();
 let shots = 0,
