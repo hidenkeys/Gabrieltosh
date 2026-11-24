@@ -277,7 +277,8 @@ test("checklist shows actionable readiness and a definite409 clears recovery", a
         }}
       />,
     );
-    await screen.findByText("Ready to go live · 1 of 3 done");
+    await screen.findByRole("heading", { name: "Ready to go live" });
+    assert.ok(screen.getByText(/^1 of 3 done\./));
     assert.ok(screen.getByText("Done"));
     assert.ok(screen.getByText("To do"));
     assert.ok(screen.getByText("Waiting on Mera"));

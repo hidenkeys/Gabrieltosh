@@ -1,4 +1,5 @@
 import "./mera/workspace/multi-location.css";
+import "./mera/workspace/go-live-checklist.css";
 import React from "react";
 import { createRoot } from "react-dom/client";
 const App = React.lazy(() => import("./App"));

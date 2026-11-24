@@ -72,67 +72,86 @@ export default function GoLiveChecklist(
       publicContact={props.settings?.publicContact}
       checklist={(readiness, actions) => {
         if (readiness?.launchState === "published") return null;
-        const rows = readiness?.checks || [],
+        const rows = [...(readiness?.checks || [])].sort(
+            (a: any, b: any) =>
+              Number(a.id === "manual_platform_policy") -
+              Number(b.id === "manual_platform_policy"),
+          ),
           done = rows.filter((c: any) => c.status === "ready").length;
         return (
-          <section
-            className="mw-card mw-management"
-            aria-label="Go-live checklist"
-          >
-            <h2>
-              Ready to go live · {done} of {rows.length} done
-            </h2>
+          <section className="mw-card mgl" aria-label="Go-live checklist">
+            <header className="mgl-head">
+              <div>
+                <h2>Ready to go live</h2>
+                <p>
+                  {done} of {rows.length} done. Finish these to start taking
+                  orders.
+                </p>
+              </div>
+              <button
+                className="secondary"
+                aria-expanded={!collapsed}
+                onClick={() => {
+                  setCollapsed(!collapsed);
+                  try {
+                    window.localStorage.setItem(key, String(!collapsed));
+                  } catch {}
+                }}
+              >
+                {collapsed ? "Show checklist" : "Hide checklist"}
+              </button>
+            </header>
             <div
+              className="mgl-bar"
               role="progressbar"
               aria-label="Go-live progress"
               aria-valuemin={0}
               aria-valuemax={rows.length || 1}
               aria-valuenow={done}
             >
-              <progress max={rows.length || 1} value={done} />
+              <span style={{ width: `${(done / (rows.length || 1)) * 100}%` }} />
             </div>
-            <button
-              className="secondary"
-              aria-expanded={!collapsed}
-              onClick={() => {
-                setCollapsed(!collapsed);
-                try {
-                  window.localStorage.setItem(key, String(!collapsed));
-                } catch {}
-              }}
-            >
-              {collapsed ? "Show checklist" : "Hide checklist"}
-            </button>
             {!collapsed && (
               <>
-                <ul className="mw-management-checklist">
+                <ol className="mgl-list">
                   {rows.map((c: any) => {
                     const row = checks[c.id] || [c.label, c.detail];
+                    const state =
+                      c.status === "ready"
+                        ? "done"
+                        : c.id === "manual_platform_policy"
+                          ? "waiting"
+                          : "todo";
                     return (
-                      <li key={c.id}>
-                        <div>
+                      <li key={c.id} className={`mgl-row is-${state}`}>
+                        <span className="mgl-dot" aria-hidden="true">
+                          {state === "done" ? "✓" : ""}
+                        </span>
+                        <div className="mgl-text">
                           <b>{row[0]}</b>
                           <p>{row[1]}</p>
-                          <span>
-                            {c.status === "ready"
-                              ? "Done"
-                              : c.id === "manual_platform_policy"
-                                ? "Waiting on Mera"
-                                : "To do"}
-                          </span>
                         </div>
-                        {row[2] && (
+                        <span className={`mgl-status is-${state}`}>
+                          {state === "done"
+                            ? "Done"
+                            : state === "waiting"
+                              ? "Waiting on Mera"
+                              : "To do"}
+                        </span>
+                        {row[2] && state !== "waiting" ? (
                           <button
-                            className="secondary"
+                            className={state === "todo" ? "primary" : "secondary"}
                             onClick={() => props.onOpen?.(row[2]!)}
                           >
                             {row[3]}
                           </button>
+                        ) : (
+                          <span />
                         )}
                       </li>
                     );
                   })}
-                </ul>
+                </ol>
                 {actions.error && <p role="alert">{actions.error}</p>}
                 {actions.uncertain && (
                   <p role="alert">
@@ -140,31 +159,33 @@ export default function GoLiveChecklist(
                     before trying again.
                   </p>
                 )}
-                <p>
-                  This publishes the branch’s configured menu state within Mera.
-                  Public hosting, verified payment providers and physical
-                  printer output require separate validation. No website
-                  deployment or live payment activation happens here.
-                </p>
-                <button
-                  className="primary"
-                  disabled={
-                    props.disabled ||
-                    actions.busy ||
-                    actions.uncertain ||
-                    !readiness?.canPublish
-                  }
-                  onClick={actions.goLive}
-                >
-                  Go live
-                </button>
-                <button
-                  className="secondary"
-                  disabled={actions.busy || actions.checking}
-                  onClick={actions.recheck}
-                >
-                  Recheck readiness
-                </button>
+                <footer className="mgl-foot">
+                  <p>
+                    Going live publishes this location’s menu in Mera. It does
+                    not switch on online payments or printers.
+                  </p>
+                  <div className="mw-actions">
+                    <button
+                      className="secondary"
+                      disabled={actions.busy || actions.checking}
+                      onClick={actions.recheck}
+                    >
+                      Recheck readiness
+                    </button>
+                    <button
+                      className="primary"
+                      disabled={
+                        props.disabled ||
+                        actions.busy ||
+                        actions.uncertain ||
+                        !readiness?.canPublish
+                      }
+                      onClick={actions.goLive}
+                    >
+                      Go live
+                    </button>
+                  </div>
+                </footer>
               </>
             )}
           </section>
