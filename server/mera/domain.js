@@ -1,3 +1,4 @@
+import { resolveContents, stockLines } from "./product-kinds.js";
 import { proposedPolicy } from "../../shared/mera-contracts.js";
 export const fail = (message, status = 400, code = "INVALID_REQUEST") =>
   Object.assign(new Error(message), { status, code });
@@ -42,20 +43,22 @@ export function availableNow(windows, timezone="Africa/Lagos", at=new Date()) {
   const day=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].indexOf(parts.weekday), time=parts.hour+":"+parts.minute;
   return windows.some(w=>w.days.includes(day)&&time>=w.start&&time<w.end);
 }
-export function quote(items, products) {
+export function quote(items, products, {tableContext=false}={}) {
   const result = items.map((line) => {
     const p = products.find((p) => p.id === line.productId);
     if (!p || !p.available)
       throw fail("A selected item is unavailable.", 409, "MENU_CHANGED");
     if (p.stockMode === "counted" && p.stock < line.quantity)
       throw fail("Not enough stock.", 409, "OUT_OF_STOCK");
-    let unit = p.price;
+    if(p.requiresTable&&!tableContext)throw fail("This package requires a current table visit or reservation.",409,"TABLE_REQUIRED");
+    const components=resolveContents(p,line.choices||[],products);
+    let unit = p.price+components.reduce((n,c)=>n+(c.priceDelta||0),0);
     let variant = null;
     if (p.variants.length) {
       variant = p.variants.find((v) => v.id === line.variantId);
       if (!variant) throw fail("Select a valid product size.");
       if(variant.stockMode==="counted" && variant.stock<line.quantity) throw fail("Not enough stock for this size.",409,"OUT_OF_STOCK");
-      unit = variant.price;
+      unit = variant.price+components.reduce((n,c)=>n+(c.priceDelta||0),0);
     } else if (line.variantId) throw fail("Invalid size.");
     const selected = new Set(line.modifiers);
     if (selected.size !== line.modifiers.length)
@@ -80,6 +83,10 @@ export function quote(items, products) {
     if (selected.size) throw fail("Unknown modifier.");
     assertMoney(unit);
     return {
+      kind:p.kind||"single",
+      serves:p.serves??null,
+      choices:line.choices||[],
+      components,
       productId: p.id,
       variantId: variant?.id || null,
       code: p.code,
@@ -97,6 +104,11 @@ export function quote(items, products) {
       station: p.station,
     };
   });
+  const demand=new Map();
+  for(const l of stockLines(result)){const key=l.productId+":"+(l.variantId||"");const old=demand.get(key);demand.set(key,{...l,quantity:(old?.quantity||0)+l.quantity});}
+  const totals=new Map();
+  for(const l of demand.values()){const p=products.find(p=>p.id===l.productId),v=p?.variants?.find(v=>v.id===l.variantId);totals.set(p.id,(totals.get(p.id)||0)+l.quantity);if(v?.stockMode==="counted"&&v.stock<l.quantity)throw fail("Not enough component stock.",409,"OUT_OF_STOCK");}
+  for(const [id,q] of totals){const p=products.find(p=>p.id===id);if(p.stockMode==="counted"&&p.stock<q)throw fail("Not enough component stock.",409,"OUT_OF_STOCK");}
   return {
     items: result,
     total: assertMoney(result.reduce((n, i) => n + i.total, 0)),

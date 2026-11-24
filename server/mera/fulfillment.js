@@ -88,7 +88,7 @@ export function mountMeraFulfillment(
           )
             .map((r) => r.data)
             .filter((t) => t.orderId === order.id && t.status !== "cancelled");
-          const prepared = tickets
+          const preparedLines = tickets
             .flatMap((t) =>
               t.items.map((i) => ({
                 quantity:
@@ -97,7 +97,11 @@ export function mountMeraFulfillment(
               })),
             )
             .filter((i) => i.id === line.orderLineId)
-            .reduce((n, i) => n + i.quantity, 0);
+            ;
+          const missingStation = line.components?.some(component => !tickets.some(ticket => ticket.station === component.station && ticket.items.some(item => item.orderLineId === line.orderLineId)));
+          const prepared = missingStation ? 0 : line.components?.length
+            ? (preparedLines.length ? Math.min(...preparedLines.map(i => i.quantity)) : 0)
+            : preparedLines.reduce((n, i) => n + i.quantity, 0);
           if (input.fulfilledQuantity > prepared)
             throw fail("Only prepared items can be handed over.");
           const added = input.fulfilledQuantity - (line.fulfilledQuantity || 0),

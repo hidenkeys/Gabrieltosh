@@ -3,7 +3,19 @@ import { bindProductCategory } from "./catalog.js";
 import { assertMeraAsset } from "./assets.js";
 import { randomUUID } from "node:crypto";
 import { productInputSchema } from "../../shared/mera-contracts.js";
+import { stockLines } from "./product-kinds.js";
 import { fail } from "./domain.js";
+
+export function remapSharedContents(item, items, ids) {
+ const remap=ref=>{
+  const target=items.find(p=>p.code===ref.productCode);
+  if(!target||(target.kind||"single")!=="single"||!ids.has(target.code))throw fail("Shared component code is unavailable.",409,"INVALID_COMPONENT");
+  const variant=ref.variantName?target.variants.find(v=>v.name===ref.variantName):null;
+  if(ref.variantName&&!variant)throw fail("Shared component size is unavailable.",409,"INVALID_COMPONENT");
+  return {...ref,productId:ids.get(target.code),variantId:variant?.id||null};
+ };
+ return {components:(item.components||[]).map(remap),choiceGroups:(item.choiceGroups||[]).map(g=>({...g,options:g.options.map(remap)}))};
+}
 const stamp=()=>new Date().toISOString();
 export function mountMeraMenus(router,{db,guard,scope,locked,record,readRecords,event}) {
  const O="/organizations/:organizationId",B=O+"/branches/:branchId";
@@ -16,7 +28,9 @@ export function mountMeraMenus(router,{db,guard,scope,locked,record,readRecords,
    let old;
    if(id){old=(await c.query("SELECT data FROM mera_records WHERE id=$1 AND organization_id=$2 AND kind='shared_menu'",[id,req.params.organizationId])).rows[0]?.data;if(!old)throw fail("Shared menu not found.",404);if(old.version!==input.version)throw fail("Shared menu changed. Refresh first.",409,"STALE_VERSION");}
    for(const item of input.items) await assertMeraAsset(c,req.params.organizationId,null,item.image);
+   const sourceProducts=(await c.query("SELECT data FROM mera_records WHERE organization_id=$1 AND kind='product'",[req.params.organizationId])).rows.map(r=>r.data);
    const items=input.items.map(p=>({...p,categoryId:null,stockMode:"unlimited",stock:0,variants:p.variants.map(v=>({...v,stockMode:"unlimited",stock:0}))}));
+   for(const item of items){for(const ref of [...item.components,...item.choiceGroups.flatMap(g=>g.options)]){const source=sourceProducts.find(p=>p.id===ref.productId);const target=items.find(p=>p.code===source?.code);if(!target||(target.kind||"single")!=="single")throw fail("Shared contents must reference single items included by product code.",409,"INVALID_COMPONENT");ref.productCode=target.code;ref.variantName=source.variants?.find(v=>v.id===ref.variantId)?.name||null;}}
    const data={id:id||randomUUID(),name:input.name,items,version:(old?.version||0)+1,updatedAt:stamp(),updatedBy:req.user.id};
    if(old)await c.query("UPDATE mera_records SET data=$1 WHERE id=$2 AND organization_id=$3 AND kind='shared_menu'",[JSON.stringify(data),id,req.params.organizationId]);
    else await c.query("INSERT INTO mera_records(id,organization_id,branch_id,kind,data) VALUES($1,$2,$3,'shared_menu',$4)",[data.id,req.params.organizationId,branch.id,JSON.stringify(data)]);
@@ -35,11 +49,13 @@ export function mountMeraMenus(router,{db,guard,scope,locked,record,readRecords,
    if(new Set(input.overrides.map(o=>o.code)).size!==input.overrides.length || input.overrides.some(o=>!shared.items.some(p=>p.code===o.code)))throw fail("Overrides require distinct existing item codes.");
    const existing=(await readRecords(c,s.organizationId,s.branchId,"product")).map(r=>r.data),published=[];
    const holds=(await readRecords(c,s.organizationId,s.branchId,"order")).map(r=>r.data).filter(o=>o.stockHeld);
+   const ids=new Map(shared.items.map(item=>[item.code,existing.find(p=>p.code===item.code)?.id||randomUUID()]));
    for(const item of shared.items){
-    const old=existing.find(p=>p.code===item.code),override=input.overrides.find(o=>o.code===item.code)||{},data={...item,...override,id:old?.id||randomUUID(),stockMode:old?.stockMode||"unlimited",stock:old?.stock||0,variants:item.variants.map(v=>({...v,stockMode:old?.variants.find(i=>i.id===v.id)?.stockMode||"unlimited",stock:old?.variants.find(i=>i.id===v.id)?.stock||0}))};
+    const old=existing.find(p=>p.code===item.code),override=input.overrides.find(o=>o.code===item.code)||{},data={...item,...override,id:ids.get(item.code),stockMode:(item.kind||"single")!=="single"?"unlimited":old?.stockMode||"unlimited",stock:old?.stock||0,variants:item.variants.map(v=>({...v,stockMode:(item.kind||"single")!=="single"?"unlimited":old?.variants.find(i=>i.id===v.id)?.stockMode||"unlimited",stock:old?.variants.find(i=>i.id===v.id)?.stock||0}))};
+    Object.assign(data,remapSharedContents(item,shared.items,ids));
     Object.assign(data,await bindProductCategory(c,s,data));
     await assertMeraAsset(c,s.organizationId,s.branchId,data.image);
-    if(old?.variants.some(v=>!data.variants.some(n=>n.id===v.id) && ((v.stockMode==="counted"&&v.stock>0)||holds.some(o=>o.items.some(l=>l.productId===old.id&&l.variantId===v.id))))) throw fail("Shared menu cannot remove sizes with stock or active holds.",409);
+    if(old?.variants.some(v=>!data.variants.some(n=>n.id===v.id) && ((v.stockMode==="counted"&&v.stock>0)||holds.some(o=>stockLines(o.items).some(l=>l.productId===old.id&&l.variantId===v.id))))) throw fail("Shared menu cannot remove sizes with stock or active holds.",409);
     if(old)await c.query("UPDATE mera_records SET data=$1 WHERE id=$2 AND organization_id=$3 AND branch_id=$4 AND kind='product'",[JSON.stringify(data),data.id,s.organizationId,s.branchId]);
     else await c.query("INSERT INTO mera_records(id,organization_id,branch_id,kind,data) VALUES($1,$2,$3,'product',$4)",[data.id,s.organizationId,s.branchId,JSON.stringify(data)]);
     if(data.available)published.push(data);

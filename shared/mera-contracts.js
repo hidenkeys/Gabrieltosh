@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ITEM_KINDS } from "./mera-venues.js";
 export const CONTRACT_VERSION = "1.1.0";
 export const MERA_API = "/api/mera/v1";
 export const permissions = [
@@ -14,6 +15,8 @@ export const permissions = [
   "menu.edit",
   "menu.publish",
   "stock.adjust",
+  "stock.transfer",
+  "stock.receive",
   "orders.view",
   "orders.create",
   "orders.assign",
@@ -91,12 +94,14 @@ export const orderInputSchema = z.object({
     .enum(["counter_pickup", "takeaway", "table_service"])
     .default("counter_pickup"),
   visitId: z.string().uuid().optional(),
+  reservationId:z.string().uuid().optional(),
   items: z
     .array(
       z.object({
         productId: z.string().uuid(),
         quantity: z.number().int().min(1).max(100),
         variantId: z.string().max(100).optional(),
+        choices: z.array(z.object({groupId:z.string().min(1),productId:z.string().uuid(),variantId:z.string().max(100).nullable().optional()})).max(160).default([]),
         modifiers: z.array(z.string().max(100)).max(30).default([]),
       }),
     )
@@ -128,7 +133,15 @@ export const reservationInputSchema = z
     "Reservation must end after it starts",
   );
 export const availabilityWindowSchema=z.object({days:z.array(z.number().int().min(0).max(6)).min(1).max(7),start:z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),end:z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)}).refine(v=>v.end>v.start,"End must follow start; split overnight windows");
+const componentSchema=z.object({productId:z.string().uuid(),variantId:z.string().max(100).nullable().default(null),quantity:z.number().int().min(1).max(50)});
+const choiceGroupSchema=z.object({id:z.string().min(1).max(100),name:z.string().min(1).max(120),min:z.number().int().min(0),max:z.number().int().min(1).max(50),options:z.array(z.object({productId:z.string().uuid(),variantId:z.string().max(100).nullable().default(null),priceDelta:moneySchema})).min(1).max(50)}).refine(g=>g.min<=g.max&&g.max<=g.options.length,"Invalid choice limits").refine(g=>new Set(g.options.map(o=>o.productId+":"+o.variantId)).size===g.options.length,"Duplicate choice options");
 export const productInputSchema = z.object({
+  kind:z.enum(ITEM_KINDS).default("single"),
+  unitCost:moneySchema.nullable().default(null),
+  serves:z.number().int().min(1).max(50).nullable().default(null),
+  requiresTable:z.boolean().default(false),
+  components:z.array(componentSchema).max(20).default([]),
+  choiceGroups:z.array(choiceGroupSchema).max(8).default([]),
   name: z.string().trim().min(1).max(120),
   code: z.string().max(30),
   category: z.string().trim().min(1).max(100),
@@ -180,7 +193,10 @@ export const productInputSchema = z.object({
   dietary: z.array(z.string().max(80)).default([]),
   imageCode: z.string().max(30).default(""),
   image:z.string().regex(/^(?:|\/api\/mera\/v1\/public\/assets\/[a-f\d-]{36})$/i).default(""),
-});
+}).superRefine((p,ctx)=>{
+ if(p.kind==="single"&&(p.components.length||p.choiceGroups.length)||p.kind==="package"&&(!p.components.length||p.choiceGroups.length)||p.kind==="combo"&&(!p.choiceGroups.length||p.components.length))ctx.addIssue({code:"custom",message:"Item contents do not match its kind."});
+ if(new Set(p.choiceGroups.map(g=>g.id)).size!==p.choiceGroups.length)ctx.addIssue({code:"custom",message:"Duplicate choice groups."});
+}).transform(p=>p.kind==="single"?p:{...p,stockMode:"unlimited",variants:p.variants.map(v=>({...v,stockMode:"unlimited"}))});
 export const proposedPolicy = {
   version: "proposal-1",
   currency: "NGN",
