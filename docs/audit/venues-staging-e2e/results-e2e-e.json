@@ -1,0 +1,390 @@
+{
+  "runId": "e2e-e",
+  "marker": "E2E e2e-e",
+  "origin": "https://mera-web-staging.up.railway.app",
+  "startedAt": "2026-11-24T10:58:40.796Z",
+  "steps": [
+    {
+      "venue": "oak-ember",
+      "step": "Preflight: preserve this run's own leftovers",
+      "pass": true,
+      "notes": "This run's 0 existing tables are left intact and may be reused if free; no parties, bookings, orders or transfers were closed or changed."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Configuration already enabled; no settings write."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Owner configuration: create fictional table",
+      "pass": true,
+      "notes": "Permanent configuration: owner created E2E e2e-e, six seats in Main floor; existing parties retained."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Open named table visit",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "First seated POS round kitchen and bar",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Minimum-spend progress",
+      "pass": true,
+      "notes": "No minimum-spend policy configured on this visit."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Kitchen and bar mark ready",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Split amount into two and collect cash plus external POS",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Mark collected and completed",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Close settled visit",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Authenticated Today report deltas",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "saffron-room",
+      "step": "Preflight: preserve this run's own leftovers",
+      "pass": true,
+      "notes": "This run's 0 existing tables are left intact and may be reused if free; no parties, bookings, orders or transfers were closed or changed."
+    },
+    {
+      "venue": "saffron-room",
+      "step": "Guest future reservation day and time chips",
+      "pass": true,
+      "notes": "A later run-specific slot was booked and verified through the staff API."
+    },
+    {
+      "venue": "saffron-room",
+      "step": "Manual deposit and front-desk confirmation",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "saffron-room",
+      "step": "Guest cancellation requires staff review and no refund",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "saffron-room",
+      "step": "Authenticated Today report deltas",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Preflight: preserve this run's own leftovers",
+      "pass": true,
+      "notes": "This run's 0 existing tables are left intact and may be reused if free; no parties, bookings, orders or transfers were closed or changed."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Configuration already enabled; no settings write."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Owner configuration: create fictional table",
+      "pass": true,
+      "notes": "Permanent configuration: owner created E2E e2e-e, six seats in Main floor; existing parties retained."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Open named table visit",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "First seated POS round kitchen and bar",
+      "pass": false,
+      "notes": "Journey stopped at this step; no automatic retry.",
+      "error": "Component stock delta MAIN",
+      "actor": "owner"
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Restore original settings",
+      "pass": true,
+      "notes": "Every non-version field matches the private snapshot."
+    },
+    {
+      "venue": "pulse",
+      "step": "Preflight: preserve this run's own leftovers",
+      "pass": true,
+      "notes": "This run's 0 existing tables are left intact and may be reused if free; no parties, bookings, orders or transfers were closed or changed."
+    },
+    {
+      "venue": "pulse",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Configuration already enabled; no settings write."
+    },
+    {
+      "venue": "pulse",
+      "step": "Guest future reservation day and time chips",
+      "pass": true,
+      "notes": "A later run-specific slot was booked and verified through the staff API."
+    },
+    {
+      "venue": "pulse",
+      "step": "Manual deposit and front-desk confirmation",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "pulse",
+      "step": "Owner configuration: create fictional table",
+      "pass": true,
+      "notes": "Permanent configuration: owner created E2E e2e-e, six seats in VIP; existing parties retained."
+    },
+    {
+      "venue": "pulse",
+      "step": "Front desk seats VIP booking",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "pulse",
+      "step": "Bottle package counter restriction and seated POS order",
+      "pass": false,
+      "notes": "Journey stopped at this step; no automatic retry.",
+      "error": "UI /quote returned HTTP 409: This package requires a current table visit or reservation.",
+      "actor": "owner"
+    },
+    {
+      "venue": "pulse",
+      "step": "Restore original settings",
+      "pass": true,
+      "notes": "Every non-version field matches the private snapshot."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Preflight: preserve this run's own leftovers",
+      "pass": true,
+      "notes": "This run's 0 existing tables are left intact and may be reused if free; no parties, bookings, orders or transfers were closed or changed."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Cashier counter POS order",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Cashier counter cash tender",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Owner configuration: create fictional table",
+      "pass": true,
+      "notes": "Permanent configuration: owner created E2E e2e-e, six seats in Main floor; existing parties retained."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Open named table visit",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Guest table QR joins open tab and orders",
+      "pass": false,
+      "notes": "Journey stopped at this step; no automatic retry.",
+      "error": "locator.waitFor: Timeout 20000ms exceeded.",
+      "actor": "guest"
+    }
+  ],
+  "venues": [
+    {
+      "venue": "oak-ember",
+      "pass": true,
+      "orderIds": [
+        "f954227b-79b6-4145-9a52-b0b51084e345"
+      ]
+    },
+    {
+      "venue": "saffron-room",
+      "pass": true,
+      "orderIds": []
+    },
+    {
+      "venue": "velvet-lounge",
+      "pass": false,
+      "orderIds": [
+        "059d94a6-8c33-4a05-993e-ae2dc51ef6fa"
+      ]
+    },
+    {
+      "venue": "pulse",
+      "pass": false,
+      "orderIds": []
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "pass": false,
+      "orderIds": [
+        "cd83a504-603b-4591-b28f-f804d7375ab0"
+      ]
+    }
+  ],
+  "leftovers": [
+    {
+      "venue": "oak-ember",
+      "marker": "E2E e2e-e",
+      "action": "left-untouched",
+      "orderIds": [],
+      "visitIds": [],
+      "reservationIds": [],
+      "tableIds": [],
+      "transferIds": [],
+      "guestListIds": []
+    },
+    {
+      "venue": "saffron-room",
+      "marker": "E2E e2e-e",
+      "action": "left-untouched",
+      "orderIds": [],
+      "visitIds": [],
+      "reservationIds": [],
+      "tableIds": [],
+      "transferIds": [],
+      "guestListIds": []
+    },
+    {
+      "venue": "velvet-lounge",
+      "marker": "E2E e2e-e",
+      "action": "left-untouched",
+      "orderIds": [],
+      "visitIds": [],
+      "reservationIds": [],
+      "tableIds": [],
+      "transferIds": [],
+      "guestListIds": []
+    },
+    {
+      "venue": "pulse",
+      "marker": "E2E e2e-e",
+      "action": "left-untouched",
+      "orderIds": [],
+      "visitIds": [],
+      "reservationIds": [],
+      "tableIds": [],
+      "transferIds": [],
+      "guestListIds": []
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "marker": "E2E e2e-e",
+      "action": "left-untouched",
+      "orderIds": [],
+      "visitIds": [],
+      "reservationIds": [],
+      "tableIds": [],
+      "transferIds": [],
+      "guestListIds": []
+    }
+  ],
+  "configurationChanges": [
+    {
+      "venue": "oak-ember",
+      "branchId": "ab8c9ac2-4287-480e-a2e1-3f3b7458b5ce",
+      "kind": "configuration-change",
+      "resource": "table",
+      "name": "E2E e2e-e",
+      "capacity": 6,
+      "zone": "Main floor",
+      "permanent": true,
+      "state": "verified",
+      "tableId": "7246e962-857d-469e-b790-e8d40b4edf9f"
+    },
+    {
+      "venue": "velvet-lounge",
+      "branchId": "e7e4f994-2031-4416-af2f-b4efd0a5d43e",
+      "kind": "configuration-change",
+      "resource": "table",
+      "name": "E2E e2e-e",
+      "capacity": 6,
+      "zone": "Main floor",
+      "permanent": true,
+      "state": "verified",
+      "tableId": "2100da3d-91d5-4e91-a48e-0f1192bd5592"
+    },
+    {
+      "venue": "pulse",
+      "branchId": "653df24d-0d87-46f9-abe5-9009a4f8199b",
+      "kind": "configuration-change",
+      "resource": "table",
+      "name": "E2E e2e-e",
+      "capacity": 6,
+      "zone": "VIP",
+      "permanent": true,
+      "state": "verified",
+      "tableId": "e89c8873-6539-497f-aad0-2a80c6cce39a"
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "branchId": "afd60717-fac4-41ae-ac34-1c2c3cebdc7e",
+      "kind": "configuration-change",
+      "resource": "table",
+      "name": "E2E e2e-e",
+      "capacity": 6,
+      "zone": "Main floor",
+      "permanent": true,
+      "state": "verified",
+      "tableId": "38a4f458-4a35-4a14-9ddc-db345448366f"
+    }
+  ],
+  "reservationAttempts": [
+    {
+      "venue": "saffron-room",
+      "attempt": 1,
+      "day": "2026-12-09",
+      "time": "15:30",
+      "state": "recorded",
+      "status": 201
+    },
+    {
+      "venue": "pulse",
+      "attempt": 1,
+      "day": "2026-12-07",
+      "time": "05:30",
+      "state": "recorded",
+      "status": 201
+    }
+  ],
+  "finishedAt": "2026-11-24T11:02:29.743Z",
+  "exitCode": 1
+}

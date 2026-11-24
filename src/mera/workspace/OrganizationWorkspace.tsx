@@ -1045,8 +1045,12 @@ export default function OrganizationWorkspace({
     const scope = branchBase;
     requestKey.current ||= uuid();
     const resolvingUncertain = !!uncertainOrder;
+    const { visitId: draftVisit, reservationId: draftBooking, ...draft } =
+      orderDraft as any;
     const body = uncertainOrder || {
-      ...orderDraft,
+      ...draft,
+      ...(draftVisit ? { visitId: draftVisit } : {}),
+      ...(draftBooking ? { reservationId: draftBooking } : {}),
       displayName:
         String(orderDraft.displayName || "").trim() || "Walk-in customer",
       menuVersion: data?.menuVersion,
@@ -2233,12 +2237,14 @@ export default function OrganizationWorkspace({
                       notify("Entry product is unavailable at point of sale.");
                       return;
                     }
+                    // Entry is a fresh counter sale: drop any table or booking context.
+                    const { visitId: _visit, reservationId: _booking, ...rest } =
+                      orderDraft as any;
                     setOrderDraft({
-                      ...orderDraft,
+                      ...rest,
                       serviceMode: "counter_takeaway",
                       items: [{ productId, quantity: 1, extras: [] }],
                       fulfillment: "counter_pickup",
-                      visitId: "",
                     });
                     selectSection("counter");
                   }}

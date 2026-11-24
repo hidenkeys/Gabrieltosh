@@ -1,144 +1,10 @@
 {
-  "runId": "e2e-e",
-  "marker": "E2E e2e-e",
+  "runId": "e2e-f",
+  "marker": "E2E e2e-f",
   "origin": "https://mera-web-staging.up.railway.app",
-  "startedAt": "2026-11-24T10:58:40.796Z",
+  "startedAt": "2026-11-24T11:18:39.679Z",
   "steps": [
     {
-      "venue": "oak-ember",
-      "step": "Preflight: preserve this run's own leftovers",
-      "pass": true,
-      "notes": "This run's 0 existing tables are left intact and may be reused if free; no parties, bookings, orders or transfers were closed or changed."
-    },
-    {
-      "venue": "oak-ember",
-      "step": "Owner configuration: allow preparation before full payment",
-      "pass": true,
-      "notes": "Configuration already enabled; no settings write."
-    },
-    {
-      "venue": "oak-ember",
-      "step": "Owner configuration: create fictional table",
-      "pass": true,
-      "notes": "Permanent configuration: owner created E2E e2e-e, six seats in Main floor; existing parties retained."
-    },
-    {
-      "venue": "oak-ember",
-      "step": "Open named table visit",
-      "pass": true,
-      "notes": "UI action and authenticated server state verified."
-    },
-    {
-      "venue": "oak-ember",
-      "step": "First seated POS round kitchen and bar",
-      "pass": true,
-      "notes": "UI action and authenticated server state verified."
-    },
-    {
-      "venue": "oak-ember",
-      "step": "Minimum-spend progress",
-      "pass": true,
-      "notes": "No minimum-spend policy configured on this visit."
-    },
-    {
-      "venue": "oak-ember",
-      "step": "Kitchen and bar mark ready",
-      "pass": true,
-      "notes": "UI action and authenticated server state verified."
-    },
-    {
-      "venue": "oak-ember",
-      "step": "Split amount into two and collect cash plus external POS",
-      "pass": true,
-      "notes": "UI action and authenticated server state verified."
-    },
-    {
-      "venue": "oak-ember",
-      "step": "Mark collected and completed",
-      "pass": true,
-      "notes": "UI action and authenticated server state verified."
-    },
-    {
-      "venue": "oak-ember",
-      "step": "Close settled visit",
-      "pass": true,
-      "notes": "UI action and authenticated server state verified."
-    },
-    {
-      "venue": "oak-ember",
-      "step": "Authenticated Today report deltas",
-      "pass": true,
-      "notes": "UI action and authenticated server state verified."
-    },
-    {
-      "venue": "saffron-room",
-      "step": "Preflight: preserve this run's own leftovers",
-      "pass": true,
-      "notes": "This run's 0 existing tables are left intact and may be reused if free; no parties, bookings, orders or transfers were closed or changed."
-    },
-    {
-      "venue": "saffron-room",
-      "step": "Guest future reservation day and time chips",
-      "pass": true,
-      "notes": "A later run-specific slot was booked and verified through the staff API."
-    },
-    {
-      "venue": "saffron-room",
-      "step": "Manual deposit and front-desk confirmation",
-      "pass": true,
-      "notes": "UI action and authenticated server state verified."
-    },
-    {
-      "venue": "saffron-room",
-      "step": "Guest cancellation requires staff review and no refund",
-      "pass": true,
-      "notes": "UI action and authenticated server state verified."
-    },
-    {
-      "venue": "saffron-room",
-      "step": "Authenticated Today report deltas",
-      "pass": true,
-      "notes": "UI action and authenticated server state verified."
-    },
-    {
-      "venue": "velvet-lounge",
-      "step": "Preflight: preserve this run's own leftovers",
-      "pass": true,
-      "notes": "This run's 0 existing tables are left intact and may be reused if free; no parties, bookings, orders or transfers were closed or changed."
-    },
-    {
-      "venue": "velvet-lounge",
-      "step": "Owner configuration: allow preparation before full payment",
-      "pass": true,
-      "notes": "Configuration already enabled; no settings write."
-    },
-    {
-      "venue": "velvet-lounge",
-      "step": "Owner configuration: create fictional table",
-      "pass": true,
-      "notes": "Permanent configuration: owner created E2E e2e-e, six seats in Main floor; existing parties retained."
-    },
-    {
-      "venue": "velvet-lounge",
-      "step": "Open named table visit",
-      "pass": true,
-      "notes": "UI action and authenticated server state verified."
-    },
-    {
-      "venue": "velvet-lounge",
-      "step": "First seated POS round kitchen and bar",
-      "pass": false,
-      "notes": "Journey stopped at this step; no automatic retry.",
-      "error": "Component stock delta MAIN",
-      "actor": "owner"
-    },
-    {
-      "venue": "velvet-lounge",
-      "step": "Restore original settings",
-      "pass": true,
-      "notes": "Every non-version field matches the private snapshot."
-    },
-    {
       "venue": "pulse",
       "step": "Preflight: preserve this run's own leftovers",
       "pass": true,
@@ -166,7 +32,7 @@
       "venue": "pulse",
       "step": "Owner configuration: create fictional table",
       "pass": true,
-      "notes": "Permanent configuration: owner created E2E e2e-e, six seats in VIP; existing parties retained."
+      "notes": "Permanent configuration: owner created E2E e2e-f, six seats in VIP; existing parties retained."
     },
     {
       "venue": "pulse",
@@ -177,13 +43,103 @@
     {
       "venue": "pulse",
       "step": "Bottle package counter restriction and seated POS order",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "pulse",
+      "step": "Door guest list check-in two and entry collection",
       "pass": false,
       "notes": "Journey stopped at this step; no automatic retry.",
-      "error": "UI /quote returned HTTP 409: This package requires a current table visit or reservation.",
+      "error": "UI /orders returned HTTP 400: Please check the submitted fields.",
       "actor": "owner"
     },
     {
       "venue": "pulse",
+      "step": "Restore original settings",
+      "pass": true,
+      "notes": "Every non-version field matches the private snapshot."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Preflight: preserve this run's own leftovers",
+      "pass": true,
+      "notes": "This run's 0 existing tables are left intact and may be reused if free; no parties, bookings, orders or transfers were closed or changed."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Configuration already enabled; no settings write."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Owner configuration: create fictional table",
+      "pass": true,
+      "notes": "Permanent configuration: owner created E2E e2e-f, six seats in Main floor; existing parties retained."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Open named table visit",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "First seated POS round kitchen and bar",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Second seated POS round",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Minimum-spend progress",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Ordinary orders cover disclosed minimum spend",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Kitchen and bar mark ready",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Settle open tab",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Mark collected and completed",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Close settled visit",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Authenticated Today report deltas",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "velvet-lounge",
       "step": "Restore original settings",
       "pass": true,
       "notes": "Every non-version field matches the private snapshot."
@@ -210,7 +166,7 @@
       "venue": "daybreak-afterdark",
       "step": "Owner configuration: create fictional table",
       "pass": true,
-      "notes": "Permanent configuration: owner created E2E e2e-e, six seats in Main floor; existing parties retained."
+      "notes": "Permanent configuration: owner created E2E e2e-f, six seats in Main floor; existing parties retained."
     },
     {
       "venue": "daybreak-afterdark",
@@ -221,60 +177,89 @@
     {
       "venue": "daybreak-afterdark",
       "step": "Guest table QR joins open tab and orders",
-      "pass": false,
-      "notes": "Journey stopped at this step; no automatic retry.",
-      "error": "locator.waitFor: Timeout 20000ms exceeded.",
-      "actor": "guest"
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Second seated POS round",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Minimum-spend progress",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Ordinary orders cover disclosed minimum spend",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Kitchen and bar mark ready",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Settle open tab",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Mark collected and completed",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Close settled visit",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Authenticated Today report deltas",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
     }
   ],
   "venues": [
     {
-      "venue": "oak-ember",
-      "pass": true,
+      "venue": "pulse",
+      "pass": false,
       "orderIds": [
-        "f954227b-79b6-4145-9a52-b0b51084e345"
+        "9931f63a-a9ac-4773-8028-69a928e83e8c"
       ]
-    },
-    {
-      "venue": "saffron-room",
-      "pass": true,
-      "orderIds": []
     },
     {
       "venue": "velvet-lounge",
-      "pass": false,
+      "pass": true,
       "orderIds": [
-        "059d94a6-8c33-4a05-993e-ae2dc51ef6fa"
+        "830acdee-bc5f-44e4-9c96-1b88b037a50e",
+        "1f4e92ed-ed98-47e2-a842-f6f0e01e5c5a"
       ]
     },
     {
-      "venue": "pulse",
-      "pass": false,
-      "orderIds": []
-    },
-    {
       "venue": "daybreak-afterdark",
-      "pass": false,
+      "pass": true,
       "orderIds": [
-        "cd83a504-603b-4591-b28f-f804d7375ab0"
+        "e01a1d5a-7f1f-4d29-9112-5a7eb80202bc",
+        "6231107d-b32f-40e1-b166-f1ab80bcc37a",
+        "55257a5b-11eb-439d-a36d-13e7c4f25b7a",
+        "46ee8cf8-e39d-4daa-8aae-6bde5acad091"
       ]
     }
   ],
   "leftovers": [
     {
-      "venue": "oak-ember",
-      "marker": "E2E e2e-e",
-      "action": "left-untouched",
-      "orderIds": [],
-      "visitIds": [],
-      "reservationIds": [],
-      "tableIds": [],
-      "transferIds": [],
-      "guestListIds": []
-    },
-    {
-      "venue": "saffron-room",
-      "marker": "E2E e2e-e",
+      "venue": "pulse",
+      "marker": "E2E e2e-f",
       "action": "left-untouched",
       "orderIds": [],
       "visitIds": [],
@@ -285,18 +270,7 @@
     },
     {
       "venue": "velvet-lounge",
-      "marker": "E2E e2e-e",
-      "action": "left-untouched",
-      "orderIds": [],
-      "visitIds": [],
-      "reservationIds": [],
-      "tableIds": [],
-      "transferIds": [],
-      "guestListIds": []
-    },
-    {
-      "venue": "pulse",
-      "marker": "E2E e2e-e",
+      "marker": "E2E e2e-f",
       "action": "left-untouched",
       "orderIds": [],
       "visitIds": [],
@@ -307,7 +281,7 @@
     },
     {
       "venue": "daybreak-afterdark",
-      "marker": "E2E e2e-e",
+      "marker": "E2E e2e-f",
       "action": "left-untouched",
       "orderIds": [],
       "visitIds": [],
@@ -317,74 +291,222 @@
       "guestListIds": []
     }
   ],
+  "reservationAttempts": [
+    {
+      "venue": "pulse",
+      "attempt": 1,
+      "day": "2026-12-18",
+      "time": "07:00",
+      "state": "recorded",
+      "status": 201
+    }
+  ],
   "configurationChanges": [
     {
-      "venue": "oak-ember",
-      "branchId": "ab8c9ac2-4287-480e-a2e1-3f3b7458b5ce",
+      "venue": "pulse",
+      "branchId": "653df24d-0d87-46f9-abe5-9009a4f8199b",
       "kind": "configuration-change",
       "resource": "table",
-      "name": "E2E e2e-e",
+      "name": "E2E e2e-f",
       "capacity": 6,
-      "zone": "Main floor",
+      "zone": "VIP",
       "permanent": true,
       "state": "verified",
-      "tableId": "7246e962-857d-469e-b790-e8d40b4edf9f"
+      "tableId": "4e15e18f-75e5-4059-9c25-8696fe9b2eef"
     },
     {
       "venue": "velvet-lounge",
       "branchId": "e7e4f994-2031-4416-af2f-b4efd0a5d43e",
       "kind": "configuration-change",
       "resource": "table",
-      "name": "E2E e2e-e",
+      "name": "E2E e2e-f",
       "capacity": 6,
       "zone": "Main floor",
       "permanent": true,
       "state": "verified",
-      "tableId": "2100da3d-91d5-4e91-a48e-0f1192bd5592"
-    },
-    {
-      "venue": "pulse",
-      "branchId": "653df24d-0d87-46f9-abe5-9009a4f8199b",
-      "kind": "configuration-change",
-      "resource": "table",
-      "name": "E2E e2e-e",
-      "capacity": 6,
-      "zone": "VIP",
-      "permanent": true,
-      "state": "verified",
-      "tableId": "e89c8873-6539-497f-aad0-2a80c6cce39a"
+      "tableId": "cb49efc4-842d-45d7-8194-04a21a8b2482"
     },
     {
       "venue": "daybreak-afterdark",
       "branchId": "afd60717-fac4-41ae-ac34-1c2c3cebdc7e",
       "kind": "configuration-change",
       "resource": "table",
-      "name": "E2E e2e-e",
+      "name": "E2E e2e-f",
       "capacity": 6,
       "zone": "Main floor",
       "permanent": true,
       "state": "verified",
-      "tableId": "38a4f458-4a35-4a14-9ddc-db345448366f"
+      "tableId": "b2e3fa1c-b42b-4fc1-a667-122c81b0895c"
     }
   ],
-  "reservationAttempts": [
+  "stockChecks": [
     {
-      "venue": "saffron-room",
-      "attempt": 1,
-      "day": "2026-12-09",
-      "time": "15:30",
-      "state": "recorded",
-      "status": 201
+      "venue": "pulse",
+      "orderId": "9931f63a-a9ac-4773-8028-69a928e83e8c",
+      "productCode": "MAIN",
+      "before": 80,
+      "after": 79,
+      "expectedDeduction": 1,
+      "expiredHoldReturns": 0,
+      "restoredOrderIds": [],
+      "movements": [
+        {
+          "id": "7622a0f7-c0d3-4b44-8431-78b3526ceea7",
+          "type": "checkout_hold",
+          "quantity": -1
+        }
+      ],
+      "expectedAfter": 79
     },
     {
       "venue": "pulse",
-      "attempt": 1,
-      "day": "2026-12-07",
-      "time": "05:30",
-      "state": "recorded",
-      "status": 201
+      "orderId": "9931f63a-a9ac-4773-8028-69a928e83e8c",
+      "productCode": "DRINK",
+      "before": 80,
+      "after": 74,
+      "expectedDeduction": 6,
+      "expiredHoldReturns": 0,
+      "restoredOrderIds": [],
+      "movements": [
+        {
+          "id": "25e1648a-64a2-4b62-989f-c8308c98da6b",
+          "type": "checkout_hold",
+          "quantity": -6
+        }
+      ],
+      "expectedAfter": 74
+    },
+    {
+      "venue": "velvet-lounge",
+      "orderId": "830acdee-bc5f-44e4-9c96-1b88b037a50e",
+      "productCode": "MAIN",
+      "before": 79,
+      "after": 79,
+      "expectedDeduction": 1,
+      "expiredHoldReturns": 1,
+      "restoredOrderIds": [
+        "059d94a6-8c33-4a05-993e-ae2dc51ef6fa"
+      ],
+      "movements": [
+        {
+          "id": "d86d3888-1555-44fa-a52c-8a4243d781b4",
+          "type": "checkout_hold",
+          "quantity": -1
+        }
+      ],
+      "expectedAfter": 79
+    },
+    {
+      "venue": "velvet-lounge",
+      "orderId": "830acdee-bc5f-44e4-9c96-1b88b037a50e",
+      "productCode": "DRINK",
+      "before": 79,
+      "after": 79,
+      "expectedDeduction": 1,
+      "expiredHoldReturns": 1,
+      "restoredOrderIds": [
+        "059d94a6-8c33-4a05-993e-ae2dc51ef6fa"
+      ],
+      "movements": [
+        {
+          "id": "82e9cd74-d037-487a-96d3-36f41e97b64a",
+          "type": "checkout_hold",
+          "quantity": -1
+        }
+      ],
+      "expectedAfter": 79
+    },
+    {
+      "venue": "velvet-lounge",
+      "orderId": "1f4e92ed-ed98-47e2-a842-f6f0e01e5c5a",
+      "productCode": "MAIN",
+      "before": 79,
+      "after": 78,
+      "expectedDeduction": 1,
+      "expiredHoldReturns": 0,
+      "restoredOrderIds": [],
+      "movements": [
+        {
+          "id": "0f700bb2-a223-4920-baf2-dc9273d9fedb",
+          "type": "checkout_hold",
+          "quantity": -1
+        }
+      ],
+      "expectedAfter": 78
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "orderId": "e01a1d5a-7f1f-4d29-9112-5a7eb80202bc",
+      "productCode": "MAIN",
+      "before": 78,
+      "after": 77,
+      "expectedDeduction": 1,
+      "expiredHoldReturns": 0,
+      "restoredOrderIds": [],
+      "movements": [
+        {
+          "id": "050b4a10-6762-4398-a5e3-18c611ae3072",
+          "type": "checkout_hold",
+          "quantity": -1
+        }
+      ],
+      "expectedAfter": 77
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "orderId": "6231107d-b32f-40e1-b166-f1ab80bcc37a",
+      "productCode": "MAIN",
+      "before": 77,
+      "after": 76,
+      "expectedDeduction": 1,
+      "expiredHoldReturns": 0,
+      "restoredOrderIds": [],
+      "movements": [
+        {
+          "id": "98ca8523-8c93-4598-a947-b899a89550f9",
+          "type": "checkout_hold",
+          "quantity": -1
+        }
+      ],
+      "expectedAfter": 76
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "orderId": "55257a5b-11eb-439d-a36d-13e7c4f25b7a",
+      "productCode": "DRINK",
+      "before": 80,
+      "after": 79,
+      "expectedDeduction": 1,
+      "expiredHoldReturns": 0,
+      "restoredOrderIds": [],
+      "movements": [
+        {
+          "id": "8da9bee2-10f7-405b-aef5-bd239e7e8b8b",
+          "type": "checkout_hold",
+          "quantity": -1
+        }
+      ],
+      "expectedAfter": 79
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "orderId": "46ee8cf8-e39d-4daa-8aae-6bde5acad091",
+      "productCode": "MAIN",
+      "before": 76,
+      "after": 72,
+      "expectedDeduction": 4,
+      "expiredHoldReturns": 0,
+      "restoredOrderIds": [],
+      "movements": [
+        {
+          "id": "48216119-4613-4d49-8ae6-a6f36082d5ad",
+          "type": "checkout_hold",
+          "quantity": -4
+        }
+      ],
+      "expectedAfter": 72
     }
   ],
-  "finishedAt": "2026-11-24T11:02:29.743Z",
+  "finishedAt": "2026-11-24T11:22:32.800Z",
   "exitCode": 1
 }
