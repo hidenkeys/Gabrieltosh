@@ -1,3 +1,5 @@
+> Current venue follow-up: [`../venues/VERIFICATION.md`](../venues/VERIFICATION.md) records the 24 November 2026 local verification round. Older test counts and skipped-integration statements below describe historical checkpoints. No deployment is included in the current round.
+
 # Mera UX next — progress and acceptance board
 
 Updated 24 November 2026. Scope: the supplied UX correction prompt on `mera-ux-next`; local verification only. This board distinguishes implementation, automated checks and observed browser behavior. It does not claim a deployment or a completed browser launch.

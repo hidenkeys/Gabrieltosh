@@ -1,0 +1,66 @@
+{
+  "generatedAt": "2026-11-24T04:17:34.599Z",
+  "scope": "Local 3011 synthetic owners only; final All locations at three widths, independent daily export date, no export job repeated. Reduced motion.",
+  "results": [
+    {
+      "venue": "kerbside-grill",
+      "check": "Explicit daily export date survives overview week filter",
+      "pass": true
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "Final All locations fits 390 and keeps metric values on one line",
+      "pass": true
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "Final All locations fits 820 and keeps metric values on one line",
+      "pass": true
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "Final All locations fits 1440 and keeps metric values on one line",
+      "pass": true
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Explicit daily export date survives overview week filter",
+      "pass": true
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Final All locations fits 390 and keeps metric values on one line",
+      "pass": true
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Final All locations fits 820 and keeps metric values on one line",
+      "pass": true
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Final All locations fits 1440 and keeps metric values on one line",
+      "pass": true
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Explicit daily export date survives overview week filter",
+      "pass": true
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Final All locations fits 390 and keeps metric values on one line",
+      "pass": true
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Final All locations fits 820 and keeps metric values on one line",
+      "pass": true
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Final All locations fits 1440 and keeps metric values on one line",
+      "pass": true
+    }
+  ]
+}

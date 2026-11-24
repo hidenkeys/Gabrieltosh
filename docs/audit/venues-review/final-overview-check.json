@@ -1,0 +1,78 @@
+{
+  "generatedAt": "2026-11-24T04:16:18.623Z",
+  "scope": "Local 3011 synthetic owners only; final All locations at three widths, independent daily export date, one synthetic export job/download. Reduced motion.",
+  "results": [
+    {
+      "venue": "kerbside-grill",
+      "check": "Explicit daily export date survives overview week filter",
+      "pass": true
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "Final All locations fits 390",
+      "pass": true
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "Final All locations fits 820",
+      "pass": true
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "Final All locations fits 1440",
+      "pass": true
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "Daily organization export submits selected date and organization scope",
+      "pass": true,
+      "jobId": "41ed987f-ab13-4297-bd08-42e431816e35"
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "Worker completes daily organization export; UI download contains all three outlets and kobo columns",
+      "pass": true,
+      "jobId": "41ed987f-ab13-4297-bd08-42e431816e35"
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Explicit daily export date survives overview week filter",
+      "pass": true
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Final All locations fits 390",
+      "pass": true
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Final All locations fits 820",
+      "pass": true
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Final All locations fits 1440",
+      "pass": true
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Explicit daily export date survives overview week filter",
+      "pass": true
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Final All locations fits 390",
+      "pass": true
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Final All locations fits 820",
+      "pass": true
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Final All locations fits 1440",
+      "pass": true
+    }
+  ]
+}

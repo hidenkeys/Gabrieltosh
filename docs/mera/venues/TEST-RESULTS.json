@@ -1,0 +1,63 @@
+{
+  "date": "2026-11-24",
+  "branch": "mera-ux-next",
+  "runs": [
+    {
+      "name": "default regression",
+      "command": "npm test",
+      "counts": {
+        "tests": 1003,
+        "pass": 998,
+        "fail": 0,
+        "skipped": 5
+      },
+      "localLog": "/private/tmp/mera-venues-final-tests.log"
+    },
+    {
+      "name": "printing integration",
+      "command": "npm run test:postgres",
+      "counts": {
+        "tests": 9,
+        "pass": 9,
+        "fail": 0,
+        "skipped": 0
+      },
+      "localLog": "/private/tmp/mera-remaining-legacy-pg.log"
+    },
+    {
+      "name": "company integration",
+      "command": "RUN_MERA_COMPANY_PG_TESTS=true node --test tests/mera-company-leads.test.js",
+      "counts": {
+        "tests": 4,
+        "pass": 4,
+        "fail": 0,
+        "skipped": 0
+      },
+      "localLog": "/private/tmp/mera-remaining-company-pg.log"
+    },
+    {
+      "name": "broad Mera integration",
+      "command": "npm run test:mera:postgres",
+      "counts": {
+        "tests": 1,
+        "pass": 1,
+        "fail": 0,
+        "skipped": 0
+      },
+      "localLog": "/private/tmp/mera-remaining-mera-pg.log"
+    },
+    {
+      "name": "venue transactions",
+      "command": "node scripts/test-mera-venue-journeys.js",
+      "counts": {
+        "tests": 4,
+        "pass": 4,
+        "fail": 0,
+        "skipped": 0
+      },
+      "localLog": "/private/tmp/mera-venue-journeys-pg.log"
+    }
+  ],
+  "build": "npm run build passed (includes TypeScript); existing large bundle warning",
+  "notes": "Default suite skips environment-dependent cases. All five skipped cases were executed successfully by the separate PostgreSQL commands. Physical printing remains unverified."
+}

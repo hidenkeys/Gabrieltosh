@@ -1,3 +1,5 @@
+> Update, 24 November 2026: this handover describes an earlier checkpoint. Venue/multi-location work and subsequent local acceptance fixes are now on `mera-ux-next`. Read [`../venues/VERIFICATION.md`](../venues/VERIFICATION.md) for current evidence, remaining boundaries, and the no-deployment instruction. The current seeded venue preview uses port 3011 / PostgreSQL 55451.
+
 # Mera / Bing Chun — Claude handover
 
 Prepared 24 November 2026. Read this before changing anything. This is context, not authorization to deploy or publish.
