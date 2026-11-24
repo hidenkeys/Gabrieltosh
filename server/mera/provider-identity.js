@@ -1,3 +1,4 @@
+import { renderMeraEmail } from "./email-template.js";
 import { randomUUID, createHash, createHmac } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -296,11 +297,25 @@ export function mountProviderIdentity(
     let status = "unknown";
     try {
       const token = tokenFor(attempt.row.challenge_id, env);
+      const message = renderMeraEmail({
+        preheader: "Confirm your email to finish creating your Mera account.",
+        eyebrow: "Account verification",
+        title: "Confirm your email",
+        paragraphs: [
+          `Hi ${attempt.row.name || "there"},`,
+          "Thanks for signing up to Mera. Confirm this is your email address to activate your owner account and continue setting up your business.",
+        ],
+        action: {
+          label: "Verify email",
+          url: `${env.MERA_PUBLIC_ORIGIN.replace(/\/$/, "")}/mera/signup#verify=${token}`,
+        },
+        note: "This link expires one hour after your request. If you didn't try to create a Mera account, you can ignore this email.",
+      });
       const result = await sendEmail(
         {
           to: attempt.row.email,
-          subject: "Verify your Mera QR owner email",
-          text: `Confirm your email to activate your Mera QR owner account.\n\n${env.MERA_PUBLIC_ORIGIN.replace(/\/$/, "")}/mera/signup#verify=${token}\n\nOpen the link and choose Verify email. The link expires one hour after your request. If you did not request this account, ignore this email.`,
+          subject: "Confirm your email for Mera",
+          ...message,
           idempotencyKey: "mera-owner-verification:" + key,
         },
         { env },
