@@ -54,7 +54,6 @@ const props = {
 };
 async function edit() {
   await screen.findByTitle("Receipt sample preview");
-  fireEvent.click(screen.getByText("Edit receipt & sticker format"));
   fireEvent.change(screen.getByLabelText("Business heading"), {
     target: { value: "Local draft" },
   });
@@ -314,6 +313,70 @@ test("minimum label dimensions carry a calibration warning without claiming cont
     );
     await screen.findByText(/This small label may need more space/);
     assert.ok(screen.getByTitle("Sticker sample preview"));
+  } finally {
+    cleanup();
+    globalThis.fetch = original;
+  }
+});
+
+test("live preview follows draft fields, switches receipt and sticker, and discards unsent changes", async () => {
+  globalThis.fetch = async (input) =>
+    Response.json(String(input).endsWith("/templates") ? format : []);
+  try {
+    render(<PrintStudio {...props} />);
+    await screen.findByTitle("Receipt sample preview");
+    assert.match(
+      screen.getByTitle("Receipt sample preview").getAttribute("srcdoc") || "",
+      /Venue/,
+    );
+    fireEvent.change(screen.getByLabelText("Business heading"), {
+      target: { value: "Juniper House" },
+    });
+    fireEvent.change(screen.getByLabelText("Footer"), {
+      target: { value: "See you soon" },
+    });
+    const receipt =
+      screen.getByTitle("Receipt sample preview").getAttribute("srcdoc") || "";
+    assert.match(receipt, /Juniper House/);
+    assert.match(receipt, /See you soon/);
+    assert.ok(screen.getByText("Unsaved changes"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Sticker", exact: true }),
+    );
+    assert.equal(
+      screen
+        .getByRole("button", { name: "Sticker", exact: true })
+        .getAttribute("aria-pressed"),
+      "true",
+    );
+    assert.equal(screen.queryByTitle("Receipt sample preview"), null);
+    const sticker =
+      screen.getByTitle("Sticker sample preview").getAttribute("srcdoc") || "";
+    assert.match(sticker, /Juniper House/);
+    assert.match(sticker, /data-kind="label"/);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Receipt", exact: true }),
+    );
+    assert.equal(
+      screen
+        .getByRole("button", { name: "Receipt", exact: true })
+        .getAttribute("aria-pressed"),
+      "true",
+    );
+    assert.match(
+      screen.getByTitle("Receipt sample preview").getAttribute("srcdoc") || "",
+      /See you soon/,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
+    assert.equal(
+      (screen.getByLabelText("Business heading") as HTMLInputElement).value,
+      "Venue",
+    );
+    assert.ok(screen.getByText("Saved", { exact: true }));
+    assert.doesNotMatch(
+      screen.getByTitle("Receipt sample preview").getAttribute("srcdoc") || "",
+      /Juniper House/,
+    );
   } finally {
     cleanup();
     globalThis.fetch = original;

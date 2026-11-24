@@ -45,7 +45,7 @@ const base = "/organizations/org-a/branches/branch-a",
   };
 test.beforeEach(() => window.sessionStorage.clear());
 test.afterEach(() => window.sessionStorage.clear());
-test("O7 receipt and sticker samples precede format editor and keep exact template payload", async () => {
+test("O7 receipt and sticker samples accompany visible format settings and keep exact template payload", async () => {
   const original = globalThis.fetch;
   const writes: any[] = [];
   globalThis.fetch = async (input) => {
@@ -89,10 +89,8 @@ test("O7 receipt and sticker samples precede format editor and keep exact templa
       />,
     );
     await screen.findByTitle("Receipt sample preview");
-    assert.equal(
-      (container.querySelector(".mw-print-format") as HTMLDetailsElement).open,
-      false,
-    );
+    assert.ok(screen.getByRole("region", { name: "Template settings" }));
+    assert.ok(screen.getByLabelText("Business heading"));
     assert(
       screen.getByText(
         "Order access is required to view this branch’s print queue.",
@@ -103,7 +101,6 @@ test("O7 receipt and sticker samples precede format editor and keep exact templa
     );
     const sticker = screen.getByTitle("Sticker sample preview");
     assert(sticker.getAttribute("srcdoc")?.includes("size:50mm 40mm"));
-    fireEvent.click(screen.getByText("Edit receipt & sticker format"));
     fireEvent.change(screen.getByLabelText("Business heading"), {
       target: { value: "Updated venue" },
     });
@@ -193,7 +190,6 @@ test("O7 unknown format save freezes changed writes while reading a saved versio
       />,
     );
     await screen.findByTitle("Receipt sample preview");
-    fireEvent.click(screen.getByText("Edit receipt & sticker format"));
     fireEvent.change(screen.getByLabelText("Business heading"), {
       target: { value: "Original attempted heading" },
     });
@@ -437,7 +433,6 @@ test("O7 partially entered sticker dimensions show a recoverable preview error w
       />,
     );
     await screen.findByTitle("Receipt sample preview");
-    fireEvent.click(screen.getByText("Edit receipt & sticker format"));
     fireEvent.change(screen.getByLabelText("Sticker width (mm)"), {
       target: { value: "" },
     });
