@@ -119,3 +119,12 @@ A full-screen setup shell without the operational sidebar. Steps: Account → Yo
 ## 5. Non-negotiables
 
 Money in kobo, basis points unchanged, null ≠ 0. requestKey idempotency on every new write; unknown outcomes never become a fresh action. Tenant and branch boundaries are enforced on every new route (cross-org and cross-branch tests required). CSS imported only from `src/main.tsx`. Reuse `src/mera/ui/` controls. Never delete tests. Fictional data only.
+
+## Backend request details
+
+- Branch creation accepts the location fields alongside its existing fields. Settings PATCH keeps legacy bodies valid; writes containing location fields require `requestKey` and the current settings `version` (legacy settings start at version 1). Capability writes also update legacy service modes. Codes shorter than two characters are padded with `X` when generated.
+- Invitations accept `branch_roles` with branch IDs as keys. Branch grants are checked against both the selected role and the inviter's authority, and retained on acceptance.
+- Branch platform controls use `PATCH /platform/organizations/:org/branches/:branch/feature-flags` with `{requestKey,version,flags,reason}`; the flag names match organization controls.
+- Guest-list create requires `requestKey`; PATCH, DELETE and check-in require `requestKey` and `version`. DELETE retains a tombstone for exact retry recovery and removes the entry from reads and covers. Check-in increments `arrivedCount`, bounded by party size. Covers count checked-in guest-list guests.
+- Overview ranges are inclusive, limited to 367 days per request. Revenue follows the existing report's net recognized bill totals; orders count orders placed in the range. Refunds and payment mix use receipt dates; reservations use booking start dates. Open visits and on-shift counts show current state. Stock rooms remain visible in stock valuation but never sales.
+- Organization CSV jobs reuse `POST B/exports` with `{date,requestKey,scope:"organization",branchIds?:[]}`. The date uses each location's trading day. Branch visibility is checked when queued, processed and published. Downloads use the existing export artifact route. Values in this organization CSV are explicitly labeled kobo.

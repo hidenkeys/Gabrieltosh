@@ -34,3 +34,9 @@ CREATE INDEX IF NOT EXISTS mera_held_orders ON mera_records(organization_id,bran
 CREATE INDEX IF NOT EXISTS mera_bill_charges ON mera_records USING GIN ((data->'charges')) WHERE kind='bill';
 
 CREATE UNIQUE INDEX IF NOT EXISTS mera_paid_document_keys ON mera_records(organization_id,branch_id,(data->>'documentKey')) WHERE kind='print_job' AND data->>'automaticPaid'='true';
+
+ALTER TABLE mera_organizations ADD COLUMN IF NOT EXISTS operating JSONB NOT NULL DEFAULT '{}';
+ALTER TABLE mera_memberships ADD COLUMN IF NOT EXISTS branch_roles JSONB NOT NULL DEFAULT '{}';
+ALTER TABLE mera_invitations ADD COLUMN IF NOT EXISTS branch_roles JSONB NOT NULL DEFAULT '{}';
+
+CREATE UNIQUE INDEX IF NOT EXISTS mera_branch_location_code ON mera_branches(organization_id,(settings->>'code')) WHERE settings ? 'code';

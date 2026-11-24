@@ -2,6 +2,13 @@ import { z } from "zod";
 export const CONTRACT_VERSION = "1.1.0";
 export const MERA_API = "/api/mera/v1";
 export const permissions = [
+  "organization.overview",
+  "door.manage",
+  "room_charge.post",
+
+  "stock.transfer",
+  "stock.receive",
+
   "organization.manage",
   "members.manage",
   "menu.edit",
@@ -27,8 +34,11 @@ export const rolePermissions = {
   organization_admin: permissions.filter((p) => p !== "billing.manage"),
   branch_manager: permissions.filter(
     (p) =>
-      !["organization.manage", "members.manage", "billing.manage"].includes(p),
+      !["organization.manage", "members.manage", "billing.manage", "organization.overview"].includes(p),
   ),
+  area_manager: permissions.filter(p => !["organization.manage","members.manage","billing.manage"].includes(p)),
+  finance: ["reports.view","reports.export","organization.overview","orders.view"],
+  central_stock: ["stock.adjust","stock.transfer","stock.receive"],
   cashier: [
     "orders.view",
     "orders.create",
@@ -97,9 +107,9 @@ export const orderInputSchema = z.object({
 export const paymentInputSchema = z.object({
   requestKey: z.string().uuid(),
   amount: moneySchema.refine((n) => n > 0),
-  method: z.enum(["cash", "external_pos", "external_transfer"]),
+  method: z.enum(["cash", "external_pos", "external_transfer", "room_charge"]),
   reference: z.string().trim().max(120).default(""),
-});
+}).refine(v=>v.method!=="room_charge" || /^[A-Za-z0-9 -]{2,60}$/.test(v.reference), "Enter the room number and guest surname.");
 export const reservationInputSchema = z
   .object({
     requestKey: z.string().uuid(),

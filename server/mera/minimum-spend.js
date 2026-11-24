@@ -1,3 +1,4 @@
+import { assertCapability } from "./venue-access.js";
 import { z } from "zod";
 import { randomUUID, createHash, timingSafeEqual } from "node:crypto";
 const fail = (message, status = 409, code = "MINIMUM_SPEND_REVIEW_REQUIRED") =>
@@ -123,6 +124,7 @@ export function mountMeraMinimumSpend(
       const input = policyInput.parse(req.body);
       res.json(
         await locked(scope(req), async (c, b) => {
+          if(input.enabled)assertCapability(b,"minimum_spend");
           const policy = {
               ...input,
               version: randomUUID(),
