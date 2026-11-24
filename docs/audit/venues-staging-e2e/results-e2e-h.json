@@ -1,0 +1,404 @@
+{
+  "runId": "e2e-h",
+  "marker": "E2E e2e-h",
+  "origin": "https://mera-web-staging.up.railway.app",
+  "startedAt": "2026-11-24T11:31:46.177Z",
+  "steps": [
+    {
+      "venue": "kerbside-grill",
+      "step": "Preflight: preserve this run's own leftovers",
+      "pass": true,
+      "notes": "This run's 0 existing tables are left intact and may be reused if free; no parties, bookings, orders or transfers were closed or changed."
+    },
+    {
+      "venue": "kerbside-grill",
+      "step": "Guest QR order and component stock",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "kerbside-grill",
+      "step": "Manual collection and tender or room label",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "kerbside-grill",
+      "step": "Kitchen and bar preparation",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "kerbside-grill",
+      "step": "Collected and completed",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "kerbside-grill",
+      "step": "Cashier LKI access denied",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "kerbside-grill",
+      "step": "Authenticated Today report deltas",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Preflight: preserve this run's own leftovers",
+      "pass": true,
+      "notes": "This run's 0 existing tables are left intact and may be reused if free; no parties, bookings, orders or transfers were closed or changed."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Configuration already enabled; no settings write."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Guest QR order and component stock",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Manual collection and tender or room label",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Kitchen and bar preparation",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Collected and completed",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "CST to RST one-unit transfer and manager receipt",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Authenticated Today report deltas",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Preflight: preserve this run's own leftovers",
+      "pass": true,
+      "notes": "This run's 0 existing tables are left intact and may be reused if free; no parties, bookings, orders or transfers were closed or changed."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Configuration already enabled; no settings write."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Owner configuration: create fictional table",
+      "pass": true,
+      "notes": "Permanent configuration: owner created E2E e2e-h, six seats in Main floor; existing parties retained."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Open named table visit",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "First seated POS round kitchen and bar",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Minimum-spend progress",
+      "pass": true,
+      "notes": "No minimum-spend policy configured on this visit."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Kitchen and bar mark ready",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Split amount into two and collect cash plus external POS",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Mark collected and completed",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Close settled visit",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Authenticated Today report deltas",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "saffron-room",
+      "step": "Preflight: preserve this run's own leftovers",
+      "pass": true,
+      "notes": "This run's 0 existing tables are left intact and may be reused if free; no parties, bookings, orders or transfers were closed or changed."
+    },
+    {
+      "venue": "saffron-room",
+      "step": "Guest future reservation day and time chips",
+      "pass": true,
+      "notes": "A later run-specific slot was booked and verified through the staff API."
+    },
+    {
+      "venue": "saffron-room",
+      "step": "Manual deposit and front-desk confirmation",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "saffron-room",
+      "step": "Guest cancellation requires staff review and no refund",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "saffron-room",
+      "step": "Authenticated Today report deltas",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    }
+  ],
+  "venues": [
+    {
+      "venue": "kerbside-grill",
+      "pass": true,
+      "orderIds": [
+        "1345601c-d510-4722-92f5-843a0395abb3"
+      ]
+    },
+    {
+      "venue": "harbour-hotel",
+      "pass": true,
+      "orderIds": [
+        "dcfe1adc-f802-43bc-9a6b-fc0e6016cf92"
+      ]
+    },
+    {
+      "venue": "oak-ember",
+      "pass": true,
+      "orderIds": [
+        "f86ea12e-62cc-4c8c-a4fd-550e6ebcd68f"
+      ]
+    },
+    {
+      "venue": "saffron-room",
+      "pass": true,
+      "orderIds": []
+    }
+  ],
+  "leftovers": [
+    {
+      "venue": "kerbside-grill",
+      "marker": "E2E e2e-h",
+      "action": "left-untouched",
+      "orderIds": [],
+      "visitIds": [],
+      "reservationIds": [],
+      "tableIds": [],
+      "transferIds": [],
+      "guestListIds": []
+    },
+    {
+      "venue": "harbour-hotel",
+      "marker": "E2E e2e-h",
+      "action": "left-untouched",
+      "orderIds": [],
+      "visitIds": [],
+      "reservationIds": [],
+      "tableIds": [],
+      "transferIds": [],
+      "guestListIds": []
+    },
+    {
+      "venue": "oak-ember",
+      "marker": "E2E e2e-h",
+      "action": "left-untouched",
+      "orderIds": [],
+      "visitIds": [],
+      "reservationIds": [],
+      "tableIds": [],
+      "transferIds": [],
+      "guestListIds": []
+    },
+    {
+      "venue": "saffron-room",
+      "marker": "E2E e2e-h",
+      "action": "left-untouched",
+      "orderIds": [],
+      "visitIds": [],
+      "reservationIds": [],
+      "tableIds": [],
+      "transferIds": [],
+      "guestListIds": []
+    }
+  ],
+  "stockChecks": [
+    {
+      "venue": "kerbside-grill",
+      "orderId": "1345601c-d510-4722-92f5-843a0395abb3",
+      "productCode": "MAIN",
+      "before": 78,
+      "after": 77,
+      "expectedDeduction": 1,
+      "expiredHoldReturns": 0,
+      "restoredOrderIds": [],
+      "movements": [
+        {
+          "id": "445e29d6-d5bb-4bec-bdf5-c670b68273e5",
+          "type": "checkout_hold",
+          "quantity": -1
+        }
+      ],
+      "expectedAfter": 77
+    },
+    {
+      "venue": "kerbside-grill",
+      "orderId": "1345601c-d510-4722-92f5-843a0395abb3",
+      "productCode": "SIDE",
+      "before": 78,
+      "after": 77,
+      "expectedDeduction": 1,
+      "expiredHoldReturns": 0,
+      "restoredOrderIds": [],
+      "movements": [
+        {
+          "id": "2d7d4268-fb8f-4710-8714-eab1341b2ca2",
+          "type": "checkout_hold",
+          "quantity": -1
+        }
+      ],
+      "expectedAfter": 77
+    },
+    {
+      "venue": "kerbside-grill",
+      "orderId": "1345601c-d510-4722-92f5-843a0395abb3",
+      "productCode": "DRINK",
+      "before": 78,
+      "after": 77,
+      "expectedDeduction": 1,
+      "expiredHoldReturns": 0,
+      "restoredOrderIds": [],
+      "movements": [
+        {
+          "id": "5c38b984-100d-428d-b50a-e4250c1c41c5",
+          "type": "checkout_hold",
+          "quantity": -1
+        }
+      ],
+      "expectedAfter": 77
+    },
+    {
+      "venue": "harbour-hotel",
+      "orderId": "dcfe1adc-f802-43bc-9a6b-fc0e6016cf92",
+      "productCode": "MAIN",
+      "before": 88,
+      "after": 87,
+      "expectedDeduction": 1,
+      "expiredHoldReturns": 0,
+      "restoredOrderIds": [],
+      "movements": [
+        {
+          "id": "e47f1d39-1fb6-4018-a3ed-8aa66bf229f6",
+          "type": "checkout_hold",
+          "quantity": -1
+        }
+      ],
+      "expectedAfter": 87
+    },
+    {
+      "venue": "oak-ember",
+      "orderId": "f86ea12e-62cc-4c8c-a4fd-550e6ebcd68f",
+      "productCode": "MAIN",
+      "before": 77,
+      "after": 76,
+      "expectedDeduction": 1,
+      "expiredHoldReturns": 0,
+      "restoredOrderIds": [],
+      "movements": [
+        {
+          "id": "8e39a451-8326-46b0-b188-1dfd407b1182",
+          "type": "checkout_hold",
+          "quantity": -1
+        }
+      ],
+      "expectedAfter": 76
+    },
+    {
+      "venue": "oak-ember",
+      "orderId": "f86ea12e-62cc-4c8c-a4fd-550e6ebcd68f",
+      "productCode": "DRINK",
+      "before": 72,
+      "after": 71,
+      "expectedDeduction": 1,
+      "expiredHoldReturns": 0,
+      "restoredOrderIds": [],
+      "movements": [
+        {
+          "id": "cd7de360-ba41-4208-9d06-502b0f29c55a",
+          "type": "checkout_hold",
+          "quantity": -1
+        }
+      ],
+      "expectedAfter": 71
+    }
+  ],
+  "configurationChanges": [
+    {
+      "venue": "oak-ember",
+      "branchId": "ab8c9ac2-4287-480e-a2e1-3f3b7458b5ce",
+      "kind": "configuration-change",
+      "resource": "table",
+      "name": "E2E e2e-h",
+      "capacity": 6,
+      "zone": "Main floor",
+      "permanent": true,
+      "state": "verified",
+      "tableId": "be65e547-c287-4ff8-8c8d-1c9fc49ce713"
+    }
+  ],
+  "reservationAttempts": [
+    {
+      "venue": "saffron-room",
+      "attempt": 1,
+      "day": "2026-12-02",
+      "time": "12:00",
+      "state": "recorded",
+      "status": 201
+    }
+  ],
+  "finishedAt": "2026-11-24T11:35:19.208Z",
+  "exitCode": 0
+}

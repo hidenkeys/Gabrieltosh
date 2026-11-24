@@ -71,14 +71,20 @@ The runner's first step for Oak, Velvet, Pulse and Harbour uses the owner settin
 
 Walk-in party size now uses a stepper and persists `partySize`; guest cancellation uses preset reasons plus Other. Saffron records its required deposit before front-desk confirmation. Chip radios are clicked and their `aria-checked` state verified. The hotel surname field still accepts letters only: fictional “Fable” is used, with the run marker in the order name and payment note.
 
-Lead to fill after reviewing hosted results and screenshots:
+Hosted results, 24 November 2026. Every step was a real browser action on https://mera-web-staging.up.railway.app, followed by authenticated read-only server checks (order status, payments, component stock movements and Today report deltas). Final app build: `faef09a` (web and jobs). All data is fictional and labelled with its run ID; no real money, email or production data.
 
-| Venue | Run ID | UI / server assertions | Screenshot review | Result / follow-up |
+| Venue | Run ID (build) | Steps | Journey covered | Result |
 | --- | --- | --- | --- | --- |
-| Kerbside Grill (SUR) | — | — | — | — |
-| Daybreak / Afterdark | — | — | — | — |
-| Oak & Ember (GDN) | — | — | — | — |
-| Saffron Room | — | — | — | — |
-| Velvet Lounge | — | — | — | — |
-| Pulse | — | — | — | — |
-| Harbour Hotel (POL; CST → RST) | — | — | — | — |
+| Kerbside Grill (SUR) | e2e-h (faef09a) | 7/7 | Guest QR combo with choices → cash with quick amount and change → kitchen/bar ready → collected/completed → cashier denied at LKI → Today report delta | Pass |
+| Harbour Hotel F&B (POL, CST→RST) | e2e-h (faef09a) | 8/8 | Guest QR order → Charge to room (room + surname) → prep → completed → central store sends 1 unit, RST manager receives | Pass |
+| Oak & Ember (GDN) | e2e-h (faef09a) | 11/11 | Seat party (new “Seat party” button, party size) → kitchen + bar round → ready → split bill cash + card → complete → close visit → report delta | Pass |
+| Saffron Room | e2e-h (faef09a) | 5/5 | Guest books via day/time chips → manual deposit → front desk confirms → guest cancels with preset reason → staff review, no automatic refund | Pass |
+| Velvet Lounge | e2e-f (75bcfac) | 14/14 | Fictional table → open tab → two rounds → minimum-spend progress → ready → settle tab → close | Pass (hours temporarily opened, restored and verified) |
+| Daybreak / Afterdark | e2e-f (75bcfac) | 14/14 | Counter sale with cash → guest joins table tab by QR → second round → minimum spend → settle → close | Pass |
+| Pulse (VIP) | e2e-g (faef09a) | 15/15 | VIP booking with deposit → seat on fictional VIP table → bottle package blocked at counter, allowed for seated table → door guest list check-in 2 → entry charge → settle to minimum spend → close | Pass (hours temporarily opened, restored and verified) |
+
+Defects found by these journeys and fixed before the passing runs: quick-amount chips never showed a selection and duplicated ₦7,000 (`c9fc393`, `d9d33a6`); walk-in visits had no party size; guest cancellation lacked preset reasons; sit-down venue types defaulted to pay-before-prepare (`c9fc393`); no “Seat party” action on free tables (`d9d33a6`); stock transfer cards lacked source/time and offered Cancel to the receiver (`6433071`); staff POS did not send table context when quoting, so seated parties could not order table-only packages (`75bcfac`); “Collect entry” submitted an empty table id and was rejected (`faef09a`).
+
+Configuration left in staging by design (journaled): “Allow preparation before full payment” turned on for Oak, Velvet, Pulse and Harbour; fictional “E2E <runId>” tables in Oak, Velvet, Pulse and Daybreak; the fictional orders, bookings, guest-list entries and transfers of each run. Temporarily opened hours were restored and verified after every run.
+
+Not covered: closing a trading day after midnight in real time (covered by automated cutoff tests only), physical printing, a brand-new organization’s email sign-up and Go live, live payment providers. Results: `docs/audit/venues-staging-e2e/results-e2e-{f,g,h}.json` plus screenshots; earlier runs d/e are kept as JSON history.

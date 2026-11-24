@@ -1,0 +1,207 @@
+{
+  "runId": "e2e-g",
+  "marker": "E2E e2e-g",
+  "origin": "https://mera-web-staging.up.railway.app",
+  "startedAt": "2026-11-24T11:28:49.671Z",
+  "steps": [
+    {
+      "venue": "pulse",
+      "step": "Preflight: preserve this run's own leftovers",
+      "pass": true,
+      "notes": "This run's 0 existing tables are left intact and may be reused if free; no parties, bookings, orders or transfers were closed or changed."
+    },
+    {
+      "venue": "pulse",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Configuration already enabled; no settings write."
+    },
+    {
+      "venue": "pulse",
+      "step": "Guest future reservation day and time chips",
+      "pass": true,
+      "notes": "A later run-specific slot was booked and verified through the staff API."
+    },
+    {
+      "venue": "pulse",
+      "step": "Manual deposit and front-desk confirmation",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "pulse",
+      "step": "Owner configuration: create fictional table",
+      "pass": true,
+      "notes": "Permanent configuration: owner created E2E e2e-g, six seats in VIP; existing parties retained."
+    },
+    {
+      "venue": "pulse",
+      "step": "Front desk seats VIP booking",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "pulse",
+      "step": "Bottle package counter restriction and seated POS order",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "pulse",
+      "step": "Door guest list check-in two and entry collection",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "pulse",
+      "step": "Minimum-spend progress",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "pulse",
+      "step": "Settle VIP tab to minimum spend",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "pulse",
+      "step": "VIP kitchen and bar ready",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "pulse",
+      "step": "VIP orders completed",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "pulse",
+      "step": "VIP visit closed",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "pulse",
+      "step": "Authenticated Today report deltas",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "pulse",
+      "step": "Restore original settings",
+      "pass": true,
+      "notes": "Every non-version field matches the private snapshot."
+    }
+  ],
+  "venues": [
+    {
+      "venue": "pulse",
+      "pass": true,
+      "orderIds": [
+        "1d605408-ad95-499d-b8ce-54c0e6da56a8",
+        "f0bf9013-40c9-4af2-8381-47d8e6912959"
+      ]
+    }
+  ],
+  "leftovers": [
+    {
+      "venue": "pulse",
+      "marker": "E2E e2e-g",
+      "action": "left-untouched",
+      "orderIds": [],
+      "visitIds": [],
+      "reservationIds": [],
+      "tableIds": [],
+      "transferIds": [],
+      "guestListIds": []
+    }
+  ],
+  "reservationAttempts": [
+    {
+      "venue": "pulse",
+      "attempt": 1,
+      "day": "2026-12-17",
+      "time": "12:30",
+      "state": "recorded",
+      "status": 201
+    }
+  ],
+  "configurationChanges": [
+    {
+      "venue": "pulse",
+      "branchId": "653df24d-0d87-46f9-abe5-9009a4f8199b",
+      "kind": "configuration-change",
+      "resource": "table",
+      "name": "E2E e2e-g",
+      "capacity": 6,
+      "zone": "VIP",
+      "permanent": true,
+      "state": "verified",
+      "tableId": "54ba8828-b8c4-4110-9635-3f9c5aa6d6b5"
+    }
+  ],
+  "stockChecks": [
+    {
+      "venue": "pulse",
+      "orderId": "1d605408-ad95-499d-b8ce-54c0e6da56a8",
+      "productCode": "MAIN",
+      "before": 79,
+      "after": 79,
+      "expectedDeduction": 1,
+      "expiredHoldReturns": 1,
+      "restoredOrderIds": [
+        "9931f63a-a9ac-4773-8028-69a928e83e8c"
+      ],
+      "movements": [
+        {
+          "id": "8cdd36ad-0186-4fe4-b20b-ee6815685638",
+          "type": "checkout_hold",
+          "quantity": -1
+        }
+      ],
+      "expectedAfter": 79
+    },
+    {
+      "venue": "pulse",
+      "orderId": "1d605408-ad95-499d-b8ce-54c0e6da56a8",
+      "productCode": "DRINK",
+      "before": 74,
+      "after": 74,
+      "expectedDeduction": 6,
+      "expiredHoldReturns": 6,
+      "restoredOrderIds": [
+        "9931f63a-a9ac-4773-8028-69a928e83e8c"
+      ],
+      "movements": [
+        {
+          "id": "ef299343-9ff4-48c6-b877-b7e32c647719",
+          "type": "checkout_hold",
+          "quantity": -6
+        }
+      ],
+      "expectedAfter": 74
+    },
+    {
+      "venue": "pulse",
+      "orderId": "f0bf9013-40c9-4af2-8381-47d8e6912959",
+      "productCode": "ENTRY",
+      "before": 80,
+      "after": 78,
+      "expectedDeduction": 2,
+      "expiredHoldReturns": 0,
+      "restoredOrderIds": [],
+      "movements": [
+        {
+          "id": "3664d3b6-bebe-4449-9a8f-95ff8314f797",
+          "type": "checkout_hold",
+          "quantity": -2
+        }
+      ],
+      "expectedAfter": 78
+    }
+  ],
+  "finishedAt": "2026-11-24T11:31:12.144Z",
+  "exitCode": 0
+}
