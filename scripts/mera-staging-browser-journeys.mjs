@@ -721,12 +721,14 @@ async function payOrder(v, p, order, method = "cash") {
     const amount = Number(
       await p
         .getByLabel("Amount received (naira)", { exact: true })
-        .inputValue(),
+        .inputValue()
+        .then((v) => v.replace(/[^\d.]/g, "")),
     );
     const tender = Number(
       await p
         .getByLabel("Cash handed over (naira, optional)", { exact: true })
-        .inputValue(),
+        .inputValue()
+        .then((v) => v.replace(/[^\d.]/g, "")),
     );
     assert(
       tender > amount,
@@ -858,20 +860,117 @@ const partyCard = (p) =>
   p
     .locator(".mw-party-card")
     .filter({ has: p.getByRole("heading", { name: marker, exact: true }) });
+const tableIsFree = (w, table, partySize = 2) =>
+  table.status === "available" &&
+  table.capacity >= partySize &&
+  !w.visits.some(
+    (visit) =>
+      visit.status === "open" &&
+      (visit.tableIds || [visit.tableId]).includes(table.id),
+  );
+async function ensureJourneyTable(v) {
+  const before = await workspace(v);
+  const partySize = v.reservation?.partySize || 2;
+  v.table = before.tables.find((table) =>
+    tableIsFree(before, table, partySize),
+  );
+  if (v.table) return false;
+  assert(
+    ["velvet-lounge", "pulse"].includes(v.slug),
+    "Only Velvet and Pulse may create fallback fictional tables",
+  );
+  await step(
+    v,
+    "Owner configuration: create fictional table",
+    async () => {
+      const zone = v.slug === "pulse" ? "VIP" : "Main floor";
+      const change = {
+        venue: v.slug,
+        branchId: v.branch.id,
+        kind: "configuration-change",
+        resource: "table",
+        name: marker,
+        capacity: 6,
+        zone,
+        permanent: true,
+        state: "pending",
+      };
+      journal.configurationChanges ||= [];
+      journal.configurationChanges.push(change);
+      results.configurationChanges ||= [];
+      results.configurationChanges.push(change);
+      await persist();
+      await evidence();
+      const p = v.owner;
+      await go(p, "Tables & visits");
+      await p
+        .getByRole("button", { name: "Floor layout", exact: true })
+        .click();
+      const form = p.getByRole("form", {
+        name: "Create branch table",
+        exact: true,
+      });
+      await form.getByLabel("Table label", { exact: true }).fill(marker);
+      await form
+        .getByRole("spinbutton", { name: "Seats", exact: true })
+        .fill("6");
+      await form.getByLabel("Zone", { exact: true }).fill(zone);
+      const receipt = await mutate(p, "/tables", () =>
+        form.getByRole("button", { name: "Create table", exact: true }).click(),
+      );
+      const after = await workspace(v);
+      const added = after.tables.filter(
+        (table) => !before.tables.some((old) => old.id === table.id),
+      );
+      assert.equal(
+        added.length,
+        1,
+        "Owner UI must create exactly one fictional table",
+      );
+      v.table = added[0];
+      assert.equal(
+        v.table.id,
+        receipt.id,
+        "Created table must match the UI receipt",
+      );
+      assert.equal(
+        v.table.name,
+        marker,
+        "Fictional table must include the run marker",
+      );
+      assert.equal(v.table.capacity, 6, "Fictional table must seat six");
+      assert.equal(
+        v.table.zone,
+        zone,
+        "Fictional table must use the intended section",
+      );
+      assert(
+        tableIsFree(after, v.table, partySize),
+        "Created table must be free before seating",
+      );
+      assert.deepEqual(
+        after.visits,
+        before.visits,
+        "Creating a table must leave existing parties unchanged",
+      );
+      change.tableId = v.table.id;
+      change.state = "verified";
+      return `Permanent configuration: owner created ${marker}, six seats in ${zone}; existing parties retained.`;
+    },
+    v.owner,
+  );
+  return true;
+}
 async function openVisit(v, p) {
   const w = await workspace(v),
     table = w.tables.find(
-      (t) =>
-        t.name === "Table 1" &&
-        t.status === "available" &&
-        !w.visits.some(
-          (x) =>
-            x.status === "open" && (x.tableIds || [x.tableId]).includes(t.id),
-        ),
+      (table) =>
+        (v.table ? table.id === v.table.id : table.name === "Table 1") &&
+        tableIsFree(w, table),
     );
   assert(
     table,
-    "Table 1 must be available with no open party; existing parties will not be changed",
+    "The chosen table must be free; existing parties will not be changed",
   );
   v.table = table;
   await go(p, "Tables & visits");
@@ -880,7 +979,7 @@ async function openVisit(v, p) {
     .click();
   const card = p
     .locator(".mw-table-card")
-    .filter({ has: p.getByRole("heading", { name: "Table 1", exact: true }) });
+    .filter({ has: p.getByRole("heading", { name: table.name, exact: true }) });
   await card.getByRole("button", { name: "Seat party", exact: true }).click();
   const form = p.getByRole("form", { name: "Open table visit", exact: true });
   const name = form.getByLabel("Guest display name", { exact: true });
@@ -890,7 +989,7 @@ async function openVisit(v, p) {
       .getByRole("combobox", { name: "Table", exact: true })
       .inputValue(),
     table.name,
-    "Seat party must preselect Table 1",
+    "Seat party must preselect the chosen free table",
   );
   assert(
     await name.evaluate(
@@ -1307,28 +1406,21 @@ async function transfer(v) {
     item.stock - 1,
   );
   const receiver = await transferWorkspace(v, "branch_manager", to);
-  // The rendered article does not show the note/ID: identify exactly one article
-  // by the new transfer's item and route, refusing ambiguous existing transfers.
+  // The note is the run's unique visible identity, even when the receiver
+  // cannot see the sending location in its own branch switcher.
   const card = receiver
     .locator(".mw-stock-transfers article")
-    .filter({
-      has: receiver.getByRole("heading", {
-        name: `${from.name} → ${to.name}`,
-        exact: true,
-      }),
-    })
-    .filter({ hasText: `${item.name} · 1 sent` })
-    .filter({
-      has: receiver.getByRole("button", {
-        name: "Receive transfer",
-        exact: true,
-      }),
-    });
+    .filter({ hasText: marker });
   await card.first().waitFor();
   assert.equal(
     await card.count(),
     1,
-    "Ambiguous sent transfer UI; reconcile manually rather than receive another record",
+    "The run note must identify exactly one transfer card",
+  );
+  assert.equal(
+    await card.getAttribute("data-transfer-id"),
+    id,
+    "The run-marked card must match the sent transfer ID",
   );
   await mutate(receiver, `/stock-transfers/${id}/receive`, () =>
     card.getByRole("button", { name: "Receive transfer", exact: true }).click(),
@@ -1528,15 +1620,26 @@ async function journey(v) {
         true,
       );
     } else {
+      const createdTable = await ensureJourneyTable(v);
+      if (createdTable) {
+        await front.reload();
+        await front
+          .getByRole("combobox", { name: "Location", exact: true })
+          .waitFor();
+        await go(front, "Reservations");
+        await front
+          .getByLabel("Search reservation names", { exact: true })
+          .fill(marker);
+      }
       await step(
         v,
         "Front desk seats VIP booking",
         async () => {
           const w = await workspace(v);
-          v.table = w.tables.find((t) => t.status === "available");
+          const chosen = w.tables.find((table) => table.id === v.table?.id);
           assert(
-            v.table,
-            "An available VIP table must exist before seating the booking",
+            chosen && tableIsFree(w, chosen, v.reservation.partySize),
+            "The selected VIP table must remain free before seating",
           );
           const card = reservationCard(front),
             details = card.locator("details").filter({
@@ -1544,7 +1647,7 @@ async function journey(v) {
                 .locator("summary")
                 .filter({ hasText: "Deposit & seating" }),
             });
-          if (!(await details.getAttribute("open")))
+          if ((await details.getAttribute("open")) === null)
             await details.locator("summary").click();
           await choose(card, "Seat at table", v.table.name);
           await mutate(front, `/reservations/${v.reservation.id}/seat`, () =>
@@ -1705,6 +1808,7 @@ async function journey(v) {
       );
     }
     const waiter = v.slug === "oak-ember" ? p : v.owner;
+    if (v.slug === "velvet-lounge") await ensureJourneyTable(v);
     await step(v, "Open named table visit", () => openVisit(v, waiter), waiter);
     if (v.slug === "daybreak-afterdark") {
       await step(

@@ -12,8 +12,8 @@ function fixture() {
     handlers = new Map();
   let rows = [];
   const branches = [
-    { id: from, org },
-    { id: to, org },
+    { id: from, org, name: "Central store", timezone: "Africa/Lagos" },
+    { id: to, org, name: "Restaurant", timezone: "Africa/Lagos" },
     { id: foreign, org: otherOrg },
   ];
   const user = { id: "owner", name: "Owner" },
@@ -41,6 +41,8 @@ function fixture() {
     });
   const db = {
     async query(sql, p = []) {
+      if (sql.includes("FROM users"))
+        return { rows: [{ id: "owner", name: "Original sender" }] };
       if (sql.includes("FROM mera_organizations"))
         return { rows: p[0] === org ? [{ id: org }] : [] };
       if (sql.includes("FROM mera_branches"))
@@ -381,4 +383,21 @@ test("request keys cannot be reused between transfers or actions", async () => {
   );
   assert.equal(f.stock(f.from), 5);
   assert.equal(f.stock(f.to), 1);
+});
+
+test("authorized receiver history projects both branch names and resolves legacy sender names", async () => {
+  const f = fixture();
+  const sent = await f.call("send", f.send());
+  const record = f.rows.find((row) => row.kind === "stock_transfer");
+  delete record.data.sentByName;
+  f.grants.delete(f.from);
+  f.grants.set(f.to, ["stock.receive"]);
+  const result = (await f.call("list")).transfers;
+  assert.equal(result.length, 1);
+  assert.equal(result[0].id, sent.transfer.id);
+  assert.equal(result[0].fromBranchName, "Central store");
+  assert.equal(result[0].toBranchName, "Restaurant");
+  assert.equal(result[0].sentByName, "Original sender");
+  assert.equal(result[0].timeZone, "Africa/Lagos");
+  assert.equal(result[0].sentAt, sent.transfer.sentAt);
 });

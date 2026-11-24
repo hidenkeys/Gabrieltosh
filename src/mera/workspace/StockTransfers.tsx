@@ -3,6 +3,27 @@ import Combobox from "../ui/Combobox";
 import Stepper from "../ui/Stepper";
 import { workspaceApi } from "./api";
 import { uuid } from "../../api";
+const transferStatus = (status: string) =>
+  (
+    ({ sent: "Sent", received: "Received", cancelled: "Cancelled" }) as Record<
+      string,
+      string
+    >
+  )[status] || "Status unavailable";
+function transferTime(value: string | null, timeZone?: string) {
+  if (!value || !Number.isFinite(Date.parse(value))) return "Time unavailable";
+  try {
+    return (
+      new Date(value).toLocaleString("en-GB", {
+        timeZone: timeZone || "UTC",
+        dateStyle: "medium",
+        timeStyle: "short",
+      }) + ` (${timeZone || "UTC"})`
+    );
+  } catch {
+    return new Date(value).toISOString() + " (UTC)";
+  }
+}
 export function TransferReceipt({
   transfer,
   disabled,
@@ -40,6 +61,8 @@ export function TransferReceipt({
           : " · All sent units accounted for."}
       </p>
       <button
+        type="button"
+        className="primary"
         disabled={disabled}
         onClick={() =>
           onReceive(
@@ -88,10 +111,13 @@ export default function StockTransfers({
     `/organizations/${encodeURIComponent(organizationId)}/`,
   );
   const lock = useRef(false);
-  const can = (id: string, permission: string) =>
-    (
-      branches.find((b) => b.id === id)?.permissions ?? membershipPermissions
-    ).includes(permission);
+  const can = (id: string, permission: string) => {
+    const branch = branches.find((b) => b.id === id);
+    return (
+      !!branch &&
+      (branch.permissions ?? membershipPermissions).includes(permission)
+    );
+  };
   useEffect(() => {
     const c = new AbortController();
     setLoading(true);
@@ -205,6 +231,8 @@ export default function StockTransfers({
       )}
       {savedRequest && !busy && (
         <button
+          type="button"
+          className="secondary"
           disabled={savedRequest.blocked}
           onClick={() => void write(savedRequest.path, savedRequest.body)}
         >
@@ -294,6 +322,7 @@ export default function StockTransfers({
               {lines.length > 1 && (
                 <button
                   type="button"
+                  className="secondary"
                   onClick={() =>
                     setLines(lines.filter((_, index) => index !== i))
                   }
@@ -305,6 +334,7 @@ export default function StockTransfers({
           ))}
           <button
             type="button"
+            className="secondary"
             onClick={() => setLines([...lines, { item: "", quantity: 1 }])}
           >
             Add item
@@ -319,7 +349,12 @@ export default function StockTransfers({
           </label>
           <button
             className="primary"
-            disabled={!to || !can(from, "stock.transfer")}
+            disabled={
+              !to ||
+              from === to ||
+              !can(from, "stock.transfer") ||
+              lines.some((line) => !items.some((item) => item.id === line.item))
+            }
           >
             Send transfer
           </button>
@@ -328,16 +363,43 @@ export default function StockTransfers({
       <h3>Transfer history</h3>
       {loading && <p role="status">Loading transfers…</p>}
       {!loading && !rows.length && <p>No transfers yet.</p>}
-      <button onClick={() => setRevision((r) => r + 1)} disabled={busy}>
+      <button
+        type="button"
+        className="secondary"
+        onClick={() => setRevision((r) => r + 1)}
+        disabled={busy}
+      >
         Refresh transfers
       </button>
       {rows.map((t) => (
-        <article key={t.id}>
+        <article key={t.id} data-transfer-id={t.id}>
           <h4>
-            {branches.find((b) => b.id === t.fromBranchId)?.name} →{" "}
-            {branches.find((b) => b.id === t.toBranchId)?.name}
+            From{" "}
+            {t.fromBranchName ||
+              branches.find((b) => b.id === t.fromBranchId)?.name ||
+              "Location unavailable"}{" "}
+            → To{" "}
+            {t.toBranchName ||
+              branches.find((b) => b.id === t.toBranchId)?.name ||
+              "Location unavailable"}
           </h4>
-          <span className="mw-status-chip">{t.status}</span>
+          <span className="mw-status-chip">{transferStatus(t.status)}</span>
+          <p>
+            Sent{" "}
+            <time dateTime={t.sentAt || undefined}>
+              {transferTime(t.sentAt, t.timeZone)}
+            </time>{" "}
+            · Sent by {t.sentByName || "Sender unavailable"}
+          </p>
+          {(t.receivedAt || t.status === "received") && (
+            <p>
+              Received{" "}
+              <time dateTime={t.receivedAt || undefined}>
+                {transferTime(t.receivedAt, t.timeZone)}
+              </time>
+            </p>
+          )}
+          {t.note && <p className="mw-note">Note: {t.note}</p>}
           <ul>
             {t.lines.map((l: any, i: number) => (
               <li key={i}>
@@ -350,36 +412,40 @@ export default function StockTransfers({
           </ul>
           {t.status === "sent" && (
             <>
-              {can(t.toBranchId, "stock.receive") && (
-                <TransferReceipt
-                  key={t.id + t.version}
-                  transfer={t}
-                  disabled={frozen}
-                  onReceive={(received) =>
-                    void write(`${base}/${t.id}/receive`, {
-                      version: t.version,
-                      lines: received,
-                    })
-                  }
-                />
-              )}
-              {can(t.fromBranchId, "stock.transfer") && (
-                <button
-                  disabled={frozen}
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        "Cancel this transfer and restore stock to the sending location?",
-                      )
-                    )
-                      void write(`${base}/${t.id}/cancel`, {
+              {branchId === t.toBranchId &&
+                can(t.toBranchId, "stock.receive") && (
+                  <TransferReceipt
+                    key={t.id + t.version}
+                    transfer={t}
+                    disabled={frozen}
+                    onReceive={(received) =>
+                      void write(`${base}/${t.id}/receive`, {
                         version: t.version,
-                      });
-                  }}
-                >
-                  Cancel transfer
-                </button>
-              )}
+                        lines: received,
+                      })
+                    }
+                  />
+                )}
+              {branchId === t.fromBranchId &&
+                can(t.fromBranchId, "stock.transfer") && (
+                  <button
+                    type="button"
+                    className="secondary danger"
+                    disabled={frozen}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          "Cancel this transfer and restore stock to the sending location?",
+                        )
+                      )
+                        void write(`${base}/${t.id}/cancel`, {
+                          version: t.version,
+                        });
+                    }}
+                  >
+                    Cancel transfer
+                  </button>
+                )}
             </>
           )}
         </article>

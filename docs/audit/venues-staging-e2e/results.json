@@ -1,8 +1,8 @@
 {
-  "runId": "e2e-b",
-  "marker": "E2E e2e-b",
+  "runId": "e2e-c",
+  "marker": "E2E e2e-c",
   "origin": "https://mera-web-staging.up.railway.app",
-  "startedAt": "2026-11-24T10:06:24.146Z",
+  "startedAt": "2026-11-24T10:27:00.580Z",
   "steps": [
     {
       "venue": "kerbside-grill",
@@ -15,26 +15,144 @@
       "step": "Manual collection and tender or room label",
       "pass": false,
       "notes": "Journey stopped at this step; no automatic retry.",
-      "error": "The expression evaluated to a falsy value:"
+      "error": "The selected cash tender chip must exceed the amount received",
+      "actor": "cashier"
     },
     {
-      "venue": "daybreak-afterdark",
-      "step": "Cashier counter POS order",
+      "venue": "oak-ember",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Configuration already enabled; no settings write."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Open named table visit",
       "pass": true,
       "notes": "UI action and authenticated server state verified."
     },
     {
-      "venue": "daybreak-afterdark",
-      "step": "Cashier counter cash tender",
+      "venue": "oak-ember",
+      "step": "First seated POS round kitchen and bar",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Minimum-spend progress",
+      "pass": true,
+      "notes": "No minimum-spend policy configured on this visit."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Kitchen and bar mark ready",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Split amount into two and collect cash plus external POS",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Mark collected and completed",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Close settled visit",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Authenticated Today report deltas",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "saffron-room",
+      "step": "Guest future reservation day and time chips",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "saffron-room",
+      "step": "Manual deposit and front-desk confirmation",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "saffron-room",
+      "step": "Guest cancellation requires staff review and no refund",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "saffron-room",
+      "step": "Authenticated Today report deltas",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Configuration already enabled; no settings write."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Open named table visit",
       "pass": false,
       "notes": "Journey stopped at this step; no automatic retry.",
-      "error": "The expression evaluated to a falsy value:"
+      "error": "Table 1 must be available with no open party; existing parties will not be changed",
+      "actor": "owner"
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Restore original settings",
+      "pass": true,
+      "notes": "Every non-version field matches the private snapshot."
+    },
+    {
+      "venue": "pulse",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Configuration already enabled; no settings write."
+    },
+    {
+      "venue": "pulse",
+      "step": "Guest future reservation day and time chips",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "pulse",
+      "step": "Manual deposit and front-desk confirmation",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "pulse",
+      "step": "Front desk seats VIP booking",
+      "pass": false,
+      "notes": "Journey stopped at this step; no automatic retry.",
+      "error": "An available VIP table must exist before seating the booking",
+      "actor": "front_desk"
+    },
+    {
+      "venue": "pulse",
+      "step": "Restore original settings",
+      "pass": true,
+      "notes": "Every non-version field matches the private snapshot."
     },
     {
       "venue": "harbour-hotel",
       "step": "Owner configuration: allow preparation before full payment",
       "pass": true,
-      "notes": "Permanent owner configuration change: payLater enabled through branch settings UI; it is not restored."
+      "notes": "Configuration already enabled; no settings write."
     },
     {
       "venue": "harbour-hotel",
@@ -65,20 +183,22 @@
       "step": "CST to RST one-unit transfer and manager receipt",
       "pass": false,
       "notes": "Journey stopped at this step; no automatic retry.",
-      "error": "locator.click: Timeout 20000ms exceeded."
+      "error": "locator.waitFor: Timeout 20000ms exceeded.",
+      "actor": "branch_manager"
     },
     {
-      "venue": "oak-ember",
-      "step": "Owner configuration: allow preparation before full payment",
+      "venue": "daybreak-afterdark",
+      "step": "Cashier counter POS order",
       "pass": true,
-      "notes": "Permanent owner configuration change: payLater enabled through branch settings UI; it is not restored."
+      "notes": "UI action and authenticated server state verified."
     },
     {
-      "venue": "oak-ember",
-      "step": "Open named table visit",
+      "venue": "daybreak-afterdark",
+      "step": "Cashier counter cash tender",
       "pass": false,
       "notes": "Journey stopped at this step; no automatic retry.",
-      "error": "locator.click: Timeout 20000ms exceeded."
+      "error": "The selected cash tender chip must exceed the amount received",
+      "actor": "cashier"
     }
   ],
   "venues": [
@@ -86,53 +206,46 @@
       "venue": "kerbside-grill",
       "pass": false,
       "orderIds": [
-        "672ee021-94c0-4687-bfae-b08e2ae2f679"
+        "332499da-46d8-4890-ac4a-158e32967879"
+      ]
+    },
+    {
+      "venue": "oak-ember",
+      "pass": true,
+      "orderIds": [
+        "4bb0219b-6142-48a4-b0ed-c62dab18aa93"
+      ]
+    },
+    {
+      "venue": "saffron-room",
+      "pass": true,
+      "orderIds": []
+    },
+    {
+      "venue": "velvet-lounge",
+      "pass": false,
+      "orderIds": []
+    },
+    {
+      "venue": "pulse",
+      "pass": false,
+      "orderIds": []
+    },
+    {
+      "venue": "harbour-hotel",
+      "pass": false,
+      "orderIds": [
+        "dcae2aa3-ea5b-49f2-8487-2f805981b7c2"
       ]
     },
     {
       "venue": "daybreak-afterdark",
       "pass": false,
       "orderIds": [
-        "9d117152-e8a1-41bd-b412-ca6a7a1cb7b4"
+        "a17ded2e-edbe-45c6-bd11-a69c57e76b20"
       ]
-    },
-    {
-      "venue": "harbour-hotel",
-      "pass": false,
-      "orderIds": [
-        "cd80ead7-bd21-4a1b-b9dd-61f9270909f3"
-      ]
-    },
-    {
-      "venue": "oak-ember",
-      "pass": false,
-      "orderIds": []
     }
   ],
-  "configurationChanges": [
-    {
-      "venue": "harbour-hotel",
-      "branchId": "a2088eb4-12ab-49fd-a2aa-35a36ec96eb1",
-      "kind": "configuration-change",
-      "field": "payLater",
-      "before": false,
-      "after": true,
-      "permanent": true,
-      "state": "verified",
-      "version": 2
-    },
-    {
-      "venue": "oak-ember",
-      "branchId": "ab8c9ac2-4287-480e-a2e1-3f3b7458b5ce",
-      "kind": "configuration-change",
-      "field": "payLater",
-      "before": false,
-      "after": true,
-      "permanent": true,
-      "state": "verified",
-      "version": 5
-    }
-  ],
-  "finishedAt": "2026-11-24T10:09:23.799Z",
+  "finishedAt": "2026-11-24T10:31:08.702Z",
   "exitCode": 1
 }
