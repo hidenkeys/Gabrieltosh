@@ -70,8 +70,16 @@ const context = {
       permissions: ["orders.view", "payments.record"],
       branchIds: ["branch-1", "branch-2"],
       branches: [
-        { id: "branch-1", name: "Surulere" },
-        { id: "branch-2", name: "Ikeja" },
+        {
+          id: "branch-1",
+          name: "Surulere",
+          settings: { capabilities: ["table_service", "reservations"] },
+        },
+        {
+          id: "branch-2",
+          name: "Ikeja",
+          settings: { capabilities: ["table_service", "reservations"] },
+        },
       ],
     },
   ],
@@ -5208,7 +5216,13 @@ for (const role of ["stock_controller", "branch_manager"])
             {
               ...context.organizations[0],
               id: organizationId,
-              branches: [{ id: branchId, name: "Surulere" }],
+              branches: [
+                {
+                  id: branchId,
+                  name: "Surulere",
+                  settings: { capabilities: ["table_service", "reservations"] },
+                },
+              ],
               branchIds: [branchId],
               role,
               organizationWide: false,

@@ -11,6 +11,7 @@ type Props = {
   organizationId: string;
   userId?: string;
   branchId: string;
+  branches?: { id: string; name: string }[];
   permissions: string[];
   disabled: boolean;
   onAccessChanged?: () => void;
@@ -33,6 +34,9 @@ const templateLabels: Record<string, string> = {
   front_desk: "Front desk",
   stock_controller: "Stock controller",
   reports_only: "Reports only",
+  area_manager: "Area manager",
+  finance: "Finance",
+  central_stock: "Central stock",
 };
 const roleDescriptions: Record<string, string> = {
   owner: "Owns the business and approves organization access.",
@@ -45,6 +49,10 @@ const roleDescriptions: Record<string, string> = {
   front_desk: "Welcomes guests and manages arrivals.",
   stock_controller: "Maintains menu availability and stock.",
   reports_only: "Reviews operational reports.",
+  area_manager:
+    "Runs service and compares performance across assigned locations.",
+  finance: "Reviews payments and exports reports across locations.",
+  central_stock: "Sends and receives stock between locations.",
 };
 const permissionGroup = (permission: string) => {
   const area = permission.split(".")[0];
@@ -94,6 +102,7 @@ function ScopedRoleManager({
   organizationId,
   userId = "current-session",
   branchId,
+  branches = [{ id: branchId, name: "This branch" }],
   permissions,
   disabled,
   onAccessChanged,
@@ -112,6 +121,11 @@ function ScopedRoleManager({
   });
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("cashier");
+  const [locationIds, setLocationIds] = useState([branchId]);
+  const [sameRole, setSameRole] = useState(true);
+  const [locationRoles, setLocationRoles] = useState<Record<string, string>>(
+    {},
+  );
   const [invitation, setInvitation] = useState<any>(null);
   const [invitations, setInvitations] = useState<any[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true),
@@ -411,7 +425,16 @@ function ScopedRoleManager({
                   disabled ||
                   rolesLoading ||
                   rolesError ||
-                  !eligible.some((row) => row.id === role)
+                  !locationIds.length ||
+                  !eligible.some((row) => row.id === role) ||
+                  locationIds.some(
+                    (id) =>
+                      !eligible.some(
+                        (row) =>
+                          row.id ===
+                          (sameRole ? role : locationRoles[id] || role),
+                      ),
+                  )
                 )
                   return;
                 if (!journalBegin("invitation_create")) return;
@@ -423,7 +446,21 @@ function ScopedRoleManager({
                   const result = await access.execute(
                     base + "/invitations",
                     "POST",
-                    { email, role, branchIds: [branchId] },
+                    {
+                      email,
+                      role,
+                      branchIds: locationIds,
+                      ...(!sameRole
+                        ? {
+                            branch_roles: Object.fromEntries(
+                              locationIds.map((id) => [
+                                id,
+                                { role: locationRoles[id] || role },
+                              ]),
+                            ),
+                          }
+                        : {}),
+                    },
                     "Invitation created; check its delivery status.",
                   );
                   if (!active.current || !allowedNow()) return;
@@ -474,6 +511,54 @@ function ScopedRoleManager({
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   </label>
+                  <fieldset className="mw-wide">
+                    <legend>Which locations?</legend>
+                    {branches.map((b) => (
+                      <button
+                        type="button"
+                        key={b.id}
+                        aria-pressed={locationIds.includes(b.id)}
+                        onClick={() =>
+                          setLocationIds(
+                            locationIds.includes(b.id)
+                              ? locationIds.filter((id) => id !== b.id)
+                              : [...locationIds, b.id],
+                          )
+                        }
+                      >
+                        {b.name}
+                      </button>
+                    ))}
+                  </fieldset>
+                  <Switch
+                    label="Same role everywhere"
+                    checked={sameRole}
+                    onChange={setSameRole}
+                  />
+                  {!sameRole &&
+                    locationIds.map((id) => (
+                      <fieldset key={id}>
+                        <legend>
+                          Role at {branches.find((b) => b.id === id)?.name}
+                        </legend>
+                        {eligible.map((row) => (
+                          <label key={row.id}>
+                            <input
+                              type="radio"
+                              name={`role-${id}`}
+                              checked={(locationRoles[id] || role) === row.id}
+                              onChange={() =>
+                                setLocationRoles({
+                                  ...locationRoles,
+                                  [id]: row.id,
+                                })
+                              }
+                            />
+                            {templateLabels[row.id] || row.name}
+                          </label>
+                        ))}
+                      </fieldset>
+                    ))}
                   <fieldset className="mw-wide mi-role-cards">
                     <legend>Invitation role</legend>
                     {eligible.map((row) => (
