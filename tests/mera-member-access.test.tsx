@@ -79,11 +79,10 @@ test("member access uses a reviewed exact target and freezes an unknown write ac
     assert.equal(calls.length, 1);
     assert.match(calls[0][2].requestKey, /^[a-f0-9-]{36}$/i);
     const { requestKey, ...intent } = calls[0][2];
-    assert.deepEqual([calls[0][0], calls[0][1], intent], [
-      "/organizations/org-a/members/member-a",
-      "PATCH",
-      { active: false },
-    ]);
+    assert.deepEqual(
+      [calls[0][0], calls[0][1], intent],
+      ["/organizations/org-a/members/member-a", "PATCH", { active: false }],
+    );
     fireEvent.click(screen.getByRole("button", { name: "Refresh staff" }));
     await waitFor(() => assert(!screen.queryByText("Loading staff access…")));
     assert.equal(
@@ -191,6 +190,60 @@ test("unconfirmed organization membership write survives branch navigation and c
     );
     assert.equal(calls, 1);
     assert(!window.sessionStorage.getItem("staff-a"));
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
+    globalThis.fetch = original;
+  }
+});
+
+test("existing member editor sends versioned role/location intent through access recovery", async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => Response.json([{ ...member, version: 7 }]);
+  const calls: any[] = [];
+  try {
+    render(
+      <MemberAccess
+        {...props}
+        save={async (...args) => {
+          calls.push(args);
+          throw Error("unknown outcome");
+        }}
+      />,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Review Ada" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Edit role and locations" }),
+    );
+    const role = screen.getByRole("combobox", { name: "Staff role" });
+    fireEvent.focus(role);
+    fireEvent.change(role, { target: { value: "Waiter" } });
+    fireEvent.mouseDown(
+      screen.getByRole("option", { name: "Waiter", exact: true }),
+    );
+    fireEvent.click(
+      screen.getByRole("option", { name: "Waiter", exact: true }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Save role and locations" }),
+    );
+    await screen.findByText("Access change outcome unconfirmed");
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0][0], "/organizations/org-a/members/member-a");
+    assert.equal(calls[0][2].version, 7);
+    assert.equal(calls[0][2].role, "waiter");
+    assert.deepEqual(calls[0][2].branchIds, ["branch-a"]);
+    assert.deepEqual(calls[0][2].branch_roles, {});
+    assert.match(calls[0][2].requestKey, /^[a-f0-9-]{36}$/i);
+    assert.equal(
+      screen
+        .getByRole("button", { name: "Save role and locations" })
+        .hasAttribute("disabled") ||
+        screen
+          .getByRole("button", { name: "Save role and locations" })
+          .closest("fieldset")?.disabled,
+      true,
+    );
   } finally {
     cleanup();
     window.sessionStorage.clear();

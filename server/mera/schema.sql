@@ -40,3 +40,5 @@ ALTER TABLE mera_memberships ADD COLUMN IF NOT EXISTS branch_roles JSONB NOT NUL
 ALTER TABLE mera_invitations ADD COLUMN IF NOT EXISTS branch_roles JSONB NOT NULL DEFAULT '{}';
 
 CREATE UNIQUE INDEX IF NOT EXISTS mera_branch_location_code ON mera_branches(organization_id,(settings->>'code')) WHERE settings ? 'code';
+
+ALTER TABLE mera_memberships ADD COLUMN IF NOT EXISTS version INTEGER NOT NULL DEFAULT 1;

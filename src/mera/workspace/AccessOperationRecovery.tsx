@@ -183,7 +183,32 @@ function ScopedAccessProvider({
   };
   const normalize = (op: string, b: any) =>
     op === "membership_update"
-      ? { active: b?.active }
+      ? b?.role !== undefined
+        ? {
+            role: b.role,
+            branchIds: [...new Set(b.branchIds || [])].sort(),
+            branch_roles: Object.fromEntries(
+              Object.keys(b.branch_roles || {})
+                .sort()
+                .map((id) => {
+                  const grant = b.branch_roles[id];
+                  return [
+                    id,
+                    {
+                      role: grant.role,
+                      ...(grant.permissions
+                        ? {
+                            permissions: [...new Set(grant.permissions)].sort(),
+                          }
+                        : {}),
+                    },
+                  ];
+                }),
+            ),
+            organizationWide: b.organizationWide,
+            version: b.version,
+          }
+        : { active: b?.active }
       : op === "role_create" || op === "role_update"
         ? {
             name: b?.name?.trim(),
@@ -263,7 +288,24 @@ function ScopedAccessProvider({
         );
       if (
         m.operation === "membership_update" &&
-        (typeof r.active !== "boolean" || r.active !== op.intent?.active)
+        (op.intent?.role !== undefined
+          ? r.role !== op.intent.role ||
+            r.version !== op.intent.version + 1 ||
+            r.organizationWide !== op.intent.organizationWide ||
+            JSON.stringify(r.branchIds) !==
+              JSON.stringify(op.intent.branchIds) ||
+            JSON.stringify(Object.keys(r.branch_roles || {}).sort()) !==
+              JSON.stringify(
+                Object.keys(op.intent.branch_roles || {}).sort(),
+              ) ||
+            Object.entries(op.intent.branch_roles || {}).some(
+              ([id, grant]: [string, any]) =>
+                r.branch_roles?.[id]?.role !== grant.role ||
+                (grant.permissions &&
+                  JSON.stringify([...grant.permissions].sort()) !==
+                    JSON.stringify(r.branch_roles?.[id]?.permissions)),
+            )
+          : typeof r.active !== "boolean" || r.active !== op.intent?.active)
       )
         throw Error("The staff access result could not be verified.");
       if (

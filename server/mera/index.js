@@ -1,3 +1,4 @@
+import { memberUpdateSchema, validateMemberAssignment } from "./member-assignment.js";
 import { hasCapability } from "../../shared/mera-venues.js";
 import { locationFields, locationSettings, effectiveBranchAccess, canSeeBranch, assertCapability, assertBranchFeature } from "./venue-access.js";
 import { mountMeraOperating } from "./operating.js";
@@ -1923,7 +1924,7 @@ export function createMeraRouter(db) {
       res.json(
         (
           await q(
-            'SELECT m.id,m.user_id AS "userId",m.role,m.permissions,m.branch_ids AS "branchIds",m.branch_roles AS "branchRoles",m.organization_wide AS "organizationWide",m.active,u.name FROM mera_memberships m JOIN users u ON u.id=m.user_id WHERE m.organization_id=$1',
+            'SELECT m.id,m.user_id AS "userId",m.role,m.permissions,m.branch_ids AS "branchIds",m.branch_roles AS "branchRoles",m.organization_wide AS "organizationWide",m.active,m.version,u.name FROM mera_memberships m JOIN users u ON u.id=m.user_id WHERE m.organization_id=$1',
             [req.params.organizationId],
           )
         ).rows,
@@ -1971,18 +1972,30 @@ export function createMeraRouter(db) {
     }));
   });
   router.patch("/organizations/:organizationId/members/:id",guard("members.manage"),async(req,res)=>{
-    const input=z.object({active:z.boolean(),requestKey:uuid.optional()}).parse(req.body);
+    const input=memberUpdateSchema.parse(req.body);
     res.json(await withAccessLock(db,req,async c=>{
-      const target=await authorizeAccessTarget(c,req,"membership_update",req.params.id,input),attempt={requestKey:input.requestKey,operation:"membership_update",targetId:req.params.id,intent:{active:input.active}};
+      const {requestKey,...intent}=input;
+      const target=await authorizeAccessTarget(c,req,"membership_update",req.params.id,input),attempt={requestKey,operation:"membership_update",targetId:req.params.id,intent};
       const prior=await beginAccessOperation(c,req,attempt);if(prior)return prior;
-      if(!input.active&&target.role==="owner"){
+      const editing=input.role!==undefined;
+      if(editing && (target.version||1)!==input.version)throw fail("Staff access changed. Refresh before editing.",409,"STALE_VERSION");
+      const grants=editing?await validateMemberAssignment(c,req,input):null;
+      if((input.active===false || (editing&&input.role!=="owner"))&&target.role==="owner"){
         const owners=(await c.query("SELECT id FROM mera_memberships WHERE organization_id=$1 AND role='owner' AND active=true",[req.params.organizationId])).rows;
-        if(owners.length<=1)throw fail("The last active owner cannot be removed.",409);
+        if(target.active&&owners.length<=1)throw fail("The last active owner cannot be removed.",409);
       }
-      await c.query("UPDATE mera_memberships SET active=$1 WHERE id=$2 AND organization_id=$3",[input.active,target.id,req.params.organizationId]);
-      const result={active:input.active};await recordAccessOperation(c,req,attempt,result);await recordAccess(c,req,"audit",{action:"membership_access_updated",actorId:req.user.id,details:{membershipId:target.id,active:input.active},createdAt:now()});return result;
+      let result;
+      if(editing){
+        await c.query("UPDATE mera_memberships SET role=$1,permissions=$2,branch_ids=$3,branch_roles=$4,organization_wide=$5,version=version+1 WHERE id=$6 AND organization_id=$7",[input.role,JSON.stringify(grants.permissions),JSON.stringify(input.branchIds),JSON.stringify(grants.branchRoles),input.organizationWide,target.id,req.params.organizationId]);
+        result={role:input.role,branchIds:input.branchIds,branch_roles:grants.branchRoles,organizationWide:input.organizationWide,version:(target.version||1)+1};
+      }else{
+        await c.query("UPDATE mera_memberships SET active=$1,version=version+1 WHERE id=$2 AND organization_id=$3",[input.active,target.id,req.params.organizationId]);
+        result={active:input.active};
+      }
+      await recordAccessOperation(c,req,attempt,result);await recordAccess(c,req,"audit",{action:"membership_access_updated",actorId:req.user.id,details:{membershipId:target.id,before:{role:target.role,branchIds:target.branch_ids,branch_roles:target.branch_roles,active:target.active,version:target.version},...result},createdAt:now()});return result;
     }));
   });
+
   router.post("/invitations/accept", async (req, res) => {
     if (!req.user) throw fail("Sign in to accept an invitation.", 401);
     if (

@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Combobox } from "../ui/Combobox";
+import Switch from "../ui/Switch";
 import { workspaceApi } from "./api";
 import { permissionLabel } from "./accessPresentation";
 import { hasAccessWrite } from "./accessWriteJournal";
@@ -77,6 +79,7 @@ function ScopedMembers({
     );
   const [busy, setBusy] = useState(false),
     [search, setSearch] = useState("");
+  const [draft, setDraft] = useState<any>(null);
   const [review, setReview] = useState<string | null>(null);
   const alive = useRef(false),
     generation = useRef(0),
@@ -152,7 +155,7 @@ function ScopedMembers({
   useEffect(() => {
     if (!canManage) clearAccess();
   }, [canManage]);
-  const change = async (member: any) => {
+  const change = async (member: any, assignment?: any) => {
     if (
       write.current ||
       unknownRef.current ||
@@ -176,8 +179,12 @@ function ScopedMembers({
       await access.execute(
         `${base}/${encodeURIComponent(member.id)}`,
         "PATCH",
-        { active: !member.active },
-        member.active ? "Membership suspended." : "Membership restored.",
+        assignment || { active: !member.active },
+        assignment
+          ? "Staff access updated."
+          : member.active
+            ? "Membership suspended."
+            : "Membership restored.",
       );
       if (!alive.current || !authority.current || deniedRef.current) return;
       setReview(null);
@@ -343,6 +350,7 @@ function ScopedMembers({
                           disabled={busy}
                           onClick={(event) => {
                             reviewTrigger.current = event.currentTarget;
+                            setDraft(null);
                             setReview(review === member.id ? null : member.id);
                           }}
                         >
@@ -401,7 +409,111 @@ function ScopedMembers({
                     : "Confirm restore access"}
               </button>
             )}
-            <p>Role and branch reassignment are not available here.</p>
+            {member.userId !== userId && (
+              <>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={disabled || busy || loading || !!error || paused}
+                  onClick={() =>
+                    setDraft({
+                      role: member.role,
+                      version: member.version,
+                      branchIds: [...member.branchIds],
+                      organizationWide: member.organizationWide === true,
+                      branch_roles: structuredClone(member.branchRoles || {}),
+                    })
+                  }
+                >
+                  Edit role and locations
+                </button>
+                {draft && (
+                  <fieldset
+                    disabled={disabled || busy || loading || !!error || paused}
+                  >
+                    <legend>Edit staff access</legend>
+                    <Combobox
+                      label="Staff role"
+                      value={draft.role}
+                      options={[
+                        ...new Set([...Object.keys(roleNames), member.role]),
+                      ].map((value) => ({
+                        value,
+                        label: roleNames[value] || "Current custom role",
+                      }))}
+                      onChange={(role) => setDraft({ ...draft, role })}
+                    />
+                    <Switch
+                      label="All organization locations"
+                      checked={draft.organizationWide}
+                      onChange={(organizationWide) =>
+                        setDraft({ ...draft, organizationWide })
+                      }
+                    />
+                    {branches.map((branch) => (
+                      <fieldset key={branch.id}>
+                        <legend>{branch.name}</legend>
+                        <Switch
+                          label={`Access to ${branch.name}`}
+                          checked={
+                            draft.organizationWide ||
+                            draft.branchIds.includes(branch.id) ||
+                            !!draft.branch_roles[branch.id]
+                          }
+                          disabled={draft.organizationWide}
+                          onChange={(checked) => {
+                            const branch_roles = { ...draft.branch_roles };
+                            if (!checked) delete branch_roles[branch.id];
+                            setDraft({
+                              ...draft,
+                              branch_roles,
+                              branchIds: checked
+                                ? [...new Set([...draft.branchIds, branch.id])]
+                                : draft.branchIds.filter(
+                                    (id: string) => id !== branch.id,
+                                  ),
+                            });
+                          }}
+                        />
+                        {(draft.organizationWide ||
+                          draft.branchIds.includes(branch.id) ||
+                          draft.branch_roles[branch.id]) && (
+                          <Combobox
+                            label={`Role at ${branch.name}`}
+                            value={
+                              draft.branch_roles[branch.id]?.role || "inherit"
+                            }
+                            options={[
+                              { value: "inherit", label: "Use staff role" },
+                              ...Object.keys(roleNames).map((value) => ({
+                                value,
+                                label: roleNames[value],
+                              })),
+                            ]}
+                            onChange={(role) => {
+                              const branch_roles = { ...draft.branch_roles };
+                              if (role === "inherit")
+                                delete branch_roles[branch.id];
+                              else branch_roles[branch.id] = { role };
+                              setDraft({ ...draft, branch_roles });
+                            }}
+                          />
+                        )}
+                      </fieldset>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => void change(member, draft)}
+                    >
+                      Save role and locations
+                    </button>
+                    <button type="button" onClick={() => setDraft(null)}>
+                      Cancel editing
+                    </button>
+                  </fieldset>
+                )}
+              </>
+            )}
             <button
               type="button"
               disabled={busy}
