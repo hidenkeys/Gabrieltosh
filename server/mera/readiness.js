@@ -1,3 +1,4 @@
+import { validPublicContact } from "./public-contact.js";
 import { z } from "zod";
 import { subscriptionEntitlement } from "./subscriptions.js";
 const B = "/organizations/:organizationId/branches/:branchId";
@@ -69,14 +70,8 @@ export function mountMeraReadiness(
       {
         id: "contacts",
         label: "Customer contact details",
-        ready: !!(
-          org.branding?.contact ||
-          org.branding?.phone ||
-          org.branding?.email ||
-          b.settings?.contact ||
-          b.settings?.phone ||
-          b.settings?.publicContact
-        ),
+        ready: [org.branding?.contact, org.branding?.phone, org.branding?.email,
+          b.settings?.contact, b.settings?.phone, b.settings?.publicContact].some(validPublicContact),
       },
       {
         id: "menu",
@@ -103,8 +98,7 @@ export function mountMeraReadiness(
         label: "Manual payment methods reviewed",
         ready:
           Array.isArray(b.settings?.manualPaymentMethods) &&
-          b.settings.manualPaymentMethods.length > 0 &&
-          b.settings.launchAcknowledged === true,
+          b.settings.manualPaymentMethods.length > 0,
       },
     ];
     return {
@@ -145,11 +139,10 @@ export function mountMeraReadiness(
         .object({
           manualPaymentMethods: z
             .array(z.enum(["cash", "external_pos", "external_transfer"]))
-            .min(1)
             .max(3)
             .refine((v) => new Set(v).size === v.length),
-          launchAcknowledged: z.literal(true),
-          publicContact: z.string().trim().min(3).max(160),
+          launchAcknowledged: z.literal(true).optional(),
+          publicContact: z.string().trim().max(160).refine(validPublicContact, "Enter a valid customer phone number or email.").optional(),
         })
         .strict()
         .parse(req.body);

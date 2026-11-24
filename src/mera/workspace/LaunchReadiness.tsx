@@ -1,3 +1,4 @@
+import { validPublicContact } from "./publicContact";
 import React, { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
 export default function LaunchReadiness({
@@ -9,7 +10,11 @@ export default function LaunchReadiness({
   publicContact,
   accessBlocked,
   onPaymentDraft,
+  checklist,
+  onOpen,
 }: {
+  checklist?: (readiness: any, actions: any) => React.ReactNode;
+  onOpen?: (section: string) => void;
   accessBlocked?: boolean;
   onPaymentDraft?: (methods: string[]) => void;
   guidedStage?: "payments" | "review";
@@ -65,6 +70,10 @@ export default function LaunchReadiness({
   const [checking, setChecking] = useState(true);
   const [revision, setRevision] = useState(0);
   useEffect(() => {
+    if (guidedStage && !checklist) {
+      setChecking(false);
+      return;
+    }
     const controller = new AbortController();
     setChecking(true);
     setError("");
@@ -90,7 +99,7 @@ export default function LaunchReadiness({
       inFlight.current ||
       uncertain ||
       !methods.length ||
-      contact.trim().length < 3
+      !validPublicContact(contact)
     )
       return;
     inFlight.current = true;
@@ -154,7 +163,7 @@ export default function LaunchReadiness({
       window.sessionStorage.removeItem(attemptKey);
       setUncertain(false);
     } catch (failure: any) {
-      if (!dispatching || [400, 422].includes(failure.status)) {
+      if (!dispatching || (failure.status >= 400 && failure.status < 500)) {
         try {
           window.sessionStorage.removeItem(attemptKey);
           setUncertain(false);
@@ -166,6 +175,76 @@ export default function LaunchReadiness({
       setBusy(false);
     }
   }
+  if (checklist)
+    return checklist(readiness, {
+      goLive,
+      busy,
+      uncertain,
+      error,
+      checking,
+      recheck: () => setRevision((v) => v + 1),
+    });
+  if (guidedStage === "review")
+    return (
+      <section>
+        <h2>Review &amp; finish setup</h2>
+        <p>Public customer contact: {contact}</p>
+        <p>Payment methods: {methods.join(", ")}</p>
+      </section>
+    );
+  if (guidedStage === "payments")
+    return (
+      <section>
+        <h2>Manual payment handling</h2>
+        {error && <p role="alert">{error}</p>}
+        <fieldset disabled={disabled || busy}>
+          <legend>Reviewed manual payment methods</legend>
+          {["cash", "external_pos", "external_transfer"].map((method) => (
+            <label className="mw-row" key={method}>
+              <span>
+                {
+                  {
+                    cash: "Cash",
+                    external_pos: "External card / POS",
+                    external_transfer: "Manually verified transfer",
+                  }[method]
+                }
+              </span>
+              <input
+                type="checkbox"
+                checked={methods.includes(method)}
+                onChange={async (e) => {
+                  const next = e.target.checked
+                    ? [...methods, method]
+                    : methods.filter((v) => v !== method);
+                  setBusy(true);
+                  setError("");
+                  try {
+                    await save(
+                      base + "/launch-policy",
+                      "PATCH",
+                      {
+                        manualPaymentMethods: next,
+                        ...(validPublicContact(contact)
+                          ? { publicContact: contact }
+                          : {}),
+                      },
+                      "Payment choices saved.",
+                    );
+                    setMethods(next);
+                  } catch (e) {
+                    setError((e as Error).message);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              />
+            </label>
+          ))}
+        </fieldset>
+        <p>Public customer contact: {contact}</p>
+      </section>
+    );
   return (
     <section className="mw-card mw-management mw-management-panel">
       <header className="mw-management-heading">
@@ -185,12 +264,14 @@ export default function LaunchReadiness({
           </p>
         </div>
       </header>
-      <div className="mw-note">
-        This publishes the branch’s configured menu state within Mera. Public
-        hosting, verified payment providers and physical printer output require
-        separate validation. No website deployment or live payment activation
-        happens here.
-      </div>
+      {!guidedStage && (
+        <p className="mw-note">
+          This publishes the branch’s configured menu state within Mera. Public
+          hosting, verified payment providers and physical printer output
+          require separate validation. No website deployment or live payment
+          activation happens here.
+        </p>
+      )}
       {error && <p role="alert">{error}</p>}
       {!readiness && checking ? (
         <p role="status">Checking branch readiness…</p>
@@ -246,17 +327,16 @@ export default function LaunchReadiness({
             </p>
           )}
           <div hidden={guidedStage === "review"}>
-            {guidedStage === "payments" && (
-              <p className="mw-note">
-                These choices are not saved yet. Continue to Go live to review
-                and submit them. Leaving or reloading this page discards unsaved
-                payment choices.
-              </p>
-            )}
             <form
               onSubmit={async (event) => {
                 event.preventDefault();
                 if (guidedStage) return;
+                if (!validPublicContact(contact)) {
+                  setError(
+                    "Enter a phone number with at least 7 digits or a valid email address.",
+                  );
+                  return;
+                }
                 setBusy(true);
                 setError("");
                 try {
@@ -316,12 +396,19 @@ export default function LaunchReadiness({
                 {!guidedStage && (
                   <label>
                     Public customer contact
+                    <span>
+                      The phone number or email customers use to reach you
+                    </span>
                     <input
+                      aria-label="Public customer contact"
                       required
-                      minLength={3}
+                      placeholder="e.g. 0803 123 4567 or hello@yourbusiness.com"
                       maxLength={160}
                       value={contact}
-                      onChange={(event) => setContact(event.target.value)}
+                      onChange={(event) => {
+                        setContact(event.target.value);
+                        setError("");
+                      }}
                     />
                   </label>
                 )}
@@ -413,7 +500,7 @@ export default function LaunchReadiness({
                   busy ||
                   uncertain ||
                   !methods.length ||
-                  contact.trim().length < 3 ||
+                  !validPublicContact(contact) ||
                   readiness.launchState === "published"
                 }
                 onClick={() => void goLive()}

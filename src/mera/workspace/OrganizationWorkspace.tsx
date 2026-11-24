@@ -1,3 +1,4 @@
+import GoLiveChecklist from "./GoLiveChecklist";
 import AllLocations from "./AllLocations";
 import StockTransfers, { useVenueWrite } from "./StockTransfers";
 import DoorGuestList from "./DoorGuestList";
@@ -590,7 +591,6 @@ export default function OrganizationWorkspace({
               id: branch.id,
               permissions: branch.permissions,
               role: branch.role,
-              settings: branch.settings,
             })),
           })),
         );
@@ -970,7 +970,10 @@ export default function OrganizationWorkspace({
           "The workspace changed while the action was running.",
           "AbortError",
         );
-      await refresh();
+      if (activeSection === "onboarding" && !body?.complete) {
+        if (result?.onboarding)
+          setData((current: any) => current ? {...current, onboarding: result.onboarding} : current);
+      } else await refresh();
       if (
         activeScope.current !== requestedScope ||
         authorizationEpoch.current !== authorizationVersion ||
@@ -2169,6 +2172,7 @@ export default function OrganizationWorkspace({
               aria-labelledby={"mw-tab-" + activeSection}
               tabIndex={0}
             >
+              {["overview", "organization"].includes(activeSection) && allowed("organization.manage") && branch?.settings?.launchState !== "published" && <GoLiveChecklist key={branchBase} base={branchBase} settings={{...branch?.settings, publicContact: branch?.settings?.publicContact || data?.onboarding?.data?.contact || organization?.onboarding?.data?.contact || organization?.branding?.contact || organization?.branding?.phone || organization?.branding?.email}} disabled={busy || offline} accessBlocked={offline || !allowed("organization.manage")} save={mutate} onOpen={section => selectSection(section, {focusDestination: true})} />}
               {roomWrite.pending && (
                 <section className="mw-card" role="alert">
                   <h2>Room charge needs checking</h2>
@@ -2269,6 +2273,10 @@ export default function OrganizationWorkspace({
                     selectSection(section, { focusDestination: true })
                   }
                   save={mutate}
+                  onFinished={() => {
+                    const url = new URL(window.location.href); url.searchParams.delete("setup"); window.history.replaceState(null, "", url);
+                    selectSection("overview", {focusDestination: true});
+                  }}
                   basics={
                     <BusinessDetails
                       key={organizationId}

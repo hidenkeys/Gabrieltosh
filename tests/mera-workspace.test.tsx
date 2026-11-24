@@ -5465,3 +5465,36 @@ test("seated POS package review carries the table context into quote and order",
     globalThis.fetch = originalFetch;
   }
 });
+
+test("owner guide stays mounted while setup saves and branch refresh is in flight", async () => {
+  const originalFetch = globalThis.fetch;
+  window.history.replaceState(null, "", "/mera/workspace?setup=1");
+  let release: ((r: Response) => void) | undefined;
+  let reads=0;
+  const ownerBranch = {id:"branch-1",name:"Surulere",timezone:"Africa/Lagos",currency:"NGN",settings:{}};
+  const ownerContext = {user,organizations:[{id:"org-1",name:"Venue",slug:"venue",role:"owner",organizationWide:true,permissions:["organization.manage","reports.view"],branchIds:["branch-1"],branches:[ownerBranch]}]};
+  globalThis.fetch = (async (input: any, init: any = {}) => {
+    const path=String(input);
+    if(path.endsWith("/context")) return Response.json(ownerContext);
+    if(path.endsWith("/workspace")) {
+      reads++;
+      if(reads>1) return new Promise<Response>(resolve => {release=resolve;});
+      return Response.json({...snapshot("branch-1"),branch:ownerBranch});
+    }
+    if(path.endsWith("/onboarding")) {const body=JSON.parse(init.body); return Response.json({saved:true,onboarding:{data:body.data}});}
+    return Response.json({});
+  }) as any;
+  try {
+    render(<Workspace user={user} notify={() => {}}/>);
+    const guide = await screen.findByRole("region",{name:"Guided owner setup"});
+    fireEvent.click(screen.getByRole("button",{name:"Continue"}));
+    await screen.findByRole("heading",{name:"Your business"});
+    assert.equal(reads,1,"step changes update local onboarding without refetching workspace");
+    fireEvent(window,new window.Event("online"));
+    await waitFor(() => assert.ok(release));
+    assert.equal(screen.getByRole("region",{name:"Guided owner setup"}),guide);
+    await act(async () => {release!(Response.json({...snapshot("branch-1"),branch:ownerBranch}));});
+    assert.equal(screen.getByRole("region",{name:"Guided owner setup"}),guide);
+    assert.ok(screen.getByRole("heading",{name:"Your business"}));
+  } finally {cleanup(); globalThis.fetch=originalFetch; window.history.replaceState(null,"","/mera/workspace");}
+});

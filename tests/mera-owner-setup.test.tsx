@@ -103,7 +103,7 @@ test("unknown progress save locks navigation until exact step retry; branch-scop
     assert.equal(
       (
         screen.getByRole("button", {
-          name: "Review & go live",
+          name: "Review & finish setup",
         }) as HTMLButtonElement
       ).disabled,
       true,
@@ -479,7 +479,7 @@ test("legacy nine-step progress maps forward to the review stage and never mount
         save={async () => ({})}
       />,
     );
-    assert.ok(screen.getByRole("heading", { name: "Review & go live" }));
+    assert.ok(screen.getByRole("heading", { name: "Review & finish setup" }));
     assert.equal(
       screen.queryByRole("button", { name: "Create another branch" }),
       null,
@@ -669,22 +669,24 @@ test("payments Continue saves reviewed manual methods, preserves caveats verbati
     );
     await screen.findByRole("checkbox", { name: "Cash" });
     assert.equal(
-      screen.getByText(/This publishes the branch’s configured menu state/)
-        .textContent,
-      "This publishes the branch’s configured menu state within Mera. Public hosting, verified payment providers and physical printer output require separate validation. No website deployment or live payment activation happens here.",
+      screen.queryByText(/This publishes the branch’s configured menu state/),
+      null,
     );
-    assert.equal(
-      screen.getByText(/These choices are not saved yet/).textContent,
-      "These choices are not saved yet. Continue to Go live to review and submit them. Leaving or reloading this page discards unsaved payment choices.",
-    );
+    assert.equal(screen.queryByText(/These choices are not saved yet/), null);
     fireEvent.click(screen.getByRole("checkbox", { name: "Cash" }));
+    await waitFor(() =>
+      assert.equal(
+        (screen.getByRole("button", { name: "Continue" }) as HTMLButtonElement)
+          .disabled,
+        false,
+      ),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    await screen.findByRole("heading", { name: "Review & go live" });
+    await screen.findByRole("heading", { name: "Review & finish setup" });
     assert.deepEqual(
       writes.find((w) => w.path.endsWith("/launch-policy")).body,
       {
         manualPaymentMethods: ["cash"],
-        launchAcknowledged: true,
         publicContact: "owner@example.invalid",
       },
     );
@@ -692,7 +694,7 @@ test("payments Continue saves reviewed manual methods, preserves caveats verbati
       writes.some((w) => w.path.endsWith("/launch")),
       false,
     );
-    assert.ok(screen.getByRole("button", { name: "Go live" }));
+    assert.ok(screen.getByRole("button", { name: "Finish setup" }));
   } finally {
     cleanup();
     window.sessionStorage.clear();
@@ -824,5 +826,83 @@ test("saving an unchanged venue type preserves its explicit pay-first preference
   } finally {
     cleanup();
     window.sessionStorage.clear();
+  }
+});
+
+test("review finishes onboarding without publication and returns home", async () => {
+  window.sessionStorage.clear();
+  let finished = false;
+  let request: any;
+  try {
+    render(
+      <OwnerSetup
+        {...base}
+        onboarding={{
+          data: {
+            "ownerGuideV3Step_branch-one": 6,
+            contact: "hello@venue.test",
+          },
+        }}
+        onFinished={() => {
+          finished = true;
+        }}
+        save={async (path, method, body) => {
+          request = { path, method, body };
+          return {
+            saved: true,
+            onboarding: { completedAt: "2026-11-24T00:00:00Z" },
+          };
+        }}
+      />,
+    );
+    assert.equal(
+      screen
+        .getAllByRole("navigation", { name: "Owner setup steps" })[0]
+        .querySelectorAll("li").length,
+      6,
+    );
+    assert.equal(screen.queryByRole("button", { name: "Go live" }), null);
+    fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
+    await waitFor(() => assert.equal(finished, true));
+    assert.equal(request.path, "/organizations/org-one/onboarding");
+    assert.equal(request.body.complete, true);
+    assert.equal(
+      screen.queryByRole("heading", { name: "Review & finish setup" }),
+      null,
+    );
+  } finally {
+    cleanup();
+  }
+});
+test("business contact rejects words and accepts a phone, clearing inline error on edit", async () => {
+  window.sessionStorage.clear();
+  let writes = 0;
+  try {
+    render(
+      <OwnerSetup
+        {...base}
+        onboarding={{ data: { "ownerGuideV3Step_branch-one": 1 } }}
+        save={async (path, method, body) => {
+          writes++;
+          return path.endsWith("operating")
+            ? { version: 2 }
+            : { saved: true, onboarding: { data: body.data } };
+        }}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Public customer contact"), {
+      target: { value: "Contact us" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText(/Enter a phone number with at least 7 digits/);
+    assert.equal(writes, 0);
+    fireEvent.change(screen.getByLabelText("Public customer contact"), {
+      target: { value: "0803 123 4567" },
+    });
+    assert.equal(screen.queryByRole("alert"), null);
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByRole("heading", { name: "Kind of venue" });
+  } finally {
+    cleanup();
   }
 });

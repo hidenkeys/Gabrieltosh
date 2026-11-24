@@ -1,3 +1,4 @@
+import { validPublicContact } from "./publicContact";
 import React, { useEffect, useRef, useState } from "react";
 import { MeraBrand } from "../ui/MeraBrand";
 import Segmented from "../ui/Segmented";
@@ -13,6 +14,7 @@ import {
   effectiveCapabilities,
 } from "./setup/venues";
 type Props = React.ComponentProps<typeof SetupChecklist> & {
+  onFinished?: () => void;
   organization: any;
   branches?: any[];
   branch: any;
@@ -82,6 +84,7 @@ function GuidedSetup({
   demo,
   save,
   onClose,
+  onFinished,
 }: Props & { onClose: () => void }) {
   const orgBase = `/organizations/${organization.id}`,
     base = `${orgBase}/branches/${branch.id}`;
@@ -168,7 +171,7 @@ function GuidedSetup({
     "Locations",
     ...(multiple ? ["Menu & stock"] : []),
     "Payments",
-    "Review & go live",
+    "Review & finish setup",
   ];
   const legacyV2 = [0, 1, 2, 5, 6],
     legacyV1 = [0, 1, 2, 2, 2, 2, 2, 5, 6];
@@ -178,11 +181,12 @@ function GuidedSetup({
     legacyV1[data[`ownerGuideStep_${branch.id}`]] ??
     0;
   // Store canonical seven-step indexes so single-location progress survives a later count change.
-  const [canonical, setCanonical] = useState(old === 4 && !multiple ? 5 : old);
+  const [canonical, setCanonical] = useState(old);
+  // Menu & stock (4) is a setup step only for multi-location businesses.
   const canonicalSteps = multiple ? [0, 1, 2, 3, 4, 5, 6] : [0, 1, 2, 3, 5, 6];
   const step = Math.max(
     0,
-    canonicalSteps.indexOf(canonical === 4 && !multiple ? 5 : canonical),
+    canonicalSteps.indexOf(!multiple && canonical === 4 ? 5 : canonical),
   );
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(
@@ -280,6 +284,17 @@ function GuidedSetup({
   }
   async function move(target: number, forward = true) {
     if (disabled || flight.current) return;
+    if (
+      !pending &&
+      forward &&
+      canonical === 1 &&
+      !validPublicContact(contact)
+    ) {
+      setError(
+        "Enter a phone number with at least 7 digits or a valid email address.",
+      );
+      return;
+    }
     if (!pending && forward && !form.current?.reportValidity()) return;
     flight.current = true;
     setBusy(true);
@@ -404,7 +419,6 @@ function GuidedSetup({
               writes.push(
                 write(`${orgBase}/branches/${l.id}/launch-policy`, {
                   manualPaymentMethods: paymentDrafts.current[l.id] || [],
-                  launchAcknowledged: true,
                   publicContact: contact,
                 }),
               );
@@ -631,12 +645,16 @@ function GuidedSetup({
                   Public customer contact
                   <input
                     required
-                    minLength={3}
+                    placeholder="e.g. 0803 123 4567 or hello@yourbusiness.com"
                     maxLength={160}
                     value={contact}
-                    onChange={(e) => setContact(e.target.value)}
+                    onChange={(e) => {
+                      setContact(e.target.value);
+                      setError("");
+                    }}
                   />
                 </label>
+                <p>The phone number or email customers use to reach you</p>
                 <Segmented
                   label="How many locations do you run?"
                   value={operating.locationCount}
@@ -702,36 +720,49 @@ function GuidedSetup({
             )}
           </fieldset>
         </form>
-        <div hidden={canonical !== 5 && canonical !== 6}>
-          {locations
-            .filter((l) => l.id)
-            .map((l) => (
-              <section key={l.id} aria-label={`${l.name} launch review`}>
-                <h3>{l.name}</h3>
-                <LaunchReadiness
-                  base={`${orgBase}/branches/${l.id}`}
-                  settings={{
-                    ...(l.id === branch.id ? branch.settings : {}),
-                    manualPaymentMethods: paymentDrafts.current[l.id!] || [],
-                  }}
-                  disabled={disabled || busy || !!pending}
-                  save={save}
-                  guidedStage={canonical === 6 ? "review" : "payments"}
-                  publicContact={contact}
-                  onPaymentDraft={(methods) => {
-                    paymentDrafts.current[l.id!] = methods;
-                  }}
-                />
-              </section>
-            ))}
-        </div>
+        {canonical === 5 && (
+          <div>
+            {locations
+              .filter((l) => l.id)
+              .map((l) => (
+                <section key={l.id} aria-label={`${l.name} launch review`}>
+                  <h3>{l.name}</h3>
+                  <LaunchReadiness
+                    base={`${orgBase}/branches/${l.id}`}
+                    settings={{
+                      ...(l.id === branch.id ? branch.settings : {}),
+                      manualPaymentMethods: paymentDrafts.current[l.id!] || [],
+                    }}
+                    disabled={disabled || busy || !!pending}
+                    save={save}
+                    guidedStage="payments"
+                    publicContact={contact}
+                    onPaymentDraft={(methods) => {
+                      paymentDrafts.current[l.id!] = methods;
+                    }}
+                  />
+                </section>
+              ))}
+          </div>
+        )}
         {canonical === 6 && (
           <section aria-label="Setup summary">
+            <p>Account: {actorName}</p>
+            <p>Customer contact: {contact}</p>
+            <p>
+              Payments:{" "}
+              {locations
+                .map(
+                  (l) =>
+                    `${l.name}: ${(paymentDrafts.current[l.id!] || []).join(", ") || "None selected"}`,
+                )
+                .join("; ")}
+            </p>
             <p>
               {organization.name} · {TYPE_DEFAULTS[venueType].label} ·{" "}
               {locations.length} location{locations.length === 1 ? "" : "s"}
             </p>
-            {[1, 2, 3, ...(multiple ? [4] : []), 5].map((index) => (
+            {[1, 2, 3, 5].map((index) => (
               <button
                 type="button"
                 className="secondary"
@@ -745,6 +776,35 @@ function GuidedSetup({
           </section>
         )}
         <footer className="mera-owner-step-footer">
+          {canonical === 6 && (
+            <button
+              type="button"
+              className="primary"
+              disabled={busy || disabled || !!pending}
+              onClick={async () => {
+                setBusy(true);
+                setError("");
+                try {
+                  const result = await save(
+                    `${orgBase}/onboarding`,
+                    "PATCH",
+                    { step: 6, data: {}, complete: true },
+                    "Setup complete.",
+                  );
+                  if (!result?.onboarding?.completedAt)
+                    throw Error("Setup completion could not be confirmed.");
+                  onFinished?.();
+                  onClose();
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Finish setup
+            </button>
+          )}
           <button
             type="button"
             className="secondary"

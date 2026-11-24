@@ -1,3 +1,4 @@
+import { validPublicContact } from "./public-contact.js";
 import { memberUpdateSchema, validateMemberAssignment } from "./member-assignment.js";
 import { hasCapability } from "../../shared/mera-venues.js";
 import { locationFields, locationSettings, effectiveBranchAccess, canSeeBranch, assertCapability, assertBranchFeature } from "./venue-access.js";
@@ -537,8 +538,9 @@ export function createMeraRouter(db) {
       if (!req.meraMembership.organization_wide) throw fail("Organization-wide management access is required.",403,"FORBIDDEN");
       const input = z
         .object({
+          complete: z.boolean().optional(),
           step: z.number().int().min(1).max(14),
-          data: z.record(z.unknown()),
+          data: z.record(z.unknown()).refine(data => data.contact === undefined || validPublicContact(data.contact), "Enter a valid customer phone number or email."),
         })
         .strict()
         .parse(req.body);
@@ -547,6 +549,7 @@ export function createMeraRouter(db) {
         if (!organization) throw fail("Organization not found.",404);
         const previous = organization.onboarding || {};
         const merged = {...previous,step:input.step,data:{...(previous.data||{}),...input.data},updatedAt:now()};
+        if (input.complete) merged.completedAt = previous.completedAt || now();
         if (!Object.hasOwn(previous,"verification")) merged.verification="owner_email_verification_pending";
         await c.query("UPDATE mera_organizations SET onboarding=$1 WHERE id=$2",[JSON.stringify(merged),req.params.organizationId]);
         return merged;

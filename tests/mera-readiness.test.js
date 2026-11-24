@@ -153,7 +153,7 @@ test("publishing a branch requires readiness and never claims hosting or provide
       body: JSON.stringify({
         manualPaymentMethods: ["cash"],
         launchAcknowledged: true,
-        publicContact: "Contact the venue",
+        publicContact: "hello@venue.test",
       }),
     });
     assert.equal(configured.status, 200);

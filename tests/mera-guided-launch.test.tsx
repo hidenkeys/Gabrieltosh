@@ -16,8 +16,19 @@ Object.defineProperty(globalThis, "navigator", {
 const React = await import("react");
 const { render, screen, fireEvent, waitFor, cleanup } =
   await import("@testing-library/react");
-const { default: LaunchReadiness } =
+const { default: OriginalLaunchReadiness } =
   await import("../src/mera/workspace/LaunchReadiness");
+const { default: GoLiveChecklist } =
+  await import("../src/mera/workspace/GoLiveChecklist");
+const LaunchReadiness = (p: any) =>
+  p.guidedStage === "payments" ? (
+    <OriginalLaunchReadiness {...p} />
+  ) : (
+    <GoLiveChecklist
+      {...p}
+      settings={{ ...p.settings, publicContact: p.publicContact }}
+    />
+  );
 const { default: BusinessDetails } =
   await import("../src/mera/workspace/BusinessDetails");
 const ready = {
@@ -233,7 +244,64 @@ test("parent mutation busy is not mistaken for revoked authority between policy 
     finishPolicy(ready);
     await waitFor(() => assert.equal(calls.length, 2));
     await waitFor(() => assert.equal(window.sessionStorage.length, 0));
-    assert.ok(screen.getByText(/Branch state: published/));
+    assert.equal(
+      screen.queryByRole("region", { name: "Go-live checklist" }),
+      null,
+    );
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
+  }
+});
+
+test("checklist shows actionable readiness and a definite409 clears recovery", async () => {
+  window.sessionStorage.clear();
+  const opened: string[] = [];
+  globalThis.fetch = async () =>
+    Response.json({
+      ...ready,
+      checks: [
+        { id: "menu", status: "ready" },
+        { id: "printing", status: "blocked" },
+        { id: "manual_platform_policy", status: "blocked" },
+      ],
+    });
+  try {
+    const view = render(
+      <GoLiveChecklist
+        {...props}
+        settings={{ ...props.settings, publicContact: props.publicContact }}
+        onOpen={(s) => opened.push(s)}
+        save={async () => {
+          throw Object.assign(new Error("NOT_READY"), { status: 409 });
+        }}
+      />,
+    );
+    await screen.findByText("Ready to go live · 1 of 3 done");
+    assert.ok(screen.getByText("Done"));
+    assert.ok(screen.getByText("To do"));
+    assert.ok(screen.getByText("Waiting on Mera"));
+    assert.equal(
+      screen
+        .getByRole("progressbar", { name: "Go-live progress" })
+        .getAttribute("aria-valuenow"),
+      "1",
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add and publish your menu" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Design receipt and stickers" }),
+    );
+    assert.deepEqual(opened, ["menu", "printing"]);
+    fireEvent.click(screen.getByRole("button", { name: "Go live" }));
+    await screen.findByText("NOT_READY");
+    assert.equal(window.sessionStorage.length, 0);
+    assert.equal(
+      screen.queryByText(/previous launch attempt is unconfirmed/),
+      null,
+    );
+    view.unmount();
   } finally {
     cleanup();
     window.sessionStorage.clear();
