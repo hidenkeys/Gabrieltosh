@@ -31,12 +31,16 @@ export default function AllLocations({
     [exporting, setExporting] = useState(false);
   const exportWrite = useVenueWrite(actorId, branchBase + "/exports");
   const exportRequest = useRef<any>(null);
+  const query =
+    preset === "custom"
+      ? `from=${range.from}&to=${range.to}`
+      : `preset=${({ week: "this_week", month: "this_month" } as Record<string, string>)[preset] || preset}`;
   useEffect(() => {
     const controller = new AbortController();
     setData(null);
     setError("");
     workspaceApi(
-      `/organizations/${encodeURIComponent(organizationId)}/overview?from=${range.from}&to=${range.to}`,
+      `/organizations/${encodeURIComponent(organizationId)}/overview?${query}`,
       "GET",
       undefined,
       controller.signal,
@@ -48,11 +52,23 @@ export default function AllLocations({
         if (!controller.signal.aborted) setError(e.message);
       });
     return () => controller.abort();
-  }, [organizationId, range.from, range.to, revision]);
+  }, [organizationId, query, revision]);
   const location = (id: string) =>
     branches.find((b) => b.id === id)?.name ||
     data?.branches.find((b: any) => b.id === id)?.name ||
     "Location";
+  const hasCapability = (capability: string) =>
+    data?.branches.some((b: any) =>
+      (
+        b.capabilities ||
+        branches.find((branch) => branch.id === b.id)?.settings?.capabilities ||
+        []
+      ).includes(capability),
+    );
+  const paymentMix =
+    data?.paymentMix.filter(
+      (p: any) => p.method !== "room_charge" || hasCapability("room_charge"),
+    ) || [];
   return (
     <section className="mw-card mw-all-locations">
       <DateRangePresets
@@ -101,21 +117,29 @@ export default function AllLocations({
               ["Refunds", "refunds"],
               ["Charged to rooms", "roomCharges"],
               ["Covers", "covers"],
-            ].map(([label, key]) => (
-              <div key={key}>
-                <dt>{label}</dt>
-                <dd>
-                  {["orders", "covers"].includes(key)
-                    ? data.totals[key]
-                    : formatMoney(data.totals[key])}
-                </dd>
-              </div>
-            ))}
+            ]
+              .filter(
+                ([, key]) =>
+                  (key !== "roomCharges" && key !== "covers") ||
+                  hasCapability(
+                    key === "roomCharges" ? "room_charge" : "guest_list",
+                  ),
+              )
+              .map(([label, key]) => (
+                <div key={key}>
+                  <dt>{label}</dt>
+                  <dd>
+                    {["orders", "covers"].includes(key)
+                      ? data.totals[key]
+                      : formatMoney(data.totals[key])}
+                  </dd>
+                </div>
+              ))}
           </dl>
           <h3>Payment mix</h3>
-          {data.paymentMix.length ? (
+          {paymentMix.length ? (
             <ul>
-              {data.paymentMix.map((p: any) => (
+              {paymentMix.map((p: any) => (
                 <li key={p.method}>
                   {p.method === "room_charge"
                     ? "Charged to rooms (settled by the hotel)"
@@ -201,43 +225,56 @@ export default function AllLocations({
               </tbody>
             </table>
           </div>
-          <h3>Stock across locations</h3>
-          <h4>Low stock</h4>
-          {data.stock.lowStock.length ? (
-            <ul>
-              {data.stock.lowStock.map((p: any) => (
-                <li key={p.branchId + p.productId}>
-                  {location(p.branchId)} · {p.name}: {p.stock} remaining
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No low stock items.</p>
-          )}
-          <h4>Stock value by location</h4>
-          <ul>
-            {data.stock.valueByBranch.map((b: any) => (
-              <li key={b.branchId}>
-                {location(b.branchId)}:{" "}
-                {b.value === null
-                  ? "Add item costs to see stock value"
-                  : formatMoney(b.value)}
-              </li>
-            ))}
-          </ul>
-          <h4>Transfers in transit</h4>
-          {data.stock.inTransit.length ? (
-            <ul>
-              {data.stock.inTransit.map((t: any) => (
-                <li key={t.id}>
-                  {location(t.fromBranchId)} → {location(t.toBranchId)} ·{" "}
-                  {t.lines?.length || 0} items
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No transfers in transit.</p>
-          )}
+          <section
+            className="mw-location-stock"
+            aria-labelledby="location-stock-title"
+          >
+            <h3 id="location-stock-title">Stock across locations</h3>
+            <div className="mw-location-stock-grid">
+              <article>
+                <h4>Low stock</h4>
+                {data.stock.lowStock.length ? (
+                  <ul>
+                    {data.stock.lowStock.map((p: any) => (
+                      <li key={p.branchId + p.productId}>
+                        {location(p.branchId)} · {p.name}: {p.stock} remaining
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No low stock items.</p>
+                )}
+              </article>
+              <article>
+                <h4>Stock value by location</h4>
+                <ul>
+                  {data.stock.valueByBranch.map((b: any) => (
+                    <li key={b.branchId}>
+                      {location(b.branchId)}:{" "}
+                      {b.value === null
+                        ? "Add item costs to see stock value"
+                        : formatMoney(b.value)}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+              <article>
+                <h4>Transfers in transit</h4>
+                {data.stock.inTransit.length ? (
+                  <ul>
+                    {data.stock.inTransit.map((t: any) => (
+                      <li key={t.id}>
+                        {location(t.fromBranchId)} → {location(t.toBranchId)} ·{" "}
+                        {t.lines?.length || 0} items
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No transfers in transit.</p>
+                )}
+              </article>
+            </div>
+          </section>
         </>
       )}
       {canExport && (

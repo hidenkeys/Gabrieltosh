@@ -306,7 +306,7 @@ export default function OrganizationWorkspace({
   const branchBase = `/organizations/${encodeURIComponent(organizationId)}/branches/${encodeURIComponent(branchId)}`;
   const permissionSections = sections.filter(([section, , permission]) =>
     section === "organization"
-      ? membershipPermissions.includes("organization.overview")
+      ? branches.filter((b: any) => b.settings?.role !== "stock_room").length >= 2 && membershipPermissions.includes("organization.overview")
       : section === "transfers"
         ? (branches.filter((b: any) => b.settings?.role !== "stock_room")
             .length >= 2 ||

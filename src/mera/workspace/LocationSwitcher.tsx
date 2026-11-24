@@ -38,7 +38,7 @@ export default function LocationSwitcher({
   const id = useId(),
     current = branches.find((b) => b.id === value);
   const options = [
-    ...(allLocations ? [{ id: "all-locations", name: "All locations" }] : []),
+    ...(allLocations && branches.filter((b) => b.settings?.role !== "stock_room").length >= 2 ? [{ id: "all-locations", name: "All locations" }] : []),
     ...branches,
   ].filter((b) =>
     `${b.name} ${b.settings?.code || ""}`

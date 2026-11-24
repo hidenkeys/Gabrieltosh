@@ -133,3 +133,89 @@
   outline: 2px solid var(--brand, #153f32);
   outline-offset: -3px;
 }
+
+.mera-workspace .mw-all-locations {
+  min-width: 0;
+}
+.mera-workspace .mw-location-totals {
+  gap: 12px;
+}
+.mera-workspace .mw-location-totals > div {
+  flex: 1 1 150px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--wx-line, #d3d8cf);
+  border-radius: 14px;
+}
+.mera-workspace .mw-location-totals dd {
+  overflow-wrap: anywhere;
+}
+.mera-workspace .mw-location-table {
+  margin-top: 24px;
+  isolation: isolate;
+}
+.mera-workspace .mw-location-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.mera-workspace .mw-location-table th,
+.mera-workspace .mw-location-table td {
+  border-bottom: 1px solid var(--wx-line, #d3d8cf);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.mera-workspace .mw-location-table thead {
+  background: var(--wx-paper, #f7f6f0);
+}
+.mera-workspace .mw-location-table th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  text-align: left;
+  background: var(--wx-paper, #f7f6f0);
+}
+.mera-workspace .mw-location-table th button {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  padding: 8px 0;
+  text-align: inherit;
+}
+.mera-workspace .mw-location-table button:focus-visible {
+  outline: 2px solid var(--brand, #153f32);
+  outline-offset: 2px;
+}
+.mera-workspace .mw-location-stock {
+  margin-block: 32px 24px;
+}
+.mera-workspace .mw-location-stock > h3 {
+  margin: 0 0 16px;
+}
+.mera-workspace .mw-location-stock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 16px;
+}
+.mera-workspace .mw-location-stock-grid article {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--wx-line, #d3d8cf);
+  border-radius: 14px;
+}
+.mera-workspace .mw-location-stock-grid h4 {
+  margin: 0 0 12px;
+}
+.mera-workspace .mw-location-stock-grid p,
+.mera-workspace .mw-location-stock-grid ul {
+  margin: 0;
+}
+.mera-workspace .mw-location-stock-grid ul {
+  padding-left: 20px;
+}
+.mera-workspace .mw-location-stock-grid li + li {
+  margin-top: 8px;
+}

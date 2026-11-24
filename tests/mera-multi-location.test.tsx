@@ -196,7 +196,8 @@ test("all locations renders kobo totals, comparison, null valuation and row dest
     });
     const table = screen.getByRole("table");
     assert(within(table).getByText("₦1,200.00"));
-    assert(screen.getByText("Covers"));
+    assert.equal(screen.queryByText("Covers"), null);
+    assert.equal(screen.queryByText("Charged to rooms"), null);
     fireEvent.click(
       within(table).getByRole("button", { name: /CLB Nightclub/ }),
     );
@@ -549,7 +550,11 @@ test("Door-only staff can use the guest list without requesting forbidden operat
     };
     render(<Workspace user={user} notify={() => {}} onLogout={() => {}} />);
     await screen.findByRole("heading", { name: "Door & guest list", level: 1 });
-    assert.equal(screen.getAllByRole("heading", { name: "Door & guest list", exact: true }).length, 1);
+    assert.equal(
+      screen.getAllByRole("heading", { name: "Door & guest list", exact: true })
+        .length,
+      1,
+    );
     assert.equal(workspaceReads, 0);
     assert(await screen.findByText(/Tonight’s list/));
   } finally {
@@ -575,6 +580,97 @@ test("workspace names both switchers and identifies the location overview", asyn
     await screen.findByRole("heading", { name: "Surulere overview", level: 1 });
     assert.ok(screen.getByRole("combobox", { name: "Organization" }));
     assert.ok(screen.getByRole("combobox", { name: "Location" }));
+  } finally {
+    cleanup();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("All locations navigation and switcher require two outlets, excluding central stores", async () => {
+  const outlet = { id: "a", name: "Outlet A", settings: { capabilities: [] } };
+  for (const branches of [
+    [outlet],
+    [outlet, { id: "store", name: "Store", settings: { role: "stock_room" } }],
+    [outlet, { ...outlet, id: "b", name: "Outlet B" }],
+  ]) {
+    try {
+      workspaceFetch(branches, [
+        ...basePermissions,
+        "reports.view",
+        "organization.overview",
+      ]);
+      render(<Workspace user={user} onLogout={() => {}} />);
+      await screen.findByRole("heading", {
+        name: "Outlet A overview",
+        level: 1,
+      });
+      const expected = branches.some((b) => b.id === "b");
+      assert.equal(
+        !!screen.queryByRole("tab", { name: "All locations", exact: true }),
+        expected,
+      );
+      fireEvent.focus(
+        screen.getByRole("combobox", { name: "Location", exact: true }),
+      );
+      assert.equal(
+        !!screen.queryByRole("option", { name: /All locations/ }),
+        expected,
+      );
+    } finally {
+      cleanup();
+      globalThis.fetch = originalFetch;
+    }
+  }
+});
+
+test("visible outlet capabilities control room charges and covers and presets reach the server", async () => {
+  const requests: string[] = [];
+  let capabilities: string[] = [];
+  globalThis.fetch = async (input) => {
+    requests.push(String(input));
+    return Response.json({
+      totals: {
+        revenue: 0,
+        orders: 0,
+        averageOrder: 0,
+        refunds: 0,
+        roomCharges: 100,
+        covers: 2,
+      },
+      branches: [{ id: "a", name: "A", capabilities }],
+      paymentMix: [{ method: "room_charge", amount: 100 }],
+      stock: { lowStock: [], valueByBranch: [], inTransit: [] },
+    });
+  };
+  try {
+    for (const enabled of [false, true]) {
+      capabilities = enabled
+        ? ["room_charge", "guest_list"]
+        : ["table_service"];
+      render(
+        <AllLocations
+          organizationId="org"
+          branchBase="/organizations/org/branches/a"
+          onLocation={() => {}}
+        />,
+      );
+      await screen.findByRole("table");
+      assert.equal(!!screen.queryByText("Covers"), enabled);
+      assert.equal(!!screen.queryByText("Charged to rooms"), enabled);
+      assert.equal(!!screen.queryByText(/settled by the hotel/), enabled);
+      for (const [name, preset] of [
+        ["Today", "today"],
+        ["Yesterday", "yesterday"],
+        ["This week", "this_week"],
+        ["This month", "this_month"],
+      ]) {
+        fireEvent.click(screen.getByRole("radio", { name, exact: true }));
+        await waitFor(() =>
+          assert(requests.at(-1)?.endsWith(`preset=${preset}`)),
+        );
+      }
+      cleanup();
+    }
   } finally {
     cleanup();
     globalThis.fetch = originalFetch;
