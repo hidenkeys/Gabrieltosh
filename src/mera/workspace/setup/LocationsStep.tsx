@@ -19,6 +19,7 @@ export type LocationDraft = {
   capabilities: string[];
   serviceHours: any[];
   cutoff: number;
+  payLater?: boolean;
   version: number;
 };
 export default function LocationsStep({
@@ -76,6 +77,7 @@ export default function LocationsStep({
                   capabilities: [...TYPE_DEFAULTS[venueType].capabilities],
                   serviceHours: TYPE_DEFAULTS[venueType].hours,
                   cutoff: TYPE_DEFAULTS[venueType].cutoff,
+                  payLater: TYPE_DEFAULTS[venueType].payLater,
                 })
               }
             />
@@ -155,6 +157,7 @@ export default function LocationsStep({
                 {
                   ...locations[0],
                   id: undefined,
+                  payLater: TYPE_DEFAULTS[locations[0].venueType].payLater,
                   name: "",
                   code: defaultLocationCode(
                     "Location",

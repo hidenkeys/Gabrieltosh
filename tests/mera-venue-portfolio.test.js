@@ -67,6 +67,11 @@ test("portfolio products, location settings, references and capabilities satisfy
         capabilitiesToLegacyModes(s.capabilities),
       );
       assert.equal(b.cutoff, TYPE_DEFAULTS[s.venueType].cutoff);
+      assert.equal(
+        s.payLater,
+        TYPE_DEFAULTS[s.venueType].payLater ||
+          s.capabilities.includes("open_tabs"),
+      );
       for (const p of b.products) {
         productInputSchema.parse(p);
         z.string().uuid().parse(p.id);
@@ -209,6 +214,16 @@ test("in-memory seed skips existing slugs, preserves edits and enforces per-loca
       "Preserved edit",
       org.id,
     ]);
+    const existingRestaurant = buildVenuePortfolio({ now, days: 1 })[1]
+      .branches[0];
+    const preservedSettings = {
+      ...existingRestaurant.settings,
+      payLater: false,
+    };
+    await db.query("UPDATE mera_branches SET settings=$1 WHERE id=$2", [
+      JSON.stringify(preservedSettings),
+      existingRestaurant.id,
+    ]);
     const again = await seedVenuePortfolio(db, {
       now,
       passwordFor: () => {
@@ -217,6 +232,14 @@ test("in-memory seed skips existing slugs, preserves edits and enforces per-loca
     });
     assert.equal(again.skipped, 7);
     assert.equal(again.users, 0);
+    assert.deepEqual(
+      (
+        await db.query("SELECT settings FROM mera_branches WHERE id=$1", [
+          existingRestaurant.id,
+        ])
+      ).rows[0].settings,
+      preservedSettings,
+    );
     assert.equal(
       (
         await db.query("SELECT name FROM mera_organizations WHERE id=$1", [
@@ -264,4 +287,17 @@ test("in-memory seed rolls back all organizations on a password failure", async 
   } finally {
     await pool.end();
   }
+});
+
+test("pay-at-end venue defaults enable preparation without changing pay-first defaults", () => {
+  for (const type of [
+    "casual_dining",
+    "reservation_restaurant",
+    "lounge",
+    "club",
+    "hotel_fb",
+  ])
+    assert.equal(TYPE_DEFAULTS[type].payLater, true, type);
+  for (const type of ["quick_service", "cafe"])
+    assert.equal(TYPE_DEFAULTS[type].payLater, false, type);
 });

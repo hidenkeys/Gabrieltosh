@@ -108,6 +108,7 @@ export function Segmented({
               }
               value={option.value}
               checked={value === option.value}
+              aria-checked={value === option.value}
               onChange={() => onChange(option.value)}
               disabled={option.disabled}
               required={

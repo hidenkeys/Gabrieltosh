@@ -10,7 +10,7 @@ This file is the single source of truth for every worker. Do not invent parallel
 export const VENUE_TYPES = ["quick_service","cafe","casual_dining","reservation_restaurant","lounge","club","hotel_fb"];
 export const CAPABILITIES = ["counter_ordering","qr_ordering","pickup_alerts","table_service","open_tabs","split_bills",
   "reservations","deposits","minimum_spend","waitlist","prep_stations","guest_list","room_charge"];
-export const TYPE_DEFAULTS = { /* type -> { capabilities:[], hours:[{days,start,end}], cutoff:minutes, label, bestFor, youGet:[3], differentBecause } */ };
+export const TYPE_DEFAULTS = { /* type -> { capabilities:[], hours:[{days,start,end}], cutoff:minutes, payLater:boolean, label, bestFor, youGet:[3], differentBecause } */ };
 export const LEGACY_MODE_TO_CAPABILITIES = {
   counter_takeaway:["counter_ordering","qr_ordering","pickup_alerts"],
   table_service:["table_service","split_bills","prep_stations"],
@@ -27,17 +27,19 @@ export const ITEM_KINDS = ["single","package","combo"];
 
 Type defaults (copy shown to owners lives here too, sentence case, plain words):
 
-| Type | Default capabilities | Hours preset | Cutoff (min after 00:00) |
-|---|---|---|---|
-| quick_service | counter_ordering, qr_ordering, pickup_alerts, prep_stations | 08:00–22:00 daily | 0 |
-| cafe | counter_ordering, qr_ordering, pickup_alerts, prep_stations | 07:00–20:00 daily | 0 |
-| casual_dining | qr_ordering, table_service, split_bills, prep_stations, waitlist | 11:00–23:00 daily | 0 |
-| reservation_restaurant | table_service, split_bills, reservations, deposits, prep_stations, waitlist | 12:00–23:00 Tue–Sun | 0 |
-| lounge | qr_ordering, table_service, open_tabs, split_bills, minimum_spend, reservations, prep_stations | 16:00–23:59 + 00:00–02:00 next day | 360 |
-| club | table_service, open_tabs, minimum_spend, reservations, deposits, guest_list, prep_stations | 22:00–23:59 + 00:00–05:00 | 420 |
-| hotel_fb | qr_ordering, table_service, split_bills, reservations, room_charge, prep_stations | 06:30–23:00 daily | 0 |
+| Type | Default capabilities | Hours preset | Cutoff (min after 00:00) | Prepare before full payment (`payLater`) |
+|---|---|---|---|---|
+| quick_service | counter_ordering, qr_ordering, pickup_alerts, prep_stations | 08:00–22:00 daily | 0 | false |
+| cafe | counter_ordering, qr_ordering, pickup_alerts, prep_stations | 07:00–20:00 daily | 0 | false |
+| casual_dining | qr_ordering, table_service, split_bills, prep_stations, waitlist | 11:00–23:00 daily | 0 | true |
+| reservation_restaurant | table_service, split_bills, reservations, deposits, prep_stations, waitlist | 12:00–23:00 Tue–Sun | 0 | true |
+| lounge | qr_ordering, table_service, open_tabs, split_bills, minimum_spend, reservations, prep_stations | 16:00–23:59 + 00:00–02:00 next day | 360 | true |
+| club | table_service, open_tabs, minimum_spend, reservations, deposits, guest_list, prep_stations | 22:00–23:59 + 00:00–05:00 | 420 | true |
+| hotel_fb | qr_ordering, table_service, split_bills, reservations, room_charge, prep_stations | 06:30–23:00 daily | 0 | true |
 
 Overnight hours use split windows (the existing schema requires end > start).
+
+`TYPE_DEFAULTS[type].payLater` controls the “Allow preparation before full payment” setting for new locations and deliberately selected onboarding type presets. Casual dining, reservation restaurants, lounges, clubs and hotel outlets default to true; quick service and cafés default to false. This permits preparation; it never confirms payment. An unchanged type retains an explicitly saved preference. Existing branches and already-seeded portfolio organizations are not migrated or rewritten. New fictional seeds use the type default (or an explicitly added `open_tabs` capability). Changing existing staging branches requires an explicit owner UI save and is journalled as a permanent configuration change, separate from temporary hours restoration.
 
 ## 2. Data
 
@@ -58,6 +60,10 @@ area: string ≤ 60, optional
 role: "outlet" | "stock_room"   // stock_room: not guest-facing, cannot launch, no QR, hidden from guest routes
 ```
 A `stock_room` branch is created automatically when an organization sets `inventoryMode:"central"` (name "Central store", code "CST"), referenced by `operating.centralStockBranchId`.
+
+### Walk-in table visits
+
+`POST /organizations/:org/branches/:branch/visits` accepts `partySize` (integer 1–100, default 2 for callers omitting it) alongside `tableId`, `displayName` and the existing minimum-spend acknowledgement. The UI uses a Party size stepper, retains its current draft value and submits `partySize`. The count is stored on the visit; a party exceeding table capacity is rejected before seating or creating a bill. Reservation seating keeps its existing booking contract.
 
 ### Membership: new column `branch_roles JSONB NOT NULL DEFAULT '{}'`
 `{ [branchId]: { role, permissions[] } }`. Effective permissions for (member, branch): `branch_roles[branch]` if present, else the membership role/permissions when `organization_wide` or `branch_ids` includes branch, else none. Organization-level checks (overview, operating settings, roles) use the membership role only. Invitations gain the same `branch_roles`. Existing rows need no migration.

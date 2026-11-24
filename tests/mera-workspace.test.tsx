@@ -2912,7 +2912,7 @@ test("debt write-offs are explicit non-cash actions with canonical balance bound
   }
 });
 
-test("staff visit opening acknowledges exact minimum terms and reveals its joining code only in the private party panel", async () => {
+test("staff visit opening submits the party-size stepper and exact minimum terms, revealing its joining code only in the private party panel", async () => {
   const originalFetch = globalThis.fetch;
   const previous = [...context.organizations[0].permissions];
   context.organizations[0].permissions.push("tables.manage");
@@ -2962,6 +2962,9 @@ test("staff visit opening acknowledges exact minimum terms and reveals its joini
     await screen.findByText("Surulere customer", { exact: false });
     fireEvent.click(screen.getByRole("tab", { name: "Tables & visits" }));
     chooseField(screen, fireEvent, "Table", "table-1");
+    assert.equal((screen.getByRole("spinbutton", { name: "Party size" }) as HTMLInputElement).value, "2");
+    fireEvent.click(screen.getByRole("button", { name: "Increase Party size" }));
+    assert.equal((screen.getByRole("spinbutton", { name: "Party size" }) as HTMLInputElement).value, "3");
     fireEvent.change(screen.getByLabelText("Guest display name"), {
       target: { value: "Ada" },
     });
@@ -2981,6 +2984,7 @@ test("staff visit opening acknowledges exact minimum terms and reveals its joini
     await act(async () =>
       fireEvent.click(screen.getByRole("button", { name: "Open visit" })),
     );
+    assert.equal(opened[0].partySize, 3);
     assert.equal(opened[0].minimumSpendAcknowledged, true);
     assert.equal(opened[0].minimumSpendPolicyVersion, "minimum-1");
     assert(screen.getByText("Private access · Ada"));

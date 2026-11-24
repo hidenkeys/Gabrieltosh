@@ -1,0 +1,72 @@
+{
+  "runId": "e2e-1033a",
+  "marker": "E2E e2e-1033a",
+  "origin": "https://mera-web-staging.up.railway.app",
+  "startedAt": "2026-11-24T09:47:21.821Z",
+  "steps": [
+    {
+      "venue": "kerbside-grill",
+      "step": "Guest QR order and component stock",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "kerbside-grill",
+      "step": "Manual collection and tender or room label",
+      "pass": false,
+      "notes": "Journey stopped at this step; no automatic retry.",
+      "error": "locator.check: Clicking the checkbox did not change its state"
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Cashier counter POS order",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Cashier counter cash tender",
+      "pass": false,
+      "notes": "Journey stopped at this step; no automatic retry.",
+      "error": "locator.check: Clicking the checkbox did not change its state"
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Guest QR order and component stock",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Manual collection and tender or room label",
+      "pass": false,
+      "notes": "Journey stopped at this step; no automatic retry.",
+      "error": "locator.check: Clicking the checkbox did not change its state"
+    }
+  ],
+  "venues": [
+    {
+      "venue": "kerbside-grill",
+      "pass": false,
+      "orderIds": [
+        "ce945cbb-04ad-4fb9-bf57-de914014226a"
+      ]
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "pass": false,
+      "orderIds": [
+        "0cf82914-9d22-4b87-929d-73514bd87374"
+      ]
+    },
+    {
+      "venue": "harbour-hotel",
+      "pass": false,
+      "orderIds": [
+        "156fd17b-bea9-48df-ba10-45fb9b798f35"
+      ]
+    }
+  ],
+  "finishedAt": "2026-11-24T09:49:08.207Z",
+  "exitCode": 1
+}

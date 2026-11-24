@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import ReasonInput from "../ui/ReasonInput";
 import { customerRequest, requestId } from "./client";
 import {
   readCancellationJournal,
@@ -274,22 +275,13 @@ function ScopedGuestActivity({
                         );
                       }}
                     >
-                      <label>
-                        Cancellation reason
-                        <textarea
-                          name="reason"
-                          required
-                          minLength={3}
-                          maxLength={500}
-                          defaultValue={
-                            cancellationIntents.current.get(reservation.id)
-                              ?.reason || ""
-                          }
-                          readOnly={cancellationIntents.current.has(
-                            reservation.id,
-                          )}
-                        />
-                      </label>
+                      <CancellationReason
+                        original={
+                          cancellationIntents.current.get(reservation.id)
+                            ?.reason
+                        }
+                        busy={busy}
+                      />
                       {cancellationIntents.current.has(reservation.id) && (
                         <p role="status">
                           Keep the original reason while this request is
@@ -331,5 +323,33 @@ function ScopedGuestActivity({
         </>
       )}
     </section>
+  );
+}
+
+// Keep each booking's draft local; an uncertain request always submits its
+// immutable original reason, even while its visible choices are disabled.
+function CancellationReason({
+  original,
+  busy,
+}: {
+  original?: string;
+  busy: boolean;
+}) {
+  const [draft, setDraft] = useState(original || "");
+  const value = original ?? draft;
+  return (
+    <>
+      <ReasonInput
+        label="Cancellation reason"
+        value={value}
+        onChange={setDraft}
+        presets={["Plans changed", "Booked another time", "Unable to attend"]}
+        minLength={3}
+        maxLength={500}
+        required
+        disabled={busy || original !== undefined}
+      />
+      <input type="hidden" name="reason" value={value} />
+    </>
   );
 }

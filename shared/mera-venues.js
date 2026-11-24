@@ -46,6 +46,7 @@ const w = (days, start, end) => ({ days, start, end });
 
 export const TYPE_DEFAULTS = {
   quick_service: {
+    payLater: false,
     label: "Quick service & takeout",
     bestFor: "Counters, kiosks, pickup and food courts",
     youGet: [
@@ -59,6 +60,7 @@ export const TYPE_DEFAULTS = {
     cutoff: 0,
   },
   cafe: {
+    payLater: false,
     label: "Café",
     bestFor: "Coffee, tea, bakery and bubble tea",
     youGet: [
@@ -72,6 +74,7 @@ export const TYPE_DEFAULTS = {
     cutoff: 0,
   },
   casual_dining: {
+    payLater: true,
     label: "Casual dining restaurant",
     bestFor: "Sit-down restaurants",
     youGet: ["Table service and running bills", "Split bills", "Walk-in waitlist"],
@@ -81,6 +84,7 @@ export const TYPE_DEFAULTS = {
     cutoff: 0,
   },
   reservation_restaurant: {
+    payLater: true,
     label: "Reservation-led restaurant",
     bestFor: "Fine dining and set menus",
     youGet: ["Bookings by time slot", "Deposits and cancellation rules", "Front desk"],
@@ -97,6 +101,7 @@ export const TYPE_DEFAULTS = {
     cutoff: 0,
   },
   lounge: {
+    payLater: true,
     label: "Lounge",
     bestFor: "Lounges, shisha and rooftop bars",
     youGet: ["Open tabs per table", "Minimum spend by section", "Table bookings"],
@@ -114,6 +119,7 @@ export const TYPE_DEFAULTS = {
     cutoff: 360,
   },
   club: {
+    payLater: true,
     label: "Club & nightlife",
     bestFor: "Clubs and events",
     youGet: ["VIP table bookings and bottle packages", "Minimum spend and deposits", "Door and guest list"],
@@ -131,6 +137,7 @@ export const TYPE_DEFAULTS = {
     cutoff: 420,
   },
   hotel_fb: {
+    payLater: true,
     label: "Hotel food & beverage",
     bestFor: "Hotel restaurants, pool bars and room service",
     youGet: ["Several outlets under one property", "Charge to room", "Table bookings"],

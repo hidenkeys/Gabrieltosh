@@ -109,7 +109,7 @@ export function buildVenuePortfolio({ now = new Date(), days = 14 } = {}) {
           launchAcknowledged: !stockRoom,
           publicContact: `hello.${slug}@example.test`,
           capacity: 60,
-          payLater: caps.includes("open_tabs"),
+          payLater: defaults.payLater || caps.includes("open_tabs"),
           reservationsEnabled: caps.includes("reservations"),
           syntheticPortfolio: "portfolio-v1",
         },

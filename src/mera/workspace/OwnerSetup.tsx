@@ -155,6 +155,7 @@ function GuidedSetup({
           ],
           serviceHours: b.settings?.serviceHours || TYPE_DEFAULTS[type].hours,
           cutoff: b.cutoff ?? TYPE_DEFAULTS[type].cutoff,
+          payLater: b.settings?.payLater ?? TYPE_DEFAULTS[type].payLater,
           version: b.settings?.version || 1,
         };
       }),
@@ -260,6 +261,7 @@ function GuidedSetup({
                 ? {
                     serviceHours: TYPE_DEFAULTS[type].hours,
                     cutoff: TYPE_DEFAULTS[type].cutoff,
+                    payLater: TYPE_DEFAULTS[type].payLater,
                   }
                 : {}),
             }
@@ -317,6 +319,8 @@ function GuidedSetup({
                 venueType,
                 capabilities,
                 reservationsEnabled: capabilities.includes("reservations"),
+                payLater:
+                  locations[0]?.payLater ?? TYPE_DEFAULTS[venueType].payLater,
               },
               "settings",
               0,
@@ -370,6 +374,8 @@ function GuidedSetup({
                 id ? `${orgBase}/branches/${id}/settings` : "",
                 {
                   ...settings,
+                  payLater:
+                    settings.payLater ?? TYPE_DEFAULTS[l.venueType].payLater,
                   requestKey: crypto.randomUUID(),
                   version: id ? locationVersions.current[id] || version : 1,
                 },
@@ -664,6 +670,10 @@ function GuidedSetup({
                           l.venueType === venueType
                             ? l.serviceHours
                             : TYPE_DEFAULTS[venueType].hours,
+                        payLater:
+                          l.venueType === venueType
+                            ? (l.payLater ?? TYPE_DEFAULTS[venueType].payLater)
+                            : TYPE_DEFAULTS[venueType].payLater,
                         cutoff:
                           l.venueType === venueType
                             ? l.cutoff

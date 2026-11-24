@@ -3879,6 +3879,7 @@ export default function OrganizationWorkspace({
                             {
                               tableId: tabForm.tableId,
                               displayName: tabForm.visitName,
+                              partySize: Number(tabForm.partySize ?? 2),
                               ...minimumSpendAck,
                             },
                             "Visit opened.",
@@ -3913,6 +3914,14 @@ export default function OrganizationWorkspace({
                             ))}
                         </ChoiceField>
                         {field("Guest display name", "visitName")}
+                        <Stepper
+                          label="Party size"
+                          value={Number(tabForm.partySize ?? 2)}
+                          min={1}
+                          max={100}
+                          required
+                          onChange={(partySize) => updateForm("partySize", partySize)}
+                        />
                         {minimumSpendField}
                         <div className="mw-wide">
                           <button

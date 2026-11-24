@@ -159,35 +159,43 @@ test("cancellation disclosure is closed until chosen and uncertain retries prese
   fireEvent.click(screen.getByText("Request cancellation"));
   assert.equal(details.open, true);
   assert.equal(bodies.length, 0);
+  assert.equal(
+    screen.queryByRole("textbox", { name: "Cancellation reason details" }),
+    null,
+  );
+  fireEvent.click(screen.getByRole("radio", { name: "Other", exact: true }));
   const reason = screen.getByRole("textbox", {
-    name: "Cancellation reason",
+    name: "Cancellation reason details",
   }) as HTMLTextAreaElement;
-  assert.equal(reason.readOnly, false);
+  assert.equal(reason.disabled, false);
   fireEvent.change(reason, { target: { value: originalReason } });
   assert.equal(bodies.length, 0);
   fireEvent.click(
     screen.getByRole("button", { name: "Send cancellation request" }),
   );
   await screen.findByRole("alert");
-  assert.equal(reason.readOnly, true);
+  assert.equal(reason.disabled, true);
   assert.equal(reason.value, originalReason);
   assert(screen.getByText(/A retry sends the same request/));
   fireEvent.click(
     screen.getByRole("button", { name: "Retry cancellation request" }),
   );
   await screen.findByText("Please try later");
-  assert.equal(reason.readOnly, true);
+  assert.equal(reason.disabled, true);
   assert.equal(reason.value, originalReason);
   assert.equal(bodies.length, 2);
   assert.deepEqual(bodies[0], bodies[1]);
   assert.match(bodies[0].requestKey, /^[a-f0-9-]{36}$/);
-  // Even a programmatic attempt to change a readonly field cannot silently
-  // create a replacement cancellation with a different reason or key.
-  reason.value = "Changed reason after uncertainty";
+  // Tampering with the submitted hidden value cannot silently create a
+  // replacement cancellation with a different reason or key.
+  const submittedReason = details.querySelector(
+    'input[name="reason"]',
+  ) as HTMLInputElement;
+  submittedReason.value = "Changed reason after uncertainty";
   fireEvent.submit(details.querySelector("form")!);
   await screen.findByText(/before changing its reason/);
   assert.equal(bodies.length, 2);
-  reason.value = originalReason;
+  submittedReason.value = originalReason;
   fireEvent.click(
     screen.getByRole("button", { name: "Retry cancellation request" }),
   );
@@ -195,7 +203,7 @@ test("cancellation disclosure is closed until chosen and uncertain retries prese
   assert.equal(bodies.length, 3);
   assert.deepEqual(bodies[0], bodies[2]);
   assert.equal(
-    screen.queryByRole("textbox", { name: "Cancellation reason" }),
+    screen.queryByRole("textbox", { name: "Cancellation reason details" }),
     null,
   );
   assert.equal(
@@ -236,8 +244,9 @@ function submitReason(reason = "Original cancellation reason") {
   fireEvent.click(
     screen.getByText("Request cancellation", { selector: "summary" }),
   );
+  fireEvent.click(screen.getByRole("radio", { name: "Other", exact: true }));
   fireEvent.change(
-    screen.getByRole("textbox", { name: "Cancellation reason" }),
+    screen.getByRole("textbox", { name: "Cancellation reason details" }),
     { target: { value: reason } },
   );
   fireEvent.click(
@@ -424,4 +433,43 @@ test("invalid stored cancellation blocks replacement without exposing untrusted 
   );
   assert.equal(posts, 0);
   assert.equal(window.sessionStorage.length, 1);
+});
+
+test("guest cancellation presets submit the same reason body and lock choices after an uncertain result", async (t) => {
+  const bodies: any[] = [];
+  t.mock.method(globalThis, "fetch", async (input: any, init: any) => {
+    if (String(input).endsWith("/guest"))
+      return Response.json({ sessionRef: guestRef });
+    if (init.method === "GET")
+      return Response.json({ reservations: [booking], feedback: [] });
+    bodies.push(JSON.parse(init.body));
+    throw Error("lost acknowledgement");
+  });
+  render(<GuestActivity prefix={cancelPrefix} />);
+  await screen.findByText("Reservation confirmed");
+  fireEvent.click(
+    screen.getByText("Request cancellation", { selector: "summary" }),
+  );
+  assert.equal(screen.queryByRole("textbox"), null);
+  const preset = screen.getByRole("radio", {
+    name: "Plans changed",
+    exact: true,
+  }) as HTMLInputElement;
+  fireEvent.click(preset);
+  assert.equal(preset.checked, true);
+  assert.equal(preset.getAttribute("aria-checked"), "true");
+  fireEvent.click(
+    screen.getByRole("button", { name: "Send cancellation request" }),
+  );
+  await screen.findByRole("alert");
+  assert.equal(preset.matches(":disabled"), true);
+  assert.equal(bodies.length, 1);
+  assert.deepEqual(Object.keys(bodies[0]).sort(), ["reason", "requestKey"]);
+  assert.equal(bodies[0].reason, "Plans changed");
+  fireEvent.click(
+    screen.getByRole("button", { name: "Retry cancellation request" }),
+  );
+  await act(async () => {});
+  assert.equal(bodies.length, 2);
+  assert.deepEqual(bodies[1], bodies[0]);
 });

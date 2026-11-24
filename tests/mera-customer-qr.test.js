@@ -172,8 +172,9 @@ test("deposit cancellation shows pending review without claiming refund", async 
   fireEvent.click(
     screen.getByText("Request cancellation", { selector: "summary" }),
   );
+  fireEvent.click(screen.getByRole("radio", { name: "Other", exact: true }));
   fireEvent.change(
-    screen.getByRole("textbox", { name: "Cancellation reason" }),
+    screen.getByRole("textbox", { name: "Cancellation reason details" }),
     { target: { value: "Plans changed" } },
   );
   fireEvent.click(

@@ -1,5 +1,5 @@
 import { locationFields, locationSettings } from "./venue-access.js";
-import { defaultLocationCode,deriveVenueType } from "../../shared/mera-venues.js";
+import { defaultLocationCode,deriveVenueType,TYPE_DEFAULTS } from "../../shared/mera-venues.js";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { resolveRole } from "./roles.js";
@@ -146,7 +146,6 @@ export function mountMeraWorkspaceAdmin(router, { db, guard, scope, event }) {
               serviceModes: locationSettings(input).serviceModes,
               orderingPaused: true,
               reservationsEnabled: false,
-              payLater: false,
               showSoldOut: true,
               capacity: 30,
               holdMinutes: 10,
@@ -155,6 +154,7 @@ export function mountMeraWorkspaceAdmin(router, { db, guard, scope, event }) {
           settings.code=input.code||defaultLocationCode(input.name,existing.map(b=>b.settings?.code));
           if(existing.some(b=>b.settings?.code===settings.code))throw fail("Location code is already in use.");
           settings.venueType ||= deriveVenueType(settings);
+          settings.payLater = TYPE_DEFAULTS[settings.venueType].payLater;
           settings.role ||= 'outlet'; settings.colorTag ||= 'forest';settings.version=1;
           await c.query(
             "INSERT INTO mera_branches(id,organization_id,name,timezone,currency,cutoff,settings,menu_version,published_menu) VALUES($1,$2,$3,$4,$5,$6,$7,0,$8)",

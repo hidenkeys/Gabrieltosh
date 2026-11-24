@@ -1521,7 +1521,13 @@ export function createMeraRouter(db) {
   });
   router.post(B + "/visits", guard("tables.manage"), async (req, res) => {
     const input = z
-      .object({ tableId: uuid, displayName: z.string().trim().min(1).max(100),minimumSpendAcknowledged:z.boolean().optional(),minimumSpendPolicyVersion:z.string().max(120).optional() })
+      .object({
+        tableId: uuid,
+        displayName: z.string().trim().min(1).max(100),
+        partySize: z.number().int().min(1).max(100).default(2),
+        minimumSpendAcknowledged: z.boolean().optional(),
+        minimumSpendPolicyVersion: z.string().max(120).optional(),
+      })
       .parse(req.body);
     res.status(201).json(
       await locked(scope(req), async (c,b) => {
@@ -1534,6 +1540,8 @@ export function createMeraRouter(db) {
         const table = await find(c, scope(req), "table", input.tableId);
         if (table.status !== "available")
           throw fail("This table is not available.", 409);
+        if (input.partySize > table.capacity)
+          throw fail("This table is too small for the party.", 409);
         const code = randomBytes(4).toString("hex").toUpperCase();
         const visit = await record(c, scope(req), "visit", {
           tableId: table.id,
@@ -1542,6 +1550,7 @@ export function createMeraRouter(db) {
           minimumSpendPolicy,
           minimumSpendAcknowledgements:minimumSpendPolicy?[{actorId:req.user.id,actorType:"staff",policyVersion:minimumSpendPolicy.version,at:now()}]:[],
           displayName: input.displayName,
+          partySize: input.partySize,
           guestIds: [],
           joiningCodeHash: hash(code),
           openedBy: req.user.id,

@@ -631,6 +631,7 @@ test("venue settings retry after remount reuses the original request and does no
     );
     await screen.findByRole("heading", { name: "Locations" });
     assert.deepEqual(writes[0], writes[1]);
+    assert.equal(writes[0].body.payLater, true);
   } finally {
     cleanup();
     window.sessionStorage.clear();
@@ -785,8 +786,41 @@ test("new locations retain their exact creation key and overnight hours are spli
       w.path.endsWith("/second-location/settings"),
     );
     assert.ok(second);
+    assert.equal(second.body.payLater, true);
     assert.equal(second.body.serviceHours.length, 2);
     assert.ok(second.body.serviceHours.every((w: any) => w.end > w.start));
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
+  }
+});
+
+test("saving an unchanged venue type preserves its explicit pay-first preference", async () => {
+  window.sessionStorage.clear();
+  const writes: any[] = [];
+  try {
+    render(
+      <OwnerSetup
+        {...base}
+        branch={{
+          ...branch,
+          settings: { venueType: "casual_dining", payLater: false },
+        }}
+        onboarding={{ data: { "ownerGuideV3Step_branch-one": 2 } }}
+        save={async (path, _method, body) => {
+          writes.push({ path, body });
+          return path.endsWith("/settings") || path.endsWith("/operating")
+            ? { version: 2 }
+            : { saved: true, onboarding: { data: body.data } };
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByRole("heading", { name: "Locations" });
+    assert.equal(
+      writes.find((w) => w.path.endsWith("/settings")).body.payLater,
+      false,
+    );
   } finally {
     cleanup();
     window.sessionStorage.clear();

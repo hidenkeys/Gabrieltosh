@@ -54,3 +54,31 @@ User explicitly authorized temporarily opening only the affected test branches a
 Each scenario created a new order, recorded a synthetic payment, accepted the order, marked all preparation tickets ready, collected and completed it, and asserted the exact payment-method report delta. Cash scenarios also asserted the net-sales delta. The three completed QA orders and their stock/payment/audit records remain in staging. Hours and other business settings were restored, with normal settings-version increments retained.
 
 Evidence: `../../audit/venues-staging/checkout-checks.json` (three lifecycle passes plus three settings-restoration passes; no failures). These are authenticated hosted API workflows, not a claim that every checkout was performed through browser controls. Production, real money, email and physical printers were untouched. Previous 680-check browser evidence remains separate.
+
+## Browser end-to-end journeys
+
+The lead runs `scripts/mera-staging-browser-journeys.mjs`; local syntax validation is not hosted acceptance. It leaves fictional transactions in staging.
+
+```sh
+RUN_ID=lead-20261124-a node scripts/mera-staging-browser-journeys.mjs --only=kerbside-grill,harbour-hotel --open-hours=kerbside-grill,harbour-hotel
+```
+
+`ORIGIN` must equal `https://mera-web-staging.up.railway.app`. `CREDENTIALS` defaults to `/private/tmp/mera-staging-venues-20261124.json`. Omit `--only` for all seven venues. `--open-hours` defaults to none; only listed, selected venues may be temporarily opened. Original settings are saved before opening and verified restored in `finally` immediately after each venue. Restoration failure stops everything with exit 2; other failures continue independently and return exit 1.
+
+`JOURNAL` defaults to `/private/tmp/mera-staging-browser-journeys-<runId>.json` (0600). Every existing journal is refused before login, even if complete. Reuse `RUN_ID` to prevent accidental replay. Reconcile interrupted operations manually; a fresh ID intentionally creates fresh transactions. Evidence is written to `docs/audit/venues-staging-e2e/`: latest `results.json` and run-prefixed screenshots at 1440, plus 390 for guest steps. No credentials, cookies or joining codes are exported.
+
+The runner's first step for Oak, Velvet, Pulse and Harbour uses the owner settings UI to enable “Allow preparation before full payment” when off. It journals this as a permanent configuration change before taking the temporary-hours snapshot; hours restoration does not undo it. New type defaults do not rewrite existing staging data. This source update still needs the lead's build/release and hosted rerun.
+
+Walk-in party size now uses a stepper and persists `partySize`; guest cancellation uses preset reasons plus Other. Saffron records its required deposit before front-desk confirmation. Chip radios are clicked and their `aria-checked` state verified. The hotel surname field still accepts letters only: fictional “Fable” is used, with the run marker in the order name and payment note.
+
+Lead to fill after reviewing hosted results and screenshots:
+
+| Venue | Run ID | UI / server assertions | Screenshot review | Result / follow-up |
+| --- | --- | --- | --- | --- |
+| Kerbside Grill (SUR) | — | — | — | — |
+| Daybreak / Afterdark | — | — | — | — |
+| Oak & Ember (GDN) | — | — | — | — |
+| Saffron Room | — | — | — | — |
+| Velvet Lounge | — | — | — | — |
+| Pulse | — | — | — | — |
+| Harbour Hotel (POL; CST → RST) | — | — | — | — |

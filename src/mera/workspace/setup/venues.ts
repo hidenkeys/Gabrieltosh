@@ -9,6 +9,7 @@ type Preset = {
   capabilities: string[];
   hours: { days: number[]; start: string; end: string }[];
   cutoff: number;
+  payLater: boolean;
 };
 export const TYPE_DEFAULTS = catalogue.TYPE_DEFAULTS as Record<string, Preset>;
 export const VENUE_TYPES = catalogue.VENUE_TYPES as string[];

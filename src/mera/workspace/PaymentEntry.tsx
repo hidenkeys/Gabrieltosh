@@ -38,7 +38,13 @@ export default function PaymentEntry({
         <>
           <Chips
             label="Quick amount"
-            value=""
+            value={
+              received !== due
+                ? ""
+                : cash
+                  ? String(handed || due)
+                  : String(due)
+            }
             onChange={(value) => {
               const selected = Number(value);
               onChange({
