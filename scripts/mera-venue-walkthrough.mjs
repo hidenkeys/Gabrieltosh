@@ -40,7 +40,9 @@ async function check(venue, name, fn) {
       notes:
         error?.name === "TimeoutError"
           ? "UI timed out; inspect the named screen and selectors."
-          : `Assertion or UI action failed: ${String(error?.message || error).split("\n")[0].slice(0, 240)}`,
+          : `Assertion or UI action failed: ${String(error?.message || error)
+              .split("\n")[0]
+              .slice(0, 240)}`,
     });
   } finally {
     if (currentPage && !currentPage.isClosed()) {
@@ -106,9 +108,15 @@ async function go(page, name) {
 }
 async function snapshot(page, venue, screen) {
   const originalViewport = page.viewportSize();
-  const capture = /^(owner-real-ui-sign-in|venue-capability-navigation|Journey-checklist-inspect-Point-of-sale|Journey-checklist-inspect-Reservations|counter-QR)/i.test(screen);
-  for (const width of [390, 1440]) {
-    await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+  const capture =
+    /^(owner-real-ui-sign-in|venue-capability-navigation|Journey-checklist-inspect-Point-of-sale|Journey-checklist-inspect-Reservations|counter-QR)/i.test(
+      screen,
+    );
+  for (const width of [390, 820, 1440]) {
+    await page.setViewportSize({
+      width,
+      height: width === 390 ? 844 : width === 820 ? 1180 : 1000,
+    });
     await page.evaluate(() => document.fonts.ready);
     const fits = await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth + 1,
@@ -160,7 +168,9 @@ function observe(context, errors, network, signedIn = () => true) {
       ![403, 409].includes(response.status()) &&
       !(response.status() === 401 && !signedIn())
     )
-      network.push(`HTTP ${response.status()} ${new URL(response.url()).pathname}`);
+      network.push(
+        `HTTP ${response.status()} ${new URL(response.url()).pathname}`,
+      );
   });
 }
 async function login(org, role) {
@@ -285,7 +295,6 @@ try {
                 "Orders",
                 "Preparation",
                 "Customer requests",
-                "All locations",
                 "Overview",
                 "Menu & stock",
                 "Transactions",
@@ -363,20 +372,70 @@ try {
                   })
                   .waitFor();
               }
-              await go(page, "All locations");
+              const multipleOutlets =
+                org.branches.filter((b) => b.settings.role !== "stock_room")
+                  .length >= 2;
+              assert.equal(
+                await nav
+                  .getByRole("tab", { name: "All locations", exact: true })
+                  .count(),
+                multipleOutlets ? 1 : 0,
+                "All locations navigation must require at least two outlets",
+              );
               await page
-                .getByRole("heading", {
-                  level: 1,
-                  name: "All locations",
-                  exact: true,
-                })
-                .waitFor();
-              await page.locator(".mw-location-totals dd").first().waitFor();
-              const totals = await page
-                .locator(".mw-location-totals dd")
-                .allTextContents();
-              assert(Number(totals[0].replace(/[^\d.]/g, "")) > 0);
-              assert(Number(totals[1].replace(/[^\d.]/g, "")) > 0);
+                .getByRole("combobox", { name: "Location", exact: true })
+                .click();
+              assert.equal(
+                await page
+                  .getByRole("listbox", {
+                    name: "Location options",
+                    exact: true,
+                  })
+                  .getByRole("option")
+                  .filter({ hasText: "All locations" })
+                  .count(),
+                multipleOutlets ? 1 : 0,
+                "All locations switcher option must require at least two outlets",
+              );
+              await page.keyboard.press("Escape");
+              if (multipleOutlets) {
+                // The seed's sales age with time. A valid trading day can have zero
+                // sales, so compare the rendered result with the server response
+                // rather than asserting that today's revenue must be positive.
+                const overviewResponse = page.waitForResponse((response) => {
+                  const url = new URL(response.url());
+                  return (
+                    url.pathname ===
+                      `/api/mera/v1/organizations/${org.id}/overview` &&
+                    url.searchParams.get("preset") === "today" &&
+                    response.ok()
+                  );
+                });
+                await go(page, "All locations");
+                const overview = await (await overviewResponse).json();
+                await page.locator(".mw-location-totals dd").first().waitFor();
+                const totals = await page
+                  .locator(".mw-location-totals dd")
+                  .allTextContents();
+                assert(
+                  Number.isFinite(overview.totals.revenue),
+                  "Overview revenue must be a number",
+                );
+                assert(
+                  Number.isInteger(overview.totals.orders),
+                  "Overview order count must be an integer",
+                );
+                assert.equal(
+                  Math.round(Number(totals[0].replace(/[^\d.-]/g, "")) * 100),
+                  overview.totals.revenue,
+                  "Revenue must match the server's current trading-day total",
+                );
+                assert.equal(
+                  Number(totals[1].replace(/[^\d.-]/g, "")),
+                  overview.totals.orders,
+                  "Orders must match the server's current trading-day total",
+                );
+              }
             },
           );
 
@@ -530,7 +589,6 @@ try {
               );
             },
           );
-
         }
         if (venue === "kerbside-grill" && role === "cashier")
           await check(venue, "SUR cashier cannot reach LKI", async () => {
