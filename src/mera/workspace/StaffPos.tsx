@@ -1,3 +1,9 @@
+import CustomizationDialog from "../customer/CustomizationDialog";
+import {
+  choiceKey,
+  choiceComplete,
+  selectedChoices,
+} from "../customer/ItemContents";
 import ChoiceField from "../ui/ChoiceField";
 import { useState, type ReactNode } from "react";
 import { Search, ShoppingBag, Plus } from "lucide-react";
@@ -9,6 +15,7 @@ import { validateStaffSelection } from "./staffSelection";
 
 export default function StaffPos({
   products,
+  hasTable = false,
   lines,
   onChange,
   disabled,
@@ -18,6 +25,7 @@ export default function StaffPos({
   useBingChunAssets = false,
 }: {
   products: any[];
+  hasTable?: boolean;
   lines: any[];
   onChange: (lines: any[]) => void;
   disabled: boolean;
@@ -26,6 +34,9 @@ export default function StaffPos({
   staffName: string;
   useBingChunAssets?: boolean;
 }) {
+  const [sheetModifiers, setSheetModifiers] = useState<string[]>([]);
+  const [choosing, setChoosing] = useState<any>(null),
+    [choiceKeys, setChoiceKeys] = useState<string[]>([]);
   const [query, setQuery] = useState(""),
     [category, setCategory] = useState(""),
     [mobileView, setMobileView] = useState("menu");
@@ -51,6 +62,8 @@ export default function StaffPos({
       ? "Complete selections"
       : formatMoney(validation.estimate);
   function add(product: any) {
+    if (product.requiresTable && !hasTable) return;
+
     const current = lines.find((l) => l.productId === product.id);
     if (current) {
       onChange(
@@ -58,6 +71,10 @@ export default function StaffPos({
           l === current ? { ...l, quantity: Math.min(100, l.quantity + 1) } : l,
         ),
       );
+    } else if (product.kind === "combo" || product.kind === "package") {
+      setChoosing(product);
+      setChoiceKeys([]);
+      setSheetModifiers([]);
     } else
       onChange([
         ...lines,
@@ -66,6 +83,77 @@ export default function StaffPos({
   }
   return (
     <div className="mw-pos">
+      {choosing && (
+        <div className="mera-customer mw-pos-choice">
+          <CustomizationDialog
+            product={choosing}
+            addLabel="Add to order"
+            products={products}
+            variantId=""
+            modifierIds={sheetModifiers}
+            choiceKeys={choiceKeys}
+            onChoicesChange={setChoiceKeys}
+            hasTable={hasTable}
+            estimate={
+              choosing.price +
+              (choosing.choiceGroups || [])
+                .flatMap((g: any) =>
+                  g.options.filter((o: any) =>
+                    choiceKeys.includes(choiceKey(g.id, o)),
+                  ),
+                )
+                .reduce((sum: number, o: any) => sum + o.priceDelta, 0) +
+              (choosing.modifierGroups || [])
+                .flatMap((g: any) =>
+                  g.options.filter((o: any) => sheetModifiers.includes(o.id)),
+                )
+                .reduce((sum: number, o: any) => sum + o.price, 0)
+            }
+            disabled={disabled}
+            onVariantChange={() => {}}
+            onModifierToggle={(id, checked) =>
+              setSheetModifiers((old) =>
+                checked ? [...old, id] : old.filter((k) => k !== id),
+              )
+            }
+            onClose={() => setChoosing(null)}
+            onAdd={() => {
+              if (
+                !choiceComplete(choosing.choiceGroups || [], choiceKeys) ||
+                !validateStaffSelection(
+                  [choosing],
+                  [
+                    {
+                      productId: choosing.id,
+                      quantity: 1,
+                      modifiers: sheetModifiers,
+                      choices: selectedChoices(
+                        choosing.choiceGroups || [],
+                        choiceKeys,
+                      ),
+                    },
+                  ],
+                ).complete
+              )
+                return;
+              const old = lines.find((l) => l.productId === choosing.id);
+              onChange([
+                ...lines.filter((l) => l.productId !== choosing.id),
+                {
+                  productId: choosing.id,
+                  quantity: Math.min(100, (old?.quantity || 0) + 1),
+                  modifiers: sheetModifiers,
+                  choices: selectedChoices(
+                    choosing.choiceGroups || [],
+                    choiceKeys,
+                  ),
+                },
+              ]);
+              setChoosing(null);
+            }}
+          />
+        </div>
+      )}
       <div className="mw-pos-mobile-switch" aria-label="Counter view">
         <button
           type="button"
@@ -141,7 +229,7 @@ export default function StaffPos({
               type="button"
               key={p.id}
               className="product-card"
-              disabled={disabled}
+              disabled={disabled || (p.requiresTable && !hasTable)}
               aria-label={"Add " + p.name + " to order"}
               onClick={() => add(p)}
             >
@@ -164,6 +252,15 @@ export default function StaffPos({
               <div className="product-info">
                 <p>{p.category}</p>
                 <h3>{p.name}</h3>
+                {p.kind === "package" && (
+                  <small>
+                    Package{p.serves ? ` · Serves ${p.serves}` : ""}
+                  </small>
+                )}
+                {p.kind === "combo" && <small>Combo</small>}
+                {p.requiresTable && (
+                  <small>Available for booked or seated tables</small>
+                )}
                 <div className="product-bottom">
                   <strong>{catalogPriceLabel(p)}</strong>
                   <span>{p.size}</span>
@@ -207,6 +304,7 @@ export default function StaffPos({
             <>
               <StaffOrderItems
                 products={selected}
+                catalogProducts={products}
                 lines={lines}
                 disabled={disabled}
                 onChange={onChange}

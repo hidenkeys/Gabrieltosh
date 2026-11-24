@@ -1,3 +1,4 @@
+import ItemContents from "../customer/ItemContents";
 import { useDialogFocus } from "../ui/useDialogFocus";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
@@ -49,6 +50,35 @@ const previewSchema = identity.extend({
     .array(
       z.object({
         id,
+        kind: z.enum(["single", "package", "combo"]).optional(),
+        serves: z.number().int().nullable().optional(),
+        requiresTable: z.boolean().optional(),
+        components: z
+          .array(
+            z.object({
+              productId: id,
+              variantId: z.string().nullable().optional(),
+              quantity: z.number().int(),
+            }),
+          )
+          .optional(),
+        choiceGroups: z
+          .array(
+            z.object({
+              id: z.string(),
+              name: z.string(),
+              min: z.number().int(),
+              max: z.number().int(),
+              options: z.array(
+                z.object({
+                  productId: id,
+                  variantId: z.string().nullable().optional(),
+                  priceDelta: amount,
+                }),
+              ),
+            }),
+          )
+          .optional(),
         name: z.string().max(120),
         price: amount,
         category: z.string().max(120).optional(),
@@ -395,6 +425,10 @@ function ScopedPublication({
                     <li key={product.id}>
                       <span>
                         <strong>{product.name}</strong>
+                        <ItemContents
+                          item={product}
+                          products={review?.products || []}
+                        />
                         {product.category && <small>{product.category}</small>}
                         {product.size && <small>Size: {product.size}</small>}
                         {(!!product.variants?.length ||

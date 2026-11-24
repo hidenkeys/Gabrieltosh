@@ -1,3 +1,8 @@
+import ItemContents, {
+  ComboChoices,
+  choiceKey,
+  selectedChoices,
+} from "../customer/ItemContents";
 import Stepper from "../ui/Stepper";
 import Segmented from "../ui/Segmented";
 import Chips from "../ui/Chips";
@@ -7,11 +12,13 @@ import { catalogPriceLabel } from "./catalogPresentation";
 import { validateStaffSelection } from "./staffSelection";
 export default function StaffOrderItems({
   products,
+  catalogProducts = products,
   lines,
   onChange,
   disabled,
 }: {
   products: any[];
+  catalogProducts?: any[];
   lines: any[];
   onChange: (lines: any[]) => void;
   disabled: boolean;
@@ -72,6 +79,23 @@ export default function StaffOrderItems({
               )}
               {line && (
                 <div className="mw-form">
+                  <ItemContents item={product} products={catalogProducts} />
+                  <ComboChoices
+                    groups={product.choiceGroups || []}
+                    products={catalogProducts}
+                    keys={(line.choices || []).map((c: any) =>
+                      choiceKey(c.groupId, c),
+                    )}
+                    onChange={(keys) =>
+                      update(product.id, {
+                        choices: selectedChoices(
+                          product.choiceGroups || [],
+                          keys,
+                        ),
+                      })
+                    }
+                    disabled={disabled}
+                  />
                   {product.variants?.length > 0 &&
                     (() => {
                       const Choice =

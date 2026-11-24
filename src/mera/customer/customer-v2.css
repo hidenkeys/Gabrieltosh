@@ -936,3 +936,7 @@
 .mc-help-custom[open] > summary {
   margin-bottom: 8px;
 }
+
+.mc-kind-badge { display: inline-block; font-size: .8rem; margin: 4px 8px 4px 0; color: var(--mc-primary); font-weight: 650; }
+.mc-item-contents { padding-left: 20px; font-size: .9rem; }
+.mc-preview-bar { position: sticky; top: 0; z-index: 20; padding: 12px; text-align: center; background: var(--mc-paper); color: var(--mc-primary); border-bottom: 1px solid var(--mc-line); font-weight: 650; }

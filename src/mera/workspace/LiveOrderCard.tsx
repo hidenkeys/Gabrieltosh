@@ -1,3 +1,4 @@
+import ItemContents from "../customer/ItemContents";
 import type { ReactNode } from "react";
 import { formatMoney } from "./api";
 export const orderStatusLabel = (value: string) =>
@@ -108,6 +109,14 @@ export default function LiveOrderCard({
         </div>
       </dl>
       <div className="mw-live-order-actions">{actions}</div>
+      {(order.items || [])
+        .filter((item: any) => item.components?.length)
+        .map((item: any, i: number) => (
+          <div key={i}>
+            <strong>{item.name}</strong>
+            <ItemContents item={item} />
+          </div>
+        ))}
       {children}
     </article>
   );

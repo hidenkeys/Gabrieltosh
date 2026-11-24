@@ -186,6 +186,12 @@ export default function SharedMenus({
                   <div className="mw-form mw-card" key={item.code}>
                     <b>
                       {item.name} · {item.code}
+                      {item.kind === "package"
+                        ? " · Package"
+                        : item.kind === "combo"
+                          ? " · Combo"
+                          : ""}
+                      {item.serves ? ` · Serves ${item.serves}` : ""}
                     </b>
                     <MoneyInput
                       label={`Override price for ${item.name} (naira)`}

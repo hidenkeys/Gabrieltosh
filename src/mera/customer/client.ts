@@ -14,6 +14,11 @@ export async function customerRequest<T = any>(
   body?: unknown,
   metadata?: { onServerDate?: (date: string | null) => void },
 ): Promise<T> {
+  if (
+    new URLSearchParams(window.location.search).has("preview") &&
+    !["GET", "HEAD"].includes(method.toUpperCase())
+  )
+    throw new Error("Preview - orders are off");
   const organizationSlug = customerOrganizationSlug(window.location.pathname);
   let response: Response;
   let data: any;
