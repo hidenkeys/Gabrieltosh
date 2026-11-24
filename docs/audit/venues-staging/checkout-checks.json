@@ -1,0 +1,105 @@
+{
+  "at": "2026-11-24T04:53:06.492Z",
+  "origin": "https://mera-web-staging.up.railway.app",
+  "checks": [
+    {
+      "venue": "kerbside-grill",
+      "check": "combo order → manual cash record → all station tickets ready → collected → completed → report",
+      "status": "passed",
+      "detail": {
+        "orderId": "77731271-52dc-46ab-b34a-4ae93ec5c615",
+        "total": 650000,
+        "method": "cash",
+        "componentStock": [
+          {
+            "code": "MAIN",
+            "quantity": 1,
+            "stockBefore": 80,
+            "stockAfter": 79
+          },
+          {
+            "code": "SIDE",
+            "quantity": 1,
+            "stockBefore": 80,
+            "stockAfter": 79
+          },
+          {
+            "code": "DRINK",
+            "quantity": 1,
+            "stockBefore": 80,
+            "stockAfter": 79
+          }
+        ],
+        "reportPaymentDelta": 650000,
+        "roomChargeSeparated": false
+      }
+    },
+    {
+      "venue": "kerbside-grill",
+      "check": "Original service hours and every non-version settings field restored",
+      "status": "passed"
+    },
+    {
+      "venue": "oak-ember",
+      "check": "package order → manual cash record → all station tickets ready → collected → completed → report",
+      "status": "passed",
+      "detail": {
+        "orderId": "16d952ee-3188-469a-a9bb-2d0750b041fa",
+        "total": 20000000,
+        "method": "cash",
+        "componentStock": [
+          {
+            "code": "MAIN",
+            "quantity": 1,
+            "stockBefore": 80,
+            "stockAfter": 79
+          },
+          {
+            "code": "DRINK",
+            "quantity": 6,
+            "stockBefore": 80,
+            "stockAfter": 74
+          }
+        ],
+        "reportPaymentDelta": 20000000,
+        "roomChargeSeparated": false
+      }
+    },
+    {
+      "venue": "oak-ember",
+      "check": "Original service hours and every non-version settings field restored",
+      "status": "passed"
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "single order → manual room_charge record → all station tickets ready → collected → completed → report",
+      "status": "passed",
+      "detail": {
+        "orderId": "79cca7f0-d67c-4c97-a9e1-f6346ca1bec8",
+        "total": 450000,
+        "method": "room_charge",
+        "componentStock": [
+          {
+            "code": "MAIN",
+            "quantity": 1,
+            "stockBefore": 80,
+            "stockAfter": 79
+          }
+        ],
+        "reportPaymentDelta": 450000,
+        "roomChargeSeparated": true
+      }
+    },
+    {
+      "venue": "harbour-hotel",
+      "check": "Original service hours and every non-version settings field restored",
+      "status": "passed"
+    }
+  ],
+  "limitations": [
+    "API checks do not replace browser verification.",
+    "Three synthetic branches temporarily open for checks; original settings verified restored.",
+    "Only synthetic manual payment records are created; no real funds or email."
+  ],
+  "finishedAt": "2026-11-24T04:53:42.804Z"
+}

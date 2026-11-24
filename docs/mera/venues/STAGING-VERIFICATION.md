@@ -21,7 +21,7 @@ User authorized deployment of mera-ux-next with the seven fictional venues and h
 | Web migration, portfolio and health | coordinator | Complete |
 | Matching durable worker | coordinator | Complete |
 | Seven-venue role/responsive walkthrough | pulse_checks | 680 passed, zero failures, 75 screenshots |
-| Hosted API acceptance | integration_checks | 17 passed, zero failures, 3 closed-hours scenarios blocked |
+| Hosted API acceptance | integration_checks | Initial 17 passed; subsequent three checkout workflows and three hours-restoration checks all passed |
 | Manual workspace/report check | coordinator | Owner login, All locations totals, queued export ready for download |
 | Evidence and credentials handoff | coordinator | Credentials private, no secrets committed |
 
@@ -31,7 +31,7 @@ User authorized deployment of mera-ux-next with the seven fictional venues and h
 - `../../audit/venues-staging/api-checks.json`: seven owner and seven cashier contexts, location configuration, secure cookies, tenant/platform isolation, manager role overrides, persisted guest check-in and stock-transfer receive/cancel.
 - Direct screenshot review: Kerbside All locations at 390 and 1440; Pulse overview at 390. Pulse shows prior trading day 2026-11-23 and ₦180,000. Not every screenshot was manually reviewed. The Pulse guest-list tablet image caught loading; API persistence is separate evidence.
 - Actual synthetic writes: one Pulse guest-list entry and one-person check-in, one hotel central-stock transfer of two units received, another one-unit transfer cancelled, and one organization CSV export. Seed history/settings preserved. No real money, email, production records or launch action.
-- Kerbside combo checkout, Oak package checkout and Harbour room-charge lifecycle were not exercised on staging because the configured venues were closed at test time. Hours were not bypassed. Prior isolated PostgreSQL lifecycle tests are recorded in VERIFICATION.md; they do not replace these hosted gates.
+- Initially blocked checkout gates are now closed: after explicit user approval, only the three affected fictional branches were temporarily opened through the versioned settings API. Kerbside combo, Oak package and Harbour room-charge orders completed on staging. Original service hours and all other non-version settings fields were verified restored in each finally block.
 - Chrome displayed the CSV job as ready in one attempt. The browser download confirmation timed out; do not count that action as a confirmed browser download. Screenshot: `../../audit/venues-staging/report-ready.png`. A separate authenticated API download returned HTTP 200 with a CSV attachment containing SUR, LKI, IKJ and organization totals; evidence: `../../audit/venues-staging/export-check.json`.
 - Physical receipt/sticker printing, live financial providers and production readiness remain separate gates.
 
@@ -40,3 +40,17 @@ User authorized deployment of mera-ux-next with the seven fictional venues and h
 Owner usernames are `<venue-slug>.owner@example.test`, for kerbside-grill, oak-ember, saffron-room, velvet-lounge, pulse, harbour-hotel and daybreak-afterdark. All use the private staging venue password delivered to the user. Staff role usernames and credentials are in the private local file `/private/tmp/mera-staging-venues-20261124.json`, mode 0600. They are organization accounts, not platform operators.
 
 Previous code revision `2068bd9131811af4834009aff8cc515ad4bcef9b` remains recorded as the rollback candidate, with previous web deployment `92fe51ba-9c07-4b9f-a8ea-09468e7afc1a` and jobs `56f29a93-dec1-456e-83f5-d31974a8338d`. Migrations are additive, but old code does not understand all new venue behavior. Review before rollback after new transactions; do not replace the database or rerun seeds.
+
+## Checkout follow-up — completed at 05:53 Africa/Lagos
+
+User explicitly authorized temporarily opening only the affected test branches and restoring hours afterwards. `scripts/mera-staging-checkout-check.js` targets the exact staging origin, checks synthetic portfolio markers, saves original settings privately before mutation, journals every write, and refuses automatic reruns after any previous attempt. No application defect was found; no new deployment was needed.
+
+| Scenario | Total | Verified component stock deduction | Result |
+| --- | --- | --- | --- |
+| Kerbside combo, manual cash | ₦6,500 | MAIN 1, SIDE 1, DRINK 1 | Completed; original settings restored |
+| Oak & Ember package, manual cash | ₦200,000 | MAIN 1, DRINK 6 | Completed; original settings restored |
+| Harbour Hotel room charge | ₦4,500 | MAIN 1 | Completed; charge separate from cash; original settings restored |
+
+Each scenario created a new order, recorded a synthetic payment, accepted the order, marked all preparation tickets ready, collected and completed it, and asserted the exact payment-method report delta. Cash scenarios also asserted the net-sales delta. The three completed QA orders and their stock/payment/audit records remain in staging. Hours and other business settings were restored, with normal settings-version increments retained.
+
+Evidence: `../../audit/venues-staging/checkout-checks.json` (three lifecycle passes plus three settings-restoration passes; no failures). These are authenticated hosted API workflows, not a claim that every checkout was performed through browser controls. Production, real money, email and physical printers were untouched. Previous 680-check browser evidence remains separate.

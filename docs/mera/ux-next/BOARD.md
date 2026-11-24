@@ -1,3 +1,5 @@
+> Checkout follow-up: all three previously closed-hours staging checkout scenarios now pass, with original venue settings verified restored. See [staging acceptance](../venues/STAGING-VERIFICATION.md).
+
 > Staging release update, 24 November 2026: `mera-ux-next` 6fad437 is deployed to both staging services with seven test venues. See [staging acceptance](../venues/STAGING-VERIFICATION.md) for current evidence and remaining hours/hardware gates. Earlier local-only statements below are historical.
 
 > Current venue follow-up: [`../venues/VERIFICATION.md`](../venues/VERIFICATION.md) records the 24 November 2026 local verification round. Older test counts and skipped-integration statements below describe historical checkpoints. No deployment is included in the current round.
