@@ -20,3 +20,9 @@ test("quote intent binds quantity and variant while normalizing modifier order",
  assert.equal(pricingItemsHash(input),pricingItemsHash({...input,items:[{...input.items[0],modifiers:["a","b"]}]}));
  assert.notEqual(pricingItemsHash(input),pricingItemsHash({...input,items:[{...input.items[0],quantity:2}]}));
 });
+test("quote intent binds combo choices while normalizing their order",()=>{
+ const first={groupId:"main",productId:"meal",variantId:null},second={groupId:"side",productId:"chips"};
+ const input={menuVersion:2,items:[{productId:"combo",quantity:1,choices:[first,second]}]};
+ assert.equal(pricingItemsHash(input),pricingItemsHash({...input,items:[{...input.items[0],choices:[second,first]}]}));
+ assert.notEqual(pricingItemsHash(input),pricingItemsHash({...input,items:[{...input.items[0],choices:[{...first,productId:"other"},second]}]}));
+});

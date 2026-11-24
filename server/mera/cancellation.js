@@ -1,3 +1,4 @@
+import { stockLines } from "./product-kinds.js";
 import { assertFinancialRequestActive } from "./financial-requests.js";
 import { priceBreakdown } from "./pricing.js";
 import { z } from "zod";
@@ -14,7 +15,7 @@ export function mountMeraCancellation(router,{guard,scope,locked,find,readRecord
    if(order.version!==input.version)throw fail("Order changed. Refresh before reviewing cancellation.",409,"STALE_VERSION");
    if(!line||input.quantity>line.quantity||!["submitted","accepted","preparing"].includes(order.status))throw fail("This item cannot be cancelled.",409);
    const tickets=(await c.query("SELECT data FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='ticket' AND data->>'orderId'=$3",[s.organizationId,s.branchId,order.id])).rows.map(r=>r.data);
-   const prepared=tickets.flatMap(t=>t.items).find(i=>i.orderLineId===line.orderLineId)?.preparedQuantity||0;
+   const prepared=Math.max(0,...tickets.flatMap(t=>t.items).filter(i=>i.orderLineId===line.orderLineId).map(i=>i.preparedQuantity||0));
    if(input.quantity>line.quantity-Math.max(prepared,line.fulfilledQuantity||0))throw fail("Prepared or handed-over quantities cannot be cancelled as unused stock.",409);
    const subtotal=(order.pricing?.subtotal??order.items.reduce((n,l)=>n+l.total,0))-line.unitPrice*input.quantity;
    const pricing=priceBreakdown(subtotal,order.pricing?.policySnapshot),amount=order.total-pricing.total;
@@ -38,7 +39,7 @@ export function mountMeraCancellation(router,{guard,scope,locked,find,readRecord
    if(!line||input.quantity>line.quantity)throw fail("Invalid item quantity.",409);
    const tickets=(await c.query("SELECT data FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='ticket' AND data->>'orderId'=$3",[s.organizationId,s.branchId,order.id])).rows.map(r=>r.data);
    const ticket=tickets.find(t=>t.items.some(i=>i.orderLineId===line.orderLineId)),ticketLine=ticket?.items.find(i=>i.orderLineId===line.orderLineId);
-   if(input.quantity>line.quantity-Math.max(ticketLine?.preparedQuantity||0,line.fulfilledQuantity||0))throw fail("Already prepared quantities cannot be cancelled as unprepared stock.",409);
+   if(input.quantity>line.quantity-Math.max(0,...tickets.flatMap(t=>t.items).filter(i=>i.orderLineId===line.orderLineId).map(i=>i.preparedQuantity||0),line.fulfilledQuantity||0))throw fail("Already prepared quantities cannot be cancelled as unprepared stock.",409);
    let reviewed;
    if(order.pricing?.policySnapshot?.enabled){
     if(!input.cancellationQuoteId)throw fail("Review the original-policy cancellation quote first.",409,"PRICING_REVIEW_REQUIRED");
@@ -82,16 +83,18 @@ export function mountMeraCancellation(router,{guard,scope,locked,find,readRecord
    }
    if(remaining)throw fail("Bill charges could not be reconciled. No cancellation was applied.",409);
    if(!order.holdExpired){
-    const product=await find(c,s,"product",line.productId),variant=product.variants?.find(v=>v.id===line.variantId);
-    if(product.stockMode==="counted")product.stock+=input.quantity;
-    if(variant?.stockMode==="counted")variant.stock+=input.quantity;
-    await save(c,s,"product",product.id,product);
-    await record(c,s,"stock_movement",{productId:product.id,variantId:line.variantId,quantity:input.quantity,type:"unprepared_item_cancelled",orderId:order.id,reason:input.reason,createdAt:stamp()});
+    for(const held of stockLines([{...line,quantity:input.quantity}])) {
+     const product=await find(c,s,"product",held.productId),variant=product.variants?.find(v=>v.id===held.variantId);
+     if(product.stockMode==="counted")product.stock+=held.quantity;
+     if(variant?.stockMode==="counted")variant.stock+=held.quantity;
+     await save(c,s,"product",product.id,product);
+     await record(c,s,"stock_movement",{productId:product.id,variantId:held.variantId,quantity:held.quantity,type:"unprepared_item_cancelled",orderId:order.id,reason:input.reason,createdAt:stamp()});
+    }
    }
    order.originalTotal??=order.total;
    line.originalQuantity??=line.quantity;line.cancelledQuantity=(line.cancelledQuantity||0)+input.quantity;line.quantity-=input.quantity;line.total=line.quantity*line.unitPrice;
    order.total-=amount;if(reviewed)order.pricing=reviewed.pricing;else if(order.pricing){order.pricing={...order.pricing,subtotal:order.pricing.subtotal-line.unitPrice*input.quantity,total:order.total};}order.effectivePaid=paidForBill(order);order.version++;order.paymentStatus=paymentStatus(order);
-   if(ticketLine){ticketLine.quantity-=input.quantity;ticketLine.cancelledQuantity=(ticketLine.cancelledQuantity||0)+input.quantity;ticket.version=(ticket.version||1)+1;ticket.status=ticket.items.every(i=>i.quantity===0)?"cancelled":ticket.items.every(i=>(i.preparedQuantity||0)===i.quantity)?"ready":ticket.status;await save(c,s,"ticket",ticket.id,ticket);}
+   for(const ticket of tickets){const ticketLine=ticket.items.find(i=>i.orderLineId===line.orderLineId);if(ticketLine){ticketLine.quantity-=input.quantity;ticketLine.cancelledQuantity=(ticketLine.cancelledQuantity||0)+input.quantity;ticket.version=(ticket.version||1)+1;ticket.status=ticket.items.every(i=>i.quantity===0)?"cancelled":ticket.items.every(i=>(i.preparedQuantity||0)===i.quantity)?"ready":ticket.status;await save(c,s,"ticket",ticket.id,ticket);}}
    if(order.items.every(i=>!i.quantity)){order.status="cancelled";order.stockHeld=false;}
    else if(order.status!=="submitted" && tickets.length && tickets.every(t=>["ready","cancelled"].includes(t.status))) order.status="ready";
    order.history.push({action:"item_cancelled",actorId:req.user.id,actorName:req.user.name,orderLineId:line.orderLineId,quantity:input.quantity,amount,reason:input.reason,at:stamp()});

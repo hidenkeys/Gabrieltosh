@@ -1,3 +1,4 @@
+import { componentAvailability } from "./product-kinds.js";
 import { fail, availableNow } from "./domain.js";
 export async function bindProductCategory(c,s,product) {
  if(!product.categoryId)return {...product,categoryId:null,categoryPath:[]};
@@ -18,7 +19,9 @@ export function publishedCounterProducts(branch, liveProducts) {
  return branch.published_menu.map(product=>{
   const live=liveById.get(product.id);
   return {...product,
-   available:!!live?.available && availableNow(product.availabilityWindows,branch.timezone),
+   components:(product.components||[]).map(c=>({...c,name:liveById.get(c.productId)?.name||"Unavailable item"})),
+   choiceGroups:(product.choiceGroups||[]).map(g=>({...g,options:g.options.map(o=>({...o,name:liveById.get(o.productId)?.name||"Unavailable item"}))})),
+   available:!!live?.available && componentAvailability(product,liveProducts) && availableNow(product.availabilityWindows,branch.timezone),
    stockMode:live?.stockMode || "unlimited",stock:live?.stock || 0,
    variants:product.variants.map(variant=>{
     const balance=live?.variants?.find(current=>current.id===variant.id);

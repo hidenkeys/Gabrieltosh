@@ -1,3 +1,4 @@
+import { validateProductReferences, stockLines } from "./product-kinds.js";
 import { migrateInboundForwarding } from "./inbound-forwarding.js";
 import { migrateCompanyLeads, mountCompanyLeads } from "./company-leads.js";
 import {withAccessLock,authorizeAccessTarget,beginAccessOperation,recordAccessOperation,recordAccess,mountMeraAccessAttempts} from "./access-attempts.js";
@@ -8,6 +9,7 @@ import { assertReservationRequestActive, assertStaffReservationRequestActive, as
 import { mountMeraRefundRequests, reviewRefundRequest, completeRefundRequest } from "./refund-requests.js";
 import { mountMeraWorkspaceAdmin } from "./workspace-admin.js";
 import { mountMeraStockHistory } from "./stock-history.js";
+import { mountMeraStockTransfers } from "./stock-transfers.js";
 import { assertOrderRequestActive, mountMeraOrderAttempts } from "./order-attempts.js";
 import express from "express";
 import { organizationSlugSchema,migrateMeraAliases,claimOrganizationSlug,resolveOrganizationSlug,mountMeraOrganizationAliases } from "./organization-aliases.js";
@@ -43,6 +45,7 @@ import { migrateMeraPlatform, mountMeraPlatform } from "./platform.js";
 import { mountMeraOperations } from "./operations.js";
 import { mountMeraZidi } from "./zidi.js";
 import { mountMeraQr } from "./qr.js";
+import { createPreviewTokens, previewWriteGuard, mountMeraQrPreview } from "./qr-preview.js";
 import { z } from "zod";
 import { randomUUID, randomBytes, createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -84,10 +87,12 @@ const intentHash = (input) => {
   const normalized = JSON.parse(JSON.stringify(input));
   delete normalized.requestKey;
   if (normalized.items)
-    normalized.items = normalized.items.map((line) => ({
-      ...line,
-      modifiers: [...(line.modifiers || [])].sort(),
-    }));
+    normalized.items = normalized.items.map((line) => {
+      const value={...line,modifiers:[...(line.modifiers||[])].sort()};
+      if(value.choices?.length)value.choices=[...value.choices].sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
+      else delete value.choices;
+      return value;
+    });
   const canonical = (v) =>
     Array.isArray(v)
       ? v.map(canonical)
@@ -244,6 +249,8 @@ export function createMeraRouter(db) {
     };
     next();
   });
+  const previewTokens = createPreviewTokens();
+  router.use("/public", previewWriteGuard);
   const rateBuckets = new Map();
   router.use("/public", (req, res, next) => {
     const key = req.ip + ":" + (req.method === "GET" ? "read" : "write");
@@ -615,6 +622,7 @@ export function createMeraRouter(db) {
     if(!req.meraMembership.permissions.includes("stock.adjust") && (input.stock>0 || input.variants.some(v=>v.stock>0))) throw fail("Opening stock requires stock adjustment permission.",403);
     res.status(201).json(
       await locked(scope(req), async (c) => {
+        validateProductReferences(input,(await readRecords(c,scope(req).organizationId,scope(req).branchId,"product")).map(r=>r.data));
         const p = await record(c, scope(req), "product", await bindProductCategory(c,scope(req),input));
         await event(c, scope(req), "product_created", req.user, {
           productId: p.id,
@@ -630,11 +638,14 @@ export function createMeraRouter(db) {
       await locked(scope(req), async (c) => {
         const old = await find(c, scope(req), "product", req.params.id);
         // Catalog edits cannot overwrite balances concurrently consumed by checkout.
-        input.stock=old.stock; input.stockMode=old.stockMode;
-        input.variants=input.variants.map(v=>{const previous=old.variants.find(o=>o.id===v.id);return {...v,stock:previous?.stock||0,stockMode:previous?.stockMode||"unlimited"};});
+        input.stock=old.stock; input.stockMode=input.kind==="single"?old.stockMode:"unlimited";
+        const referenceProducts=(await readRecords(c,scope(req).organizationId,scope(req).branchId,"product")).map(r=>r.data);
+        const prospective=referenceProducts.map(p=>p.id===old.id?{...input,id:old.id}:p);
+        for(const product of prospective)validateProductReferences(product,prospective);
+        input.variants=input.variants.map(v=>{const previous=old.variants.find(o=>o.id===v.id);return {...v,stock:previous?.stock||0,stockMode:input.kind==="single"?previous?.stockMode||"unlimited":"unlimited"};});
         const removed=old.variants.filter(v=>!input.variants.some(i=>i.id===v.id));
         const activeOrders=(await readRecords(c,scope(req).organizationId,scope(req).branchId,"order")).map(r=>r.data).filter(o=>o.stockHeld);
-        if(removed.some(v=>(v.stockMode==="counted" && v.stock>0) || activeOrders.some(o=>o.items.some(l=>l.productId===old.id && l.variantId===v.id)))) throw fail("Retain sizes with remaining stock or active stock holds.",409);
+        if(removed.some(v=>(v.stockMode==="counted" && v.stock>0) || activeOrders.some(o=>stockLines(o.items).some(l=>l.productId===old.id && l.variantId===v.id)))) throw fail("Retain sizes with remaining stock or active stock holds.",409);
         if(!Object.hasOwn(req.body,"categoryId"))input.categoryId=old.categoryId||null;
         const p = await update(c, scope(req), "product", old.id, await bindProductCategory(c,scope(req),{...input,id:old.id}));
         await event(c, scope(req), "product_updated", req.user, {
@@ -713,6 +724,7 @@ export function createMeraRouter(db) {
     res.json(
       await locked(scope(req), async (c) => {
         const p = await find(c, scope(req), "product", input.productId);
+        if((p.kind||"single")!=="single")throw fail("Adjust the component items for a package or combo.",409,"COMPONENT_STOCK_ONLY");
         const target=input.variantId ? p.variants.find(v=>v.id===input.variantId) : p;
         if(!target) throw fail("Variant not found.",404);
         const before = target.stock||0;
@@ -743,7 +755,7 @@ export function createMeraRouter(db) {
     for (const r of records) {
       const o = r.data;
       if (o.stockHeld && Date.parse(o.holdExpiresAt) <= Date.now()) {
-        for (const line of o.items) {
+        for (const line of stockLines(o.items)) {
           const p = await find(c, s, "product", line.productId);
           if (p.stockMode === "counted") p.stock += line.quantity;
           const variant=p.variants?.find(v=>v.id===line.variantId);
@@ -941,15 +953,23 @@ export function createMeraRouter(db) {
       )
         throw fail("Join this visit using its private joining code.", 403);
     }
+    let reservationContext=false;
+    if(input.reservationId){
+      if(source==="zidi")throw fail("Reservation integration scope is not configured.",409,"INTEGRATION_SCOPE_REQUIRED");
+      const reservation=await find(c,s,"reservation",input.reservationId);
+      if(!["confirmed","arrived","seated"].includes(reservation.status))throw fail("A confirmed active reservation is required.",409,"TABLE_REQUIRED");
+      if(guestId&&reservation.guestId!==guestId)throw fail("This reservation belongs to another guest.",403);
+      reservationContext=true;
+    }
     const current = (
       await readRecords(c, s.organizationId, s.branchId, "product")
     ).map((r) => r.data);
     const published = publishedCounterProducts(b,current);
     if(!availableNow(b.settings.serviceHours,b.timezone)) throw fail("Ordering is closed outside branch service hours.",409,"BRANCH_CLOSED");
-    const priced = quote(input.items, published);
+    const priced = quote(input.items, published, {tableContext:reservationContext||(input.fulfillment==="table_service"&&!!input.visitId)});
     const pricing=await resolveQuotedPricing(c,s,b,input,actor,guestId,priced.total);
     const quantities = new Map();
-    for (const l of priced.items)
+    for (const l of stockLines(priced.items))
       quantities.set(
         l.productId,
         (quantities.get(l.productId) || 0) + l.quantity,
@@ -969,7 +989,7 @@ export function createMeraRouter(db) {
       }
     }
     const variantTotals=new Map();
-    for(const line of priced.items) if(line.variantId) {const key=line.productId+":"+line.variantId; const old=variantTotals.get(key);variantTotals.set(key,{...line,quantity:(old?.quantity||0)+line.quantity});}
+    for(const line of stockLines(priced.items)) if(line.variantId) {const key=line.productId+":"+line.variantId; const old=variantTotals.get(key);variantTotals.set(key,{...line,quantity:(old?.quantity||0)+line.quantity});}
     for(const line of variantTotals.values()) {
       const product=await find(c,s,"product",line.productId),variant=product.variants.find(v=>v.id===line.variantId);
       if(variant?.stockMode==="counted") {
@@ -997,6 +1017,7 @@ export function createMeraRouter(db) {
       displayName: input.displayName,
       fulfillment: input.fulfillment,
       visitId: input.visitId || null,
+      reservationId:input.reservationId||null,
       source,
       staffCreatorId: source === "zidi" ? null : actor?.id || null,
       staffCreatorName:source==="zidi"?null:actor?.name||null,
@@ -1019,13 +1040,13 @@ export function createMeraRouter(db) {
     });
     await attachBill(c, s, order);
     await enqueuePaidDocuments(c,s,order,actor,{kind:"reservation_deposit_allocation",id:order.billId});
-    for (const station of new Set(priced.items.map((i) => i.station)))
+    for (const station of new Set(stockLines(priced.items).map((i) => i.station)))
       await record(c, s, "ticket", {
         orderId: order.id,
         station,
         status: "queued",
         version: 1,
-        items: order.items.filter((i) => i.station === station).map(i => ({...i, preparedQuantity: 0})),
+        items: order.items.filter(i=>i.components?.length?i.components.some(c=>c.station===station):i.station===station).map(i => ({...i,components:i.components?.filter(c=>c.station===station),preparedQuantity: 0})),
         createdAt: stamp,
       });
     await event(c, s, "order_submitted", actor, { orderId: order.id, source });
@@ -1090,7 +1111,7 @@ export function createMeraRouter(db) {
             (b.settings.payLater && input.status === "accepted"))
         ) {
           if (["cancelled", "rejected"].includes(input.status))
-            for (const line of o.items) {
+            for (const line of stockLines(o.items)) {
               const p = await find(c, scope(req), "product", line.productId);
               if (p.stockMode === "counted") p.stock += line.quantity;
               const variant=p.variants?.find(v=>v.id===line.variantId);
@@ -1969,10 +1990,12 @@ export function createMeraRouter(db) {
       )
     ).rows[0];
     if (!b) throw fail("Branch not found.", 404);
-    if(process.env.MERA_DEMO!=="true" && (organization.onboarding?.status!=="published" || b.settings.launchState!=="published")) throw fail("Menu not found.",404);
+    const preview = Object.hasOwn(req.query, "preview") ? previewTokens.verify(req.query.preview, organization.id, b.id) : null;
+    if (!preview && process.env.MERA_DEMO!=="true" && (organization.onboarding?.status!=="published" || b.settings.launchState!=="published")) throw fail("Menu not found.",404);
     return {
       organization,
       b,
+      preview,
       s: { organizationId: organization.id, branchId: b.id },
     };
   }
@@ -2039,12 +2062,15 @@ export function createMeraRouter(db) {
   });
   const P = "/public/:slug/:branchId";
   router.get(P + "/menu", async (req, res) => {
-    const { organization, b, s } = await publicContext(req);
-    await locked(s, (c) => releaseExpired(c, s));
+    const { organization, b, s, preview } = await publicContext(req);
+    if (preview) res.set("Cache-Control", "no-store");
+    else await locked(s, (c) => releaseExpired(c, s));
     const live = (await readRecords(db, organization.id, b.id, "product")).map(
       (r) => r.data,
     );
-    const products = publishedCounterProducts(b,live)
+    const menuBranch = preview && !b.menu_version ? {...b, published_menu: live} : b;
+    const products = publishedCounterProducts(menuBranch,live)
+      .map(({unitCost, ...product}) => product)
       .filter(
         (p) =>
           b.settings.showSoldOut ||
@@ -2065,14 +2091,16 @@ export function createMeraRouter(db) {
       version: b.menu_version,
       features:organizationFeatures(organization),
       products,
+      preview: !!preview,
+      previewMessage: preview ? "Preview, orders are off" : null,
       categories:b.settings.publishedCategories||[],
       tables,
       providers,
-      orderingAvailable: organizationFeatures(organization).flags.customer_ordering && !b.settings.orderingPaused && !!b.menu_version && availableNow(b.settings.serviceHours,b.timezone) && subscriptionEntitlement(organization.subscription,organization.subscription?.approvedPolicySnapshot||organization.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production").newOrdersAllowed,
+      orderingAvailable: !preview && organizationFeatures(organization).flags.customer_ordering && !b.settings.orderingPaused && !!b.menu_version && availableNow(b.settings.serviceHours,b.timezone) && subscriptionEntitlement(organization.subscription,organization.subscription?.approvedPolicySnapshot||organization.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production").newOrdersAllowed,
       pricingPolicy:b.settings.pricingPolicy||null,
       reservationPolicy: {
         minimumSpendPolicy:publicMinimumSpend(b.settings.minimumSpendPolicy),
-        enabled: !!b.settings.reservationsEnabled,
+        enabled: !preview && !!b.settings.reservationsEnabled,
         depositRequired: !!b.settings.depositRequired,
         minimumSpend: b.settings.minimumSpend || 0,
         depositPolicy: b.settings.depositPolicy
@@ -3136,6 +3164,7 @@ export function createMeraRouter(db) {
   mountMeraRefundRequests(router,{db,guard,scope,locked,readRecords,find,record,update,event});
   mountMeraWorkspaceAdmin(router,{db,guard,scope,event});
   mountMeraStockHistory(router,{db,guard,scope,locked,find,record,update,event});
+  mountMeraStockTransfers(router,{db,membership,record,update,event});
   mountMeraReservationAttempts(router,{publicContext,guest,locked,record,event,guard,scope});
   mountMeraShiftAttempts(router,{guard,scope,locked,record,event});
   mountMeraBillAttempts(router,{guard,scope,locked,find,record,event});
@@ -3193,6 +3222,7 @@ export function createMeraRouter(db) {
     reservation,
   });
   mountMeraCustomerFollowup(router,{db,publicContext,guest,locked,readRecords,find,update,event,publicOrder});
+  mountMeraQrPreview(router,{db,guard,scope,find,tokens:previewTokens});
   mountMeraQr(router, {
     publicContext,
     guest,

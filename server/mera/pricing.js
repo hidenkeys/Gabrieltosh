@@ -18,7 +18,7 @@ export function priceBreakdown(subtotal,policy) {
  const lines=[...(discount?[{type:"discount",label:policy.discount.label,amount:-discount}]:[]),...(serviceCharge?[{type:"service_charge",label:policy.serviceCharge.label,amount:serviceCharge}]:[]),...(tax?[{type:"tax",label:policy.tax.label,amount:tax}]:[])];
  return {subtotal,discount,serviceCharge,tax,total:assertMoney(net+serviceCharge+tax),lines,policyVersion:policy.version,policySnapshot:policy};
 }
-export const pricingItemsHash=input=>createHash("sha256").update(JSON.stringify({menuVersion:input.menuVersion,items:input.items.map(i=>({productId:i.productId,quantity:i.quantity,variantId:i.variantId||null,modifiers:[...(i.modifiers||[])].sort()}))})).digest("hex");
+export const pricingItemsHash=input=>createHash("sha256").update(JSON.stringify({menuVersion:input.menuVersion,items:input.items.map(i=>({productId:i.productId,quantity:i.quantity,variantId:i.variantId||null,modifiers:[...(i.modifiers||[])].sort(),...(i.choices?.length?{choices:i.choices.map(c=>({groupId:c.groupId,productId:c.productId,variantId:c.variantId||null})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)))}:{})}))})).digest("hex");
 export async function resolveQuotedPricing(c,s,b,input,actor,guestId,subtotal) {
  if(!b.settings.pricingPolicy?.enabled)return priceBreakdown(subtotal,null);
  if(!input.quoteId)throw fail("Review the current item, discount, charge and tax quote before submitting.",409,"QUOTE_REQUIRED");
@@ -42,7 +42,7 @@ export function mountMeraPricing(router,{guard,scope,locked,record,readRecords,e
 }
 
 export async function createPricingQuote({locked,record,readRecords},s,body,actor,guestId){
-  const input=orderInputSchema.pick({menuVersion:true,items:true}).strict().parse(body);
+  const input=orderInputSchema.pick({menuVersion:true,items:true,fulfillment:true,visitId:true,reservationId:true}).strict().parse(body);
   return locked(s,async(c,b)=>{
    const organization=(await c.query("SELECT platform_flags FROM mera_organizations WHERE id=$1",[s.organizationId])).rows[0];
    if(actor?.type==="integration")assertOrganizationFeature(organization,"zidi");
@@ -50,7 +50,18 @@ export async function createPricingQuote({locked,record,readRecords},s,body,acto
    if(input.menuVersion!==b.menu_version)throw fail("Menu changed. Refresh before requesting a quote.",409,"MENU_CHANGED");
    const live=(await readRecords(c,s.organizationId,s.branchId,"product")).map(r=>r.data);
    const products=publishedCounterProducts(b,live);
-   const amounts=priceBreakdown(quote(input.items,products).total,b.settings.pricingPolicy);
+   let tableContext=false;
+   if(input.fulfillment==="table_service"&&input.visitId){
+    const visit=(await c.query("SELECT data FROM mera_records WHERE id=$1 AND organization_id=$2 AND branch_id=$3 AND kind='visit'",[input.visitId,s.organizationId,s.branchId])).rows[0]?.data;
+    if(!visit||visit.status!=="open"||(guestId&&!visit.guestIds?.includes(guestId)))throw fail("Join a current table visit before requesting this quote.",403);
+    tableContext=true;
+   }
+   if(input.reservationId){
+    const reservation=(await c.query("SELECT data FROM mera_records WHERE id=$1 AND organization_id=$2 AND branch_id=$3 AND kind='reservation'",[input.reservationId,s.organizationId,s.branchId])).rows[0]?.data;
+    if(actor?.type==="integration"||!reservation||!["confirmed","arrived","seated"].includes(reservation.status)||(guestId&&reservation.guestId!==guestId))throw fail("Use a confirmed reservation from this location.",403);
+    tableContext=true;
+   }
+   const amounts=priceBreakdown(quote(input.items,products,{tableContext}).total,b.settings.pricingPolicy);
    const stored=await record(c,s,"order_quote",{...amounts,menuVersion:input.menuVersion,currency:b.currency,actorId:actor?.id||null,guestId:guestId||null,intentHash:pricingItemsHash(input),createdAt:stamp(),expiresAt:new Date(Date.now()+5*60000).toISOString()});
    const {actorId,guestId:ignored,intentHash,policySnapshot,...safe}=stored;return safe;
   });
