@@ -32,7 +32,7 @@ User authorized deployment of mera-ux-next with the seven fictional venues and h
 - Direct screenshot review: Kerbside All locations at 390 and 1440; Pulse overview at 390. Pulse shows prior trading day 2026-11-23 and ₦180,000. Not every screenshot was manually reviewed. The Pulse guest-list tablet image caught loading; API persistence is separate evidence.
 - Actual synthetic writes: one Pulse guest-list entry and one-person check-in, one hotel central-stock transfer of two units received, another one-unit transfer cancelled, and one organization CSV export. Seed history/settings preserved. No real money, email, production records or launch action.
 - Kerbside combo checkout, Oak package checkout and Harbour room-charge lifecycle were not exercised on staging because the configured venues were closed at test time. Hours were not bypassed. Prior isolated PostgreSQL lifecycle tests are recorded in VERIFICATION.md; they do not replace these hosted gates.
-- Chrome displayed the CSV job as ready in one attempt. The browser download confirmation timed out; do not count that action as a confirmed browser download. Screenshot: `../../audit/venues-staging/report-ready.png`.
+- Chrome displayed the CSV job as ready in one attempt. The browser download confirmation timed out; do not count that action as a confirmed browser download. Screenshot: `../../audit/venues-staging/report-ready.png`. A separate authenticated API download returned HTTP 200 with a CSV attachment containing SUR, LKI, IKJ and organization totals; evidence: `../../audit/venues-staging/export-check.json`.
 - Physical receipt/sticker printing, live financial providers and production readiness remain separate gates.
 
 ## Access and rollback
