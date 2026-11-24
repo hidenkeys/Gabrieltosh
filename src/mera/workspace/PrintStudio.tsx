@@ -1,3 +1,4 @@
+import { Sparkles } from "lucide-react";
 import UnitInput from "../ui/UnitInput";
 import Segmented from "../ui/Segmented";
 import Switch from "../ui/Switch";
@@ -78,6 +79,7 @@ function ScopedPrintStudio({
     [marker, setMarker] = useState<PrintStudioMarker | null>(null),
     [recoveryReady, setRecoveryReady] = useState(false),
     [notice, setNotice] = useState("");
+  const savedTemplateRef = useRef<any>(null);
   const markerRef = useRef<PrintStudioMarker | null>(null),
     originalRef = useRef<{ path: string; method: string; body: any } | null>(
       null,
@@ -106,6 +108,7 @@ function ScopedPrintStudio({
     setTemplates(value);
   }
   function deny() {
+    savedTemplateRef.current = null;
     originalRef.current = null;
     deniedRef.current = true;
     formatsGeneration.current++;
@@ -176,6 +179,7 @@ function ScopedPrintStudio({
       )
         return;
       if (!validTemplate(result)) throw new Error("Invalid format response");
+      savedTemplateRef.current = result;
       if (!unknownFormatRef.current && !dirtyRef.current) setTemplates(result);
       else setSavedReview(result);
     } catch (failure: any) {
@@ -408,6 +412,7 @@ function ScopedPrintStudio({
     setReprintUnknown(false);
     if (m.operation === "template_save") {
       if (result.status === "recorded") {
+        savedTemplateRef.current = result.result;
         setTemplates(result.result);
         dirtyRef.current = false;
         setDirty(false);
@@ -645,7 +650,7 @@ function ScopedPrintStudio({
     (a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0),
   );
   return (
-    <div className="mw-printing-qr">
+    <div className="mw-printing-qr mps-studio">
       {(marker || !recoveryReady) && (
         <section className="mw-card" aria-label="Print request recovery">
           <h2>Review the previous print request</h2>
@@ -700,12 +705,16 @@ function ScopedPrintStudio({
           {notice}
         </p>
       )}
-      <section className="mw-card">
-        <header className="mw-print-heading">
+      <section className="mps-editor" aria-label="Receipt and sticker studio">
+        <header className="mps-banner">
+          <span className="mps-banner-icon">
+            <Sparkles size={24} aria-hidden="true" />
+          </span>
           <div>
-            <h2>Receipts & stickers</h2>
+            <h2>Your brand, down to the last detail.</h2>
             <p>
-              Preview your documents, adjust their format and review the queue.
+              Design your customer receipt and product stickers. Saved templates
+              apply to future print jobs.
             </p>
           </div>
         </header>
@@ -730,226 +739,282 @@ function ScopedPrintStudio({
           <p role="status">Loading branch templates…</p>
         ) : !templates ? null : (
           <>
-            <div className="mw-print-preview">
-              <div className="mw-print-switch" aria-label="Document preview">
-                <button
-                  type="button"
-                  aria-pressed={preview === "receipt"}
-                  onClick={() => setPreview("receipt")}
-                >
-                  Receipt
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={preview === "label"}
-                  onClick={() => setPreview("label")}
-                >
-                  Sticker
-                </button>
-              </div>
-              <p>
-                Sample layout preview ·{" "}
-                {preview === "receipt"
-                  ? templates.receipt.paperWidth + " mm roll"
-                  : templates.label.width +
-                    " × " +
-                    templates.label.height +
-                    " mm sticker"}
-              </p>
-              {sampleError && <p role="alert">{sampleError}</p>}
-              {preview === "label" &&
-                !sampleError &&
-                (templates.label.width < 40 || templates.label.height < 30) && (
-                  <p className="mw-print-note">
-                    This small label may need more space; review all details and
-                    test on the actual printer.
-                  </p>
-                )}
-              <iframe
-                title={
-                  preview === "receipt"
-                    ? "Receipt sample preview"
-                    : "Sticker sample preview"
-                }
-                ref={frame}
-                srcDoc={sample}
-                sandbox="allow-same-origin allow-modals"
-              />
-              <button
-                type="button"
-                disabled={!!sampleError}
-                className="secondary"
-                onClick={() => {
-                  frame.current?.contentWindow?.focus();
-                  frame.current?.contentWindow?.print();
-                }}
-              >
-                Print sample through browser
-              </button>
-              <p className="mw-print-note">
-                A browser dialog does not confirm physical printing.
-              </p>
-            </div>
-            <Disclosure
-              className="mw-print-format"
-              summary="Edit receipt & sticker format"
-            >
-              {dirty && !formatUnknown && (
-                <p role="status">
-                  Unsaved format changes. Refreshing saved formats will not
-                  replace your draft.
-                </p>
-              )}
-              {dirty && !formatUnknown && (
-                <>
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={busy || formatLoading}
-                    onClick={() => void readTemplates()}
+            <div className="mps-layout">
+              <section className="mps-settings" aria-label="Template settings">
+                <header className="mps-panel-heading">
+                  <h3>Template settings</h3>
+                  <span
+                    className={`mps-badge ${dirty ? "mps-pending" : "mps-saved"}`}
                   >
-                    Read latest saved format
-                  </button>
-                  {savedReview && (
-                    <p>
-                      Latest saved heading: {savedReview.receipt.businessName}.
-                      Your draft is unchanged.
+                    {formatUnknown || marker?.operation === "template_save"
+                      ? "Save unconfirmed"
+                      : dirty
+                        ? "Unsaved changes"
+                        : "Saved"}
+                  </span>
+                </header>
+                <div className="mw-print-format mps-settings-body">
+                  {dirty && !formatUnknown && (
+                    <p role="status">
+                      Unsaved format changes. Refreshing saved formats will not
+                      replace your draft.
                     </p>
                   )}
-                </>
-              )}
-              {formatUnknown && (
-                <div className="mw-note" role="status">
-                  <strong>Format save unconfirmed</strong>
-                  <p>
-                    Further edits are paused. Use the print-request recovery
-                    controls to check, retry or stop the original save before
-                    making a new one.
-                  </p>
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={busy || formatLoading}
-                    onClick={() => void readTemplates()}
-                  >
-                    Read latest saved format
-                  </button>
-                  {savedReview && (
-                    <p>
-                      Latest saved heading: {savedReview.receipt.businessName} ·
-                      Version {savedReview.version ?? "unavailable"}. Reading it
-                      does not cancel a delayed save.
-                    </p>
+                  {dirty && !formatUnknown && (
+                    <>
+                      <button
+                        type="button"
+                        className="secondary"
+                        disabled={busy || formatLoading}
+                        onClick={() => void readTemplates()}
+                      >
+                        Read latest saved format
+                      </button>
+                      {savedReview && (
+                        <p>
+                          Latest saved heading:{" "}
+                          {savedReview.receipt.businessName}. Your draft is
+                          unchanged.
+                        </p>
+                      )}
+                    </>
                   )}
+                  {formatUnknown && (
+                    <div className="mw-note" role="status">
+                      <strong>Format save unconfirmed</strong>
+                      <p>
+                        Further edits are paused. Use the print-request recovery
+                        controls to check, retry or stop the original save
+                        before making a new one.
+                      </p>
+                      <button
+                        type="button"
+                        className="secondary"
+                        disabled={busy || formatLoading}
+                        onClick={() => void readTemplates()}
+                      >
+                        Read latest saved format
+                      </button>
+                      {savedReview && (
+                        <p>
+                          Latest saved heading:{" "}
+                          {savedReview.receipt.businessName} · Version{" "}
+                          {savedReview.version ?? "unavailable"}. Reading it
+                          does not cancel a delayed save.
+                        </p>
+                      )}
+                    </div>
+                  )}{" "}
+                  <form
+                    className="mw-form"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void saveFormat();
+                    }}
+                  >
+                    <fieldset
+                      disabled={
+                        disabled ||
+                        busy ||
+                        !!marker ||
+                        !recoveryReady ||
+                        !!formatUnknown
+                      }
+                      className="mw-print-format-fields"
+                    >
+                      <h4 className="mps-field-heading">Business details</h4>
+                      <label>
+                        Business heading
+                        <input
+                          required
+                          maxLength={100}
+                          value={templates.receipt.businessName}
+                          onChange={(e) =>
+                            editTemplates({
+                              ...templates,
+                              receipt: {
+                                ...templates.receipt,
+                                businessName: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </label>
+                      <h4 className="mps-field-heading">
+                        Receipt layout & content
+                      </h4>
+                      <Segmented
+                        label="Receipt roll"
+                        value={String(templates.receipt.paperWidth)}
+                        onChange={(value) =>
+                          editTemplates({
+                            ...templates,
+                            receipt: {
+                              ...templates.receipt,
+                              paperWidth: Number(value),
+                            },
+                          })
+                        }
+                        options={[
+                          { value: "58", label: "58 mm" },
+                          { value: "80", label: "80 mm" },
+                        ]}
+                      />
+                      <label>
+                        Footer
+                        <textarea
+                          maxLength={300}
+                          value={templates.receipt.footer}
+                          onChange={(e) =>
+                            editTemplates({
+                              ...templates,
+                              receipt: {
+                                ...templates.receipt,
+                                footer: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </label>
+                      <Switch
+                        label="Show staff"
+                        description="Include the staff member's name on receipts."
+                        checked={templates.receipt.showStaff}
+                        onChange={(value) =>
+                          editTemplates({
+                            ...templates,
+                            receipt: { ...templates.receipt, showStaff: value },
+                          })
+                        }
+                      />
+                      <h4 className="mps-field-heading">Sticker stock</h4>
+                      {(["width", "height"] as const).map((key) => (
+                        <UnitInput
+                          key={key}
+                          label={`Sticker ${key} (mm)`}
+                          unit="mm"
+                          required
+                          min={key === "width" ? 20 : 15}
+                          max={key === "width" ? 60 : 150}
+                          value={templates.label[key]}
+                          onChange={(value) =>
+                            editTemplates({
+                              ...templates,
+                              label: {
+                                ...templates.label,
+                                [key]: Number(value),
+                              },
+                            })
+                          }
+                          presets={(key === "width"
+                            ? [40, 50, 60]
+                            : [30, 50, 80]
+                          ).map((value) => ({ value }))}
+                        />
+                      ))}
+                      <div className="mw-wide mps-actions">
+                        <button
+                          className="primary"
+                          disabled={disabled || !dirty}
+                        >
+                          {busy ? "Saving…" : "Save templates"}
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary"
+                          disabled={!dirty || !savedTemplateRef.current}
+                          onClick={() => {
+                            editTemplates(savedTemplateRef.current);
+                            dirtyRef.current = false;
+                            setDirty(false);
+                            setSavedReview(null);
+                          }}
+                        >
+                          Discard changes
+                        </button>
+                      </div>
+                    </fieldset>
+                  </form>
                 </div>
-              )}{" "}
-              <form
-                className="mw-form"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void saveFormat();
-                }}
-              >
-                <fieldset
-                  disabled={
-                    disabled ||
-                    busy ||
-                    !!marker ||
-                    !recoveryReady ||
-                    !!formatUnknown
-                  }
-                  className="mw-print-format-fields"
+              </section>
+              <div className="mw-print-preview mps-preview">
+                <header className="mps-preview-heading">
+                  <span>Live preview</span>
+                  <h3>
+                    {preview === "receipt"
+                      ? "The finishing touch."
+                      : "A little label. A clear order."}
+                  </h3>
+                </header>
+                <div className="mw-print-switch" aria-label="Document preview">
+                  <button
+                    type="button"
+                    aria-pressed={preview === "receipt"}
+                    onClick={() => setPreview("receipt")}
+                  >
+                    Receipt
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={preview === "label"}
+                    onClick={() => setPreview("label")}
+                  >
+                    Sticker
+                  </button>
+                </div>
+                <p>
+                  Sample layout preview ·{" "}
+                  {preview === "receipt"
+                    ? templates.receipt.paperWidth + " mm roll"
+                    : templates.label.width +
+                      " × " +
+                      templates.label.height +
+                      " mm sticker"}
+                </p>
+                {sampleError && <p role="alert">{sampleError}</p>}
+                {preview === "label" &&
+                  !sampleError &&
+                  (templates.label.width < 40 ||
+                    templates.label.height < 30) && (
+                    <p className="mw-print-note">
+                      This small label may need more space; review all details
+                      and test on the actual printer.
+                    </p>
+                  )}
+                <div className="mps-preview-surface">
+                  <iframe
+                    title={
+                      preview === "receipt"
+                        ? "Receipt sample preview"
+                        : "Sticker sample preview"
+                    }
+                    style={{
+                      width: `min(100%, calc(${preview === "receipt" ? templates.receipt.paperWidth : templates.label.width}mm + 18px))`,
+                    }}
+                    ref={frame}
+                    srcDoc={sample.replace(
+                      "</head>",
+                      `<style>@media screen { html { background: transparent; } body { max-width: calc(100% - 18px); font-family: "Courier New", monospace; } }</style></head>`,
+                    )}
+                    sandbox="allow-same-origin allow-modals"
+                  />
+                </div>
+                <button
+                  type="button"
+                  disabled={!!sampleError}
+                  className="secondary"
+                  onClick={() => {
+                    frame.current?.contentWindow?.focus();
+                    frame.current?.contentWindow?.print();
+                  }}
                 >
-                  <label>
-                    Business heading
-                    <input
-                      required
-                      maxLength={100}
-                      value={templates.receipt.businessName}
-                      onChange={(e) =>
-                        editTemplates({
-                          ...templates,
-                          receipt: {
-                            ...templates.receipt,
-                            businessName: e.target.value,
-                          },
-                        })
-                      }
-                    />
-                  </label>
-                  <Segmented
-                    label="Receipt roll"
-                    value={String(templates.receipt.paperWidth)}
-                    onChange={(value) =>
-                      editTemplates({
-                        ...templates,
-                        receipt: {
-                          ...templates.receipt,
-                          paperWidth: Number(value),
-                        },
-                      })
-                    }
-                    options={[
-                      { value: "58", label: "58 mm" },
-                      { value: "80", label: "80 mm" },
-                    ]}
-                  />
-                  <label>
-                    Footer
-                    <textarea
-                      maxLength={300}
-                      value={templates.receipt.footer}
-                      onChange={(e) =>
-                        editTemplates({
-                          ...templates,
-                          receipt: {
-                            ...templates.receipt,
-                            footer: e.target.value,
-                          },
-                        })
-                      }
-                    />
-                  </label>
-                  <Switch
-                    label="Show staff"
-                    description="Include the staff member's name on receipts."
-                    checked={templates.receipt.showStaff}
-                    onChange={(value) =>
-                      editTemplates({
-                        ...templates,
-                        receipt: { ...templates.receipt, showStaff: value },
-                      })
-                    }
-                  />
-                  {(["width", "height"] as const).map((key) => (
-                    <UnitInput
-                      key={key}
-                      label={`Sticker ${key} (mm)`}
-                      unit="mm"
-                      required
-                      min={key === "width" ? 20 : 15}
-                      max={key === "width" ? 60 : 150}
-                      value={templates.label[key]}
-                      onChange={(value) =>
-                        editTemplates({
-                          ...templates,
-                          label: { ...templates.label, [key]: Number(value) },
-                        })
-                      }
-                      presets={(key === "width"
-                        ? [40, 50, 60]
-                        : [30, 50, 80]
-                      ).map((value) => ({ value }))}
-                    />
-                  ))}
-                  <div className="mw-wide">
-                    <button className="primary" disabled={disabled}>
-                      Save templates
-                    </button>
-                  </div>
-                </fieldset>
-              </form>
-            </Disclosure>
+                  Print sample through browser
+                </button>
+                <p className="mw-print-note">
+                  A browser dialog does not confirm physical printing.
+                </p>
+              </div>
+            </div>
           </>
         )}
       </section>

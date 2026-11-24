@@ -85,9 +85,6 @@ const fetchLists = () => {
 };
 async function edit() {
   await screen.findByTitle("Receipt sample preview");
-  fireEvent.click(
-    screen.getByText("Edit receipt & sticker format", { exact: true }),
-  );
   fireEvent.change(screen.getByLabelText("Business heading"), {
     target: { value: "PRIVATE DRAFT HEADING" },
   });

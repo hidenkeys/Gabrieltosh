@@ -34,6 +34,7 @@ import "./mera/workspace/order-history.css";
 import "./mera/workspace/help-requests.css";
 import "./mera/workspace/live-orders.css";
 import "./mera/workspace/printing-qr.css";
+import "./mera/workspace/print-studio-v2.css";
 import "./mera/workspace/reservation-request.css";
 import "./mera/workspace/shift-operation.css";
 import "./mera/customer/help-requests.css";
