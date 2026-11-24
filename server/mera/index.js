@@ -112,6 +112,33 @@ const intentHash = (input) => {
 };
 const slugSchema=organizationSlugSchema;
 const uuid = z.string().uuid();
+export const branchSettingsInputSchema = z
+        .object({
+          ...locationFields,
+          requestKey:z.string().uuid().optional(),
+          version:z.number().int().positive().optional(),
+          orderingPaused: z.boolean().optional(),
+          payLater: z.boolean().optional(),
+          reservationsEnabled: z.boolean().optional(),
+          capacity: z.number().int().min(1).max(1000).optional(),
+          holdMinutes: z.number().int().min(1).max(60).optional(),
+          showSoldOut: z.boolean().optional(),
+          serviceModes: z
+            .array(
+              z.enum([
+                "counter_takeaway",
+                "table_service",
+                "reservations",
+                "lounge_club",
+              ]),
+            )
+            .optional(),
+          address: z.string().max(300).optional(),
+          serviceHours:z.array(availabilityWindowSchema).max(30).optional(),
+          timezone:z.string().refine(v=>{try{new Intl.DateTimeFormat("en",{timeZone:v});return true;}catch{return false;}},"Invalid IANA timezone").optional(),
+          cutoff:z.number().int().min(0).max(1439).optional(),
+        })
+        .strict();
 export async function migrateMera(db) {
   await db.query(
     await readFile(new URL("./schema.sql", import.meta.url), "utf8"),
@@ -2350,34 +2377,7 @@ export function createMeraRouter(db) {
     B + "/settings",
     guard("organization.manage"),
     async (req, res) => {
-      const input = z
-        .object({
-          ...locationFields,
-          requestKey:z.string().uuid().optional(),
-          version:z.number().int().positive().optional(),
-          orderingPaused: z.boolean().optional(),
-          payLater: z.boolean().optional(),
-          reservationsEnabled: z.boolean().optional(),
-          capacity: z.number().int().min(1).max(1000).optional(),
-          holdMinutes: z.number().int().min(1).max(60).optional(),
-          showSoldOut: z.boolean().optional(),
-          serviceModes: z
-            .array(
-              z.enum([
-                "counter_takeaway",
-                "table_service",
-                "reservations",
-                "lounge_club",
-              ]),
-            )
-            .optional(),
-          address: z.string().max(300).optional(),
-          serviceHours:z.array(availabilityWindowSchema).max(30).optional(),
-          timezone:z.string().refine(v=>{try{new Intl.DateTimeFormat("en",{timeZone:v});return true;}catch{return false;}},"Invalid IANA timezone").optional(),
-          cutoff:z.number().int().min(0).max(1439).optional(),
-        })
-        .strict()
-        .parse(req.body);
+      const input = branchSettingsInputSchema.parse(req.body);
       res.json(
         await locked(scope(req), async (c, b) => {
           const {timezone,cutoff,requestKey,version,...settingsInput}=input;

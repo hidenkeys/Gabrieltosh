@@ -15,7 +15,8 @@
     "format": "prettier --write src server scripts/*.js tests *.json *.ts index.html",
     "preview:local": "node scripts/preview-local.js",
     "preview:mera": "node scripts/preview-mera.js",
-    "test:mera:postgres": "node scripts/test-mera-postgres.js"
+    "test:mera:postgres": "node scripts/test-mera-postgres.js",
+    "seed:mera-venues": "node scripts/seed-mera-venues.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.800.0",

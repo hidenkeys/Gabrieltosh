@@ -12,6 +12,9 @@ const branchId = "20000000-0000-4000-8000-000000000001";
 const marker = "mera_railway_synthetic_v1";
 const password = process.env.MERA_STAGING_OWNER_PASSWORD;
 if (!password || password.length < 24) throw new Error("A strong isolated staging owner password is required.");
+const venuePortfolio = process.env.MERA_STAGING_VENUES === "portfolio-v1";
+if (process.env.MERA_STAGING_VENUES && !venuePortfolio) throw new Error("Unknown staging venue portfolio.");
+if (venuePortfolio && (!process.env.MERA_STAGING_VENUE_PASSWORD || process.env.MERA_STAGING_VENUE_PASSWORD.length < 16)) throw new Error("A private venue password of at least 16 characters is required.");
 const client = await db.pool.connect();
 try {
   await client.query("SELECT pg_advisory_lock(631830201)");
@@ -55,6 +58,19 @@ try {
     await client.query("COMMIT");
     console.log("Synthetic staging organization and menu initialized. No financial integration enabled.");
   } else console.log("Staging migration finished; existing synthetic records preserved.");
+  if (venuePortfolio) {
+    // Marker and portfolio commit together; a completed portfolio is never reseeded.
+    await client.query("BEGIN");
+    await client.query("CREATE TABLE IF NOT EXISTS mera_railway_venue_portfolio_v1(id INTEGER PRIMARY KEY CHECK(id=1), ready BOOLEAN NOT NULL)");
+    const done = (await client.query("SELECT ready FROM mera_railway_venue_portfolio_v1 WHERE id=1")).rows[0]?.ready;
+    if (!done) {
+      const { seedVenuePortfolio } = await import("../server/mera/venue-portfolio.js");
+      const counts = await seedVenuePortfolio({transaction: fn => fn(client)}, {passwordFor: () => process.env.MERA_STAGING_VENUE_PASSWORD});
+      await client.query("INSERT INTO mera_railway_venue_portfolio_v1(id,ready) VALUES(1,true) ON CONFLICT(id) DO UPDATE SET ready=true");
+      console.log(JSON.stringify(counts));
+    }
+    await client.query("COMMIT");
+  }
 } catch(error) {
   await client.query("ROLLBACK").catch(()=>{});
   console.error("Staging release failed",error.code || error.name);
