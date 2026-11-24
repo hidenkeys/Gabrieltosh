@@ -8,8 +8,10 @@ export default function LaunchReadiness({
   guidedStage,
   publicContact,
   accessBlocked,
+  onPaymentDraft,
 }: {
   accessBlocked?: boolean;
+  onPaymentDraft?: (methods: string[]) => void;
   guidedStage?: "payments" | "review";
   publicContact?: string;
   base: string;
@@ -48,6 +50,9 @@ export default function LaunchReadiness({
   const [methods, setMethods] = useState<string[]>(
     settings?.manualPaymentMethods || [],
   );
+  useEffect(() => {
+    onPaymentDraft?.(methods);
+  }, [methods]);
   const [contact, setContact] = useState(settings?.publicContact || "");
   useEffect(() => {
     if (guidedStage && !inFlight.current && !uncertain)

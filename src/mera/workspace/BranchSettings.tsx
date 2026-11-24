@@ -1,4 +1,5 @@
 import { type ReactNode, useRef, useState } from "react";
+import { TYPE_DEFAULTS, deriveVenueType } from "./setup/venues";
 import Switch from "../ui/Switch";
 import Stepper from "../ui/Stepper";
 import Combobox from "../ui/Combobox";
@@ -54,9 +55,12 @@ export default function BranchSettings({
     holdMinutes: branch.settings?.holdMinutes || 10,
     showSoldOut: branch.settings?.showSoldOut ?? false,
     address: branch.settings?.address || "",
-    serviceHours: branch.settings?.serviceHours || [],
+    serviceHours:
+      branch.settings?.serviceHours ||
+      TYPE_DEFAULTS[deriveVenueType(branch.settings)].hours,
     timezone: branch.timezone || "Africa/Lagos",
-    cutoff: branch.cutoff ?? 0,
+    cutoff:
+      branch.cutoff ?? TYPE_DEFAULTS[deriveVenueType(branch.settings)].cutoff,
     serviceModes: (branch.settings?.serviceModes || []) as string[],
   });
   const [branding, setBranding] = useState({
