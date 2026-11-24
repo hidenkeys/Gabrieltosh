@@ -1,0 +1,247 @@
+{
+  "runId": "e2e-d",
+  "marker": "E2E e2e-d",
+  "origin": "https://mera-web-staging.up.railway.app",
+  "startedAt": "2026-11-24T10:45:28.459Z",
+  "steps": [
+    {
+      "venue": "kerbside-grill",
+      "step": "Guest QR order and component stock",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "kerbside-grill",
+      "step": "Manual collection and tender or room label",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "kerbside-grill",
+      "step": "Kitchen and bar preparation",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "kerbside-grill",
+      "step": "Collected and completed",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "kerbside-grill",
+      "step": "Cashier LKI access denied",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "kerbside-grill",
+      "step": "Authenticated Today report deltas",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Configuration already enabled; no settings write."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Open named table visit",
+      "pass": false,
+      "notes": "Journey stopped at this step; no automatic retry.",
+      "error": "The chosen table must be free; existing parties will not be changed",
+      "actor": "waiter"
+    },
+    {
+      "venue": "saffron-room",
+      "step": "Guest future reservation day and time chips",
+      "pass": false,
+      "notes": "Journey stopped at this step; no automatic retry.",
+      "error": "UI /reservations returned HTTP 409",
+      "actor": "guest"
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Configuration already enabled; no settings write."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Owner configuration: create fictional table",
+      "pass": true,
+      "notes": "Permanent configuration: owner created E2E e2e-d, six seats in Main floor; existing parties retained."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Open named table visit",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "First seated POS round kitchen and bar",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Second seated POS round",
+      "pass": false,
+      "notes": "Journey stopped at this step; no automatic retry.",
+      "error": "locator.fill: Timeout 20000ms exceeded.",
+      "actor": "owner"
+    },
+    {
+      "venue": "velvet-lounge",
+      "step": "Restore original settings",
+      "pass": true,
+      "notes": "Every non-version field matches the private snapshot."
+    },
+    {
+      "venue": "pulse",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Configuration already enabled; no settings write."
+    },
+    {
+      "venue": "pulse",
+      "step": "Guest future reservation day and time chips",
+      "pass": false,
+      "notes": "Journey stopped at this step; no automatic retry.",
+      "error": "UI /reservations returned HTTP 409",
+      "actor": "guest"
+    },
+    {
+      "venue": "pulse",
+      "step": "Restore original settings",
+      "pass": true,
+      "notes": "Every non-version field matches the private snapshot."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Configuration already enabled; no settings write."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Guest QR order and component stock",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Manual collection and tender or room label",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Kitchen and bar preparation",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Collected and completed",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "CST to RST one-unit transfer and manager receipt",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Authenticated Today report deltas",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Cashier counter POS order",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Cashier counter cash tender",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "step": "Open named table visit",
+      "pass": false,
+      "notes": "Journey stopped at this step; no automatic retry.",
+      "error": "The chosen table must be free; existing parties will not be changed",
+      "actor": "owner"
+    }
+  ],
+  "venues": [
+    {
+      "venue": "kerbside-grill",
+      "pass": true,
+      "orderIds": [
+        "e6c23760-2776-4bab-be3f-163fe1ef521b"
+      ]
+    },
+    {
+      "venue": "oak-ember",
+      "pass": false,
+      "orderIds": []
+    },
+    {
+      "venue": "saffron-room",
+      "pass": false,
+      "orderIds": []
+    },
+    {
+      "venue": "velvet-lounge",
+      "pass": false,
+      "orderIds": [
+        "419cc874-821f-47f1-9bda-e9d175dfe336"
+      ]
+    },
+    {
+      "venue": "pulse",
+      "pass": false,
+      "orderIds": []
+    },
+    {
+      "venue": "harbour-hotel",
+      "pass": true,
+      "orderIds": [
+        "bc156306-e2cc-4dc6-966f-28dbe753f951"
+      ]
+    },
+    {
+      "venue": "daybreak-afterdark",
+      "pass": false,
+      "orderIds": [
+        "a6017dc8-70f1-4c1b-b3a1-7968e2831cff"
+      ]
+    }
+  ],
+  "configurationChanges": [
+    {
+      "venue": "velvet-lounge",
+      "branchId": "e7e4f994-2031-4416-af2f-b4efd0a5d43e",
+      "kind": "configuration-change",
+      "resource": "table",
+      "name": "E2E e2e-d",
+      "capacity": 6,
+      "zone": "Main floor",
+      "permanent": true,
+      "state": "verified",
+      "tableId": "79364294-1dcb-41bb-a617-969aca0748b4"
+    }
+  ],
+  "finishedAt": "2026-11-24T10:49:34.412Z",
+  "exitCode": 1
+}

@@ -831,3 +831,99 @@ test("session history pages and ending require explicit in-app confirmation", as
   );
   cleanup();
 });
+
+test("table QR package stays blocked until joining and quotes with the joined visit", async (t) => {
+  window.history.replaceState({}, "", "?tableId=table-one");
+  const quotes = [];
+  const packageProduct = {
+    ...menu.products[0],
+    id: "vip-package",
+    name: "VIP bottle package",
+    kind: "package",
+    requiresTable: true,
+    components: [{ productId: menu.products[0].id, quantity: 2 }],
+  };
+  mockGuestSessionFetch(t, async (input, init) => {
+    const path = String(input);
+    if (path.endsWith("/menu"))
+      return Response.json({
+        ...menu,
+        pricingPolicy: { enabled: true },
+        products: [...menu.products, packageProduct],
+        tables: [{ id: "table-one", name: "VIP table" }],
+      });
+    if (path.endsWith("/branches")) return Response.json({ branches: [] });
+    if (path.endsWith("/guest"))
+      return Response.json({ error: "guest" }, { status: 401 });
+    if (path.endsWith("/guests")) return Response.json({ displayName: "Ada" });
+    if (path.endsWith("/visits/terms"))
+      return Response.json({ visitId: "visit-one", minimumSpendPolicy: null });
+    if (path.endsWith("/visits/join"))
+      return Response.json({ id: "visit-one" });
+    if (path.endsWith("/public/visits/visit-one"))
+      return Response.json({
+        visit: {
+          id: "visit-one",
+          tableId: "table-one",
+          tableName: "VIP table",
+          status: "open",
+        },
+        orders: [],
+        bills: [],
+        balance: 0,
+      });
+    if (path.endsWith("/quote")) {
+      quotes.push(JSON.parse(init.body));
+      return Response.json({
+        id: "reviewed-quote",
+        currency: "NGN",
+        policyVersion: "p1",
+        menuVersion: 1,
+        expiresAt: "2099-01-01T00:00:00Z",
+        subtotal: 380000,
+        total: 380000,
+        lines: [],
+      });
+    }
+    throw Error(`Unexpected request: ${path}`);
+  });
+  try {
+    render(React.createElement(CustomerExperience));
+    const choosePackage = await screen.findByRole("button", {
+      name: "Choose: VIP bottle package",
+    });
+    assert.equal(
+      choosePackage.disabled,
+      true,
+      "A table QR alone must not authorize a table package",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Join a table" }));
+    fireEvent.change(
+      screen.getByRole("textbox", {
+        name: /^(?:Your name|What should we call you\?)$/,
+      }),
+      { target: { value: "Ada" } },
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: "Joining code" }), {
+      target: { value: "123456" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Join current visit" }));
+    await screen.findByText(
+      "You have joined this visit. Additional rounds will be linked to this table.",
+    );
+    const joinedPackage = screen.getByRole("button", {
+      name: "Choose: VIP bottle package",
+    });
+    assert.equal(joinedPackage.disabled, false);
+    fireEvent.click(joinedPackage);
+    fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review total" }));
+    await waitFor(() => assert.equal(quotes.length, 1));
+    assert.equal(quotes[0].visitId, "visit-one");
+    assert.equal(quotes[0].fulfillment, "table_service");
+    assert.equal(quotes[0].items[0].productId, "vip-package");
+  } finally {
+    cleanup();
+    window.history.replaceState({}, "", window.location.pathname);
+  }
+});

@@ -111,7 +111,14 @@ const freeTable = ast.statements.find(
       (declaration) => declaration.name.getText(ast) === "tableIsFree",
     ),
 );
-for (const slug of ["velvet-lounge", "pulse"]) {
+for (const slug of [
+  "oak-ember",
+  "daybreak-afterdark",
+  "velvet-lounge",
+  "pulse",
+  "harbour-hotel",
+  "saffron-room",
+]) {
   test(`${slug} creates a marked six-seat fallback only through the owner's Floor layout`, async () => {
     const marker = "E2E table-fallback";
     const fields = {};
@@ -237,3 +244,235 @@ test("an available unheld table is reused without configuration writes", async (
   assert.equal(await run(v), false);
   assert.equal(v.table, table);
 });
+
+const variable = (name) =>
+  ast.statements
+    .find(
+      (node) =>
+        ts.isVariableStatement(node) &&
+        node.declarationList.declarations.some(
+          (declaration) => declaration.name.getText(ast) === name,
+        ),
+    )
+    .getText(ast);
+const functionSource = (name) =>
+  ast.statements
+    .find((node) => ts.isFunctionDeclaration(node) && node.name?.text === name)
+    .getText(ast);
+test("reservation dates are deterministic, later than the old slot and spread across six days", () => {
+  const source = `${variable("reservationSeed")}; (${functionSource("reservationCandidateDay")})`;
+  const v = { slug: "saffron-room", branch: { settings: {} } };
+  const now = new Date("2026-11-24T12:00:00Z");
+  const run = vm.runInNewContext(source, { assert, runId: "e2e-next" });
+  const dates = Array.from({ length: 6 }, (_, attempt) => run(v, attempt, now));
+  assert.equal(new Set(dates).size, 6);
+  assert.deepEqual(
+    dates,
+    Array.from({ length: 6 }, (_, attempt) => run(v, attempt, now)),
+  );
+  assert(dates.every((day) => day >= "2026-12-01" && day <= "2026-12-22"));
+  const different = vm.runInNewContext(source, {
+    assert,
+    runId: "e2e-another",
+  });
+  assert.notEqual(dates[0], different(v, 0, now));
+});
+
+test("leftover inspection preserves other runs and refuses replay of this exact run's transactions", async () => {
+  const state = {
+    orders: [],
+    tables: [{ id: "own-table", name: "E2E exact-run" }],
+    visits: [
+      { id: "other", displayName: "E2E exact-run-other", status: "open" },
+    ],
+    reservations: [],
+  };
+  const saved = structuredClone(state);
+  const sandbox = {
+    assert,
+    runId: "exact-run",
+    marker: "E2E exact-run",
+    journal: {},
+    results: {},
+    workspace: async () => state,
+    persist: async () => {},
+    evidence: async () => {},
+    step: async (_v, _name, fn) => fn(),
+  };
+  const inspect = vm.runInNewContext(
+    `${variable("hasRunMarker")}; (${functionSource("inspectOwnLeftovers")})`,
+    sandbox,
+  );
+  await inspect({ slug: "oak-ember" });
+  assert.deepEqual(state, saved);
+  assert.equal(sandbox.results.leftovers[0].visitIds.length, 0);
+  assert.equal(sandbox.results.leftovers[0].tableIds[0], "own-table");
+  state.visits.push({
+    id: "own",
+    displayName: "E2E exact-run",
+    status: "open",
+  });
+  await assert.rejects(() => inspect({ slug: "oak-ember" }), /left untouched/);
+  assert.equal(state.visits[1].status, "open");
+  assert.equal(sandbox.results.leftovers[1].visitIds[0], "own");
+});
+
+for (const scenario of [
+  "conflict-then-success",
+  "six-conflicts",
+  "unknown-outcome",
+]) {
+  test(`reservation retry safety: ${scenario}`, async () => {
+    const events = [];
+    const marker = "E2E retry-run";
+    const values = ["12:00", "12:30", "13:00", "13:30"];
+    const chips = {
+      count: async () => values.length,
+      evaluateAll: async () => values,
+      nth: (index) => ({ inputValue: async () => values[index] }),
+    };
+    const node = (name) => ({
+      getByRole: (_role, options) => node(options.name),
+      locator: () => chips,
+      click: async () => {},
+      fill: async () => {},
+      check: async () => {},
+      isVisible: async () => name !== "More times",
+      count: async () => 0,
+      inputValue: async () => "3",
+    });
+    const page = {
+      getByRole: (_role, options) => node(options.name),
+      getByLabel: (name) => node(name),
+      getByText: (name) => node(name),
+    };
+    let requests = 0;
+    const sandbox = {
+      assert,
+      marker,
+      runId: "retry-run",
+      journal: {},
+      results: {},
+      clickChip: async () => {},
+      persist: async () => {},
+      evidence: async () => {},
+      stopRejectedReservation: async () => {
+        events.push("stop-own-rejected-intent");
+      },
+      workspace: async () => ({
+        reservations: [
+          {
+            id: "booking",
+            displayName: marker,
+            status: "requested",
+            partySize: 3,
+            startsAt: new Date(Date.now() + 14 * 86400000).toISOString(),
+          },
+        ],
+      }),
+      mutate: async (_p, suffix, action, options) => {
+        assert.equal(suffix, "/reservations");
+        assert.equal(options.allowedStatuses[0], 409);
+        await action();
+        requests++;
+        if (scenario === "unknown-outcome") throw Error("lost acknowledgement");
+        const status =
+          scenario === "conflict-then-success" && requests === 2 ? 201 : 409;
+        events.push(status);
+        return {
+          status,
+          data: {},
+          errorMessage:
+            status === 409 ? "The requested table is already reserved." : null,
+        };
+      },
+    };
+    const run = vm.runInNewContext(
+      `${variable("reservationSeed")}; ${functionSource("reservationCandidateDay")}; (${functionSource("reservation")})`,
+      sandbox,
+    );
+    const action = () =>
+      run({ slug: "saffron-room", branch: { settings: {} } }, page);
+    if (scenario === "conflict-then-success") {
+      const notes = await action();
+      assert.match(notes, /HTTP 409 The requested table is already reserved/);
+      assert.deepEqual(events, [409, "stop-own-rejected-intent", 201]);
+      assert.equal(
+        sandbox.results.reservationAttempts[0].state,
+        "rejected-and-stopped",
+      );
+    } else if (scenario === "six-conflicts") {
+      await assert.rejects(action, (error) => {
+        assert.match(error.message, /at most six/);
+        assert.match(
+          error.journeyNotes,
+          /HTTP 409 The requested table is already reserved/,
+        );
+        return true;
+      });
+      assert.equal(requests, 6);
+      assert.equal(
+        events.filter((event) => event === "stop-own-rejected-intent").length,
+        6,
+      );
+    } else {
+      await assert.rejects(action, /lost acknowledgement/);
+      assert.equal(requests, 1);
+      assert.equal(
+        events.length,
+        0,
+        "An unknown outcome must not be stopped or retried",
+      );
+    }
+  });
+}
+
+test("stock assertions reconcile only newly expired held orders, including package quantities", () => {
+  const run = vm.runInNewContext(`(${functionSource("expiredStockReturns")})`);
+  const before = { orders: [
+    { id: "old-package", stockHeld: true, items: [{ quantity: 2, components: [{ productId: "main", quantity: 3 }] }] },
+    { id: "already-expired", stockHeld: false, holdExpired: true, items: [{ productId: "main", quantity: 99 }] },
+    { id: "unchanged", stockHeld: true, items: [{ productId: "main", quantity: 99 }] },
+  ] };
+  const after = { orders: [
+    { id: "old-package", stockHeld: false, holdExpired: true },
+    { id: "already-expired", stockHeld: false, holdExpired: true },
+    { id: "unchanged", stockHeld: true },
+  ] };
+  const restored = run(before, after, "main");
+  assert.equal(restored.quantity, 6);
+  assert.deepEqual(Array.from(restored.orderIds), ["old-package"]);
+  assert.equal(run(before, after, "other-product").quantity, 0);
+});
+
+for (const minimumSpend of [false, true]) {
+  test(`guest join follows Menu success before opening the table summary (minimum spend ${minimumSpend})`, async () => {
+    const events = [];
+    const node = (name) => ({
+      click: async () => events.push(`click:${name}`),
+      fill: async () => {}, check: async () => events.push("acknowledged"),
+      waitFor: async () => events.push(`visible:${name}`),
+    });
+    const page = {
+      getByRole: (_role, options) => node(options.name),
+      getByLabel: (name) => node(name), getByText: (name) => node(name),
+    };
+    const posts = [];
+    const run = vm.runInNewContext(`(${functionSource("joinGuest")})`, {
+      assert, marker: "E2E test", choose: async () => {},
+      mutate: async (_page, suffix, action) => {
+        posts.push(suffix); await action();
+        return suffix === "/visits/terms"
+          ? { visitId: "own-visit", minimumSpendPolicy: { enabled: minimumSpend } }
+          : { id: "own-visit" };
+      },
+      workspace: async () => ({ visits: [{ id: "own-visit", status: "open" }] }),
+    });
+    await run({ joinCode: "123456", table: { name: "E2E table" }, visit: { id: "own-visit" } }, page);
+    assert.deepEqual(posts, minimumSpend ? ["/visits/terms", "/visits/join"] : ["/visits/terms"]);
+    assert.equal(events.includes("acknowledged"), minimumSpend);
+    const summary = events.indexOf("visible:Your table & bill");
+    assert(events.indexOf("click:Your table") < summary, "The summary must be opened before waiting for its heading");
+    assert.equal(events.at(-1), "click:Menu");
+  });
+}

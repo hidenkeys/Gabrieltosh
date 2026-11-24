@@ -5347,15 +5347,24 @@ test("creating a table submits the visible default one seat without requiring a 
   }
 });
 
-test("native counter click submits two quoted items against the selected open table visit", async () => {
+test("seated POS package review carries the table context into quote and order", async () => {
   const originalFetch = globalThis.fetch;
   const permissions = [...context.organizations[0].permissions];
   context.organizations[0].permissions.push("orders.create", "tables.manage");
   const products = [
-    { id: "tea", name: "Milk tea", available: true, price: 150000 },
+    {
+      id: "tea",
+      name: "Bottle package",
+      kind: "package",
+      requiresTable: true,
+      components: [{ productId: "soda", quantity: 1 }],
+      available: true,
+      price: 150000,
+    },
     { id: "soda", name: "Orange soda", available: true, price: 120000 },
   ];
   const posts: any[] = [];
+  const quotes: any[] = [];
   let submitEvents = 0;
   globalThis.fetch = (async (input: any, init: any = {}) => {
     const path = String(input);
@@ -5379,7 +5388,8 @@ test("native counter click submits two quoted items against the selected open ta
           },
         ],
       });
-    if (path.endsWith("/quote"))
+    if (path.endsWith("/quote")) {
+      quotes.push(JSON.parse(init.body));
       return Response.json({
         id: "reviewed-quote",
         expiresAt: new Date(Date.now() + 300000).toISOString(),
@@ -5388,6 +5398,7 @@ test("native counter click submits two quoted items against the selected open ta
         lines: [],
         policyVersion: "p1",
       });
+    }
     if (path.endsWith("/orders") && init.method === "POST") {
       posts.push(JSON.parse(init.body));
       return Response.json({ id: "created" });
@@ -5397,18 +5408,30 @@ test("native counter click submits two quoted items against the selected open ta
   try {
     render(<Workspace user={user} notify={() => {}} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Point of sale" }));
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Add Milk tea to order" }),
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add Orange soda to order" }),
+    const packageButton = (await screen.findByRole("button", {
+      name: "Add Bottle package to order",
+    })) as HTMLButtonElement;
+    assert.equal(
+      packageButton.disabled,
+      true,
+      "Counter POS must block table-only packages",
     );
     chooseField(screen, fireEvent, "Fulfillment", "table_service");
     chooseField(screen, fireEvent, "Open table visit", "visit-1");
+    assert.equal(packageButton.disabled, false);
+    fireEvent.click(packageButton);
+    fireEvent.click(screen.getByRole("button", { name: "Add to order" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add Orange soda to order" }),
+    );
     fireEvent.click(
       screen.getByRole("button", { name: "Review current order total" }),
     );
     await screen.findByText("Reviewed order total");
+    assert.equal(quotes.length, 1);
+    assert.equal(quotes[0].fulfillment, "table_service");
+    assert.equal(quotes[0].visitId, "visit-1");
+    assert.equal(quotes[0].items[0].productId, "tea");
     const submit = screen.getByRole("button", {
       name: "Submit order",
     }) as HTMLButtonElement;

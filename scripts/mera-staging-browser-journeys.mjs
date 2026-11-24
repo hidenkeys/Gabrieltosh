@@ -183,7 +183,7 @@ async function step(v, name, fn, page, guest = false) {
       v,
       name,
       false,
-      "Journey stopped at this step; no automatic retry.",
+      e.journeyNotes || "Journey stopped at this step; no automatic retry.",
       e,
     );
     const capture = activePage || page;
@@ -365,7 +365,12 @@ async function location(p, code) {
     .click();
   await p.locator(".mw-heading h1").waitFor();
 }
-async function mutate(p, suffix, action) {
+async function mutate(
+  p,
+  suffix,
+  action,
+  { allowedStatuses = [], envelope = false } = {},
+) {
   activePage = p;
   const response = p.waitForResponse((r) => {
     const u = new URL(r.url());
@@ -379,14 +384,28 @@ async function mutate(p, suffix, action) {
   response.catch(() => {});
   await action();
   const r = await response;
-  assert(r.ok(), `UI ${suffix} returned HTTP ${r.status()}`);
   const data = await r.json();
+  const errorMessage = r.ok()
+    ? null
+    : safe(
+        Error(
+          (typeof data.error === "string" ? data.error : data.error?.message) ||
+            data.message ||
+            data.code ||
+            "No server error message",
+        ),
+      );
+  assert(
+    r.ok() || allowedStatuses.includes(r.status()),
+    `UI ${suffix} returned HTTP ${r.status()}: ${errorMessage}`,
+  );
   const pending = journal.operations.at(-1);
   if (pending?.state === "pending") {
     pending.receipts ||= [];
     pending.receipts.push({
       path: new URL(r.url()).pathname,
       status: r.status(),
+      ...(errorMessage ? { error: errorMessage } : {}),
       id:
         data.id ||
         data.order?.id ||
@@ -398,7 +417,69 @@ async function mutate(p, suffix, action) {
     });
     await persist();
   }
-  return data; // Never persist raw responses (joining codes/session tokens).
+  return envelope ? { status: r.status(), data, errorMessage } : data; // Never persist raw responses (joining codes/session tokens).
+}
+const hasRunMarker = (value) =>
+  typeof value === "string" &&
+  new RegExp(`(?:^|\\s)E2E ${runId}(?=$|[^A-Za-z0-9-])`).test(value);
+async function inspectOwnLeftovers(v) {
+  await step(
+    v,
+    "Preflight: preserve this run's own leftovers",
+    async () => {
+      const w = await workspace(v);
+      const own = (rows) =>
+        rows.filter(
+          (row) =>
+            hasRunMarker(row.displayName) ||
+            hasRunMarker(row.name) ||
+            hasRunMarker(row.note) ||
+            hasRunMarker(row.notes),
+        );
+      const inventory = {
+        venue: v.slug,
+        marker,
+        action: "left-untouched",
+        orderIds: own(w.orders || []).map((row) => row.id),
+        visitIds: own(w.visits || []).map((row) => row.id),
+        reservationIds: own(w.reservations || []).map((row) => row.id),
+        tableIds: own(w.tables || []).map((row) => row.id),
+        transferIds: [],
+        guestListIds: [],
+      };
+      if (v.slug === "harbour-hotel") {
+        const data = await api(
+          v.owner,
+          `/api/mera/v1/organizations/${v.org.id}/stock-transfers`,
+        );
+        inventory.transferIds = own(
+          Array.isArray(data) ? data : data.transfers,
+        ).map((row) => row.id);
+      }
+      if (v.slug === "pulse") {
+        const data = await api(v.owner, bpath(v) + "/guest-list");
+        inventory.guestListIds = own(
+          Array.isArray(data) ? data : data.entries,
+        ).map((row) => row.id);
+      }
+      journal.leftovers ||= [];
+      journal.leftovers.push(inventory);
+      results.leftovers ||= [];
+      results.leftovers.push(inventory);
+      await persist();
+      await evidence();
+      assert(
+        !inventory.orderIds.length &&
+          !inventory.visitIds.length &&
+          !inventory.reservationIds.length &&
+          !inventory.transferIds.length &&
+          !inventory.guestListIds.length,
+        "This exact run already has transactions: left untouched; reconcile its journal before replay. Other runs are never changed.",
+      );
+      return `This run's ${inventory.tableIds.length} existing tables are left intact and may be reused if free; no parties, bookings, orders or transfers were closed or changed.`;
+    },
+    v.owner,
+  );
 }
 async function configurePreparation(v) {
   if (
@@ -552,49 +633,60 @@ async function guest(v, table) {
   return p;
 }
 const tracked = (v, w) => w.orders.filter((o) => v.orderIds.includes(o.id));
-async function newOrder(v, p, suffix, action, expectedProducts) {
-  const before = await workspace(v);
-  const response = await mutate(p, suffix, action);
-  const w = await workspace(v);
-  const added = w.orders.filter(
-    (o) => !before.orders.some((old) => old.id === o.id),
-  );
-  assert.equal(added.length, 1, "Exactly one new order must persist");
-  const order = added[0];
-  assert(
-    (order.displayName || "").includes(marker),
-    "New guest name must contain run marker",
-  );
-  assert(
-    order.total > 0,
-    "The submitted order must have a positive server total",
-  );
-  v.orderIds.push(order.id);
-  // Expected component quantities come from the catalog that the UI uses.
+function expectedStockDeductions(expectedProducts) {
   const deductions = new Map();
   for (const { product, quantity = 1, choices = [] } of expectedProducts) {
-    const components =
-      product.kind === "package"
-        ? product.components
-        : product.kind === "combo"
-          ? choices.map((c) => ({ productId: c.productId, quantity: 1 }))
-          : [{ productId: product.id, quantity: 1 }];
-    for (const part of components)
-      deductions.set(
-        part.productId,
-        (deductions.get(part.productId) || 0) + part.quantity * quantity,
-      );
+    const components = product.kind === "package" ? product.components : product.kind === "combo"
+      ? choices.map((choice) => ({ productId: choice.productId, quantity: 1 })) : [{ productId: product.id, quantity: 1 }];
+    for (const part of components) deductions.set(part.productId, (deductions.get(part.productId) || 0) + part.quantity * quantity);
   }
-  for (const [id, q] of deductions) {
-    const a = before.products.find((p) => p.id === id),
-      b = w.products.find((p) => p.id === id);
+  return deductions;
+}
+function expiredStockReturns(before, after, productId) {
+  const restored = before.orders.filter((old) => old.stockHeld && !old.holdExpired &&
+    after.orders.some((current) => current.id === old.id && current.holdExpired && !current.stockHeld));
+  return { orderIds: restored.map((row) => row.id), quantity: restored.reduce((sum, order) => sum + order.items.reduce((total, line) => {
+    const parts = line.components?.length ? line.components.map((part) => ({ ...part, quantity: part.quantity * line.quantity })) : [line];
+    return total + parts.filter((part) => part.productId === productId).reduce((n, part) => n + part.quantity, 0);
+  }, 0), 0) };
+}
+async function newOrder(v, p, suffix, action, expectedProducts) {
+  const before = await workspace(v), deductions = expectedStockDeductions(expectedProducts), movementIds = new Map();
+  for (const [id] of deductions) if (before.products.find((row) => row.id === id)?.stockMode === "counted") {
+    const data = await api(v.owner, bpath(v) + `/stock/movements?productId=${id}&take=100`);
+    movementIds.set(id, new Set(data.movements.map((movement) => movement.id)));
+  }
+  const response = await mutate(p, suffix, action);
+  const w = await workspace(v);
+  const added = w.orders.filter((order) => !before.orders.some((old) => old.id === order.id));
+  assert.equal(added.length, 1, "Exactly one new order must persist");
+  const order = added[0];
+  assert((order.displayName || "").includes(marker), "New guest name must contain run marker");
+  assert(order.total > 0, "The submitted order must have a positive server total");
+  v.orderIds.push(order.id);
+  for (const [id, quantity] of deductions) {
+    const a = before.products.find((row) => row.id === id), b = w.products.find((row) => row.id === id);
     assert(a && b, "Component stock record missing");
-    if (a.stockMode === "counted")
-      assert.equal(b.stock, a.stock - q, `Component stock delta ${a.code}`);
+    if (a.stockMode !== "counted") continue;
+    const data = await api(v.owner, bpath(v) + `/stock/movements?productId=${id}&take=100`);
+    const movements = data.movements.filter((movement) => !movementIds.get(id).has(movement.id) && !movement.variantId);
+    const restored = expiredStockReturns(before, w, id);
+    const trace = { venue: v.slug, orderId: order.id, productCode: a.code, before: a.stock, after: b.stock,
+      expectedDeduction: quantity, expiredHoldReturns: restored.quantity, restoredOrderIds: restored.orderIds,
+      movements: movements.map((movement) => ({ id: movement.id, type: movement.type, quantity: movement.quantity })),
+      expectedAfter: a.stock + restored.quantity - quantity };
+    journal.stockChecks ||= []; journal.stockChecks.push(trace);
+    results.stockChecks ||= []; results.stockChecks.push(trace);
+    await persist(); await evidence();
+    assert.equal(movements.length, 1, `Expected one atomic checkout movement for ${a.code}; concurrent or missing movements require review`);
+    assert.equal(movements[0].type, "checkout_hold", `Expected a checkout hold for ${a.code}`);
+    assert.equal(movements[0].quantity, -quantity, `Persisted component deduction ${a.code}`);
+    assert.equal(b.stock, trace.expectedAfter, `Component stock delta ${a.code}: ${a.stock} + ${restored.quantity} expired returns - ${quantity}; actual ${b.stock}`);
   }
   assert(response, "UI order response missing");
   return order;
 }
+
 function product(w, code) {
   const p = w.counterProducts.find((p) => p.code === code);
   assert(p && p.available !== false, `Published ${code} product unavailable`);
@@ -664,13 +756,35 @@ async function guestOrder(v, p, code = "MAIN") {
   );
 }
 async function pos(v, p, codes, visit) {
-  await go(p, "Point of sale");
   if (visit) {
-    await choose(p, "Fulfillment", "Table service");
-    await choose(p, "Open table visit", marker);
-  }
+    const current = (await workspace(v)).visits.find(
+      (row) => row.id === visit.id,
+    );
+    assert(
+      current?.status === "open" && current.displayName === marker,
+      "Only this run's open visit may receive a round",
+    );
+    await go(p, "Tables & visits");
+    await p
+      .getByRole("button", { name: "Tables & parties", exact: true })
+      .click();
+    await partyCard(p)
+      .getByRole("button", { name: "Add a round for this party", exact: true })
+      .click();
+    const table = (await workspace(v)).tables.find(
+      (row) => row.id === current.tableId,
+    );
+    assert(table, "The run's visit must retain its table");
+    assert.equal(
+      await p
+        .getByRole("combobox", { name: "Open table visit", exact: true })
+        .inputValue(),
+      table.name,
+      "Add a round must preselect the existing visit's table",
+    );
+  } else await go(p, "Point of sale");
   const details = p.locator(".mw-pos-context-extra");
-  if (!(await details.getAttribute("open")))
+  if ((await details.getAttribute("open")) === null)
     await details.locator("summary").click();
   await p.getByLabel("Customer name (optional)", { exact: true }).fill(marker);
   await p
@@ -693,13 +807,20 @@ async function pos(v, p, codes, visit) {
       .getByRole("button", { name: "Review current order total", exact: true })
       .click(),
   );
-  return newOrder(
+  const order = await newOrder(
     v,
     p,
     "/orders",
     () => p.getByRole("button", { name: "Submit order", exact: true }).click(),
     products.map((product) => ({ product })),
   );
+  if (visit)
+    assert.equal(
+      order.visitId,
+      visit.id,
+      "The new round must persist on this run's existing visit",
+    );
+  return order;
 }
 async function payOrder(v, p, order, method = "cash") {
   await go(p, "Transactions");
@@ -870,15 +991,12 @@ const tableIsFree = (w, table, partySize = 2) =>
   );
 async function ensureJourneyTable(v) {
   const before = await workspace(v);
-  const partySize = v.reservation?.partySize || 2;
+  const partySize =
+    v.reservation?.partySize || (v.slug === "oak-ember" ? 3 : 2);
   v.table = before.tables.find((table) =>
     tableIsFree(before, table, partySize),
   );
   if (v.table) return false;
-  assert(
-    ["velvet-lounge", "pulse"].includes(v.slug),
-    "Only Velvet and Pulse may create fallback fictional tables",
-  );
   await step(
     v,
     "Owner configuration: create fictional table",
@@ -965,8 +1083,8 @@ async function openVisit(v, p) {
   const w = await workspace(v),
     table = w.tables.find(
       (table) =>
-        (v.table ? table.id === v.table.id : table.name === "Table 1") &&
-        tableIsFree(w, table),
+        table.id === v.table?.id &&
+        tableIsFree(w, table, v.slug === "oak-ember" ? 3 : 2),
     );
   assert(
     table,
@@ -1154,106 +1272,257 @@ async function closeVisit(v, p) {
   );
 }
 async function joinGuest(v, p) {
-  assert(
-    v.joinCode && v.joinCode !== "••••••",
-    "A current joining code must have been read from the UI",
-  );
+  assert(v.joinCode && v.joinCode !== "••••••", "A current joining code must have been read from the UI");
   await p.getByRole("button", { name: "Join a table", exact: true }).click();
   await p.getByLabel("Your name", { exact: true }).fill(marker);
   await choose(p, "Table", v.table.name);
   await p.getByLabel("Joining code", { exact: true }).fill(v.joinCode);
-  const join = p.getByRole("button", {
-    name: "Join current visit",
-    exact: true,
-  });
-  await join.click();
-  const ack = p.getByRole("checkbox", {
-    name: "I acknowledge this visit’s minimum-spend policy",
-    exact: true,
-  });
-  await Promise.race([
-    ack.waitFor(),
-    p
-      .getByRole("heading", { name: "Your table & bill", exact: true })
-      .waitFor(),
-  ]);
-  if (await ack.isVisible()) {
+  const join = p.getByRole("button", { name: "Join current visit", exact: true });
+  const terms = await mutate(p, "/visits/terms", () => join.click());
+  assert.equal(terms.visitId, v.visit.id, "The joining code must resolve this run's visit");
+  if (terms.minimumSpendPolicy?.enabled) {
+    const ack = p.getByRole("checkbox", { name: "I acknowledge this visit’s minimum-spend policy", exact: true });
     await ack.check();
-    await join.click();
+    const joined = await mutate(p, "/visits/join", () => join.click());
+    assert.equal(joined.visit?.id || joined.id, v.visit.id, "Minimum-spend acknowledgement must join the intended visit");
   }
-  await p
-    .getByRole("heading", { name: "Your table & bill", exact: true })
-    .waitFor();
+  // join() returns to Menu after fetching the private summary; it does not leave
+  // the guest on the Your table & bill heading. Wait for that actual success UI.
+  await p.getByText("You have joined this visit. Additional rounds will be linked to this table.", { exact: true }).waitFor();
+  await p.getByRole("button", { name: "Your table", exact: true }).click();
+  await p.getByRole("heading", { name: "Your table & bill", exact: true }).waitFor();
   await p.getByRole("button", { name: "Menu", exact: true }).click();
+  const w = await workspace(v);
+  assert.equal(w.visits.find((row) => row.id === v.visit.id)?.status, "open", "Joining must leave this run's visit open");
+}
+
+const reservationSeed = (value) =>
+  [...value].reduce(
+    (seed, character) =>
+      Math.imul(seed ^ character.charCodeAt(0), 16777619) >>> 0,
+    2166136261,
+  );
+function reservationCandidateDay(v, attempt, now = new Date()) {
+  const policy = v.branch.settings.reservationPolicy;
+  const cutoff = v.branch.settings.depositPolicy?.cancellationCutoffHours || 24;
+  const minimum = Math.max(
+    3,
+    Math.ceil(cutoff / 24) + 1,
+    Math.ceil((policy?.minimumLeadMinutes || 0) / 1440) + 1,
+  );
+  const last = Math.min(
+    28,
+    (policy?.enabled ? policy.maximumAdvanceDays : 30) - 1,
+  );
+  const first = Math.max(minimum, Math.min(7, last));
+  assert(
+    last >= first,
+    "Reservation policy must allow a later slot beyond the cancellation cutoff",
+  );
+  const offset =
+    first + ((reservationSeed(runId + v.slug) + attempt) % (last - first + 1));
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Africa/Lagos",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+      .formatToParts(new Date(+now + offset * 86400000))
+      .map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+async function stopRejectedReservation(v, p) {
+  const w = await workspace(v);
+  assert(
+    !w.reservations.some((row) => row.displayName === marker),
+    "A recorded booking must never be abandoned or replaced automatically",
+  );
+  await p
+    .getByRole("button", { name: "Stop unconfirmed reservation…", exact: true })
+    .click();
+  await clickChip(
+    p
+      .getByRole("group", { name: "Reason for stopping", exact: true })
+      .getByRole("radio", { name: "Other", exact: true }),
+  );
+  await p
+    .getByLabel("Reason for stopping details", { exact: true })
+    .fill(`${marker} rejected slot; choose another`);
+  const resolution = await mutate(p, "/abandon", () =>
+    p
+      .getByRole("button", {
+        name: "Stop unconfirmed reservation request",
+        exact: true,
+      })
+      .click(),
+  );
+  assert.equal(
+    resolution.status,
+    "abandoned",
+    "Only this guest's unrecorded reservation attempt may be stopped before another slot",
+  );
+  await p
+    .getByRole("button", { name: "Request reservation", exact: true })
+    .waitFor({ state: "visible" });
 }
 async function reservation(v, p) {
-  await p.getByRole("button", { name: "Reserve a table", exact: true }).click();
-  await p.getByLabel("Your name", { exact: true }).fill(marker);
-  await p
-    .getByLabel("Contact email or phone", { exact: true })
-    .fill(`e2e-${runId.toLowerCase()}@example.test`);
-  await p
-    .getByRole("button", { name: "Increase Party size", exact: true })
-    .click();
-  assert.equal(
+  const notes = [];
+  try {
     await p
-      .getByRole("spinbutton", { name: "Party size", exact: true })
-      .inputValue(),
-    "3",
-  );
-  // Day 6 stays beyond a 24h cancellation cutoff; time chosen through chips.
-  await clickChip(
-    p
-      .getByRole("group", { name: "Date & time day", exact: true })
-      .getByRole("radio")
-      .nth(5),
-  );
-  await clickChip(
-    p
-      .getByRole("group", { name: "Date & time time", exact: true })
-      .getByRole("radio")
-      .first(),
-  );
-  const preferred = p.getByRole("combobox", {
-    name: "Preferred table (optional)",
-    exact: true,
-  });
-  if (await preferred.count())
-    await choose(
-      p,
-      "Preferred table (optional)",
-      v.slug === "pulse" ? "VIP 1" : "Table 1",
+      .getByRole("button", { name: "Reserve a table", exact: true })
+      .click();
+    await p.getByLabel("Your name", { exact: true }).fill(marker);
+    await p
+      .getByLabel("Contact email or phone", { exact: true })
+      .fill(`e2e-${runId.toLowerCase()}@example.test`);
+    await p
+      .getByRole("button", { name: "Increase Party size", exact: true })
+      .click();
+    assert.equal(
+      await p
+        .getByRole("spinbutton", { name: "Party size", exact: true })
+        .inputValue(),
+      "3",
     );
-  await p.getByText("Add a reservation note", { exact: true }).click();
-  await p
-    .getByLabel("Notes", { exact: true })
-    .fill(marker + " fictional booking");
-  const ack = p.getByRole("checkbox", {
-    name: "I acknowledge this minimum-spend policy",
-    exact: true,
-  });
-  if (await ack.count()) await ack.check();
-  await mutate(p, "/reservations", () =>
-    p.getByRole("button", { name: "Request reservation", exact: true }).click(),
-  );
-  const r = (await workspace(v)).reservations.find(
-    (r) => r.displayName === marker,
-  );
-  assert(
-    r && r.status === "requested",
-    "The guest booking must persist as a requested reservation",
-  );
-  assert.equal(r.partySize, 3);
-  const cutoff =
-    r.depositPolicy?.cancellationCutoffHours ||
-    v.branch.settings.depositPolicy?.cancellationCutoffHours ||
-    24;
-  assert(
-    Date.parse(r.startsAt) - Date.now() > cutoff * 3600000,
-    "Booking must be before cancellation cutoff",
-  );
-  v.reservation = r;
+    const preferred = p.getByRole("combobox", {
+      name: "Preferred table (optional)",
+      exact: true,
+    });
+    if (await preferred.count())
+      await choose(
+        p,
+        "Preferred table (optional)",
+        v.slug === "pulse" ? "VIP 1" : "Table 1",
+      );
+    await p.getByText("Add a reservation note", { exact: true }).click();
+    await p
+      .getByLabel("Notes", { exact: true })
+      .fill(marker + " fictional booking");
+    const ack = p.getByRole("checkbox", {
+      name: "I acknowledge this minimum-spend policy",
+      exact: true,
+    });
+    if (await ack.count()) await ack.check();
+    let booked = false;
+    const triedSlots = new Set();
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const day = reservationCandidateDay(v, attempt);
+      const date = p.getByLabel("Date", { exact: true });
+      if (!(await date.isVisible()))
+        await p
+          .getByRole("button", { name: "Choose another date", exact: true })
+          .click();
+      await date.fill(day);
+      const more = p.getByRole("button", { name: "More times", exact: true });
+      if (await more.isVisible()) await more.click();
+      const chips = p
+        .getByRole("group", { name: "Date & time time", exact: true })
+        .locator('input[type="radio"]:enabled');
+      const count = await chips.count();
+      if (!count) {
+        notes.push(
+          `${day}: no offered time chips; skipped without a booking request.`,
+        );
+        continue;
+      }
+      const values = await chips.evaluateAll((nodes) =>
+        nodes.map((node) => node.value),
+      );
+      let index = (reservationSeed(runId + v.slug + ":time") + attempt) % count;
+      let checked = 0;
+      while (checked < count && triedSlots.has(`${day} ${values[index]}`)) {
+        index = (index + 1) % count;
+        checked++;
+      }
+      if (checked === count) {
+        notes.push(
+          `${day}: all offered time chips were already attempted; skipped.`,
+        );
+        continue;
+      }
+      const chip = chips.nth(index);
+      await clickChip(chip);
+      const time = await chip.inputValue();
+      triedSlots.add(`${day} ${time}`);
+      const trace = {
+        venue: v.slug,
+        attempt: attempt + 1,
+        day,
+        time,
+        state: "pending",
+      };
+      journal.reservationAttempts ||= [];
+      journal.reservationAttempts.push(trace);
+      results.reservationAttempts ||= [];
+      results.reservationAttempts.push(trace);
+      await persist();
+      await evidence();
+      const response = await mutate(
+        p,
+        "/reservations",
+        () =>
+          p
+            .getByRole("button", { name: "Request reservation", exact: true })
+            .click(),
+        { allowedStatuses: [409], envelope: true },
+      );
+      trace.status = response.status;
+      if (response.status === 409) {
+        trace.state = "rejected";
+        trace.error = response.errorMessage;
+        notes.push(
+          `Attempt ${attempt + 1} (${day} ${time}): HTTP 409 ${response.errorMessage}`,
+        );
+        await persist();
+        await evidence();
+        await stopRejectedReservation(v, p);
+        trace.state = "rejected-and-stopped";
+        await persist();
+        await evidence();
+        continue;
+      }
+      trace.state = "recorded";
+      await persist();
+      await evidence();
+      booked = true;
+      break;
+    }
+    assert(
+      booked,
+      "No reservation was accepted after at most six distinct later-slot attempts; all rejected own requests were stopped",
+    );
+    const r = (await workspace(v)).reservations.find(
+      (row) => row.displayName === marker,
+    );
+    assert(
+      r?.status === "requested",
+      "The guest booking must persist as a requested reservation",
+    );
+    assert.equal(r.partySize, 3);
+    const cutoff =
+      r.depositPolicy?.cancellationCutoffHours ||
+      v.branch.settings.depositPolicy?.cancellationCutoffHours ||
+      24;
+    assert(
+      Date.parse(r.startsAt) - Date.now() > cutoff * 3600000,
+      "Booking must be before cancellation cutoff",
+    );
+    v.reservation = r;
+    return [
+      ...notes,
+      "A later run-specific slot was booked and verified through the staff API.",
+    ].join("; ");
+  } catch (error) {
+    error.journeyNotes = [
+      ...notes,
+      "No unknown or recorded reservation is automatically retried, cancelled or replaced.",
+    ].join("; ");
+    throw error;
+  }
 }
+
 const reservationCard = (p) =>
   p
     .locator(".mw-reservation-record")
@@ -1738,7 +2007,7 @@ async function journey(v) {
             })
             .click();
           const details = v.owner.locator(".mw-pos-context-extra");
-          if (!(await details.getAttribute("open")))
+          if ((await details.getAttribute("open")) === null)
             await details.locator("summary").click();
           await v.owner
             .getByLabel("Customer name (optional)", { exact: true })
@@ -1808,7 +2077,13 @@ async function journey(v) {
       );
     }
     const waiter = v.slug === "oak-ember" ? p : v.owner;
-    if (v.slug === "velvet-lounge") await ensureJourneyTable(v);
+    const createdTable = await ensureJourneyTable(v);
+    if (createdTable && guestPage) {
+      await guestPage.reload();
+      await guestPage
+        .getByRole("region", { name: "Products", exact: true })
+        .waitFor();
+    }
     await step(v, "Open named table visit", () => openVisit(v, waiter), waiter);
     if (v.slug === "daybreak-afterdark") {
       await step(
@@ -1959,6 +2234,7 @@ try {
       v.owner = await login(slug, "owner");
       Object.assign(v, await current(v));
       await location(v.owner, code);
+      await inspectOwnLeftovers(v);
       const w = await workspace(v);
       v.beforePaymentIds = new Set(w.payments.map((p) => p.id));
       v.beforeDepositIds = new Set(w.deposits.map((p) => p.id));

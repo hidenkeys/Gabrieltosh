@@ -223,6 +223,7 @@ export function mountMeraStockTransfers(
             lines,
             status: "sent",
             sentBy: req.user.id,
+            sentByName: req.user.name || null,
             sentAt: stamp(),
             receivedBy: null,
             receivedAt: null,
@@ -407,7 +408,7 @@ export function mountMeraStockTransfers(
     if (!req.user) throw fail("Sign in to continue.", 401);
     const branches = (
       await db.query(
-        "SELECT id FROM mera_branches WHERE organization_id=$1 ORDER BY id",
+        "SELECT id,name,timezone FROM mera_branches WHERE organization_id=$1 ORDER BY id",
         [org],
       )
     ).rows;
@@ -437,6 +438,19 @@ export function mountMeraStockTransfers(
           (visible.has(t.fromBranchId) || visible.has(t.toBranchId)) &&
           (!query.status || t.status === query.status),
       );
-    res.set("Cache-Control", "no-store").json({ transfers });
+    // Receivers may not have the sending branch in their workspace context.
+    // Expose names only for already-authorized transfer records, never a staff directory.
+    const missingSenders = [...new Set(transfers.filter((t) => !t.sentByName && t.sentBy).map((t) => t.sentBy))];
+    const senders = missingSenders.length
+      ? (await db.query("SELECT id,name FROM users WHERE id::text=ANY($1::text[])", [missingSenders])).rows
+      : [];
+    const projected = transfers.map((t) => {
+      const source = branches.find((b) => b.id === t.fromBranchId);
+      const destination = branches.find((b) => b.id === t.toBranchId);
+      return { ...t, fromBranchName: source?.name || null, toBranchName: destination?.name || null,
+        timeZone: source?.timezone || destination?.timezone || "UTC",
+        sentByName: t.sentByName || senders.find((u) => String(u.id) === String(t.sentBy))?.name || null };
+    });
+    res.set("Cache-Control", "no-store").json({ transfers: projected });
   });
 }

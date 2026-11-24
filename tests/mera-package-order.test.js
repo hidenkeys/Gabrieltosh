@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { createMeraRouter } from "../server/mera/index.js";
 import { permissions } from "../shared/mera-contracts.js";
 
-function fixture() {
+function fixture({ expiredHold = false } = {}) {
   const organizationId = randomUUID(), branchId = randomUUID(), visitId = randomUUID(), componentId = randomUUID(), packageId = randomUUID(), reservationId = randomUUID();
   const component = { id: componentId, kind: "single", name: "Fictional bottle", price: 1000, size: "Bottle", available: true, stockMode: "counted", stock: 20, station: "bar", variants: [], modifierGroups: [] };
   const bundle = { id: packageId, kind: "package", name: "Fictional table package", price: 5000, available: true, stockMode: "unlimited", stock: 0, station: "kitchen", variants: [], modifierGroups: [], requiresTable: true, components: [{ productId: componentId, variantId: null, quantity: 3 }] };
@@ -13,6 +13,32 @@ function fixture() {
   let rows = [component, bundle].map(data => ({ id: data.id, organization_id: organizationId, branch_id: branchId, kind: "product", data: structuredClone(data) }));
   rows.push({ id: visitId, organization_id: organizationId, branch_id: branchId, kind: "visit", data: { id: visitId, status: "open", guestIds: [] } });
   rows.push({id:reservationId,organization_id:organizationId,branch_id:branchId,kind:"reservation",data:{id:reservationId,status:"confirmed"}});
+  if (expiredHold) {
+    rows.find(
+      (row) => row.kind === "product" && row.id === componentId,
+    ).data.stock = 17;
+    const oldId = randomUUID();
+    rows.push({
+      id: oldId,
+      organization_id: organizationId,
+      branch_id: branchId,
+      kind: "order",
+      data: {
+        id: oldId,
+        status: "submitted",
+        stockHeld: true,
+        holdExpired: false,
+        holdExpiresAt: "2000-01-01T00:00:00Z",
+        version: 1,
+        items: [{ productId: componentId, quantity: 3 }],
+        total: 3000,
+        paid: 0,
+        refunded: 0,
+        paymentStatus: "unpaid",
+        history: [],
+      },
+    });
+  }
   const member = { role: "owner", organization_wide: true, branch_ids: [], permissions };
   const db = {
     async transaction(fn) { const before = structuredClone(rows); try { return await fn(db); } catch (error) { rows = before; throw error; } },
@@ -94,3 +120,71 @@ test("real package checkout requires a validated open table visit and leaves sto
  const order=await f.invoke("/orders",body);assert.equal(order.reservationId,f.reservationId);
  assert.equal(f.records("product").find(p=>p.id===f.componentId).stock,17);
  });
+
+test("package quote accepts a current table visit and counter quote stays blocked", async () => {
+  const f = fixture();
+  const base = {
+    menuVersion: 1,
+    items: [{ productId: f.packageId, quantity: 1 }],
+  };
+  await assert.rejects(
+    () => f.invoke("/quote", base),
+    (error) => error.status === 409 && error.code === "TABLE_REQUIRED",
+  );
+  await assert.rejects(
+    () =>
+      f.invoke("/quote", {
+        ...base,
+        fulfillment: "table_service",
+        visitId: randomUUID(),
+      }),
+    (error) => error.status === 403,
+  );
+  assert.equal(
+    (
+      await f.invoke("/quote", {
+        ...base,
+        fulfillment: "table_service",
+        visitId: f.visitId,
+      })
+    ).total,
+    5000,
+  );
+  assert.equal(
+    (await f.invoke("/quote", { ...base, reservationId: f.reservationId }))
+      .total,
+    5000,
+  );
+  assert.equal(
+    f.records("product").find((row) => row.id === f.componentId).stock,
+    20,
+    "Quote does not reserve or deduct stock",
+  );
+});
+
+test("checkout atomically restores expired old holds before deducting the new package", async () => {
+  const f = fixture({ expiredHold: true });
+  const before = f
+    .records("product")
+    .find((row) => row.id === f.componentId).stock;
+  const order = await f.invoke("/orders", {
+    requestKey: randomUUID(),
+    menuVersion: 1,
+    displayName: "Fictional new party",
+    fulfillment: "table_service",
+    visitId: f.visitId,
+    items: [{ productId: f.packageId, quantity: 1 }],
+  });
+  const old = f.records("order").find((row) => row.id !== order.id);
+  assert.equal(old.holdExpired, true);
+  assert.equal(old.stockHeld, false);
+  assert.equal(
+    f.records("stock_movement")[0].quantity,
+    -3,
+    "The new package still deducts all three components exactly once",
+  );
+  assert.equal(
+    f.records("product").find((row) => row.id === f.componentId).stock,
+    before + 3 - 3,
+  );
+});

@@ -1535,6 +1535,9 @@ export default function OrganizationWorkspace({
   const quoteIntent = JSON.stringify({
     menuVersion: data?.menuVersion,
     items: orderDraft.items,
+    fulfillment: orderDraft.fulfillment,
+    visitId: orderDraft.visitId,
+    reservationId: orderDraft.reservationId,
   });
   const requiresQuote = !!data?.branch?.settings?.pricingPolicy?.enabled;
   const validQuote =
@@ -3619,6 +3622,9 @@ export default function OrganizationWorkspace({
                               {
                                 menuVersion: data.menuVersion,
                                 items: orderDraft.items,
+                                fulfillment: orderDraft.fulfillment,
+                                ...(orderDraft.visitId ? { visitId: orderDraft.visitId } : {}),
+                                ...(orderDraft.reservationId ? { reservationId: orderDraft.reservationId } : {}),
                               },
                               "Order quote prepared. No order was placed.",
                             )
