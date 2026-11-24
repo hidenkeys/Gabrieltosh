@@ -117,7 +117,12 @@ async function snapshot(page, venue, screen) {
       width,
       height: width === 390 ? 844 : width === 820 ? 1180 : 1000,
     });
-    await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      );
+    });
     const fits = await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth + 1,
     );
@@ -131,6 +136,7 @@ async function snapshot(page, venue, screen) {
       await page.screenshot({
         path: path.join(destination, `${venue}-${screen}-${width}.png`),
         fullPage: true,
+        animations: "disabled",
         mask: [
           page.getByLabel("Password", { exact: true }),
           page.getByRole("textbox", { name: "Username", exact: true }),
@@ -180,6 +186,7 @@ async function login(org, role) {
   assert(credential, "Missing role credential");
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
+    reducedMotion: "reduce",
   });
   const page = await context.newPage(),
     errors = [],
@@ -640,7 +647,7 @@ try {
       venue,
       "counter QR: package table requirement and combo min/max sheet",
       async () => {
-        const context = await browser.newContext();
+        const context = await browser.newContext({ reducedMotion: "reduce" });
         const errors = [],
           network = [];
         observe(context, errors, network);
