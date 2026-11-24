@@ -1,8 +1,8 @@
 {
-  "runId": "e2e-1033a",
-  "marker": "E2E e2e-1033a",
+  "runId": "e2e-b",
+  "marker": "E2E e2e-b",
   "origin": "https://mera-web-staging.up.railway.app",
-  "startedAt": "2026-11-24T09:47:21.821Z",
+  "startedAt": "2026-11-24T10:06:24.146Z",
   "steps": [
     {
       "venue": "kerbside-grill",
@@ -15,7 +15,7 @@
       "step": "Manual collection and tender or room label",
       "pass": false,
       "notes": "Journey stopped at this step; no automatic retry.",
-      "error": "locator.check: Clicking the checkbox did not change its state"
+      "error": "The expression evaluated to a falsy value:"
     },
     {
       "venue": "daybreak-afterdark",
@@ -28,7 +28,13 @@
       "step": "Cashier counter cash tender",
       "pass": false,
       "notes": "Journey stopped at this step; no automatic retry.",
-      "error": "locator.check: Clicking the checkbox did not change its state"
+      "error": "The expression evaluated to a falsy value:"
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Permanent owner configuration change: payLater enabled through branch settings UI; it is not restored."
     },
     {
       "venue": "harbour-hotel",
@@ -39,9 +45,40 @@
     {
       "venue": "harbour-hotel",
       "step": "Manual collection and tender or room label",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Kitchen and bar preparation",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "Collected and completed",
+      "pass": true,
+      "notes": "UI action and authenticated server state verified."
+    },
+    {
+      "venue": "harbour-hotel",
+      "step": "CST to RST one-unit transfer and manager receipt",
       "pass": false,
       "notes": "Journey stopped at this step; no automatic retry.",
-      "error": "locator.check: Clicking the checkbox did not change its state"
+      "error": "locator.click: Timeout 20000ms exceeded."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Owner configuration: allow preparation before full payment",
+      "pass": true,
+      "notes": "Permanent owner configuration change: payLater enabled through branch settings UI; it is not restored."
+    },
+    {
+      "venue": "oak-ember",
+      "step": "Open named table visit",
+      "pass": false,
+      "notes": "Journey stopped at this step; no automatic retry.",
+      "error": "locator.click: Timeout 20000ms exceeded."
     }
   ],
   "venues": [
@@ -49,24 +86,53 @@
       "venue": "kerbside-grill",
       "pass": false,
       "orderIds": [
-        "ce945cbb-04ad-4fb9-bf57-de914014226a"
+        "672ee021-94c0-4687-bfae-b08e2ae2f679"
       ]
     },
     {
       "venue": "daybreak-afterdark",
       "pass": false,
       "orderIds": [
-        "0cf82914-9d22-4b87-929d-73514bd87374"
+        "9d117152-e8a1-41bd-b412-ca6a7a1cb7b4"
       ]
     },
     {
       "venue": "harbour-hotel",
       "pass": false,
       "orderIds": [
-        "156fd17b-bea9-48df-ba10-45fb9b798f35"
+        "cd80ead7-bd21-4a1b-b9dd-61f9270909f3"
       ]
+    },
+    {
+      "venue": "oak-ember",
+      "pass": false,
+      "orderIds": []
     }
   ],
-  "finishedAt": "2026-11-24T09:49:08.207Z",
+  "configurationChanges": [
+    {
+      "venue": "harbour-hotel",
+      "branchId": "a2088eb4-12ab-49fd-a2aa-35a36ec96eb1",
+      "kind": "configuration-change",
+      "field": "payLater",
+      "before": false,
+      "after": true,
+      "permanent": true,
+      "state": "verified",
+      "version": 2
+    },
+    {
+      "venue": "oak-ember",
+      "branchId": "ab8c9ac2-4287-480e-a2e1-3f3b7458b5ce",
+      "kind": "configuration-change",
+      "field": "payLater",
+      "before": false,
+      "after": true,
+      "permanent": true,
+      "state": "verified",
+      "version": 5
+    }
+  ],
+  "finishedAt": "2026-11-24T10:09:23.799Z",
   "exitCode": 1
 }

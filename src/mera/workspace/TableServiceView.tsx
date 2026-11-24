@@ -1,5 +1,5 @@
 import ChoiceField from "../ui/ChoiceField";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Disclosure, ReadState } from "../ui/OperationalPrimitives";
 const labels: Record<string, string> = {
   available: "Available",
@@ -21,6 +21,8 @@ export default function TableServiceView({
   visits,
   renderTableTools,
   renderPartyTools,
+  onSeatParty,
+  seatPartyDisabled = false,
   openParty,
   setup,
   bills,
@@ -29,11 +31,26 @@ export default function TableServiceView({
   visits: unknown;
   renderTableTools: (table: any, held: boolean) => ReactNode;
   renderPartyTools: (visit: any) => ReactNode;
+  onSeatParty?: (table: any) => void;
+  seatPartyDisabled?: boolean;
   openParty: ReactNode;
   setup: ReactNode;
   bills?: ReactNode;
 }) {
   const [task, setTask] = useState("service");
+  const openPartyPanel = useRef<HTMLDivElement>(null);
+  const [seatRequest, setSeatRequest] = useState(0);
+  useEffect(() => {
+    if (!seatRequest) return;
+    const details = openPartyPanel.current?.querySelector("details");
+    if (!details) return;
+    details.open = true;
+    const name = details.querySelector<HTMLInputElement>(
+      'input[name="visitName"]',
+    );
+    name?.focus();
+    name?.scrollIntoView?.({ block: "center" });
+  }, [seatRequest]);
   const knownTables = records(tables),
     knownVisits = records(visits),
     [view, setView] = useState("open");
@@ -114,6 +131,22 @@ export default function TableServiceView({
                         {party.displayName || "Party name not recorded"}
                       </p>
                     ))}
+                    {onSeatParty &&
+                      knownVisits &&
+                      table.status === "available" &&
+                      !parties?.length && (
+                        <button
+                          type="button"
+                          className="primary"
+                          disabled={seatPartyDisabled}
+                          onClick={() => {
+                            onSeatParty(table);
+                            setSeatRequest((request) => request + 1);
+                          }}
+                        >
+                          Seat party
+                        </button>
+                      )}
                     {renderTableTools(table, !!parties?.length)}
                   </article>
                 );
@@ -194,13 +227,15 @@ export default function TableServiceView({
               </div>
             </>
           )}
-          <Disclosure
-            className="mw-table-open"
-            summary="Open a table visit"
-            defaultOpen={!!knownVisits && !open?.length}
-          >
-            {openParty}
-          </Disclosure>
+          <div ref={openPartyPanel}>
+            <Disclosure
+              className="mw-table-open"
+              summary="Open a table visit"
+              defaultOpen={!!knownVisits && !open?.length}
+            >
+              {openParty}
+            </Disclosure>
+          </div>
           <p className="mw-table-guidance">
             A table QR does not reveal a party’s bill. Private access is
             controlled separately. Settle outstanding balances before closing a

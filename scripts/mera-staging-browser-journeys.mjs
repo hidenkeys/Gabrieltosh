@@ -85,7 +85,9 @@ const journal = {
 let browser,
   credentials = [],
   fatalRestore = false,
-  claimed = false;
+  claimed = false,
+  activePage;
+const pageActors = new WeakMap();
 const contexts = new Set();
 const require = createRequire(import.meta.url);
 const bpath = (v, branch = v.branch) =>
@@ -143,6 +145,7 @@ function record(v, name, pass, notes, error) {
   });
 }
 async function step(v, name, fn, page, guest = false) {
+  activePage = page;
   const op = {
     venue: v.slug,
     step: name,
@@ -156,12 +159,14 @@ async function step(v, name, fn, page, guest = false) {
     const w = await workspace(v); // Authenticated read after EVERY step.
     assert.equal(w.branch.id, v.branch.id);
     assert.equal(w.branch.settings.syntheticPortfolio, "portfolio-v1");
-    if (page)
+    const capture = activePage || page;
+    op.actor = pageActors.get(capture) || "staff";
+    if (capture)
       await shot(
         v,
-        page,
+        capture,
         name.replace(/[^a-z0-9]+/gi, "-").toLowerCase(),
-        guest,
+        pageActors.get(capture) === "guest" || (capture === page && guest),
       );
     op.state = "passed";
     record(
@@ -181,9 +186,17 @@ async function step(v, name, fn, page, guest = false) {
       "Journey stopped at this step; no automatic retry.",
       e,
     );
-    if (page)
+    const capture = activePage || page;
+    op.actor = pageActors.get(capture) || "staff";
+    results.steps.at(-1).actor = op.actor;
+    if (capture)
       try {
-        await shot(v, page, "failed-" + journal.operations.length, guest);
+        await shot(
+          v,
+          capture,
+          "failed-" + journal.operations.length + "-" + op.actor,
+          pageActors.get(capture) === "guest" || (capture === page && guest),
+        );
       } catch {
         /* original failure retained */
       }
@@ -214,6 +227,8 @@ async function login(slug, role) {
   assert(c, `Missing ${role} credential`);
   const ctx = await context(),
     p = await ctx.newPage();
+  activePage = p;
+  pageActors.set(p, role);
   p.setDefaultTimeout(20000);
   try {
     await p.goto(ORIGIN + "/mera/workspace");
@@ -234,6 +249,7 @@ async function login(slug, role) {
       org.branches.every(
         (b) => b.settings.syntheticPortfolio === "portfolio-v1",
       ),
+      "Every accessible location must belong to the synthetic portfolio",
     );
   } catch {
     throw Error(
@@ -296,6 +312,7 @@ const workspace = (v, branch) => api(v.owner, bpath(v, branch) + "/workspace");
 const overview = (v) =>
   api(v.owner, `/api/mera/v1/organizations/${v.org.id}/overview?preset=today`);
 async function go(p, name) {
+  activePage = p;
   const toggle = p.getByRole("button", { name: "Workspace menu", exact: true });
   if (
     (await toggle.isVisible()) &&
@@ -338,6 +355,7 @@ async function choose(p, label, text) {
     );
 }
 async function location(p, code) {
+  activePage = p;
   const box = p.getByRole("combobox", { name: "Location", exact: true });
   await box.fill(code);
   await p
@@ -348,6 +366,7 @@ async function location(p, code) {
   await p.locator(".mw-heading h1").waitFor();
 }
 async function mutate(p, suffix, action) {
+  activePage = p;
   const response = p.waitForResponse((r) => {
     const u = new URL(r.url());
     return (
@@ -523,6 +542,8 @@ async function restore(v) {
 }
 async function guest(v, table) {
   const p = await (await context()).newPage();
+  activePage = p;
+  pageActors.set(p, "guest");
   p.setDefaultTimeout(20000);
   await p.goto(
     `${ORIGIN}/mera/menu/${v.slug}/${v.branch.id}${table ? `?tableId=${encodeURIComponent(table.id)}` : ""}`,
@@ -544,7 +565,10 @@ async function newOrder(v, p, suffix, action, expectedProducts) {
     (order.displayName || "").includes(marker),
     "New guest name must contain run marker",
   );
-  assert(order.total > 0);
+  assert(
+    order.total > 0,
+    "The submitted order must have a positive server total",
+  );
   v.orderIds.push(order.id);
   // Expected component quantities come from the catalog that the UI uses.
   const deductions = new Map();
@@ -613,7 +637,10 @@ async function guestOrder(v, p, code = "MAIN") {
       .getByRole("checkbox")
       .first();
     await first.uncheck();
-    assert(await add.isDisabled());
+    assert(
+      await add.isDisabled(),
+      "Removing a required combo choice must disable Add to basket",
+    );
     await first.check();
   }
   assert(
@@ -686,8 +713,9 @@ async function payOrder(v, p, order, method = "cash") {
     p
       .getByRole("group", { name: "Quick amount", exact: true })
       .getByRole("radio", {
-        name: method === "cash" ? /^Next ₦1,000/ : "Exact amount",
-      }),
+        name: method === "cash" ? /^Next ₦/ : "Exact amount",
+      })
+      .last(),
   );
   if (method === "cash") {
     const amount = Number(
@@ -700,11 +728,15 @@ async function payOrder(v, p, order, method = "cash") {
         .getByLabel("Cash handed over (naira, optional)", { exact: true })
         .inputValue(),
     );
-    assert(tender > amount);
+    assert(
+      tender > amount,
+      "The selected cash tender chip must exceed the amount received",
+    );
     assert(
       (await p.getByText("Change due", { exact: false }).innerText()).includes(
         money(Math.round((tender - amount) * 100)),
       ),
+      "Displayed change due must equal cash handed over minus amount received",
     );
   } else {
     await p.getByLabel("Room number", { exact: true }).fill("102");
@@ -728,6 +760,7 @@ async function payOrder(v, p, order, method = "cash") {
         p.method === method &&
         p.amount === order.total,
     ),
+    "The order payment must persist with its expected method and full total",
   );
   if (method === "room_charge") {
     const row = p
@@ -829,6 +862,7 @@ async function openVisit(v, p) {
   const w = await workspace(v),
     table = w.tables.find(
       (t) =>
+        t.name === "Table 1" &&
         t.status === "available" &&
         !w.visits.some(
           (x) =>
@@ -837,19 +871,33 @@ async function openVisit(v, p) {
     );
   assert(
     table,
-    "No available synthetic table; existing parties will not be changed",
+    "Table 1 must be available with no open party; existing parties will not be changed",
   );
   v.table = table;
   await go(p, "Tables & visits");
-  const disclosure = p
-    .locator("details")
-    .filter({
-      has: p.locator("summary").filter({ hasText: /^Open a table visit$/ }),
-    });
-  if (!(await disclosure.getAttribute("open")))
-    await disclosure.locator("summary").click();
+  await p
+    .getByRole("button", { name: "Tables & parties", exact: true })
+    .click();
+  const card = p
+    .locator(".mw-table-card")
+    .filter({ has: p.getByRole("heading", { name: "Table 1", exact: true }) });
+  await card.getByRole("button", { name: "Seat party", exact: true }).click();
   const form = p.getByRole("form", { name: "Open table visit", exact: true });
-  await choose(form, "Table", table.name);
+  const name = form.getByLabel("Guest display name", { exact: true });
+  await name.waitFor({ state: "visible" });
+  assert.equal(
+    await form
+      .getByRole("combobox", { name: "Table", exact: true })
+      .inputValue(),
+    table.name,
+    "Seat party must preselect Table 1",
+  );
+  assert(
+    await name.evaluate(
+      (element) => element === element.ownerDocument.activeElement,
+    ),
+    "Seat party must focus the guest name field",
+  );
   await form.getByLabel("Guest display name", { exact: true }).fill(marker);
   const ack = form.getByRole("checkbox");
   if (await ack.count()) await ack.check();
@@ -869,7 +917,10 @@ async function openVisit(v, p) {
   const visit = (await workspace(v)).visits.find(
     (x) => x.displayName === marker,
   );
-  assert(visit && visit.status === "open");
+  assert(
+    visit && visit.status === "open",
+    "The named party must persist as an open visit",
+  );
   assert.equal(visit.partySize, expectedPartySize);
   v.visit = visit;
   // Read the joining code from the actual UI only, and keep it out of evidence.
@@ -891,13 +942,11 @@ async function minimumProgress(v, p) {
     return "No minimum-spend policy configured on this visit.";
   await go(p, "Tables & visits");
   const card = partyCard(p),
-    disclosure = card
-      .locator("details")
-      .filter({
-        has: p
-          .locator("summary")
-          .filter({ hasText: /^Minimum-spend commitment$/ }),
-      });
+    disclosure = card.locator("details").filter({
+      has: p
+        .locator("summary")
+        .filter({ hasText: /^Minimum-spend commitment$/ }),
+    });
   if (!(await disclosure.getAttribute("open")))
     await disclosure.locator("summary").click();
   await card.getByText(/Commitment shortfall:/).waitFor();
@@ -906,7 +955,10 @@ async function minimumProgress(v, p) {
     bpath(v) + `/visits/${v.visit.id}/minimum-spend`,
   );
   assert.equal(state.summary.target, v.visit.minimumSpendPolicy.amount);
-  assert((await card.innerText()).includes(money(state.summary.shortfall)));
+  assert(
+    (await card.innerText()).includes(money(state.summary.shortfall)),
+    "Minimum-spend progress must display the server shortfall",
+  );
 }
 async function chooseBill(p, name) {
   const combo = p.getByRole("combobox", {
@@ -958,13 +1010,9 @@ async function settleBills(v, p, split = false) {
   }
   for (const [i, bill] of bills.entries()) {
     await chooseBill(p, bill.name);
-    const disclosure = p
-      .locator(".mw-bills details")
-      .filter({
-        has: p
-          .locator("summary")
-          .filter({ hasText: /^Record money received$/ }),
-      });
+    const disclosure = p.locator(".mw-bills details").filter({
+      has: p.locator("summary").filter({ hasText: /^Record money received$/ }),
+    });
     if (!(await disclosure.getAttribute("open")))
       await disclosure.locator("summary").click();
     await p
@@ -1092,7 +1140,10 @@ async function reservation(v, p) {
   const r = (await workspace(v)).reservations.find(
     (r) => r.displayName === marker,
   );
-  assert(r && r.status === "requested");
+  assert(
+    r && r.status === "requested",
+    "The guest booking must persist as a requested reservation",
+  );
   assert.equal(r.partySize, 3);
   const cutoff =
     r.depositPolicy?.cancellationCutoffHours ||
@@ -1162,11 +1213,60 @@ async function reports(v) {
     await shot(v, v.owner, "all-locations-today");
   }
 }
+async function transferWorkspace(v, role, branch) {
+  const p = await login(v.slug, role);
+  const data = await api(p, "/api/mera/v1/context");
+  const org = data.organizations.find((org) => org.id === v.org.id);
+  assert.equal(
+    org?.role,
+    role,
+    `Transfer session must be signed in as ${role}`,
+  );
+  assert(
+    org.branches.some((b) => b.id === branch.id),
+    `${role} must have access to ${branch.settings.code}`,
+  );
+  const box = p.getByRole("combobox", { name: "Location", exact: true });
+  if ((await box.inputValue()) !== branch.name) {
+    await box.click();
+    const options = p.getByRole("listbox", {
+      name: "Location options",
+      exact: true,
+    });
+    await options.locator(`[role="option"][data-value="${branch.id}"]`).click();
+    await options.waitFor({ state: "hidden" });
+  }
+  assert.equal(
+    await box.inputValue(),
+    branch.name,
+    `${role} must select ${branch.settings.code} before transfers`,
+  );
+  await go(p, "Stock transfers");
+  await p.locator('#mw-tab-transfers[aria-selected="true"]').waitFor();
+  const panel = p.locator(".mw-stock-transfers");
+  await panel.waitFor({ state: "visible" });
+  await panel
+    .getByRole("heading", { name: "Transfer history", exact: true })
+    .waitFor();
+  assert(
+    await panel
+      .getByRole("combobox", { name: "From location", exact: true })
+      .isVisible(),
+    `${role} must be viewing the Stock transfers form`,
+  );
+  await shot(v, p, `transfer-${role}-${branch.settings.code.toLowerCase()}`);
+  return p;
+}
 async function transfer(v) {
   const branches = v.org.branches,
     from = branches.find((b) => b.settings.code === "CST"),
     to = branches.find((b) => b.settings.code === "RST");
-  assert(from && to);
+  assert(from && to, "Harbour must expose CST and RST locations");
+  assert.equal(
+    from.settings.role,
+    "stock_room",
+    "CST must be the central stock room",
+  );
   assert.equal(from.settings.syntheticPortfolio, "portfolio-v1");
   assert.equal(to.settings.syntheticPortfolio, "portfolio-v1");
   const beforeFrom = await workspace(v, from),
@@ -1177,13 +1277,15 @@ async function transfer(v) {
       p.stock >= 1 &&
       beforeTo.products.some((x) => x.code === p.code),
   );
-  assert(item);
-  const p = await login(v.slug, "central_stock");
-  await location(p, "CST");
-  await go(p, "Stock transfers");
-  await choose(p, "From location", "CST");
-  await choose(p, "To location", "RST");
-  await choose(p, "Item 1", item.name);
+  assert(
+    item,
+    "CST must have a counted item with at least one unit and a matching RST product",
+  );
+  const p = await transferWorkspace(v, "central_stock", from);
+  const panel = p.locator(".mw-stock-transfers");
+  await choose(panel, "From location", `CST ${from.name}`);
+  await choose(panel, "To location", `RST ${to.name}`);
+  await choose(panel, "Item 1", item.name);
   assert.equal(
     await p
       .getByRole("spinbutton", { name: "Quantity 1", exact: true })
@@ -1204,9 +1306,7 @@ async function transfer(v) {
     (await workspace(v, from)).products.find((p) => p.id === item.id).stock,
     item.stock - 1,
   );
-  const receiver = await login(v.slug, "branch_manager");
-  await location(receiver, "RST");
-  await go(receiver, "Stock transfers");
+  const receiver = await transferWorkspace(v, "branch_manager", to);
   // The rendered article does not show the note/ID: identify exactly one article
   // by the new transfer's item and route, refusing ambiguous existing transfers.
   const card = receiver
@@ -1329,13 +1429,11 @@ async function journey(v) {
           .getByLabel("Search reservation names", { exact: true })
           .fill(marker);
         const card = reservationCard(v.owner),
-          details = card
-            .locator("details")
-            .filter({
-              has: v.owner
-                .locator("summary")
-                .filter({ hasText: "Deposit & seating" }),
-            });
+          details = card.locator("details").filter({
+            has: v.owner
+              .locator("summary")
+              .filter({ hasText: "Deposit & seating" }),
+          });
         await details.locator("summary").click();
         const amount =
           v.reservation.depositRequired ||
@@ -1418,7 +1516,10 @@ async function journey(v) {
           assert.equal(reply.depositReviewRequired, true);
           const after = await workspace(v),
             r = after.reservations.find((r) => r.id === v.reservation.id);
-          assert(r.cancellationRequestedAt);
+          assert(
+            r.cancellationRequestedAt,
+            "The reservation must retain a cancellation request for staff review",
+          );
           assert.equal(r.status, "confirmed");
           assert.deepEqual(after.refunds, before.refunds);
           assert.deepEqual(after.deposits, before.deposits);
@@ -1433,15 +1534,16 @@ async function journey(v) {
         async () => {
           const w = await workspace(v);
           v.table = w.tables.find((t) => t.status === "available");
-          assert(v.table);
+          assert(
+            v.table,
+            "An available VIP table must exist before seating the booking",
+          );
           const card = reservationCard(front),
-            details = card
-              .locator("details")
-              .filter({
-                has: front
-                  .locator("summary")
-                  .filter({ hasText: "Deposit & seating" }),
-              });
+            details = card.locator("details").filter({
+              has: front
+                .locator("summary")
+                .filter({ hasText: "Deposit & seating" }),
+            });
           if (!(await details.getAttribute("open")))
             await details.locator("summary").click();
           await choose(card, "Seat at table", v.table.name);
@@ -1454,7 +1556,10 @@ async function journey(v) {
           v.visit = after.visits.find(
             (x) => x.reservationId === v.reservation.id,
           );
-          assert(v.visit?.status === "open");
+          assert(
+            v.visit?.status === "open",
+            "Seating the reservation must create an open visit",
+          );
           assert.equal(
             after.reservations.find((r) => r.id === v.reservation.id).status,
             "seated",
@@ -1477,6 +1582,7 @@ async function journey(v) {
                 exact: true,
               })
               .isDisabled(),
+            "The bottle package must be disabled on the counter QR menu",
           );
           await pos(v, v.owner, ["PACK"], v.visit);
         },
@@ -1497,14 +1603,12 @@ async function journey(v) {
               .getByRole("button", { name: "Add entry", exact: true })
               .click(),
           );
-          const card = v.owner
-            .locator(".mw-card article")
-            .filter({
-              has: v.owner.getByRole("heading", {
-                name: `${marker} · 2 guests`,
-                exact: true,
-              }),
-            });
+          const card = v.owner.locator(".mw-card article").filter({
+            has: v.owner.getByRole("heading", {
+              name: `${marker} · 2 guests`,
+              exact: true,
+            }),
+          });
           await mutate(v.owner, "/check-in", () =>
             card
               .getByRole("button", { name: `Check in ${marker}`, exact: true })
@@ -1520,7 +1624,10 @@ async function journey(v) {
             entry = w.counterProducts.find(
               (x) => x.id === v.branch.settings.entryProductId,
             );
-          assert(entry);
+          assert(
+            entry,
+            "The configured entry product must be available in the published POS catalog",
+          );
           await v.owner
             .getByRole("button", {
               name: `Increase Quantity of ${entry.name}`,
@@ -1659,7 +1766,10 @@ async function journey(v) {
           total = tracked(v, w)
             .filter((o) => o.visitId === v.visit.id)
             .reduce((n, o) => n + o.total, 0);
-          assert(total >= target);
+          assert(
+            total >= target,
+            "The visit order total must cover the disclosed minimum spend",
+          );
         },
         v.owner,
       );
@@ -1715,7 +1825,10 @@ try {
       ),
     );
     if (data.origin !== undefined) assert.equal(data.origin, ORIGIN);
-    assert(Array.isArray(data.credentials));
+    assert(
+      Array.isArray(data.credentials),
+      "The private credentials file must contain a credentials array",
+    );
     credentials = data.credentials;
   } catch {
     throw Error(

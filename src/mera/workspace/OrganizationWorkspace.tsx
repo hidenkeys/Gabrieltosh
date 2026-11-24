@@ -210,6 +210,7 @@ export default function OrganizationWorkspace({
   } | null>(null);
   const [data, setData] = useState<RecordData | null>(null);
   const [privateAccess, setPrivateAccess] = useState<any>(null);
+  const [visitOpening, setVisitOpening] = useState<{ scope: string; locked: boolean } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [reportExportSelection, setReportExportSelection] = useState<{
     base: string;
@@ -3716,6 +3717,12 @@ export default function OrganizationWorkspace({
                     key={branchBase}
                     tables={data.tables}
                     visits={data.visits}
+                    onSeatParty={(table) => updateForm("tableId", table.id)}
+                    seatPartyDisabled={
+                      busy || offline ||
+                      features?.flags?.new_table_visits === false ||
+                      (visitOpening?.scope === branchBase && visitOpening.locked)
+                    }
                     renderTableTools={(table, held) => (
                       <TableEditor
                         key={branchBase + table.id}
@@ -3864,6 +3871,10 @@ export default function OrganizationWorkspace({
                         key={branchBase + "open-visit"}
                         className="mw-form"
                         label="Open table visit"
+                        onStateChange={(state) => setVisitOpening({
+                          scope: branchBase,
+                          locked: state.busy || state.unknown || state.denied,
+                        })}
                         disabled={
                           busy ||
                           offline ||
@@ -3913,7 +3924,16 @@ export default function OrganizationWorkspace({
                               </option>
                             ))}
                         </ChoiceField>
-                        {field("Guest display name", "visitName")}
+                        <label>
+                          Guest display name
+                          <input
+                            name="visitName"
+                            required
+                            maxLength={100}
+                            value={tabForm.visitName ?? ""}
+                            onChange={(event) => updateForm("visitName", event.target.value)}
+                          />
+                        </label>
                         <Stepper
                           label="Party size"
                           value={Number(tabForm.partySize ?? 2)}

@@ -66,7 +66,11 @@ export default function PaymentEntry({
                     },
                   ]
                 : []),
-            ]}
+            ].filter(
+              // Two rounding chips can land on the same note (₦6,500 → ₦7,000); show it once.
+              (option, index, all) =>
+                all.findIndex((other) => other.value === option.value) === index,
+            )}
           />
           <p>
             Outstanding {formatMoney(due)}. Only the amount received against

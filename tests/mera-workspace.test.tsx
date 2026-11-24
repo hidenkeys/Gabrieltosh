@@ -2912,7 +2912,7 @@ test("debt write-offs are explicit non-cash actions with canonical balance bound
   }
 });
 
-test("staff visit opening submits the party-size stepper and exact minimum terms, revealing its joining code only in the private party panel", async () => {
+test("Seat party expands the collapsed visit form, preselects its table, focuses the name and submits the party size and terms", async () => {
   const originalFetch = globalThis.fetch;
   const previous = [...context.organizations[0].permissions];
   context.organizations[0].permissions.push("tables.manage");
@@ -2942,7 +2942,7 @@ test("staff visit opening submits the party-size stepper and exact minimum terms
             status: visit ? "occupied" : "available",
           },
         ],
-        visits: visit ? [visit] : [],
+        visits: visit ? [visit] : [{ id: "another-visit", tableId: "another-table", displayName: "Existing party", status: "open" }],
       });
     if (String(input).endsWith("/visits") && init.method === "POST") {
       opened.push(JSON.parse(init.body));
@@ -2961,7 +2961,14 @@ test("staff visit opening submits the party-size stepper and exact minimum terms
     render(React.createElement(Workspace, { user, notify: () => {} }));
     await screen.findByText("Surulere customer", { exact: false });
     fireEvent.click(screen.getByRole("tab", { name: "Tables & visits" }));
-    chooseField(screen, fireEvent, "Table", "table-1");
+    const visitForm = screen.getByRole("form", { name: "Open table visit", hidden: true });
+    const disclosure = visitForm.closest("details") as HTMLDetailsElement;
+    assert.equal(disclosure.open, false);
+    fireEvent.click(screen.getByRole("button", { name: "Seat party", exact: true }));
+    assert.equal(disclosure.open, true);
+    assert.equal((screen.getByRole("combobox", { name: "Table", exact: true }) as HTMLInputElement).value, "Window");
+    assert.equal(document.activeElement, screen.getByLabelText("Guest display name"));
+    assert.equal(opened.length, 0, "Choosing a table must not create a visit before submission");
     assert.equal((screen.getByRole("spinbutton", { name: "Party size" }) as HTMLInputElement).value, "2");
     fireEvent.click(screen.getByRole("button", { name: "Increase Party size" }));
     assert.equal((screen.getByRole("spinbutton", { name: "Party size" }) as HTMLInputElement).value, "3");
