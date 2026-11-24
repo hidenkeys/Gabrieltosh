@@ -12,6 +12,7 @@ import { report as meraReport,tradingDate } from "../server/mera/domain.js";
 import { loadBranchReportRecords,tradingDayWindow } from "../server/mera/queries.js";
 import { processMeraJobs } from "../server/mera/operations.js";
 import { base32, totp, encryptFactor } from "../server/mera/platform.js";
+import { effectiveCapabilities } from "../shared/mera-venues.js";
 import {
   createMeraRouter,
   migrateMera,
@@ -125,6 +126,15 @@ test(
           cookies:response.headers.getSetCookie().map(c=>c.split(";")[0]),
         };
       }
+      async function enableFixtureCapabilities(branchBase, branchId, additions) {
+        const settings = (await db.query("SELECT settings FROM mera_branches WHERE id=$1", [branchId])).rows[0].settings;
+        const response = await call(branchBase + "/settings", "PATCH", {
+          requestKey: randomUUID(),
+          version: settings.version || 1,
+          capabilities: [...new Set([...effectiveCapabilities(settings), ...additions])],
+        });
+        assert.equal(response.status, 200, JSON.stringify(response.data));
+      }
       assert.equal(
         (await call(B + "/workspace", "GET", undefined, other)).status,
         403,
@@ -172,7 +182,10 @@ test(
       assert.equal(expiredIdentityGet.status, 401);
       assert.equal(expiredIdentityGet.cacheControl, "no-store");
       assert.equal(expiredIdentityGet.data.sessionRef, undefined);
-      assert.equal((await call(P + "/guest", "GET", undefined, null, "")).status, 401);
+      const anonymousIdentity = await call(P + "/guest", "GET", undefined, null, "");
+      assert.equal(anonymousIdentity.status, 200);
+      assert.equal(anonymousIdentity.cacheControl, "no-store");
+      assert.deepEqual(anonymousIdentity.data, { guest: null });
       const first = {
         requestKey: randomUUID(),
         menuVersion: menu.version,
@@ -629,6 +642,13 @@ test(
         )
       ).data;
       assert.equal(paidTableOrder.paid, 760000);
+      const disabledDepositPolicy = await call(B + "/deposit-policy", "PUT", {
+        enabled: true, amount: 100000, cancellationCutoffHours: 24,
+        refundRule: "refundable_before_cutoff", approved: true,
+      });
+      assert.equal(disabledDepositPolicy.status, 409);
+      assert.equal(disabledDepositPolicy.data.code, "CAPABILITY_OFF");
+      await enableFixtureCapabilities(B, branch, ["deposits"]);
       assert.equal(
         (
           await call(B + "/deposit-policy", "PUT", {
@@ -1376,6 +1396,7 @@ test(
       const foreignOrg=await call("/organizations","POST",{name:"Foreign asset fixture",slug:"foreign-asset-fixture",branchName:"Other"});
       assert.equal(foreignOrg.status,201,JSON.stringify(foreignOrg.data));
       const foreignBase="/organizations/"+foreignOrg.data.organizationId+"/branches/"+foreignOrg.data.branchId;
+      await enableFixtureCapabilities(foreignBase, foreignOrg.data.branchId, ["table_service", "reservations", "deposits"]);
       const foreignTemplateDefault=await call(foreignBase+"/templates");
       assert.equal(foreignTemplateDefault.status,200);
       assert.equal(foreignTemplateDefault.data.receipt.businessName,"Foreign asset fixture");
@@ -1836,6 +1857,10 @@ test(
       assert.equal((await call(B+"/orders/"+tableDebtOrder.data.id+"/writeoffs","POST",{requestKey:randomUUID(),version:tableDebtCollected.data.version,amount:20000,reason:"Resolve fixture table receivable without collecting cash"})).status,200);
       assert.equal((await call(B+"/visits/"+writeoffVisit.id+"/close","POST",{})).status,200);
       const minimumPolicyBody={enabled:true,approved:true,amount:50000,basis:"net_paid_bill",shortfallTreatment:"manager_review",disclosure:"This visit requires at least the disclosed net paid bill; staff reviews any shortfall."};
+      const disabledMinimumPolicy=await call(B+"/minimum-spend-policy","PATCH",minimumPolicyBody);
+      assert.equal(disabledMinimumPolicy.status,409);
+      assert.equal(disabledMinimumPolicy.data.code,"CAPABILITY_OFF");
+      await enableFixtureCapabilities(B,branch,["minimum_spend"]);
       const minimumPolicyA=await call(B+"/minimum-spend-policy","PATCH",minimumPolicyBody);
       assert.equal(minimumPolicyA.status,200,JSON.stringify(minimumPolicyA.data));
       const minimumTable=(await call(B+"/tables","POST",{name:"Minimum spend fixture",capacity:2,zone:"lounge"})).data;

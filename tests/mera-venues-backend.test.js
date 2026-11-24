@@ -16,7 +16,11 @@ import {
   locationSettings,
   assertBranchFeature,
 } from "../server/mera/venue-access.js";
-import { buildOverview, mountMeraOverview } from "../server/mera/overview.js";
+import {
+  buildOverview,
+  mountMeraOverview,
+  overviewRange,
+} from "../server/mera/overview.js";
 import { mountMeraOperating } from "../server/mera/operating.js";
 import { mountMeraGuestList } from "../server/mera/guest-list.js";
 for (const capability of [
@@ -529,4 +533,197 @@ test("counted variants use their product cost and legacy low-stock threshold", (
   );
   assert.equal(result.stock.valueByBranch[0].value, 600);
   assert.equal(result.stock.lowStock[0].threshold, 5);
+});
+
+test("overview presets use each location trading day at 11am and before a 7am cutoff", () => {
+  const lagos = { timezone: "Africa/Lagos", cutoff: 420 };
+  const instant = "2026-11-24T10:00:00Z";
+  assert.deepEqual(overviewRange(lagos, "today", instant), {
+    from: "2026-11-24",
+    to: "2026-11-24",
+  });
+  assert.deepEqual(overviewRange(lagos, "yesterday", instant), {
+    from: "2026-11-23",
+    to: "2026-11-23",
+  });
+  assert.deepEqual(overviewRange(lagos, "this_week", instant), {
+    from: "2026-11-23",
+    to: "2026-11-24",
+  });
+  assert.deepEqual(overviewRange(lagos, "this_month", instant), {
+    from: "2026-11-01",
+    to: "2026-11-24",
+  });
+  assert.deepEqual(overviewRange(lagos, "today", "2026-11-24T05:00:00Z"), {
+    from: "2026-11-23",
+    to: "2026-11-23",
+  });
+  assert.deepEqual(
+    overviewRange(
+      { timezone: "America/New_York", cutoff: 420 },
+      "today",
+      instant,
+    ),
+    { from: "2026-11-23", to: "2026-11-23" },
+  );
+});
+
+test("overview route resolves presets per branch and retains explicit date ranges", async () => {
+  const branches = [
+    {
+      id: "lagos",
+      name: "Lagos",
+      timezone: "Africa/Lagos",
+      cutoff: 420,
+      settings: {},
+    },
+    {
+      id: "ny",
+      name: "New York",
+      timezone: "America/New_York",
+      cutoff: 420,
+      settings: {},
+    },
+  ];
+  const records = branches.map((b) => ({
+    branch_id: b.id,
+    kind: "order",
+    data: {
+      id: b.id,
+      createdAt: "2026-11-24T09:00:00Z",
+      completedAt: "2026-11-24T09:00:00Z",
+      status: "completed",
+      total: 18000000,
+      paid: 18000000,
+      refunded: 0,
+      items: [],
+    },
+  }));
+  const call = routerFixture(mountMeraOverview, {
+    guard: pass,
+    now: () => "2026-11-24T10:00:00Z",
+    db: {
+      query: async (sql) => ({
+        rows: sql.includes("mera_branches") ? branches : records,
+      }),
+    },
+  });
+  const request = (query) =>
+    call("get", "/organizations/:organizationId/overview", {
+      params: { organizationId: "org" },
+      query,
+      meraMembership: { organization_wide: true },
+    });
+  const result = await request({ preset: "today" });
+  assert.deepEqual(
+    result.branches.map((b) => b.range.to),
+    ["2026-11-24", "2026-11-23"],
+  );
+  assert.equal(result.totals.revenue, 36000000);
+  const custom = await request({ from: "2026-11-23", to: "2026-11-23" });
+  assert.equal(custom.totals.revenue, 18000000);
+  await assert.rejects(() =>
+    request({ preset: "today", from: "2026-11-23", to: "2026-11-23" }),
+  );
+  await assert.rejects(() => request({ preset: "invalid" }));
+});
+
+test("overview keeps legacy service capabilities but respects explicit disabled capabilities", () => {
+  const base = { timezone: "UTC", cutoff: 0 };
+  const result = buildOverview(
+    [
+      {
+        ...base,
+        id: "legacy",
+        name: "Legacy",
+        settings: { serviceModes: ["table_service"] },
+      },
+      {
+        ...base,
+        id: "off",
+        name: "Off",
+        settings: { serviceModes: ["table_service"], capabilities: [] },
+      },
+    ],
+    [],
+    { from: "2026-11-24", to: "2026-11-24" },
+  );
+  assert(result.branches[0].capabilities.includes("table_service"));
+  assert.deepEqual(result.branches[1].capabilities, []);
+});
+
+test("overview month/week presets start from the trading date across month, week and DST boundaries", () => {
+  const branch = { timezone: "America/New_York", cutoff: 420 };
+  assert.deepEqual(
+    overviewRange(branch, "this_month", "2026-11-01T06:30:00Z"),
+    { from: "2026-10-01", to: "2026-10-31" },
+  );
+  assert.deepEqual(overviewRange(branch, "today", "2026-11-01T12:00:00Z"), {
+    from: "2026-11-01",
+    to: "2026-11-01",
+  });
+  assert.deepEqual(overviewRange(branch, "this_week", "2026-11-02T11:59:00Z"), {
+    from: "2026-10-26",
+    to: "2026-11-01",
+  });
+  assert.deepEqual(overviewRange(branch, "this_week", "2026-11-02T12:00:00Z"), {
+    from: "2026-11-02",
+    to: "2026-11-02",
+  });
+});
+
+test("overview presets retain organization permission and restrict reads to assigned locations", async () => {
+  const reads = [];
+  const branches = ["allowed", "hidden"].map((id) => ({
+    id,
+    name: id,
+    timezone: "UTC",
+    cutoff: 0,
+    settings: {},
+  }));
+  const call = routerFixture(mountMeraOverview, {
+    guard: (permission) => {
+      assert.equal(permission, "organization.overview");
+      return (req, res, next) => {
+        assert(req.meraMembership.permissions.includes(permission));
+        next();
+      };
+    },
+    now: () => "2026-11-24T10:00:00Z",
+    db: {
+      query: async (sql, params) => {
+        reads.push({ sql, params });
+        return { rows: sql.includes("mera_branches") ? branches : [] };
+      },
+    },
+  });
+  const request = (query, member = {}) =>
+    call("get", "/organizations/:organizationId/overview", {
+      params: { organizationId: "org" },
+      query,
+      meraMembership: {
+        permissions: ["organization.overview"],
+        branch_ids: ["allowed"],
+        ...member,
+      },
+    });
+  const result = await request({ preset: "today" });
+  assert.deepEqual(
+    result.branches.map((b) => b.id),
+    ["allowed"],
+  );
+  assert.deepEqual(reads[0].params, ["org"]);
+  assert.deepEqual(reads[1].params, ["org", ["allowed"]]);
+  assert.match(reads[1].sql, /organization_id=\$1 AND/);
+  await assert.rejects(
+    () => request({ preset: "today", branchIds: "hidden" }),
+    { code: "FORBIDDEN" },
+  );
+  await assert.rejects(
+    () => request({ preset: "today", branchIds: "another-org" }),
+    { code: "FORBIDDEN" },
+  );
+  const before = reads.length;
+  await assert.rejects(() => request({ preset: "today" }, { permissions: [] }));
+  assert.equal(reads.length, before);
 });

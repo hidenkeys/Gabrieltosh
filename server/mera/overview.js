@@ -4,6 +4,7 @@ import { canSeeBranch } from "./venue-access.js";
 import {
   deriveVenueType,
   defaultLocationCode,
+  effectiveCapabilities,
 } from "../../shared/mera-venues.js";
 const date = z
   .string()
@@ -14,7 +15,22 @@ const date = z
       new Date(v).toISOString().slice(0, 10) === v,
     "Use a valid date.",
   );
-export function buildOverview(branches, records, range) {
+export function overviewRange(branch, preset, instant) {
+  const to = tradingDate(instant, branch.timezone, branch.cutoff);
+  const day = new Date(to + "T12:00:00Z");
+  if (preset === "yesterday") day.setUTCDate(day.getUTCDate() - 1);
+  if (preset === "this_week")
+    day.setUTCDate(day.getUTCDate() - ((day.getUTCDay() + 6) % 7));
+  if (preset === "this_month") day.setUTCDate(1);
+  const from = day.toISOString().slice(0, 10);
+  return { from, to: preset === "yesterday" ? from : to };
+}
+export function buildOverview(
+  branches,
+  records,
+  selection,
+  instant = new Date().toISOString(),
+) {
   const totals = {
       revenue: 0,
       orders: 0,
@@ -28,12 +44,15 @@ export function buildOverview(branches, records, range) {
     mix = new Map(),
     lowStock = [],
     valueByBranch = [];
-  const inRange = (value, b) =>
+  const inRange = (value, b, range) =>
     value &&
     tradingDate(value, b.timezone, b.cutoff) >= range.from &&
     tradingDate(value, b.timezone, b.cutoff) <= range.to;
   const views = [];
   for (const b of branches) {
+    const range = selection.preset
+      ? overviewRange(b, selection.preset, instant)
+      : selection;
     const rows = records.filter((r) => r.branch_id === b.id),
       products = rows.filter((r) => r.kind === "product").map((r) => r.data);
     const counted = products.flatMap((p) => [
@@ -78,7 +97,8 @@ export function buildOverview(branches, records, range) {
     }
     const data = (kind) =>
         rows.filter((r) => r.kind === kind).map((r) => r.data),
-      selected = (kind) => data(kind).filter((r) => inRange(r.createdAt, b));
+      selected = (kind) =>
+        data(kind).filter((r) => inRange(r.createdAt, b, range));
     const payments = [...selected("payment"), ...selected("deposit")];
     for (const p of payments)
       mix.set(p.method, (mix.get(p.method) || 0) + p.amount);
@@ -89,7 +109,7 @@ export function buildOverview(branches, records, range) {
       .filter((p) => p.method === "room_charge")
       .reduce((n, p) => n + p.amount, 0);
     const reservations = data("reservation").filter((r) =>
-      inRange(r.startsAt || r.createdAt, b),
+      inRange(r.startsAt || r.createdAt, b, range),
     );
     totals.reservations += reservations.length;
     totals.noShows += reservations.filter((r) => r.status === "no-show").length;
@@ -107,6 +127,8 @@ export function buildOverview(branches, records, range) {
       code: b.settings?.code || defaultLocationCode(b.name),
       colorTag: b.settings?.colorTag || "forest",
       venueType: deriveVenueType(b.settings),
+      capabilities: effectiveCapabilities(b.settings),
+      range,
       revenue,
       orders,
       averageOrder: orders ? Math.round(revenue / orders) : 0,
@@ -120,7 +142,7 @@ export function buildOverview(branches, records, range) {
     : 0;
   const visible = new Set(branches.map((b) => b.id));
   return {
-    range,
+    range: selection,
     currency: "NGN",
     totals,
     paymentMix: [...mix].map(([method, amount]) => ({ method, amount })),
@@ -140,22 +162,32 @@ export function buildOverview(branches, records, range) {
     },
   };
 }
-export function mountMeraOverview(router, { db, guard }) {
+export function mountMeraOverview(
+  router,
+  { db, guard, now = () => new Date().toISOString() },
+) {
   router.get(
     "/organizations/:organizationId/overview",
     guard("organization.overview"),
     async (req, res) => {
       const query = z
         .object({
-          from: date,
-          to: date,
+          from: date.optional(),
+          to: date.optional(),
+          preset: z
+            .enum(["today", "yesterday", "this_week", "this_month"])
+            .optional(),
           branchIds: z.string().max(10000).optional(),
         })
         .strict()
         .refine(
           (v) =>
-            v.from <= v.to &&
-            Date.parse(v.to) - Date.parse(v.from) <= 366 * 86400000,
+            v.preset
+              ? !v.from && !v.to
+              : !!v.from &&
+                !!v.to &&
+                v.from <= v.to &&
+                Date.parse(v.to) - Date.parse(v.from) <= 366 * 86400000,
           "Choose a range of up to 367 days.",
         )
         .parse(req.query);
@@ -191,7 +223,14 @@ export function mountMeraOverview(router, { db, guard }) {
         )
       ).rows;
       res.json(
-        buildOverview(branches, records, { from: query.from, to: query.to }),
+        buildOverview(
+          branches,
+          records,
+          query.preset
+            ? { preset: query.preset }
+            : { from: query.from, to: query.to },
+          now(),
+        ),
       );
     },
   );
