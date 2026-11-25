@@ -633,13 +633,17 @@ function GuidedSetup({
                   <input value={organization.name} readOnly />
                 </label>
                 <label>
-                  Requested Mera address
-                  <input value={organization.slug} readOnly />
+                  Your Mera web address
+                  <input
+                    value={organization.publicAddress || organization.slug}
+                    readOnly
+                  />
                 </label>
                 <p>
-                  This is the claimed Mera address. Domain hosting and
-                  publication are checked separately; address changes require
-                  authorized support.
+                  {organization.publicAddress
+                    ? "Customers can open your menu here once a location goes live. "
+                    : "This is your claimed Mera address. "}
+                  Changing it requires Mera support.
                 </p>
                 <label>
                   Public customer contact

@@ -67,6 +67,20 @@ test("organization host resolves current published slug and branch without chang
       () => assert.fail(),
     );
     assert.equal(target, "/mera/menu/bing-chun/branch-id?chooseBranch=1");
+    let missing = 0;
+    const statusRes = { ...res, status(code) { missing = code; return this; } };
+    await middleware(
+      { method: "GET", path: "/", hostname: "mera-web-staging.up.railway.app" },
+      res,
+      () => assert.fail(),
+    );
+    assert.equal(target, "/mera");
+    await middleware(
+      { method: "GET", path: "/", hostname: "api.mera.example" },
+      statusRes,
+      () => assert.fail(),
+    );
+    assert.equal(missing, 404);
     let next = 0;
     await middleware(
       { method: "GET", path: "/api/mera/v1/context" },

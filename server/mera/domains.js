@@ -32,8 +32,14 @@ export function meraHostRoutes(query) {
     const root = process.env.MERA_ROOT_DOMAIN;
     if (!root) return res.redirect(302, "/mera");
     const context = resolveMeraHost(req.hostname, root);
-    if (!context)
+    if (!context) {
+      // Hosts outside the Mera domain (e.g. the platform-generated URL) keep working.
+      const host = String(req.hostname || "").toLowerCase(),
+        base = String(root).trim().toLowerCase();
+      if (host !== base && !host.endsWith("." + base))
+        return res.redirect(302, "/mera");
       return res.status(404).send("This Mera destination is unavailable.");
+    }
     if (context.surface !== "organization")
       return res.redirect(
         302,

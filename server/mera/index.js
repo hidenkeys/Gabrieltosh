@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { resolveMeraHost } from "./domains.js";
 import { sendMeraEmail, getEmailReadiness } from "./email-provider.js";
 import { renderMeraEmail } from "./email-template.js";
 import { validPublicContact } from "./public-contact.js";
@@ -443,6 +444,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
         id: m.organization_id,
         name: m.name,
         slug: m.slug,
+        publicAddress: resolveMeraHost(`${m.slug}.${process.env.MERA_ROOT_DOMAIN||""}`, process.env.MERA_ROOT_DOMAIN)?.slug===m.slug ? `${m.slug}.${process.env.MERA_ROOT_DOMAIN.trim().toLowerCase()}` : null,
         branding: m.branding,
         onboarding: m.onboarding,
         subscription: safeSubscription(m.subscription,m.permissions),
