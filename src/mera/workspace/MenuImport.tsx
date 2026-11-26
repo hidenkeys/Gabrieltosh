@@ -40,33 +40,31 @@ const readData = (file: Blob) =>
   });
 async function prepare(file: File) {
   let blob: Blob = file;
-  if (/^image\/(jpeg|png|webp)$/.test(file.type)) {
-    const url = URL.createObjectURL(file);
+  // createImageBitmap avoids blob: image URLs, which the site's CSP (img-src 'self' data:) blocks.
+  // If the browser cannot decode the photo here, upload the original and let the server check it.
+  if (/^image\/(jpeg|png|webp)$/.test(file.type) && typeof createImageBitmap === "function") {
+    let bitmap: ImageBitmap | null = null;
     try {
-      const image = new Image();
-      image.src = url;
-      await image.decode();
-      const scale = Math.min(1, 2000 / Math.max(image.width, image.height));
-      if (scale < 1) {
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(image.width * scale);
-        canvas.height = Math.round(image.height * scale);
-        const ctx = canvas.getContext("2d");
-        if (!ctx) throw new Error("Could not resize this photo.");
-        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-        blob = await new Promise<Blob>((resolve, reject) =>
-          canvas.toBlob(
-            (b) =>
-              b
-                ? resolve(b)
-                : reject(new Error("Could not resize this photo.")),
-            "image/jpeg",
-            0.85,
-          ),
-        );
+      bitmap = await createImageBitmap(file);
+    } catch {
+      bitmap = null;
+    }
+    if (bitmap) {
+      try {
+        const scale = Math.min(1, 2000 / Math.max(bitmap.width, bitmap.height));
+        const ctx = scale < 1 ? document.createElement("canvas").getContext("2d") : null;
+        if (ctx) {
+          ctx.canvas.width = Math.round(bitmap.width * scale);
+          ctx.canvas.height = Math.round(bitmap.height * scale);
+          ctx.drawImage(bitmap, 0, 0, ctx.canvas.width, ctx.canvas.height);
+          blob =
+            (await new Promise<Blob | null>((resolve) =>
+              ctx.canvas.toBlob(resolve, "image/jpeg", 0.85),
+            )) || file;
+        }
+      } finally {
+        bitmap.close();
       }
-    } finally {
-      URL.revokeObjectURL(url);
     }
   }
   return { name: file.name, mime: blob.type, data: await readData(blob) };
