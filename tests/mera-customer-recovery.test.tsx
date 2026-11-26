@@ -572,3 +572,22 @@ test("ending guest access preserves an unresolved journal without revealing its 
   assert.equal(writes.length, 1);
   assert(writes[0].endsWith("/guest/end"));
 });
+
+test("a table-QR order (table service with a table but no visit) is saved and read back", () => {
+  const tableIntent = {
+    ...intent,
+    requestKey: "60000000-0000-4000-8000-000000000009",
+    fulfillment: "table_service",
+    tableId: "70000000-0000-4000-8000-000000000001",
+  };
+  saveCheckoutJournal({ ...record(), intent: tableIntent });
+  assert.equal(readCheckoutJournal(scope)?.intent.tableId, tableIntent.tableId);
+  clearCheckoutJournal(scope, tableIntent.requestKey);
+  const key = checkoutJournalKey(scope);
+  window.sessionStorage.setItem(
+    key,
+    JSON.stringify({ ...record(), intent: { ...intent, fulfillment: "table_service" } }),
+  );
+  assert.throws(() => readCheckoutJournal(scope));
+  window.sessionStorage.removeItem(key);
+});

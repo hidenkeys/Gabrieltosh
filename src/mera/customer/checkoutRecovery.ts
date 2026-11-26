@@ -34,6 +34,7 @@ export const checkoutIntentSchema = z
       .refine((value) => value.trim() === value),
     fulfillment: z.enum(["counter_pickup", "takeaway", "table_service"]),
     visitId: z.string().uuid().optional(),
+    tableId: z.string().uuid().optional(),
     reservationId: z.string().uuid().optional(),
     items: z.array(item).min(1).max(100),
     note: z.string().max(500),
@@ -113,8 +114,13 @@ export const checkoutJournalSchema = z
   .superRefine((record, context) => {
     const problem = (message: string) =>
       context.addIssue({ code: z.ZodIssueCode.custom, message });
-    if (record.intent.fulfillment === "table_service" && !record.intent.visitId)
-      problem("Table orders require the original visit context.");
+    // Table orders come from a joined visit or a scanned table QR.
+    if (
+      record.intent.fulfillment === "table_service" &&
+      !record.intent.visitId &&
+      !record.intent.tableId
+    )
+      problem("Table orders require the original visit or table context.");
     if (record.review.lines.length !== record.intent.items.length)
       problem("Saved item review does not match the original order.");
     record.intent.items.forEach((item, index) => {
