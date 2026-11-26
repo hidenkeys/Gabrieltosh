@@ -135,7 +135,8 @@ export default function MenuPhotos({
       </header>
       <p>
         AI generated photos should represent what you serve. Review each photo
-        before keeping it.
+        before keeping it. Kept photos reach customers the next time you
+        publish your menu.
       </p>
       <p>
         ~$0.04 per photo · {selected.size} photos ≈ $

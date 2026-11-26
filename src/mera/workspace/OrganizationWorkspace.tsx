@@ -307,6 +307,11 @@ export default function OrganizationWorkspace({
   const lastDenialCheck = useRef(0);
   const mutationGeneration = useRef(0);
   const branchBase = `/organizations/${encodeURIComponent(organizationId)}/branches/${encodeURIComponent(branchId)}`;
+  // Public image URLs only serve after launch; staff see the signed-in preview instead.
+  const staffImage = (image?: string) => {
+    const id = /^\/api\/mera\/v1\/public\/assets\/([a-f\d-]{36})$/i.exec(image || "")?.[1];
+    return id ? `/api/mera/v1${branchBase}/assets/${id}` : image;
+  };
   const permissionSections = sections.filter(([section, , permission]) =>
     section === "organization"
       ? branches.filter((b: any) => b.settings?.role !== "stock_room").length >= 2 && membershipPermissions.includes("organization.overview")
@@ -2714,6 +2719,7 @@ export default function OrganizationWorkspace({
                               <ProductImage
                                 product={{
                                   ...product,
+                                  image: staffImage(product.image),
                                   code: product.code || "",
                                   category: product.category || "",
                                 }}
