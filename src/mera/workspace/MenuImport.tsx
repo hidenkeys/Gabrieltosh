@@ -26,7 +26,6 @@ type Result = {
 };
 type Props = {
   products?: { id: string; name: string; image?: string }[];
-  onPhotos?: () => void;
   base: string;
   onClose: () => void;
   onImported: () => void | Promise<void>;
@@ -115,7 +114,6 @@ export default function MenuImport({
   onImported,
   initialDraft,
   products,
-  onPhotos,
 }: Props) {
   const [draft, setDraft] = useState<MenuDraft | undefined>(initialDraft),
     [files, setFiles] = useState<File[]>([]),
@@ -633,11 +631,6 @@ export default function MenuImport({
           <p>
             Items are in your draft menu. Publish the menu when you're ready.
           </p>
-          {onPhotos && products?.some((p) => !p.image) && (
-            <button className="secondary" onClick={onPhotos}>
-              Generate photos
-            </button>
-          )}
           <button className="primary" onClick={close}>
             Back to menu
           </button>

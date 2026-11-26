@@ -1,4 +1,3 @@
-import MenuPhotos from "./MenuPhotos";
 import MenuImport from "./MenuImport";
 import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useId, useRef, useState } from "react";
@@ -45,7 +44,6 @@ export default function MenuManagement({
   initialView = "products",
   allowedViews,
 }: Props) {
-  const [photosOpen, setPhotosOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   useEffect(() => {
     if (importRequested) {
@@ -82,28 +80,9 @@ export default function MenuManagement({
     <div className="mw-menu-management">
       {importBase &&
         isAllowed("products") &&
-        products.some((p) => !p.image) && (
-          <button className="secondary" onClick={() => setPhotosOpen(true)}>
-            Generate photos
-          </button>
-        )}
-      {photosOpen && importBase && (
-        <MenuPhotos
-          base={importBase}
-          products={products}
-          onImported={onImported || (() => {})}
-          onClose={() => setPhotosOpen(false)}
-        />
-      )}
-      {importBase &&
-        isAllowed("products") &&
         (importOpen ? (
           <MenuImport
             products={products}
-            onPhotos={() => {
-              setImportOpen(false);
-              setPhotosOpen(true);
-            }}
             base={importBase}
             onClose={() => setImportOpen(false)}
             onImported={onImported || (() => {})}
