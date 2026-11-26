@@ -414,8 +414,9 @@ export function mountProviderIdentity(
     const row = await read(requestKey);
     if (!row)
       throw fail(
-        "The original request is not confirmed. Keep its recovery reference and review the account before registering again.",
+        "We couldn't find that sign-up request. You can start a new one.",
         404,
+        "REQUEST_NOT_FOUND",
       );
     res.json(await receipt(row));
   });

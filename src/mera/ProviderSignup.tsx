@@ -167,6 +167,17 @@ export default function ProviderSignup({
           setBlocked(true);
         }
       }
+      // The server has no record of this request (for example the account was removed):
+      // drop the saved reference so the owner can register again instead of being stuck.
+      if (kind === "recover" && e.status === 404 && e.code === "REQUEST_NOT_FOUND") {
+        try {
+          sessionStorage.removeItem(storageKey);
+          sessionStorage.removeItem(resendStorageKey);
+          setKey(null);
+        } catch {
+          setBlocked(true);
+        }
+      }
       setError(e.message || "This action could not be confirmed.");
       if (kind === "verify") setVerifyUnknown(true);
     } finally {
