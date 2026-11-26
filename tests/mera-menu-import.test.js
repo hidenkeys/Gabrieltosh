@@ -10,7 +10,17 @@ const oneItemDraft = () => ({
     {
       name: "Food",
       items: [
-        { name: "Jollof rice", description: "", price: 2500, sizes: [], addOns: [], dietary: [], station: "kitchen", confidence: "high", note: "" },
+        {
+          name: "Jollof rice",
+          description: "",
+          price: 2500,
+          sizes: [],
+          addOns: [],
+          dietary: [],
+          station: "kitchen",
+          confidence: "high",
+          note: "",
+        },
       ],
     },
   ],
@@ -33,6 +43,7 @@ function fixture({
   permissions = rolePermissions.owner,
   spend = 0,
   failProduct = 0,
+  assetId,
 } = {}) {
   let records = [],
     usage = [],
@@ -41,7 +52,12 @@ function fixture({
   const db = {
     query: async (sql, p = []) => {
       let rows = [];
-      if (sql.includes("FROM mera_memberships"))
+      if (sql.includes("FROM mera_assets"))
+        rows =
+          p[0] === assetId && p[1] === org && p[2] === branch
+            ? [{ id: assetId }]
+            : [];
+      else if (sql.includes("FROM mera_memberships"))
         rows = [
           {
             role: permissions === rolePermissions.owner ? "owner" : "cashier",
@@ -201,9 +217,9 @@ test("extract sends images and PDFs with JSON schema and Bearer authentication; 
   assert.equal(options.headers.Authorization, "Bearer test-secret");
   assert.equal(body.response_format.type, "json_schema");
   assert.equal(body.temperature, 0);
-  assert.equal(body.messages[1].content[0].type, "image_url");
-  assert.equal(body.messages[1].content[1].type, "file");
-  assert.equal(body.messages[1].content[1].file.media_type, "application/pdf");
+  assert.equal(body.messages[1].content[0].text, "File 0: menu.jpg");
+  assert.equal(body.messages[1].content[1].type, "image_url");
+  assert.equal(body.messages[1].content[3].file.media_type, "application/pdf");
   assert.equal(f.usage[0].status, "ok");
   assert.equal(f.usage[0].input_tokens, 100);
   assert(Math.abs(f.usage[0].cost_usd - 0.0004) < 1e-10);
@@ -423,11 +439,15 @@ test("pg-mem migration and real SQL persist mock usage and imported draft produc
     });
     // The demo draft has 11 items; the one without a price is skipped.
     assert.equal(applied.created, 10);
-    assert.deepEqual(applied.skipped, [{ name: "Chef's special", reason: "Missing price" }]);
+    assert.deepEqual(applied.skipped, [
+      { name: "Chef's special", reason: "Missing price" },
+    ]);
     assert.equal(applied.categoriesCreated, 3);
     const product = (
       await db.query("SELECT data FROM mera_records WHERE kind='product'")
-    ).rows.map((r) => r.data).find((p) => p.name === "Jollof rice");
+    ).rows
+      .map((r) => r.data)
+      .find((p) => p.name === "Jollof rice");
     assert.equal(product.price, 250000);
     assert.equal(product.category, "Mains");
     assert.equal(product.modifierGroups[0].options[0].price, 300000);
@@ -439,4 +459,98 @@ test("pg-mem migration and real SQL persist mock usage and imported draft produc
   } finally {
     await pool.end();
   }
+});
+test("extract normalizes invalid crop boxes and file indices to null", async () => {
+  const boxes = [
+    [0, 0, 500, 500],
+    [0, 0, 10, 500],
+    [-1, 0, 500, 500],
+    [0, 0, 1001, 500],
+    [500, 0, 0, 500],
+    [0, 0, 500, 500],
+  ];
+  const d = oneItemDraft();
+  d.categories[0].items = boxes.map((box, n) => ({
+    ...d.categories[0].items[0],
+    name: `Item ${n}`,
+    photo: { kind: "crop", file: n === 5 ? 1 : 0, box },
+  }));
+  const f = fixture({
+    env: { AI_GATEWAY_API_KEY: "test" },
+    aiFetch: async (url) =>
+      Response.json(
+        url.endsWith("/models")
+          ? { data: [] }
+          : { choices: [{ message: { content: JSON.stringify(d) } }] },
+      ),
+  });
+  const r = await f.call("extract", { files: [photo] });
+  assert.equal(r.statusCode, 200);
+  assert.equal(r.body.draft.categories[0].items[0].photo.kind, "crop");
+  assert(
+    r.body.draft.categories[0].items.slice(1).every((i) => i.photo === null),
+  );
+});
+test("apply accepts scoped asset URLs and rejects invalid or foreign images", async () => {
+  const assetId = randomUUID();
+  for (const [image, status] of [
+    [undefined, 200],
+    [`/api/mera/v1/public/assets/${assetId}`, 200],
+    [`/api/mera/v1/public/assets/${randomUUID()}`, 403],
+    ["https://foreign.test/image.jpg", 400],
+  ]) {
+    const f = fixture({ assetId });
+    const d = oneItemDraft();
+    d.categories[0].items[0].image = image;
+    const r = await f.call("apply", d);
+    assert.equal(r.statusCode, status, JSON.stringify(r.body));
+    if (status === 200 && image) {
+      assert.equal(
+        f.records.find((r) => r.kind === "product").data.image,
+        image,
+      );
+      assert.equal(r.body.withPhotos, 1);
+    }
+  }
+});
+test("extract returns only referenced embedded photos and drops unknown and oversized references", async () => {
+  const jpeg = (size) =>
+    Buffer.concat([
+      Buffer.from([255, 216, 255]),
+      Buffer.alloc(size - 5),
+      Buffer.from([255, 217]),
+    ]);
+  const chunks = [Buffer.from("%PDF-1.4\n")];
+  for (const b of [jpeg(2200), jpeg(2300), jpeg(1600000)])
+    chunks.push(
+      Buffer.from(
+        `<< /Subtype /Image /Filter /DCTDecode /Length ${b.length} >>\nstream\n`,
+      ),
+      b,
+      Buffer.from("\nendstream\n"),
+    );
+  const d = oneItemDraft();
+  const i = d.categories[0].items[0];
+  d.categories[0].items = ["img1", "img3", "img99"].map((ref) => ({
+    ...i,
+    photo: { kind: "embedded", ref },
+  }));
+  const f = fixture({
+    env: { AI_GATEWAY_API_KEY: "test" },
+    aiFetch: async (url) =>
+      Response.json(
+        url.endsWith("/models")
+          ? { data: [] }
+          : { choices: [{ message: { content: JSON.stringify(d) } }] },
+      ),
+  });
+  const r = await f.call("extract", {
+    files: [
+      { name: "menu.pdf", data: Buffer.concat(chunks).toString("base64") },
+    ],
+  });
+  assert.equal(r.statusCode, 200);
+  assert.deepEqual(Object.keys(r.body.photos), ["img1"]);
+  assert.equal(r.body.draft.categories[0].items[1].photo, null);
+  assert.equal(r.body.draft.categories[0].items[2].photo, null);
 });

@@ -7,7 +7,13 @@ export type MenuDraft = {
   categories: { name: string; items: MenuItem[] }[];
   warnings: string[];
 };
+type Photo =
+  | { kind: "crop"; file: number; box: [number, number, number, number] }
+  | { kind: "embedded"; ref: string };
 type MenuItem = {
+  photo?: Photo | null;
+  preview?: string;
+  image?: string;
   name: string;
   description: string;
   price: number | null;
@@ -20,6 +26,7 @@ type MenuItem = {
   include?: boolean;
 };
 type Result = {
+  withPhotos?: number;
   created: number;
   skipped: { name: string; reason: string }[];
   categoriesCreated: number;
@@ -74,6 +81,70 @@ async function prepare(file: File) {
   }
   return { name: file.name, mime: blob.type, data: await readData(blob) };
 }
+export async function photoPreview(
+  blob: Blob,
+  box?: [number, number, number, number],
+) {
+  const bitmap = await createImageBitmap(blob);
+  try {
+    const [y, x, Y, X] = box || [0, 0, 1000, 1000];
+    const left = (Math.max(0, x - (X - x) * 0.02) / 1000) * bitmap.width;
+    const top = (Math.max(0, y - (Y - y) * 0.02) / 1000) * bitmap.height;
+    const width =
+      Math.min(bitmap.width, ((X + (X - x) * 0.02) / 1000) * bitmap.width) -
+      left;
+    const height =
+      Math.min(bitmap.height, ((Y + (Y - y) * 0.02) / 1000) * bitmap.height) -
+      top;
+    const scale = Math.min(1, 800 / Math.max(width, height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Photo preview unavailable");
+    context.drawImage(
+      bitmap,
+      left,
+      top,
+      width,
+      height,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+    return canvas.toDataURL("image/jpeg", 0.85);
+  } finally {
+    bitmap.close();
+  }
+}
+async function preparePhotos(
+  draft: MenuDraft,
+  files: File[],
+  photos: Record<string, { mime: string; data: string }>,
+) {
+  for (const item of draft.categories.flatMap((c) => c.items)) {
+    try {
+      if (item.photo?.kind === "crop")
+        item.preview = await photoPreview(
+          files[item.photo.file],
+          item.photo.box,
+        );
+      else if (item.photo?.kind === "embedded") {
+        const p = photos[item.photo.ref];
+        if (p)
+          item.preview = await photoPreview(
+            new Blob([Uint8Array.from(atob(p.data), (c) => c.charCodeAt(0))], {
+              type: p.mime,
+            }),
+          );
+      }
+    } catch {
+      item.photo = null;
+    }
+  }
+  return draft;
+}
 // Retain decimal and blank drafts while the shared money control formats them.
 function DraftMoney({
   value,
@@ -121,7 +192,8 @@ export default function MenuImport({
     [error, setError] = useState(""),
     [importId, setImportId] = useState<string>(),
     [result, setResult] = useState<Result>(),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [photoFailures, setPhotoFailures] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const applying = useRef(false);
   const controller = useRef<AbortController | null>(null),
@@ -180,7 +252,9 @@ export default function MenuImport({
         { timeoutMs: 200000 },
       );
       if (abort.signal.aborted) return;
-      setDraft(value.draft);
+      const ready = await preparePhotos(value.draft, files, value.photos || {});
+      if (abort.signal.aborted) return;
+      setDraft(ready);
       setImportId(value.importId);
       setStep("review");
     } catch (e: any) {
@@ -228,10 +302,42 @@ export default function MenuImport({
     setBusy(true);
     setError("");
     try {
+      const payload = structuredClone(draft!);
+      const failures: string[] = [];
+      const items = payload.categories
+        .flatMap((c) => c.items)
+        .filter((i) => i.include !== false && i.preview);
+      let next = 0;
+      await Promise.all(
+        Array.from({ length: Math.min(3, items.length) }, async () => {
+          while (next < items.length) {
+            const item = items[next++];
+            try {
+              const asset = await workspaceApi<{ url: string }>(
+                base + "/assets",
+                "POST",
+                {
+                  mime: "image/jpeg",
+                  data: item.preview!.split(",")[1],
+                  filename: `${item.name} photo`,
+                },
+              );
+              item.image = asset.url;
+            } catch {
+              failures.push(item.name);
+            }
+          }
+        }),
+      );
+      setPhotoFailures(failures);
+      for (const item of payload.categories.flatMap((c) => c.items)) {
+        delete item.preview;
+        delete item.photo;
+      }
       const value = await workspaceApi<Result>(
         base + "/menu-import/apply",
         "POST",
-        { ...draft, importId },
+        { ...payload, importId },
       );
       setResult(value);
       setStep("done");
@@ -425,6 +531,43 @@ export default function MenuImport({
                         />
                       </td>
                       <td>
+                        <div className="mmi-photo">
+                          {i.preview ? (
+                            <>
+                              <button
+                                type="button"
+                                aria-label={`Enlarge photo for ${i.name}`}
+                                onClick={() =>
+                                  setExpanded(
+                                    (old) => new Set([...old, `${g}-${n}`]),
+                                  )
+                                }
+                              >
+                                <img
+                                  src={i.preview}
+                                  alt={`${i.name} photo`}
+                                  width={48}
+                                  height={48}
+                                />
+                              </button>
+                              <button
+                                type="button"
+                                className="secondary"
+                                onClick={() =>
+                                  edit(g, n, {
+                                    preview: undefined,
+                                    photo: null,
+                                    image: undefined,
+                                  })
+                                }
+                              >
+                                Remove photo
+                              </button>
+                            </>
+                          ) : (
+                            <span className="mmi-no-photo">No photo</span>
+                          )}
+                        </div>
                         <label>
                           <span className="mi-sr-only">Item name</span>
                           <input
@@ -476,6 +619,13 @@ export default function MenuImport({
                             className="mmi-detail-panel"
                             hidden={!expanded.has(`${g}-${n}`)}
                           >
+                            {i.preview && (
+                              <img
+                                className="mmi-photo-large"
+                                src={i.preview}
+                                alt={`${i.name} photo enlarged`}
+                              />
+                            )}
                             <div>
                               <label>Description</label>
                               <textarea
@@ -619,8 +769,12 @@ export default function MenuImport({
       {step === "done" && result && (
         <>
           <h3>
-            Added {result.created} items. {result.skipped.length} skipped
+            Added {result.created} items · {result.withPhotos || 0} with photos
           </h3>
+          <p>Items without a photo can get one later from Edit.</p>
+          {photoFailures.map((name, i) => (
+            <p key={i}>Photo not saved for {name}</p>
+          ))}
           <ul>
             {result.skipped.map((s, i) => (
               <li key={i}>

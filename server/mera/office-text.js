@@ -3,7 +3,7 @@ const bad = () =>
   Object.assign(new Error("Invalid or oversized Office file."), {
     status: 400,
   });
-export function readZip(b) {
+export function readZip(b, binary = false) {
   try {
     let end = -1;
     for (let i = b.length - 22; i >= Math.max(0, b.length - 65557); i--)
@@ -41,7 +41,7 @@ export function readZip(b) {
             ? inflateRawSync(raw, { maxOutputLength: Math.max(1, size) })
             : null;
       if (!data || data.length !== size) throw bad();
-      entries.set(name, data.toString("utf8"));
+      entries.set(name, binary ? data : data.toString("utf8"));
       pos += 46 + nl + extra + comment;
     }
     return entries;
