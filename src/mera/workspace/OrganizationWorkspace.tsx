@@ -181,6 +181,7 @@ export default function OrganizationWorkspace({
   notify,
   onLogout,
 }: Props) {
+  const [menuImportRequested, setMenuImportRequested] = useState(false);
   const [principal, setPrincipal] = useState("");
   const confirmedPrincipal = useRef("");
   const [logoutConfirm, setLogoutConfirm] = useState(false);
@@ -2172,7 +2173,7 @@ export default function OrganizationWorkspace({
               aria-labelledby={"mw-tab-" + activeSection}
               tabIndex={0}
             >
-              {["overview", "organization"].includes(activeSection) && allowed("organization.manage") && branch?.settings?.launchState !== "published" && branch?.settings?.role !== "stock_room" && <GoLiveChecklist key={branchBase} base={branchBase} settings={{...branch?.settings, publicContact: branch?.settings?.publicContact || data?.onboarding?.data?.contact || organization?.onboarding?.data?.contact || organization?.branding?.contact || organization?.branding?.phone || organization?.branding?.email}} disabled={busy || offline} accessBlocked={offline || !allowed("organization.manage")} save={mutate} onOpen={section => selectSection(section, {focusDestination: true})} />}
+              {["overview", "organization"].includes(activeSection) && allowed("organization.manage") && branch?.settings?.launchState !== "published" && branch?.settings?.role !== "stock_room" && <GoLiveChecklist onImportMenu={allowed("menu.edit") ? () => {setMenuImportRequested(true);selectSection("menu", {focusDestination:true});} : undefined} key={branchBase} base={branchBase} settings={{...branch?.settings, publicContact: branch?.settings?.publicContact || data?.onboarding?.data?.contact || organization?.onboarding?.data?.contact || organization?.branding?.contact || organization?.branding?.phone || organization?.branding?.email}} disabled={busy || offline} accessBlocked={offline || !allowed("organization.manage")} save={mutate} onOpen={section => selectSection(section, {focusDestination: true})} />}
               {roomWrite.pending && (
                 <section className="mw-card" role="alert">
                   <h2>Room charge needs checking</h2>
@@ -2630,6 +2631,10 @@ export default function OrganizationWorkspace({
 
               {activeSection === "menu" && (
                 <MenuManagement
+                  importBase={allowed("menu.edit") ? branchBase : undefined}
+                  importRequested={menuImportRequested}
+                  onImportRequestHandled={() => setMenuImportRequested(false)}
+                  onImported={refresh}
                   key={branchBase}
                   products={products}
                   initialView={

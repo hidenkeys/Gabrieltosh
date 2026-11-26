@@ -12,7 +12,7 @@ export async function workspaceApi<T = any>(
   method = "GET",
   body?: unknown,
   signal?: AbortSignal,
-  options?: { expectedActorId?: string },
+  options?: { expectedActorId?: string; timeoutMs?: number },
 ): Promise<T> {
   const startedAt = performance.now();
   const controller = new AbortController();
@@ -39,7 +39,7 @@ export async function workspaceApi<T = any>(
   const timer = setTimeout(() => {
     timedOut = true;
     controller.abort();
-  }, 15000);
+  }, options?.timeoutMs ?? 15000);
   try {
     return await Promise.race([
       interrupted,

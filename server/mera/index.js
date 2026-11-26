@@ -1,3 +1,4 @@
+import { migrateMenuImport, mountMenuImport } from "./menu-import.js";
 import bcrypt from "bcryptjs";
 import { resolveMeraHost } from "./domains.js";
 import { sendMeraEmail, getEmailReadiness } from "./email-provider.js";
@@ -157,6 +158,7 @@ export async function migrateMera(db) {
   await migrateMeraQueries(db);
   await migrateMeraAliases(db);
   await migrateCompanyLeads(db);
+  await migrateMenuImport(db);
 }
 export async function seedMeraDemo(db) {
   if (process.env.NODE_ENV === "production" || process.env.MERA_DEMO !== "true")
@@ -276,7 +278,7 @@ export function projectStationTickets(tickets, role, permissions) {
     : tickets;
 }
 
-export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.env} = {}) {
+export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.env, aiFetch = fetch} = {}) {
   const router = express.Router();
   const commercial=(access=[])=>access.includes("billing.manage")||access.includes("organization.manage");
   const safeSubscription=(value={},access=[])=>commercial(access)?value:Object.fromEntries(["status","trialEndsAt","paidThrough","dueAt","billingEnabled"].filter(k=>value[k]!==undefined).map(k=>[k,value[k]]));
@@ -291,7 +293,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
   const previewTokens = createPreviewTokens();
   router.use("/public", previewWriteGuard);
   const rateBuckets = new Map();
-  router.use(["/public", "/invitations"], (req, res, next) => {
+  router.use(["/public", "/invitations", /^\/organizations\/[^/]+\/branches\/[^/]+\/menu-import\/extract$/], (req, res, next) => {
     const key = req.ip + ":" + (req.method === "GET" ? "read" : "write");
     const stamp = Date.now();
     let bucket = rateBuckets.get(key);
@@ -3291,6 +3293,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
   mountMeraVisitAccess(router,{guard,scope,locked,find,update,event});
   mountMeraMinimumSpend(router,{db,guard,scope,locked,record,readRecords,find,update,event,publicContext,guest});
   mountMeraWriteoffs(router,{guard,scope,locked,find,readRecords,record,update,event,orderBalance});
+  mountMenuImport(router,{db,guard,scope,locked,record,readRecords,find,update,event,env,aiFetch});
   mountMeraCategories(router,{db,guard,scope,locked,record,readRecords,find,update,event});
   mountMeraHelp(router,{db,guard,scope,locked,record,readRecords,find,update,event,publicContext,guest});
   mountMeraFulfillment(router,{guard,scope,locked,record,readRecords,find,update,event,paidForBill});

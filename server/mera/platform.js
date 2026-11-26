@@ -274,9 +274,11 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
         "SELECT COALESCE(data->>'status','unknown') AS status,COUNT(*)::int AS count FROM mera_records WHERE kind='invoice' GROUP BY data->>'status'",
       )
     ).rows;
+    const aiSpend = (await db.query("SELECT organization_id,COALESCE(SUM(cost_usd),0) AS total FROM mera_ai_usage WHERE created_at >= date_trunc('month',now()) GROUP BY organization_id")).rows;
     res.json({
       organizations: organizations.map((o) => ({
         ...o,
+        aiMonthToDateUsd: Number(aiSpend.find(row => row.organization_id === o.id)?.total || 0),
         features: organizationFeatures(o),
         branches: branches.filter((b) => b.organization_id === o.id),
       })),

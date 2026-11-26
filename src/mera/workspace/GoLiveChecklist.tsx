@@ -33,7 +33,7 @@ const checks: Record<string, [string, string, string?, string?]> = {
   ],
   menu: [
     "Menu",
-    "Add items and publish your menu.",
+    "Add items by hand or import a menu file, then publish.",
     "menu",
     "Add and publish your menu",
   ],
@@ -55,7 +55,9 @@ const checks: Record<string, [string, string, string?, string?]> = {
   ],
 };
 export default function GoLiveChecklist(
-  props: Omit<React.ComponentProps<typeof LaunchReadiness>, "checklist">,
+  props: Omit<React.ComponentProps<typeof LaunchReadiness>, "checklist"> & {
+    onImportMenu?: () => void;
+  },
 ) {
   const key = `mera:go-live-collapsed:${props.base}`;
   const [collapsed, setCollapsed] = useState(() => {
@@ -109,7 +111,9 @@ export default function GoLiveChecklist(
               aria-valuemax={rows.length || 1}
               aria-valuenow={done}
             >
-              <span style={{ width: `${(done / (rows.length || 1)) * 100}%` }} />
+              <span
+                style={{ width: `${(done / (rows.length || 1)) * 100}%` }}
+              />
             </div>
             {!collapsed && (
               <>
@@ -130,6 +134,14 @@ export default function GoLiveChecklist(
                         <div className="mgl-text">
                           <b>{row[0]}</b>
                           <p>{row[1]}</p>
+                          {c.id === "menu" && props.onImportMenu && (
+                            <button
+                              className="secondary"
+                              onClick={props.onImportMenu}
+                            >
+                              Import from a menu file
+                            </button>
+                          )}
                         </div>
                         <span className={`mgl-status is-${state}`}>
                           {state === "done"
@@ -140,7 +152,9 @@ export default function GoLiveChecklist(
                         </span>
                         {row[2] && state !== "waiting" ? (
                           <button
-                            className={state === "todo" ? "primary" : "secondary"}
+                            className={
+                              state === "todo" ? "primary" : "secondary"
+                            }
                             onClick={() => props.onOpen?.(row[2]!)}
                           >
                             {row[3]}

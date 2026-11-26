@@ -183,7 +183,116 @@
   width: 100%;
 }
 
-.mw-item-kind { min-width: 0; border: 1px solid var(--wx-line, #e2e5dc); border-radius: 14px; padding: 16px; }
-.mw-item-kind > * + * { margin-top: 12px; }
-.mw-item-kind fieldset { min-width: 0; }
-.mw-pos-choice { --mc-primary: var(--brand, #153f32); --mc-accent: var(--brand, #153f32); }
+.mw-item-kind {
+  min-width: 0;
+  border: 1px solid var(--wx-line, #e2e5dc);
+  border-radius: 14px;
+  padding: 16px;
+}
+.mw-item-kind > * + * {
+  margin-top: 12px;
+}
+.mw-item-kind fieldset {
+  min-width: 0;
+}
+.mw-pos-choice {
+  --mc-primary: var(--brand, #153f32);
+  --mc-accent: var(--brand, #153f32);
+}
+
+/* Menu import uses the workspace surface and border tokens. */
+.mmi {
+  width: 100%;
+  min-width: 0;
+  margin-block: 16px;
+}
+.mmi header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.mmi-drop {
+  border: 2px dashed var(--wx-line, var(--line));
+  border-radius: 14px;
+  padding: 24px;
+  text-align: center;
+}
+.mmi input:not([type="checkbox"]),
+.mmi textarea {
+  width: 100%;
+  min-width: 0;
+}
+.mmi-category {
+  margin-block: 24px;
+  border-top: 1px solid var(--wx-line, var(--line));
+  padding-top: 16px;
+}
+.mmi table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.mmi th,
+.mmi td {
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.mmi th:first-child {
+  width: 70px;
+}
+.mmi .mmi-check {
+  background: var(--wx-tint, #f7f6f0);
+  border-left: 3px solid var(--brand);
+}
+.mmi-reason {
+  font-weight: 600;
+}
+.mmi-chip {
+  border: 1px solid var(--wx-line, var(--line));
+  border-radius: 10px;
+  padding: 8px;
+  margin-block: 8px;
+}
+.mmi button,
+.mmi input {
+  min-height: 44px;
+}
+.mmi :focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 3px;
+}
+.mmi details {
+  margin-block: 8px;
+}
+.mmi summary {
+  cursor: pointer;
+  min-height: 44px;
+  align-content: center;
+}
+@media (max-width: 820px) {
+  .mmi table,
+  .mmi tbody,
+  .mmi tr,
+  .mmi td {
+    display: block;
+    width: 100%;
+  }
+  .mmi thead {
+    display: none;
+  }
+  .mmi tr {
+    border-bottom: 1px solid var(--wx-line, var(--line));
+    padding-block: 12px;
+  }
+  .mmi td {
+    padding: 6px;
+  }
+  .mmi-category header > label {
+    width: 100%;
+  }
+}

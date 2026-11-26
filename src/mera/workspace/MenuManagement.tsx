@@ -1,5 +1,6 @@
+import MenuImport from "./MenuImport";
 import ChoiceField from "../ui/ChoiceField";
-import React, { useId, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 type Product = {
   [key: string]: any;
   id: string;
@@ -8,6 +9,10 @@ type Product = {
   category?: string;
 };
 type Props = {
+  importBase?: string;
+  importRequested?: boolean;
+  onImportRequestHandled?: () => void;
+  onImported?: () => void | Promise<void>;
   products: Product[];
   header: React.ReactNode;
   renderProducts: (products: Product[]) => React.ReactNode;
@@ -26,6 +31,10 @@ const views = [
 ] as const;
 export default function MenuManagement({
   products,
+  importBase,
+  importRequested,
+  onImportRequestHandled,
+  onImported,
   header,
   renderProducts,
   editor,
@@ -35,6 +44,13 @@ export default function MenuManagement({
   initialView = "products",
   allowedViews,
 }: Props) {
+  const [importOpen, setImportOpen] = useState(false);
+  useEffect(() => {
+    if (importRequested) {
+      setImportOpen(true);
+      onImportRequestHandled?.();
+    }
+  }, [importRequested, onImportRequestHandled]);
   const [view, setView] = useState<string>(initialView);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -62,6 +78,19 @@ export default function MenuManagement({
   const shown = filtered.slice(0, limit);
   return (
     <div className="mw-menu-management">
+      {importBase &&
+        isAllowed("products") &&
+        (importOpen ? (
+          <MenuImport
+            base={importBase}
+            onClose={() => setImportOpen(false)}
+            onImported={onImported || (() => {})}
+          />
+        ) : (
+          <button className="primary" onClick={() => setImportOpen(true)}>
+            Import from a menu file
+          </button>
+        ))}
       {!visibleViews.length && (
         <p role="status">No menu tools are available for your access.</p>
       )}

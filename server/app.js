@@ -114,6 +114,7 @@ export function createApp() {
     app.post(MERA_FORWARD_WEBHOOK, express.raw({ type: "application/json", limit: "256kb" }), createInboxForwardingWebhook({ query, transaction }));
   }
   app.use(meraHostRoutes(query));
+  app.use(/^\/api\/mera\/v1\/organizations\/[^/]+\/branches\/[^/]+\/menu-import\/extract$/, express.json({limit:"15mb"}));
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
   // Hosted MERA must never expose the unscoped legacy POS data routes.
