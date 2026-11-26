@@ -159,7 +159,32 @@ export async function migrateMera(db) {
   await migrateMeraAliases(db);
   await migrateCompanyLeads(db);
   await migrateMenuImport(db);
+  // Businesses created before automatic trials get one, counted from when they signed up.
+  const untimed = (
+    await db.query(
+      "SELECT id, created_at, subscription FROM mera_organizations WHERE slug NOT LIKE 'deleted-%'",
+    )
+  ).rows.filter(
+    (o) =>
+      (o.subscription?.status || "trialing") === "trialing" &&
+      !o.subscription?.trialEndsAt,
+  );
+  for (const o of untimed)
+    await db.query("UPDATE mera_organizations SET subscription=$1 WHERE id=$2", [
+      JSON.stringify({
+        ...o.subscription,
+        status: "trialing",
+        trialEndsAt: new Date(
+          new Date(o.created_at).getTime() + trialDays() * 86400000,
+        ).toISOString(),
+      }),
+      o.id,
+    ]);
 }
+export const trialDays = () => {
+  const days = Number(process.env.MERA_TRIAL_DAYS ?? 5);
+  return Number.isInteger(days) && days > 0 && days <= 90 ? days : 5;
+};
 export async function seedMeraDemo(db) {
   if (process.env.NODE_ENV === "production" || process.env.MERA_DEMO !== "true")
     throw fail(
@@ -506,6 +531,8 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
           JSON.stringify(proposedPolicy),
           JSON.stringify({
             status: "trialing",
+            // Every new business starts a free trial; after it ends they pay to keep taking orders.
+            trialEndsAt: new Date(Date.now() + trialDays() * 86400000).toISOString(),
             billingEnabled: false,
             includedBranchIds: [branchId],
           }),

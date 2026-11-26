@@ -2,6 +2,7 @@ import { validPublicContact } from "./publicContact";
 import React, { useEffect, useRef, useState } from "react";
 import { MeraBrand } from "../ui/MeraBrand";
 import Segmented from "../ui/Segmented";
+import MediaUpload from "../MediaUpload";
 import SetupChecklist from "./SetupChecklist";
 import LaunchReadiness from "./LaunchReadiness";
 import VenueTypeStep from "./setup/VenueTypeStep";
@@ -86,6 +87,8 @@ function GuidedSetup({
   onClose,
   onFinished,
 }: Props & { onClose: () => void }) {
+  const [logo, setLogo] = useState<string>(organization.branding?.logo || "");
+  const [logoBusy, setLogoBusy] = useState(false);
   const orgBase = `/organizations/${organization.id}`,
     base = `${orgBase}/branches/${branch.id}`;
   const progressKey = `ownerGuideV3Step_${branch.id}`,
@@ -659,6 +662,57 @@ function GuidedSetup({
                   />
                 </label>
                 <p>The phone number or email customers use to reach you</p>
+                <div className="mera-setup-logo">
+                  <span className="mera-setup-logo-label">
+                    Business logo <small>(optional)</small>
+                  </span>
+                  <div className="mera-setup-logo-row">
+                    {logo ? (
+                      <img
+                        alt={`${organization.name} logo`}
+                        src={logo.replace(
+                          "/api/mera/v1/public/assets/",
+                          `/api/mera/v1${orgBase}/assets/`,
+                        )}
+                      />
+                    ) : (
+                      <span className="mera-setup-logo-empty" aria-hidden="true">
+                        {organization.name?.slice(0, 2)}
+                      </span>
+                    )}
+                    <MediaUpload
+                      endpoint={`/api/mera/v1${orgBase}/assets`}
+                      disabled={disabled || logoBusy}
+                      onUploaded={async (asset) => {
+                        const b = organization.branding || {};
+                        setLogoBusy(true);
+                        setError("");
+                        try {
+                          // The branding endpoint takes the full brand record.
+                          await save(
+                            `${orgBase}/branding`,
+                            "PATCH",
+                            {
+                              primary: b.primary || "#1558c9",
+                              accent: b.accent || "#83ddf7",
+                              description: b.description || "",
+                              font: b.font || "system",
+                              logo: asset.url,
+                              ...(b.coverImage ? { coverImage: b.coverImage } : {}),
+                            },
+                            "Logo saved.",
+                          );
+                          setLogo(asset.url);
+                        } catch (e) {
+                          setError((e as Error).message);
+                        } finally {
+                          setLogoBusy(false);
+                        }
+                      }}
+                    />
+                  </div>
+                  <p>Shown on your customer menu and receipts. PNG, JPEG or WebP.</p>
+                </div>
                 <Segmented
                   label="How many locations do you run?"
                   value={operating.locationCount}

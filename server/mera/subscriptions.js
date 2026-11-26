@@ -39,11 +39,12 @@ export function subscriptionEntitlement(
         ...result,
         warning:
           end - now < 3 * 86400000
-            ? "The configured trial ends soon. Review subscription readiness."
+            ? `Your free trial ends on ${new Date(end).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lagos" })}. Subscribe to keep taking new orders.`
             : null,
       };
     dueAt = end;
     result.effectiveState = "past_due";
+    result.trialEnded = true;
   } else if (result.effectiveState === "active") {
     if (!subscription.paidThrough) return result; // Explicit platform activation may be manually maintained.
     const end = Date.parse(subscription.paidThrough);
@@ -63,7 +64,9 @@ export function subscriptionEntitlement(
     policy.graceDays < 0
   )
     return deny(
-      "Payment is overdue and no approved grace period is configured.",
+      result.trialEnded
+        ? "Your free trial has ended. Pay your subscription to keep taking new orders."
+        : "Payment is overdue and no approved grace period is configured.",
     );
   const cutoff = dueAt + policy.graceDays * 86400000;
   result.restrictionAt = new Date(cutoff).toISOString();

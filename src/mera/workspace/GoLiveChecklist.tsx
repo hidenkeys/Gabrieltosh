@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import LaunchReadiness from "./LaunchReadiness";
 const checks: Record<string, [string, string, string?, string?]> = {
   subscription_access: [
-    "Subscription access",
-    "Review your subscription access.",
+    "Free trial",
+    "Your free trial lets you take orders. Subscribe before it ends to keep going.",
     "billing",
     "Review subscription",
   ],

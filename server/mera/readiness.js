@@ -6,8 +6,6 @@ const error = (message, status = 409) =>
   Object.assign(new Error(message), { status });
 const demo = () =>
   process.env.MERA_DEMO === "true" && process.env.NODE_ENV !== "production";
-const platformAllowsManual = () =>
-  demo() || process.env.MERA_ALLOW_MANUAL_LAUNCH === "true";
 export function mountMeraReadiness(
   router,
   { db, guard, scope, locked, readRecords, event },
@@ -87,11 +85,6 @@ export function mountMeraReadiness(
         ready: templates.length > 0,
         detail:
           "Layout configuration does not establish physical printer output.",
-      },
-      {
-        id: "manual_platform_policy",
-        label: "Platform permits manual-payment launch",
-        ready: platformAllowsManual(),
       },
       {
         id: "manual_branch_policy",

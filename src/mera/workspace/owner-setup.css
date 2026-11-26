@@ -859,3 +859,33 @@
     flex-wrap: wrap;
   }
 }
+
+.mera-setup-logo {
+  display: grid;
+  gap: 8px;
+}
+.mera-setup-logo-label {
+  font-weight: 600;
+}
+.mera-setup-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.mera-setup-logo-row img,
+.mera-setup-logo-empty {
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  border: 1px solid #c5cfc5;
+  background: #fff;
+  object-fit: contain;
+}
+.mera-setup-logo-empty {
+  display: grid;
+  place-items: center;
+  color: #56635c;
+  font-weight: 700;
+  text-transform: uppercase;
+}
