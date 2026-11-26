@@ -86,8 +86,9 @@ export default function GoLiveChecklist(
               <div>
                 <h2>Ready to go live</h2>
                 <p>
-                  {done} of {rows.length} done. Finish these to start taking
-                  orders.
+                  {done === rows.length
+                    ? "Everything is ready. Go live to start taking orders."
+                    : `${done} of ${rows.length} done. Finish these to start taking orders.`}
                 </p>
               </div>
               <button

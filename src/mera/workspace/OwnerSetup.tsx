@@ -681,6 +681,8 @@ function GuidedSetup({
                       </span>
                     )}
                     <MediaUpload
+                      compact
+                      label={logo ? "Change logo" : "Upload logo"}
                       endpoint={`/api/mera/v1${orgBase}/assets`}
                       disabled={disabled || logoBusy}
                       onUploaded={async (asset) => {
@@ -711,7 +713,13 @@ function GuidedSetup({
                       }}
                     />
                   </div>
-                  <p>Shown on your customer menu and receipts. PNG, JPEG or WebP.</p>
+                  <p>
+                    {logoBusy
+                      ? "Saving logo…"
+                      : logo
+                        ? "Saved. Shown on your customer menu and receipts."
+                        : "Shown on your customer menu and receipts. PNG, JPEG or WebP."}
+                  </p>
                 </div>
                 <Segmented
                   label="How many locations do you run?"

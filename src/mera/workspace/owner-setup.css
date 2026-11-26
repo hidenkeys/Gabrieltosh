@@ -889,3 +889,31 @@
   font-weight: 700;
   text-transform: uppercase;
 }
+
+/* Compact uploader: the label is the button; the file input stays accessible but hidden. */
+.mera-media-upload-compact {
+  position: relative;
+}
+.mera-media-upload-compact input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+.mera-media-upload-compact label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #aebcaf;
+  border-radius: 10px;
+  background: #fcfbf6;
+  color: #153f32;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mera-media-upload-compact input[type="file"]:focus-visible + p,
+.mera-media-upload-compact label:focus-within {
+  outline: 3px solid #153f32;
+}

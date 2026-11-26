@@ -64,10 +64,15 @@ export default function MediaUpload({
   endpoint,
   onUploaded,
   disabled = false,
+  compact = false,
+  label = "Upload image",
 }: {
   endpoint: string;
   onUploaded: (media: UploadedMedia) => void;
   disabled?: boolean;
+  /** The caller shows the result itself: a styled button, no preview or publish note. */
+  compact?: boolean;
+  label?: string;
 }) {
   const id = useId(),
     input = useRef<HTMLInputElement>(null),
@@ -156,8 +161,8 @@ export default function MediaUpload({
     }
   }
   return (
-    <div className="mera-media-upload">
-      <label htmlFor={id}>Upload image</label>
+    <div className={`mera-media-upload${compact ? " mera-media-upload-compact" : ""}`}>
+      <label htmlFor={id}>{label}</label>
       <input
         ref={input}
         id={id}
@@ -170,13 +175,13 @@ export default function MediaUpload({
           if (file) void upload(file);
         }}
       />
-      <p id={`${id}-help`}>
+      <p id={`${id}-help`} hidden={compact}>
         PNG, JPEG or WebP. Photos are resized to at most 1,600 pixels and 512
         KB. PNG transparency is preserved.
       </p>
       {busy && <p role="status">Preparing and uploading image…</p>}
       {error && <p role="alert">{error}</p>}
-      {media && (
+      {media && !compact && (
         <>
           <img
             src={media.previewUrl}
