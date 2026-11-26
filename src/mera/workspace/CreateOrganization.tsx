@@ -232,6 +232,8 @@ export default function CreateOrganization({
                           .toLowerCase()
                           .normalize("NFD")
                           .replace(/[\u0300-\u036f]/g, "")
+                          // "Jay's Diner" \u2192 "jays-diner", not "jay-s-diner".
+                          .replace(/['\u2019]/g, "")
                           .replace(/[^a-z0-9]+/g, "-")
                           .replace(/^-|-$/g, "")
                           .slice(0, 50),

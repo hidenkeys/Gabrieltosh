@@ -205,16 +205,20 @@ function GuidedSetup({
       return { writes: [], target: -1 };
     }
   });
+  // An unconfirmed save (snapshot) wins; otherwise what the server saved beats an older setup draft.
+  const savedPayments = Object.fromEntries(
+    [branch, ...branches]
+      .filter((b) => (b.settings?.manualPaymentMethods || []).length)
+      .map((b) => [b.id, b.settings.manualPaymentMethods]),
+  );
   const paymentDrafts = useRef<Record<string, string[]>>(
-    snapshot?.payments ||
-      data[`ownerSetupPayments_${branch.id}`] || {
-        ...Object.fromEntries(
-          [branch, ...branches].map((b) => [
-            b.id,
-            b.settings?.manualPaymentMethods || [],
-          ]),
-        ),
-      },
+    snapshot?.payments || {
+      ...Object.fromEntries(
+        [branch, ...branches].map((b) => [b.id, [] as string[]]),
+      ),
+      ...(data[`ownerSetupPayments_${branch.id}`] || {}),
+      ...savedPayments,
+    },
   );
   const shell = useRef<HTMLElement>(null);
   const flight = useRef(false),
