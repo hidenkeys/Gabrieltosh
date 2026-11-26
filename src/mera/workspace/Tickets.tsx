@@ -630,6 +630,12 @@ function ScopedTickets({
                     </span>
                     <h3>{order?.reference || "Order reference unavailable"}</h3>
                     {order?.displayName && <p>{order.displayName}</p>}
+                    {order?.tableName && (
+                      <p className="mw-preparation-table">Serve at {order.tableName}</p>
+                    )}
+                    {!order?.tableName && order?.fulfillment === "takeaway" && (
+                      <p className="mw-preparation-table">Takeaway</p>
+                    )}
                   </div>
                   <div className="mw-preparation-ticket-state">
                     <time

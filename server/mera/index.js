@@ -1012,6 +1012,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
         409,
         "MENU_CHANGED",
       );
+    let tableForOrder = null;
     if (input.fulfillment === "table_service") {
       if (source === "zidi")
         throw fail(
@@ -1019,15 +1020,25 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
           409,
           "INTEGRATION_SCOPE_REQUIRED",
         );
-      if (!input.visitId)
-        throw fail("Join a current table visit before ordering.");
-      const visit = await find(c, s, "visit", input.visitId);
-      if (
-        visit.status !== "open" ||
-        (guestId && !visit.guestIds.includes(guestId))
-      )
-        throw fail("Join this visit using its private joining code.", 403);
-    }
+      if (input.visitId) {
+        const visit = await find(c, s, "visit", input.visitId);
+        if (
+          visit.status !== "open" ||
+          (guestId && !visit.guestIds.includes(guestId))
+        )
+          throw fail("Join this visit using its private joining code.", 403);
+      } else if (input.tableId) {
+        // A table QR order: delivered to the table as its own order, never added to a party's bill.
+        if (!hasCapability(b.settings, "table_service"))
+          throw fail("This location does not serve tables.", 409, "CAPABILITY_DISABLED");
+        const table = (await readRecords(c, s.organizationId, s.branchId, "table"))
+          .map((r) => r.data)
+          .find((t) => t.id === input.tableId && t.active !== false);
+        if (!table) throw fail("This table is not available. Ask staff for help.", 409);
+        tableForOrder = { id: table.id, name: table.name };
+      } else throw fail("Join a current table visit before ordering.");
+    } else if (input.tableId)
+      throw fail("Choose table service to send an order to a table.");
     let reservationContext=false;
     if(input.reservationId){
       if(source==="zidi")throw fail("Reservation integration scope is not configured.",409,"INTEGRATION_SCOPE_REQUIRED");
@@ -1041,7 +1052,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
     ).map((r) => r.data);
     const published = publishedCounterProducts(b,current);
     if(!availableNow(b.settings.serviceHours,b.timezone)) throw fail("Ordering is closed outside branch service hours.",409,"BRANCH_CLOSED");
-    const priced = quote(input.items, published, {tableContext:reservationContext||(input.fulfillment==="table_service"&&!!input.visitId)});
+    const priced = quote(input.items, published, {tableContext:reservationContext||(input.fulfillment==="table_service"&&(!!input.visitId||!!tableForOrder))});
     const pricing=await resolveQuotedPricing(c,s,b,input,actor,guestId,priced.total);
     const quantities = new Map();
     for (const l of stockLines(priced.items))
@@ -1092,6 +1103,8 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
       displayName: input.displayName,
       fulfillment: input.fulfillment,
       visitId: input.visitId || null,
+      tableId: tableForOrder?.id || null,
+      tableName: tableForOrder?.name || null,
       payLaterAllowed:!!input.visitId && (b.settings.payLater || hasCapability(b.settings,"open_tabs")),
       reservationId:input.reservationId||null,
       source,

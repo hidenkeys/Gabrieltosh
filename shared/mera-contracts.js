@@ -94,6 +94,8 @@ export const orderInputSchema = z.object({
     .enum(["counter_pickup", "takeaway", "table_service"])
     .default("counter_pickup"),
   visitId: z.string().uuid().optional(),
+  // Ordered from a table QR: served to that table without joining a party's private bill.
+  tableId: z.string().uuid().optional(),
   reservationId:z.string().uuid().optional(),
   items: z
     .array(

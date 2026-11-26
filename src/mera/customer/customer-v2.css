@@ -250,6 +250,11 @@
   box-shadow: 0 24px 40px -30px
     color-mix(in srgb, var(--mc-ink) 45%, transparent);
   top: 84px;
+  /* The pinned basket can be taller than a short laptop screen: let it scroll on
+     its own so "Submit order" is always reachable. */
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .mera-customer .mc-basket-heading {
   position: relative;
@@ -619,6 +624,8 @@
   }
   .mera-customer .mc-cart {
     top: auto;
+    max-height: none;
+    overflow-y: visible;
   }
   .mera-customer .mc-basket-heading::before,
   .mera-customer .mc-basket-heading::after {

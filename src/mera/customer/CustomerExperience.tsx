@@ -122,6 +122,7 @@ export default function CustomerExperience({
     "tableId",
   );
   const [joinTable, setJoinTable] = useState(requestedTable || "");
+  const [tableOrderDefaulted, setTableOrderDefaulted] = useState(false);
   const [branches, setBranches] = useState<any[]>([]);
   const [checkoutError, setCheckoutError] = useState("");
   const [checkoutNotice, setCheckoutNotice] = useState("");
@@ -276,6 +277,18 @@ export default function CustomerExperience({
     )
       setJoinTable("");
   }, [menu, joinTable]);
+  // The table this QR code names, when the venue serves tables.
+  const scannedTable =
+    requestedTable && menu?.tableService !== false
+      ? (menu?.tables || []).find((t: any) => t.id === requestedTable) || null
+      : null;
+  useEffect(() => {
+    // Default a table-QR guest to table service once, without overriding their later choice.
+    if (scannedTable && !visit && !tableOrderDefaulted) {
+      setFulfillment("table_service");
+      setTableOrderDefaulted(true);
+    }
+  }, [scannedTable, visit, tableOrderDefaulted]);
   useEffect(() => {
     let active = true;
     void load();
@@ -621,13 +634,24 @@ export default function CustomerExperience({
     { key: "All", label: "All", depth: 0 },
     ...categoryNavigation(publishedCategories, products),
   ];
-  const visibleProducts = products.filter(
-    (product) =>
-      matchesCategory(product, category, publishedCategories) &&
-      `${product.name} ${product.description} ${product.category}`
-        .toLowerCase()
-        .includes(search.toLowerCase()),
+  // Show items in menu order: by their category's position, then by name.
+  const categoryRank = new Map(
+    publishedCategories.map((c: any) => [c.id, c.sortOrder ?? 0]),
   );
+  const visibleProducts = products
+    .filter(
+      (product) =>
+        matchesCategory(product, category, publishedCategories) &&
+        `${product.name} ${product.description} ${product.category}`
+          .toLowerCase()
+          .includes(search.toLowerCase()),
+    )
+    .sort(
+      (a: any, b: any) =>
+        ((categoryRank.get(a.categoryId) as number) ?? 9999) -
+          ((categoryRank.get(b.categoryId) as number) ?? 9999) ||
+        String(a.name).localeCompare(String(b.name)),
+    );
   const basketQuantity = cart.reduce((count, line) => count + line.quantity, 0);
   function openBasket() {
     setBasketViewed(true);
@@ -896,7 +920,7 @@ export default function CustomerExperience({
         );
         return;
       }
-      if (fulfillment === "table_service" && !visit?.visit?.id) {
+      if (fulfillment === "table_service" && !visit?.visit?.id && !scannedTable) {
         setCheckoutError(
           "Join your table before placing a table order, or choose counter pickup or takeaway.",
         );
@@ -960,6 +984,10 @@ export default function CustomerExperience({
           displayName: displayName.trim() || "Guest",
           fulfillment,
           visitId: visit?.visit?.id,
+          // Scanned a table QR without joining a party: send the order to that table.
+          ...(fulfillment === "table_service" && !visit?.visit?.id && scannedTable
+            ? { tableId: scannedTable.id }
+            : {}),
           ...(bookedReservationId
             ? { reservationId: bookedReservationId }
             : {}),
@@ -1953,8 +1981,17 @@ export default function CustomerExperience({
                         { value: "counter_pickup", label: "Counter pickup" },
                         { value: "takeaway", label: "Takeaway" },
                         ...(visit ||
+                        scannedTable ||
                         checkoutIntent?.fulfillment === "table_service"
-                          ? [{ value: "table_service", label: "At my table" }]
+                          ? [
+                              {
+                                value: "table_service",
+                                label:
+                                  !visit && scannedTable
+                                    ? `Serve at ${scannedTable.name}`
+                                    : "At my table",
+                              },
+                            ]
                           : []),
                       ]}
                     />
@@ -1962,6 +1999,8 @@ export default function CustomerExperience({
                       <p className="mc-checkout-hint">
                         {visit?.visit?.tableName
                           ? `For ${visit.visit.tableName}.`
+                          : scannedTable
+                            ? `We'll bring it to ${scannedTable.name}.`
                           : "For your original joined table. Ask staff if you are unsure which table this request belongs to."}
                       </p>
                     )}

@@ -570,3 +570,33 @@ test(
     );
   },
 );
+
+test(
+  "a table QR order is served to that table without joining a party's bill",
+  { skip: process.env.RUN_MERA_VENUE_PG_TESTS !== "true" },
+  async (t) => {
+    const f = await fixture(t),
+      club = f.venue("pulse"),
+      clubPath = B(club.org, club.b),
+      drink = club.b.products.find((p) => p.code === "DRINK");
+    const table = ok(
+      await f.call(clubPath + "/tables", "POST", { name: "Synthetic Table 7", capacity: 4, zone: "Floor" }, club.owner),
+      201,
+    );
+    const served = await counterOrder(f, club.org, club.b, club.owner,
+      [{ productId: drink.id, quantity: 1, modifiers: [] }],
+      { fulfillment: "table_service", tableId: table.id });
+    const order = ok(served.response, 201);
+    assert.equal(order.tableId, table.id);
+    assert.equal(order.tableName, "Synthetic Table 7");
+    assert.equal(order.visitId, null);
+    const unknown = await counterOrder(f, club.org, club.b, club.owner,
+      [{ productId: drink.id, quantity: 1, modifiers: [] }],
+      { fulfillment: "table_service", tableId: randomUUID() });
+    assert.equal(unknown.response.status, 409);
+    const wrongMode = await counterOrder(f, club.org, club.b, club.owner,
+      [{ productId: drink.id, quantity: 1, modifiers: [] }],
+      { fulfillment: "counter_pickup", tableId: table.id });
+    assert.equal(wrongMode.response.status, 400);
+  },
+);
