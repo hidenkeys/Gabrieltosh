@@ -1,3 +1,4 @@
+import { useCurrency, useMoney } from "./Currency";
 import { useState } from "react";
 import Stepper from "./Stepper";
 import MoneyInput from "./MoneyInput";
@@ -9,7 +10,6 @@ export type CashCounterProps = {
   disabled?: boolean;
   required?: boolean;
 };
-const denominations = [1000, 500, 200, 100, 50, 20, 10, 5];
 export function CashCounter({
   label,
   value,
@@ -18,10 +18,25 @@ export function CashCounter({
   disabled,
   required,
 }: CashCounterProps) {
+  const money = useMoney();
+  const currency = useCurrency();
+  const denominations = (
+    {
+      NGN: [1000, 500, 200, 100, 50, 20, 10, 5],
+      USD: [100, 50, 20, 10, 5, 2, 1, 0.5, 0.25, 0.1, 0.05, 0.01],
+      GBP: [50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01],
+      EUR: [
+        500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01,
+      ],
+      GHS: [200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.01],
+      KES: [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.5],
+      ZAR: [200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1],
+    } as Record<string, number[]>
+  )[currency] || [100, 50, 20, 10, 5, 1];
   const [counts, setCounts] = useState<Record<number, number>>({}),
     [expanded, setExpanded] = useState(false);
   const total = denominations.reduce(
-    (sum, note) => sum + note * (counts[note] || 0),
+    (sum, note) => sum + Math.round(note * 100) * (counts[note] || 0),
     0,
   );
   return (
@@ -48,7 +63,7 @@ export function CashCounter({
             {denominations.map((note) => (
               <Stepper
                 key={note}
-                label={`₦${note.toLocaleString("en-NG")} notes or coins`}
+                label={`${money(Math.round(note * 100))} notes or coins`}
                 value={counts[note] || 0}
                 min={0}
                 max={100000}
@@ -57,13 +72,11 @@ export function CashCounter({
               />
             ))}
           </div>
-          <p aria-live="polite">
-            Count total: ₦{total.toLocaleString("en-NG")}
-          </p>
+          <p aria-live="polite">Count total: {money(total)}</p>
           <button
             type="button"
             disabled={disabled}
-            onClick={() => onChange(total.toFixed(2))}
+            onClick={() => onChange((total / 100).toFixed(2))}
           >
             Use counted total
           </button>

@@ -202,7 +202,7 @@ function ScopedInvoices({
                 <h3>
                   {invoice.status} ·{" "}
                   {Number.isSafeInteger(invoice.amount)
-                    ? formatMoney(invoice.amount)
+                    ? formatMoney(invoice.amount, invoice.currency || "NGN")
                     : "Amount unresolved"}
                 </h3>
                 <p>

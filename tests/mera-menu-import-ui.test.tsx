@@ -14,7 +14,7 @@ Object.defineProperty(globalThis, "navigator", {
   configurable: true,
 });
 const React = await import("react");
-const { render, screen, cleanup, fireEvent, waitFor } =
+const { render, screen, cleanup, fireEvent, waitFor, act } =
   await import("@testing-library/react");
 const { default: MenuImport } =
   await import("../src/mera/workspace/MenuImport");
@@ -348,4 +348,51 @@ test("extract prepares crop and embedded thumbnails from source bytes", async ()
     dom.window.HTMLCanvasElement.prototype.getContext = originalContext;
     dom.window.HTMLCanvasElement.prototype.toDataURL = originalData;
   }
+});
+
+test("currency mismatch offers use and keep actions; category moves determine submitted order without conversion", async () => {
+  const original = globalThis.fetch;
+  const sample = structuredClone(draft);
+  sample.currency = "USD";
+  sample.categories[0].items[0].price = 12.34;
+  sample.categories.push({ ...structuredClone(sample.categories[0]), name: "Drinks" });
+  const calls: {path: string; body: any}[] = [];
+  globalThis.fetch = async (input, options) => {
+    calls.push({path: String(input), body: JSON.parse(String(options?.body))});
+    return Response.json({created:2, skipped:[],categoriesCreated:2});
+  };
+  try {
+    render(<MenuImport base="/branch" initialDraft={sample} onClose={() => {}} onImported={() => {}} />);
+    assert(screen.getByText("This menu is priced in USD. Your location uses NGN."));
+    assert(screen.getByRole('button', {name:'Use USD for this location'}));
+    fireEvent.click(screen.getByRole('button',{name:'Keep NGN'}));
+    assert.equal(calls.length,0);
+    fireEvent.click(screen.getByRole('button',{name:'Move Drinks up'}));
+    assert.deepEqual(screen.getAllByLabelText('Category name').map(n => (n as HTMLInputElement).value), ['Drinks','Food']);
+    fireEvent.click(screen.getByRole('button',{name:'Import 2 items'}));
+    await screen.findByText('Added 2 items · 0 with photos');
+    assert.deepEqual(calls[0].body.categories.map((c:any)=>c.name),['Drinks','Food']);
+    assert.equal(calls[0].body.categories[0].items[0].price,12.34);
+  } finally { cleanup(); globalThis.fetch=original; }
+});
+test('use imported currency sends a settings change; refusal remains visible with review intact', async () => {
+  const original = globalThis.fetch;
+  let fail = true;
+  globalThis.fetch = async (input, options) => {
+    assert.equal(String(input),'/api/mera/v1/branch/settings');
+    assert.equal(options?.method,'PATCH');
+    assert.deepEqual(JSON.parse(String(options?.body)),{currency:'USD'});
+    return fail ? Response.json({error:'Currency cannot be changed because this location has orders.'},{status:409}) : Response.json({version:2});
+  };
+  try {
+    render(<MenuImport base="/branch" initialDraft={{...structuredClone(draft),currency:'USD'}} onClose={() => {}} onImported={() => {}} />);
+    await act(async () => { fireEvent.click(screen.getByRole('button',{name:'Use USD for this location'})); });
+    await screen.findByText('Currency cannot be changed because this location has orders.');
+    assert(screen.getByText('This menu is priced in USD. Your location uses NGN.'));
+    fail=false;
+    await waitFor(() => assert(!(screen.getByRole('button',{name:'Use USD for this location'}) as HTMLButtonElement).disabled));
+    await act(async () => { fireEvent.click(screen.getByRole('button',{name:'Use USD for this location'})); });
+    await waitFor(()=>assert(!screen.queryByText('This menu is priced in USD. Your location uses NGN.')));
+    assert(screen.getByLabelText('Price for Rice'));
+  } finally {cleanup();globalThis.fetch=original;}
 });

@@ -1,3 +1,4 @@
+import { useMoney } from "../ui/Currency";
 import { useRef } from "react";
 import {
   serviceState,
@@ -8,15 +9,10 @@ import { orderStatusLabel } from "./LiveOrderCard";
 import { DataRegion } from "../ui/OperationalPrimitives";
 import OverviewAttention from "./OverviewAttention";
 import OverviewActivity from "./OverviewActivity";
-import { formatMoney } from "./api";
+
 import ReportDetails from "./ReportDetails";
 import ReportExplorer from "./ReportExplorer";
-const money = (value: any) =>
-  Number.isSafeInteger(value)
-    ? formatMoney(value)
-    : value === null
-      ? "Not available"
-      : "Unavailable";
+
 export default function OperationalOverview({
   data,
   orders,
@@ -53,6 +49,13 @@ export default function OperationalOverview({
   onReviewSection?: (section: string, recordId?: string) => void;
   stale?: boolean;
 }) {
+  const format = useMoney();
+  const money = (value: any) =>
+    Number.isSafeInteger(value)
+      ? format(value)
+      : value === null
+        ? "Not available"
+        : "Unavailable";
   const dateReports = useRef<HTMLDetailsElement>(null);
   const report =
       data.report &&

@@ -1,10 +1,11 @@
+import { useMoney } from "../ui/Currency";
 import Combobox from "../ui/Combobox";
 import Segmented from "../ui/Segmented";
 import ReasonInput from "../ui/ReasonInput";
 import MoneyInput from "../ui/MoneyInput";
 import React, { useState } from "react";
 import { uuid } from "../../api";
-import { formatMoney, WorkspaceError } from "./api";
+import { WorkspaceError } from "./api";
 export default function DepositOutcomes({
   base,
   reservation,
@@ -25,6 +26,7 @@ export default function DepositOutcomes({
     message: string,
   ) => Promise<any>;
 }) {
+  const formatMoney = useMoney();
   const [depositId, setDepositId] = useState("");
   const [outcome, setOutcome] = useState("");
   const [amount, setAmount] = useState("");

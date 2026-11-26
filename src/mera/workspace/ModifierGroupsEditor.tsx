@@ -35,7 +35,7 @@ export default function ModifierGroupsEditor({
       <legend>Customization groups & add-ons</legend>
       <p className="mw-note">
         Set which choices customers may select and each option’s extra price in
-        naira. A minimum of zero makes a group optional. Removing options
+        the location’s currency. A minimum of zero makes a group optional. Removing options
         adjusts limits to the remaining choices.
       </p>
       {value.map((group, index) => (

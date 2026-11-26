@@ -1,8 +1,9 @@
+import { useMoney } from "../ui/Currency";
 import MoneyInput from "../ui/MoneyInput";
 import ReasonInput from "../ui/ReasonInput";
 import Segmented from "../ui/Segmented";
 import Combobox from "../ui/Combobox";
-import { formatMoney } from "./api";
+
 import { useEffect, useState } from "react";
 import { workspaceApi } from "./api";
 type Props = {
@@ -28,6 +29,7 @@ export default function RefundRequests({
   disabled,
   save,
 }: Props) {
+  const formatMoney = useMoney();
   const [requests, setRequests] = useState<any[]>([]),
     [error, setError] = useState(""),
     [loadError, setLoadError] = useState(""),
@@ -276,6 +278,7 @@ export default function RefundRequests({
   );
 }
 function Request({ request, base, canReview, disabled, send }: any) {
+  const formatMoney = useMoney();
   const [reason, setReason] = useState(""),
     [method, setMethod] = useState(""),
     [reference, setReference] = useState(""),
@@ -283,8 +286,7 @@ function Request({ request, base, canReview, disabled, send }: any) {
   return (
     <article className="mw-card">
       <h3>
-        {request.requestedByName || "Staff"} · ₦
-        {(request.amount / 100).toFixed(2)}
+        {request.requestedByName || "Staff"} · {formatMoney(request.amount)}
       </h3>
       <p>
         {request.status} · {request.reason}

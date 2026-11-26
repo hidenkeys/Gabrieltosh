@@ -1,6 +1,7 @@
+import { useMoney } from "../ui/Currency";
 import React, { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
-import { formatMoney, WorkspaceError } from "./api";
+import { WorkspaceError } from "./api";
 import { Action } from "../ui/OperationalPrimitives";
 import Segmented from "../ui/Segmented";
 import MoneyInput from "../ui/MoneyInput";
@@ -22,6 +23,7 @@ export default function CashMovement(props: Props) {
   );
 }
 function ScopedCashMovement({ base, shiftId, disabled, save }: Props) {
+  const formatMoney = useMoney();
   const [direction, setDirection] = useState("out"),
     [amount, setAmount] = useState(""),
     [reason, setReason] = useState("");

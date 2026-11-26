@@ -1,6 +1,6 @@
 import { formatMoney } from "./api";
 /** Display configured item/size prices; final selected options and charges are reviewed separately. */
-export function catalogPriceLabel(product: any) {
+export function catalogPriceLabel(product: any, currency = "NGN") {
   if (Array.isArray(product?.variants) && product.variants.length) {
     const prices = product.variants
       .map((variant: any) => variant.price)
@@ -11,12 +11,12 @@ export function catalogPriceLabel(product: any) {
           price >= 0,
       );
     return prices.length
-      ? "Sizes from " + formatMoney(Math.min(...prices))
+      ? "Sizes from " + formatMoney(Math.min(...prices), currency)
       : "Size prices unavailable";
   }
   return typeof product?.price === "number" &&
     Number.isSafeInteger(product.price) &&
     product.price >= 0
-    ? formatMoney(product.price)
+    ? formatMoney(product.price, currency)
     : "Price unavailable";
 }

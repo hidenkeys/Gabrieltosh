@@ -123,6 +123,7 @@ export function buildOverview(
       .reduce((n, r) => n + (r.arrivedCount || 0), 0);
     views.push({
       id: b.id,
+      currency: b.currency || "NGN",
       name: b.name,
       code: b.settings?.code || defaultLocationCode(b.name),
       colorTag: b.settings?.colorTag || "forest",
@@ -143,7 +144,7 @@ export function buildOverview(
   const visible = new Set(branches.map((b) => b.id));
   return {
     range: selection,
-    currency: "NGN",
+    currency: new Set(views.map(b => b.currency)).size > 1 ? null : views[0]?.currency || "NGN",
     totals,
     paymentMix: [...mix].map(([method, amount]) => ({ method, amount })),
     branches: views,

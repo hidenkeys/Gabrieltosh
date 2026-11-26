@@ -281,7 +281,7 @@ test("configured charges require server review and uncertain retries preserve qu
     },
   );
   fireEvent.click(screen.getByRole("button", { name: "Review total" }));
-  await screen.findByText("Service charge: ₦380");
+  await screen.findByText("Service charge: ₦380.00");
   assert.equal(orders.length, 0);
   fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
   await screen.findByRole("alert");
@@ -734,12 +734,12 @@ test("canonical outstanding and authorized writeoff are disclosed instead of rec
   await screen.findByText("Brown Sugar Boba");
   fireEvent.click(screen.getByRole("button", { name: "Your order" }));
   await screen.findByText("M-WRITEOFF");
-  assert(screen.getByText(/Order total ₦3,800 · Outstanding ₦0/));
-  assert(screen.getByText(/Authorized write-off ₦2,800/));
+  assert(screen.getByText(/Order total ₦3,800.00 · Outstanding ₦0.00/));
+  assert(screen.getByText(/Authorized write-off ₦2,800.00/));
   const receipt = screen.getByLabelText("Order details");
   assert.match(receipt.textContent, /Order reference: M-WRITEOFF/);
-  assert.match(receipt.textContent, /Recorded payments: ₦1,000/);
-  assert.match(receipt.textContent, /Authorized write-off: ₦2,800/);
+  assert.match(receipt.textContent, /Recorded payments: ₦1,000.00/);
+  assert.match(receipt.textContent, /Authorized write-off: ₦2,800.00/);
   assert.equal(receipt.querySelector(".mc-history"), null);
   assert.equal(
     screen.queryByRole("button", { name: "Print payment receipt" }),

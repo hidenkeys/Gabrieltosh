@@ -1,3 +1,4 @@
+import { useMoney } from "../ui/Currency";
 import Chips from "../ui/Chips";
 import Combobox from "../ui/Combobox";
 import ReasonInput from "../ui/ReasonInput";
@@ -5,7 +6,7 @@ import DateTimePicker from "../ui/DateTimePicker";
 import Stepper from "../ui/Stepper";
 import { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
-import { workspaceApi, formatMoney } from "./api";
+import { workspaceApi } from "./api";
 import { Action, Disclosure } from "../ui/OperationalPrimitives";
 import { reservationDate } from "./reservationPresentation";
 import {
@@ -49,6 +50,7 @@ export default function ReservationRequest(props: Props) {
   );
 }
 function ScopedRequest(props: Props) {
+  const formatMoney = useMoney();
   const { userId, organizationId, branchId, disabled, canRequest, save } =
     props;
   const scope = { actorId: userId, organizationId, branchId },

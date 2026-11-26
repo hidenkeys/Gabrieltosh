@@ -105,9 +105,4 @@ export async function workspaceApi<T = any>(
     controller.signal.removeEventListener("abort", onAbort);
   }
 }
-export const formatMoney = (minor: number) =>
-  new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    maximumFractionDigits: 2,
-  }).format((minor || 0) / 100);
+export { formatMoney } from "../../../shared/mera-money.js";

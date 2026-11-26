@@ -1,3 +1,4 @@
+import { useCurrency } from "../ui/Currency";
 import { Sparkles } from "lucide-react";
 import UnitInput from "../ui/UnitInput";
 import Segmented from "../ui/Segmented";
@@ -59,6 +60,7 @@ function ScopedPrintStudio({
   timeZone,
   save,
 }: Props) {
+  const currency = useCurrency();
   const [templates, setTemplates] = useState<any>(null),
     [jobs, setJobs] = useState<any[]>([]),
     [formatError, setFormatError] = useState(""),
@@ -597,7 +599,7 @@ function ScopedPrintStudio({
         ? branchName + " · Layout preview"
         : "Layout preview",
       reference: "SAMPLE",
-      currency: "NGN",
+      currency,
       branch: { timezone: timeZone || null },
       context: { fulfillment: "counter_pickup", tableName: null },
       customerName: "SAMPLE — NOT A SALE",

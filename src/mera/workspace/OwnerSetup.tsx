@@ -1,3 +1,4 @@
+import { allowedCurrencies } from "../../../shared/mera-money.js";
 import { validPublicContact } from "./publicContact";
 import React, { useEffect, useRef, useState } from "react";
 import { MeraBrand } from "../ui/MeraBrand";
@@ -61,6 +62,7 @@ export default function OwnerSetup(props: Props) {
 type Snapshot = {
   locations: LocationDraft[];
   contact: string;
+  currency?: string;
   operating: any;
   venueType: string;
   capabilities: string[];
@@ -101,6 +103,7 @@ function GuidedSetup({
     recovery = { writes: [], target: -1 };
   }
   const snapshot = recovery?.snapshot;
+  const [currency, setCurrency] = useState(snapshot?.currency || branch.currency || "NGN");
   const initialType = snapshot?.venueType || deriveVenueType(branch.settings);
   const [venueType, setVenueType] = useState(initialType);
   const [capabilities, setCapabilities] = useState<string[]>(
@@ -312,6 +315,7 @@ function GuidedSetup({
       if (!attempt) {
         const writes: Write[] = [];
         if (forward && canonical === 1) {
+          if (currency !== (branch.currency || "NGN")) writes.push(write(base + "/settings", { currency }, "settings"));
           writes.push(
             write(`${orgBase}/onboarding`, {
               step: canonical + 1,
@@ -379,7 +383,7 @@ function GuidedSetup({
                     requestKey: crypto.randomUUID(),
                     name,
                     timezone: l.timezone,
-                    currency: "NGN",
+                    currency,
                     cutoff: l.cutoff,
                     venueType: l.venueType,
                     capabilities: l.capabilities,
@@ -443,6 +447,7 @@ function GuidedSetup({
           snapshot: {
             locations,
             contact,
+            currency,
             operating,
             venueType,
             capabilities,
@@ -664,6 +669,11 @@ function GuidedSetup({
                       setError("");
                     }}
                   />
+                </label>
+                <label>Currency
+                  <select value={currency} onChange={e => setCurrency(e.target.value)}>
+                    {allowedCurrencies.map(code => <option key={code} value={code}>{code}</option>)}
+                  </select>
                 </label>
                 <p>The phone number or email customers use to reach you</p>
                 <div className="mera-setup-logo">

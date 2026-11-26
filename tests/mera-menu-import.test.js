@@ -571,3 +571,15 @@ test("other AI features do not use up the hourly menu import limit", async () =>
   });
   assert.equal((await busy.call("extract", { files: [photo] })).statusCode, 429);
 });
+
+test('apply respects reviewed category order and preserves USD decimal numbers as integer cents', async () => {
+  const f = fixture();
+  const draft = oneItemDraft();
+  draft.currency = 'USD';
+  draft.categories[0].items[0].price = 12.34;
+  draft.categories.unshift({name:'Drinks',items:[{...draft.categories[0].items[0],name:'Lemonade',price:4.56}]});
+  const res = await f.call('apply',draft);
+  assert.equal(res.statusCode,200);
+  assert.deepEqual(f.records.filter(r=>r.kind==='category').map(r=>[r.data.name,r.data.sortOrder]),[['Drinks',0],['Food',1]]);
+  assert.deepEqual(f.records.filter(r=>r.kind==='product').map(r=>r.data.price),[456,1234]);
+});

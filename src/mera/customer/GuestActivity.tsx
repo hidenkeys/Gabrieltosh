@@ -1,3 +1,4 @@
+import { useMoney } from "../ui/Currency";
 import { useEffect, useRef, useState } from "react";
 import ReasonInput from "../ui/ReasonInput";
 import { customerRequest, requestId } from "./client";
@@ -12,10 +13,7 @@ import {
   reservationStatusLabel,
   reservationDateLabel,
 } from "./reservationPresentation";
-const money = (amount: number) =>
-  new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(
-    amount / 100,
-  );
+
 export default function GuestActivity({
   prefix,
   timeZone,
@@ -36,6 +34,7 @@ function ScopedGuestActivity({
   prefix: string;
   timeZone?: string;
 }) {
+  const money = useMoney();
   const [activity, setActivity] = useState<any>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),

@@ -1,4 +1,5 @@
-import { formatMoney } from "./api";
+import { useMoney } from "../ui/Currency";
+
 import { reservationArrivalEligible } from "./reservationPresentation";
 const rows = (value: unknown): any[] =>
   Array.isArray(value)
@@ -23,6 +24,7 @@ export default function OverviewAttention({
   onReviewOrders?: (reference?: string) => void;
   onReviewSection?: (section: string, recordId?: string) => void;
 }) {
+  const formatMoney = useMoney();
   if (!["orders", "menu", "reservations", "shifts"].some(canNavigate))
     return null;
   const data = supplied && typeof supplied === "object" ? supplied : {},

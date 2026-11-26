@@ -1,3 +1,4 @@
+import { allowedCurrencies } from "../../shared/mera-money.js";
 import { validPublicContact } from "./public-contact.js";
 import { z } from "zod";
 import { subscriptionEntitlement } from "./subscriptions.js";
@@ -63,7 +64,7 @@ export function mountMeraReadiness(
       {
         id: "timezone",
         label: "Trading timezone and currency",
-        ready: validTimezone && b.currency === "NGN",
+        ready: validTimezone && allowedCurrencies.includes(b.currency),
       },
       {
         id: "contacts",

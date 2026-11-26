@@ -1,3 +1,4 @@
+import { useMoney } from "../ui/Currency";
 import ItemContents, { ComboChoices, choiceComplete } from "./ItemContents";
 import { Chips } from "../ui/Chips";
 import { useRef } from "react";
@@ -49,10 +50,7 @@ export type CustomizationDialogProps = {
   registerGroup?: (id: string, node: HTMLFieldSetElement | null) => void;
   fallbackFocus?: () => void;
 };
-const money = (value: number) =>
-  new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(
-    value / 100,
-  );
+
 const soldOut = (value: { stockMode?: string; stock?: number }) =>
   value.stockMode === "counted" &&
   typeof value.stock === "number" &&
@@ -80,6 +78,7 @@ function SelectedCustomization({
   registerGroup,
   fallbackFocus,
 }: CustomizationDialogProps) {
+  const money = useMoney();
   const dialog = useRef<HTMLDivElement>(null),
     callbacks = useRef({ onClose, fallbackFocus });
   callbacks.current = { onClose, fallbackFocus };

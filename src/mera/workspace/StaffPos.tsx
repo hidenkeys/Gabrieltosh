@@ -1,3 +1,5 @@
+import { useCurrency } from "../ui/Currency";
+import { useMoney } from "../ui/Currency";
 import CustomizationDialog from "../customer/CustomizationDialog";
 import {
   choiceKey,
@@ -9,7 +11,7 @@ import { useState, type ReactNode } from "react";
 import { Search, ShoppingBag, Plus } from "lucide-react";
 import { ProductImage } from "../../ProductImage";
 import StaffOrderItems from "./StaffOrderItems";
-import { formatMoney } from "./api";
+
 import { catalogPriceLabel } from "./catalogPresentation";
 import { validateStaffSelection } from "./staffSelection";
 
@@ -34,6 +36,8 @@ export default function StaffPos({
   staffName: string;
   useBingChunAssets?: boolean;
 }) {
+  const currency = useCurrency();
+  const formatMoney = useMoney();
   const [sheetModifiers, setSheetModifiers] = useState<string[]>([]);
   const [choosing, setChoosing] = useState<any>(null),
     [choiceKeys, setChoiceKeys] = useState<string[]>([]);
@@ -262,7 +266,7 @@ export default function StaffPos({
                   <small>Available for booked or seated tables</small>
                 )}
                 <div className="product-bottom">
-                  <strong>{catalogPriceLabel(p)}</strong>
+                  <strong>{catalogPriceLabel(p, currency)}</strong>
                   <span>{p.size}</span>
                   <i aria-hidden="true">
                     <Plus size={16} />

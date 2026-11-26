@@ -1,10 +1,11 @@
+import { useMoney } from "../ui/Currency";
 import Combobox from "../ui/Combobox";
 import Segmented from "../ui/Segmented";
 import Stepper from "../ui/Stepper";
 import MoneyInput from "../ui/MoneyInput";
 import React, { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
-import { formatMoney, workspaceApi, WorkspaceError } from "./api";
+import { workspaceApi, WorkspaceError } from "./api";
 import {
   Action,
   Disclosure,
@@ -25,12 +26,14 @@ type Props = {
 };
 const human = (value: any) =>
   String(value || "Not recorded").replaceAll("_", " ");
-const money = (value: any) =>
-  Number.isSafeInteger(value) ? formatMoney(value) : "Not available";
+
 export default function Reconciliation(props: Props) {
   return <ScopedReconciliation key={props.base} {...props} />;
 }
 function ScopedReconciliation({ base, orders, demo, disabled, save }: Props) {
+  const format = useMoney();
+  const money = (value: any) =>
+    Number.isSafeInteger(value) ? format(value) : "Not available";
   const [data, setData] = useState<any>(null),
     [error, setError] = useState(""),
     [readError, setReadError] = useState(""),

@@ -1,9 +1,8 @@
+import { useMoney } from "../ui/Currency";
 import type { ReactNode } from "react";
-import { formatMoney } from "./api";
+
 import { DataRegion, ReadState } from "../ui/OperationalPrimitives";
 
-const money = (value: unknown) =>
-  Number.isSafeInteger(value) ? formatMoney(value as number) : "Unavailable";
 const method = (value: string) =>
   (
     ({
@@ -41,6 +40,9 @@ export function PaymentRecords({
   timeZone?: string;
   canViewRefunds: boolean;
 }) {
+  const format = useMoney();
+  const money = (value: unknown) =>
+    Number.isSafeInteger(value) ? format(value as number) : "Unavailable";
   const groups = [
     { title: "Recorded collections", records: payments, kind: "collection" },
     ...(canViewRefunds
@@ -121,6 +123,9 @@ export function ShiftRecord({
   timeZone?: string;
   children: ReactNode;
 }) {
+  const format = useMoney();
+  const money = (value: unknown) =>
+    Number.isSafeInteger(value) ? format(value as number) : "Unavailable";
   const status =
     (
       {

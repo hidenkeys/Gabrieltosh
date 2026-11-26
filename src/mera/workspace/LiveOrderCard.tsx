@@ -1,6 +1,7 @@
+import { useMoney } from "../ui/Currency";
 import ItemContents from "../customer/ItemContents";
 import type { ReactNode } from "react";
-import { formatMoney } from "./api";
+
 export const orderStatusLabel = (value: string) =>
   (
     ({
@@ -60,6 +61,7 @@ export default function LiveOrderCard({
   actions: ReactNode;
   hidden?: boolean;
 }) {
+  const formatMoney = useMoney();
   return (
     <article
       hidden={hidden}

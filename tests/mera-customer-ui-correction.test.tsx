@@ -153,7 +153,7 @@ test("C1 persistent basket access retains customization, quantities and keyboard
   fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
   assert(screen.getByText("Regular · Less sugar"));
   fireEvent.click(
-    screen.getByRole("button", { name: "View basket, 1 item, ₦3,800" }),
+    screen.getByRole("button", { name: "View basket, 1 item, ₦3,800.00" }),
   );
   assert.equal(
     document.activeElement,
@@ -165,7 +165,7 @@ test("C1 persistent basket access retains customization, quantities and keyboard
     }),
   );
   assert.equal(
-    screen.queryByRole("button", { name: "View basket, 2 items, ₦7,600" }),
+    screen.queryByRole("button", { name: "View basket, 2 items, ₦7,600.00" }),
     null,
   );
   fireEvent.click(screen.getByRole("button", { name: "Back to menu" }));
@@ -173,7 +173,7 @@ test("C1 persistent basket access retains customization, quantities and keyboard
     document.activeElement,
     screen.getByRole("textbox", { name: "Search menu" }),
   );
-  assert(screen.getByRole("button", { name: "View basket, 2 items, ₦7,600" }));
+  assert(screen.getByRole("button", { name: "View basket, 2 items, ₦7,600.00" }));
   assert.equal(writes.length, 0);
   cleanup();
 });
@@ -247,11 +247,11 @@ test("C1 basket visibility suppresses the fixed shortcut during ordinary scrolli
   const { act } = await import("@testing-library/react");
   await act(() => callback([{ isIntersecting: true }]));
   assert.equal(
-    screen.queryByRole("button", { name: "View basket, 0 items, ₦0" }),
+    screen.queryByRole("button", { name: "View basket, 0 items, ₦0.00" }),
     null,
   );
   await act(() => callback([{ isIntersecting: false }]));
-  assert(screen.getByRole("button", { name: "View basket, 0 items, ₦0" }));
+  assert(screen.getByRole("button", { name: "View basket, 0 items, ₦0.00" }));
 });
 
 test("C2 freezes the complete order intent through pending and uncertain delivery", async (t) => {
@@ -897,4 +897,17 @@ test("guest menu cards show package and meal badges, portions and contents befor
   assert.ok(screen.getByText("1 × Bottle"));
   assert.ok(screen.getByText("Main: Grilled main"));
   assert.equal(screen.queryByRole("dialog"), null);
+});
+
+test('USD menu currency reaches product prices, customization and basket', async (t) => {
+  mockMenu(t, {...menu, branch:{...menu.branch,currency:'USD'}, products:[{...product, price:1299, variants:[{id:'regular',name:'Regular',price:1299}]}]});
+  render(<CustomerExperience />);
+  await screen.findByText('Brown Sugar Boba');
+  await screen.findByRole('heading', {name:'Your basket'});
+  fireEvent.click(screen.getByRole('button', {name:'Choose: Brown Sugar Boba'}));
+  assert(screen.getByRole('radio', {name:'Regular · $12.99'}));
+  fireEvent.click(screen.getByRole('checkbox', {name:'Less sugar',exact:true}));
+  fireEvent.click(screen.getByRole('button', {name:/Add to basket/}));
+  assert(screen.getByRole('button', {name:'View basket, 1 item, $12.99'}));
+  assert(!document.querySelector('.mera-customer')?.textContent?.includes('₦'));
 });

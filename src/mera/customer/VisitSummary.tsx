@@ -1,3 +1,4 @@
+import { useMoney } from "../ui/Currency";
 type Amount = number | null | undefined;
 type Charge = {
   id: string;
@@ -53,13 +54,6 @@ type Props = {
 };
 const valid = (value: Amount): value is number =>
   typeof value === "number" && Number.isSafeInteger(value);
-const money = (value: Amount) =>
-  valid(value)
-    ? new Intl.NumberFormat("en-NG", {
-        style: "currency",
-        currency: "NGN",
-      }).format(value / 100)
-    : "Unavailable";
 function statusLabel(status: string) {
   const labels: Record<string, string> = {
     submitted: "Sent to the venue",
@@ -81,6 +75,8 @@ function Balance({
   amount: Amount;
   label?: string;
 }) {
+  const format = useMoney();
+  const money = (value: Amount) => valid(value) ? format(value) : "Unavailable";
   if (!valid(amount))
     return <p>Balance unavailable. Please ask staff to confirm it.</p>;
   return (
@@ -98,6 +94,8 @@ export default function VisitSummary({
   onRefresh,
   onOrderMore,
 }: Props) {
+  const format = useMoney();
+  const money = (value: Amount) => valid(value) ? format(value) : "Unavailable";
   const minimum = data.minimumSpend?.policy;
   const summary = data.minimumSpend?.summary;
   const hasSummary =

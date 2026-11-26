@@ -1,3 +1,4 @@
+import { allowedCurrencies } from "../../../shared/mera-money.js";
 import { z } from "zod";
 // Bounds mirror shared/mera-contracts.js orderInputSchema/moneySchema. This is
 // validation of untrusted tab storage, never pricing or authorization.
@@ -69,7 +70,7 @@ const quote = z
     id: z.string().uuid(),
     expiresAt: z.string().datetime(),
     menuVersion: z.number().int().positive(),
-    currency: z.literal("NGN"),
+    currency: z.enum(allowedCurrencies),
     subtotal: money,
     discount: money,
     serviceCharge: money,

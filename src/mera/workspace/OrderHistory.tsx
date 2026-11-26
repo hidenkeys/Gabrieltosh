@@ -1,7 +1,8 @@
+import { useMoney } from "../ui/Currency";
 import DateTimePicker from "../ui/DateTimePicker";
 import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useRef, useState } from "react";
-import { formatMoney, workspaceApi } from "./api";
+import { workspaceApi } from "./api";
 import OrderInstructions from "./OrderInstructions";
 import { orderStatusLabel, paymentStatusLabel } from "./LiveOrderCard";
 import { Disclosure, DataRegion } from "../ui/OperationalPrimitives";
@@ -123,6 +124,7 @@ export function OrderTimeline({
   entries: unknown;
   timeZone?: string;
 }) {
+  const formatMoney = useMoney();
   if (!Array.isArray(entries)) return <p>History unavailable.</p>;
   if (!entries.length) return <p>No events recorded.</p>;
   const valid = entries.filter(
@@ -201,6 +203,7 @@ function ScopedOrderHistory({
   initialHistorical?: Historical;
   staffChoices?: { userId: string; name: string }[];
 }) {
+  const formatMoney = useMoney();
   const date = (value: unknown) => historyDate(value, timeZone);
   const detailHeading = useRef<HTMLHeadingElement>(null);
   const detailTrigger = useRef<HTMLButtonElement | null>(null);

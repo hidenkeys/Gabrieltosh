@@ -1,3 +1,4 @@
+import { currencySchema } from "./currency.js";
 import { locationFields, locationSettings } from "./venue-access.js";
 import { defaultLocationCode,deriveVenueType,TYPE_DEFAULTS } from "../../shared/mera-venues.js";
 import { z } from "zod";
@@ -100,7 +101,7 @@ export function mountMeraWorkspaceAdmin(router, { db, guard, scope, event }) {
               }
             }, "Use an IANA timezone.")
             .default("Africa/Lagos"),
-          currency: z.literal("NGN").default("NGN"),
+          currency: currencySchema.default("NGN"),
           serviceModes: z
             .array(
               z.enum([

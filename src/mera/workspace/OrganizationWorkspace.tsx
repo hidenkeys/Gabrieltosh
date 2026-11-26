@@ -1,3 +1,5 @@
+import { CurrencyContext } from "../ui/Currency";
+import { formatMoney as sharedMoney } from "../../../shared/mera-money.js";
 import GoLiveChecklist from "./GoLiveChecklist";
 import AllLocations from "./AllLocations";
 import StockTransfers, { useVenueWrite } from "./StockTransfers";
@@ -125,7 +127,7 @@ import SupportCases from "./SupportCases";
 import DepositOutcomes from "./DepositOutcomes";
 import OrderHistory, { OrderTimeline } from "./OrderHistory";
 import OrderInstructions from "./OrderInstructions";
-import { workspaceApi, formatMoney, WorkspaceError } from "./api";
+import { workspaceApi, WorkspaceError } from "./api";
 
 type RecordData = Record<string, any>;
 type Props = {
@@ -278,6 +280,8 @@ export default function OrganizationWorkspace({
   const membershipPermissions = list(organization?.permissions);
   const branches = list(organization?.branches);
   const selectedBranch = branches.find((row: any) => row.id === branchId);
+  const currency = data?.branch?.currency || selectedBranch?.currency || "NGN";
+  const formatMoney = (minor: number) => sharedMoney(minor, currency);
   const permissions = list(
     selectedBranch?.permissions ?? organization?.permissions,
   );
@@ -1572,7 +1576,7 @@ export default function OrganizationWorkspace({
     data?.branch || branches.find((row: any) => row.id === branchId);
 
   return (
-    <div className="mera-workspace mw-operational">
+    <CurrencyContext.Provider value={currency}><div className="mera-workspace mw-operational">
       <header className="mw-header">
         <a href="/mera" className="mw-brand" aria-label="Mera home">
           mera<span>.</span>
@@ -2529,7 +2533,7 @@ export default function OrganizationWorkspace({
                             <dt>Monthly price</dt>
                             <dd>
                               {Number.isSafeInteger(data.policy?.monthlyPrice)
-                                ? formatMoney(data.policy.monthlyPrice)
+                                ? sharedMoney(data.policy.monthlyPrice, data.policy.currency || "NGN")
                                 : "Not set"}
                             </dd>
                           </div>
@@ -2549,7 +2553,7 @@ export default function OrganizationWorkspace({
                               {Number.isSafeInteger(
                                 data.policy?.additionalBranchPrice,
                               )
-                                ? formatMoney(data.policy.additionalBranchPrice)
+                                ? sharedMoney(data.policy.additionalBranchPrice, data.policy.currency || "NGN")
                                 : "Not set"}
                             </dd>
                           </div>
@@ -2743,7 +2747,7 @@ export default function OrganizationWorkspace({
                               {product.kind === "combo" && <span className="mw-pill">Combo</span>}
                               {product.serves && <span className="mw-pill">Serves {product.serves}</span>}
                               <small>
-                                {[product.category, product.size, catalogPriceLabel(product)]
+                                {[product.category, product.size, catalogPriceLabel(product, currency)]
                                   .filter(Boolean)
                                   .join(" · ")}
                               </small>
@@ -3062,7 +3066,7 @@ export default function OrganizationWorkspace({
                             </summary>
                             <p className="mw-muted">
                               Configure sizes, add-ons and dietary details.
-                              Prices are entered in naira. Availability and
+                              Prices use this location’s currency. Availability and
                               final totals are checked before an order is
                               accepted.
                             </p>
@@ -4529,6 +4533,6 @@ export default function OrganizationWorkspace({
       <footer className="mw-footer">
         Mera workspace · Changes require a connection.
       </footer>
-    </div>
+    </div></CurrencyContext.Provider>
   );
 }

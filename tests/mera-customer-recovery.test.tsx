@@ -243,7 +243,7 @@ test("remount restores exact review only after cookie proof, with no automatic w
     { target: { value: "Original note" } },
   );
   fireEvent.click(screen.getByRole("button", { name: "Review total" }));
-  await screen.findByText("Service charge: ₦100");
+  await screen.findByText("Service charge: ₦100.00");
   fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
   await screen.findByRole("button", { name: "Retry original order" });
   const before = readCheckoutJournal(scope)!;
@@ -266,7 +266,7 @@ test("remount restores exact review only after cookie proof, with no automatic w
     }).disabled,
     true,
   );
-  assert(screen.getByText("Service charge: ₦100"));
+  assert(screen.getByText("Service charge: ₦100.00"));
   fireEvent.click(screen.getByRole("button", { name: "Retry original order" }));
   await screen.findByText("M-RESTORED");
   assert.equal(bodies.length, 2);

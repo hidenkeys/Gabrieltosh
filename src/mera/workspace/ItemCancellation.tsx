@@ -1,3 +1,4 @@
+import { useMoney } from "../ui/Currency";
 import ReasonInput from "../ui/ReasonInput";
 import MoneyInput from "../ui/MoneyInput";
 import Stepper from "../ui/Stepper";
@@ -5,7 +6,7 @@ import Segmented from "../ui/Segmented";
 import Combobox from "../ui/Combobox";
 import React, { useState } from "react";
 import { uuid } from "../../api";
-import { WorkspaceError, formatMoney } from "./api";
+import { WorkspaceError } from "./api";
 export default function ItemCancellation({
   base,
   order,
@@ -28,6 +29,7 @@ export default function ItemCancellation({
     message: string,
   ) => Promise<any>;
 }) {
+  const formatMoney = useMoney();
   const [lineId, setLineId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [reason, setReason] = useState("");

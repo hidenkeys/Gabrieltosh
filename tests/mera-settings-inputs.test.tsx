@@ -112,7 +112,7 @@ test("branch settings redirect incomplete business timezone before progressing",
   );
   assert.equal(screen.queryByRole("switch", { name: "Table service" }), null);
   assert.equal(
-    (screen.getByRole("combobox") as HTMLInputElement).validity.customError,
+    (screen.getByRole("combobox", { name: "Branch timezone" }) as HTMLInputElement).validity.customError,
     true,
   );
 });

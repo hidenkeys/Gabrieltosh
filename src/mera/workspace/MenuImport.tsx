@@ -1,3 +1,8 @@
+import { useCurrency } from "../ui/Currency";
+import {
+  allowedCurrencies,
+  importCurrencyNotice,
+} from "../../../shared/mera-money.js";
 import React, { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
 import { MoneyInput } from "../ui/MoneyInput";
@@ -186,6 +191,9 @@ export default function MenuImport({
   initialDraft,
   products,
 }: Props) {
+  const contextCurrency = useCurrency();
+  const [locationCurrency, setLocationCurrency] = useState(contextCurrency);
+  const [currencyAccepted, setCurrencyAccepted] = useState(false);
   const [draft, setDraft] = useState<MenuDraft | undefined>(initialDraft),
     [files, setFiles] = useState<File[]>([]),
     [step, setStep] = useState(initialDraft ? "review" : "upload"),
@@ -447,6 +455,51 @@ export default function MenuImport({
       )}
       {step === "review" && draft && (
         <>
+          {!currencyAccepted && draft.currency !== locationCurrency && (
+            <div role="note" aria-label="Menu currency">
+              <p>{importCurrencyNotice(draft.currency, locationCurrency)}</p>
+              <button
+                type="button"
+                disabled={
+                  busy ||
+                  !allowedCurrencies.some((code) => code === draft.currency)
+                }
+                onClick={async () => {
+                  setBusy(true);
+                  setError("");
+                  try {
+                    await workspaceApi(base + "/settings", "PATCH", {
+                      currency: draft.currency,
+                    });
+                    setLocationCurrency(draft.currency);
+                    setCurrencyAccepted(true);
+                    await onImported();
+                  } catch (e) {
+                    report(e);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                Use {draft.currency} for this location
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setCurrencyAccepted(true)}
+              >
+                Keep {locationCurrency}
+              </button>
+              <p>
+                Prices are imported as numbers unchanged. No currency conversion
+                is applied.
+              </p>
+            </div>
+          )}
+          <p>
+            Category order below will be used when importing. Move categories up
+            or down to match your menu.
+          </p>
           <p>Check the names, prices and options before adding these items.</p>
           {draft.warnings.map((w, i) => (
             <p role="note" key={i}>
@@ -460,6 +513,29 @@ export default function MenuImport({
           {draft.categories.map((group, g) => (
             <section className="mmi-category" key={g}>
               <header>
+                <span>Category {g + 1}</span>
+                {([-1, 1] as const).map((direction) => (
+                  <button
+                    key={direction}
+                    type="button"
+                    aria-label={`Move ${group.name} ${direction === -1 ? "up" : "down"}`}
+                    disabled={
+                      busy ||
+                      g + direction < 0 ||
+                      g + direction >= draft.categories.length
+                    }
+                    onClick={() => {
+                      const categories = [...draft.categories];
+                      [categories[g], categories[g + direction]] = [
+                        categories[g + direction],
+                        categories[g],
+                      ];
+                      setDraft({ ...draft, categories });
+                    }}
+                  >
+                    {direction === -1 ? "Up" : "Down"}
+                  </button>
+                ))}
                 <label>
                   Category name
                   <input
@@ -591,7 +667,9 @@ export default function MenuImport({
                       <td>
                         <DraftMoney
                           label={`Price for ${i.name}`}
-                          currency={draft.currency}
+                          currency={
+                            currencyAccepted ? locationCurrency : draft.currency
+                          }
                           value={i.price}
                           onChange={(v) => edit(g, n, { price: v })}
                         />
@@ -664,7 +742,11 @@ export default function MenuImport({
                                     </label>
                                     <DraftMoney
                                       label={`${o.name} price`}
-                                      currency={draft.currency}
+                                      currency={
+                                        currencyAccepted
+                                          ? locationCurrency
+                                          : draft.currency
+                                      }
                                       value={o.price}
                                       onChange={(v) =>
                                         edit(g, n, {

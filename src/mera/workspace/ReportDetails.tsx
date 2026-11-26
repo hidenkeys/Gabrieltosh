@@ -1,4 +1,4 @@
-import { formatMoney } from "./api";
+import { useMoney } from "../ui/Currency";
 import { DataRegion, Disclosure, ReadState } from "../ui/OperationalPrimitives";
 const record = (value: unknown): value is Record<string, any> =>
   !!value && typeof value === "object" && !Array.isArray(value);
@@ -28,15 +28,7 @@ export function businessDateLabel(value: unknown) {
       }).format(new Date(value + "T12:00:00Z"))
     : "Date unavailable";
 }
-function amount(value: unknown) {
-  return integer(value)
-    ? formatMoney(value)
-    : value === null
-      ? "Not available"
-      : value === undefined
-        ? "Not reported"
-        : "Unavailable";
-}
+
 function quantity(value: unknown) {
   return integer(value) && value >= 0
     ? String(value)
@@ -209,6 +201,16 @@ const accountingFields = [
   ["Non-cash debt write-offs (separate expense)", "writeOffs"],
 ];
 export default function ReportDetails({ report }: { report: unknown }) {
+ const formatMoney = useMoney();
+function amount(value: unknown) {
+  return integer(value)
+    ? formatMoney(value)
+    : value === null
+      ? "Not available"
+      : value === undefined
+        ? "Not reported"
+        : "Unavailable";
+}
   if (!record(report))
     return (
       <ReadState kind="unavailable" title="Trading-day report unavailable">

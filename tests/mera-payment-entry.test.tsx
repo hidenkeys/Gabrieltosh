@@ -78,8 +78,8 @@ test("exact amount uses canonical outstanding cents rather than total and record
   );
 });
 for (const [label, tender, change] of [
-  ["Next ₦500 · ₦1,500.00", 150000, "₦249.50"],
-  ["Next ₦1,000 · ₦2,000.00", 200000, "₦749.50"],
+  ["Next ₦500.00 · ₦1,500.00", 150000, "₦249.50"],
+  ["Next ₦1,000.00 · ₦2,000.00", 200000, "₦749.50"],
 ] as const)
   test(`cash ${label} keeps exact payable amount and calculates only the separate change`, () => {
     let value: any;

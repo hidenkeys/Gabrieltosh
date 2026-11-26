@@ -1,10 +1,11 @@
+import { useMoney } from "../ui/Currency";
 import Combobox from "../ui/Combobox";
 import Segmented from "../ui/Segmented";
 import Stepper from "../ui/Stepper";
 import MoneyInput from "../ui/MoneyInput";
 import { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
-import { formatMoney, workspaceApi } from "./api";
+import { workspaceApi } from "./api";
 import {
   readBillChangeMarker,
   saveBillChangeMarker,
@@ -33,8 +34,7 @@ type Props = {
     message: string,
   ) => Promise<any>;
 };
-const amount = (value: unknown) =>
-  Number.isSafeInteger(value) ? formatMoney(value as number) : "Unavailable";
+
 const name = (bill: any) =>
   (typeof bill.name === "string" && bill.name) ||
   (typeof bill.reference === "string" && bill.reference) ||
@@ -66,6 +66,9 @@ function ScopedBills({
   canRoomCharge = false,
   save,
 }: Props) {
+  const formatMoney = useMoney();
+  const amount = (value: unknown) =>
+    Number.isSafeInteger(value) ? formatMoney(value as number) : "Unavailable";
   const available =
     Array.isArray(bills) && bills.every((b) => b && typeof b.id === "string");
   const rows: any[] = available ? (bills as any[]) : [];

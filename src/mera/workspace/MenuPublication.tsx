@@ -1,3 +1,4 @@
+import { useMoney } from "../ui/Currency";
 import ItemContents from "../customer/ItemContents";
 import { useDialogFocus } from "../ui/useDialogFocus";
 import { useEffect, useRef, useState } from "react";
@@ -102,10 +103,7 @@ type Props = {
   disabled?: boolean;
   onSuccess: () => void | Promise<void>;
 };
-const money = (value: number) =>
-  new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(
-    value / 100,
-  );
+
 export default function MenuPublication(props: Props) {
   return <ScopedPublication key={props.base + props.actorId} {...props} />;
 }
@@ -117,6 +115,7 @@ function ScopedPublication({
   disabled = false,
   onSuccess,
 }: Props) {
+  const money = useMoney();
   const match = /^\/organizations\/([^/]+)\/branches\/([^/]+)$/.exec(base);
   const scope = { actorId, organizationId: match?.[1], branchId: match?.[2] };
   const key = `mera:publication:tab:v1:${scope.organizationId}:${scope.branchId}:${actorId}`;

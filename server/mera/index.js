@@ -1,3 +1,4 @@
+import { currencySchema, validateCurrencyChange, providersForCurrency } from "./currency.js";
 import { migrateMenuImport, mountMenuImport } from "./menu-import.js";
 import bcrypt from "bcryptjs";
 import { resolveMeraHost } from "./domains.js";
@@ -142,6 +143,7 @@ export const branchSettingsInputSchema = z
             .optional(),
           address: z.string().max(300).optional(),
           serviceHours:z.array(availabilityWindowSchema).max(30).optional(),
+          currency:currencySchema.optional(),
           timezone:z.string().refine(v=>{try{new Intl.DateTimeFormat("en",{timeZone:v});return true;}catch{return false;}},"Invalid IANA timezone").optional(),
           cutoff:z.number().int().min(0).max(1439).optional(),
         })
@@ -683,7 +685,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
         entitlements:subscriptionEntitlement(org.subscription,org.subscription?.approvedPolicySnapshot||org.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production"),
         policy: commercial(access)?org.policy:null,
         features:organizationFeatures(org),
-        providers,
+        providers: providersForCurrency(providers, b.currency),
         onboarding: org.onboarding,
         permissions: access,
       });
@@ -2261,7 +2263,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
       previewMessage: preview ? "Preview, orders are off" : null,
       categories:b.settings.publishedCategories||[],
       tables,
-      providers,
+      providers: providersForCurrency(providers, b.currency),
       orderingAvailable: !preview && hasCapability(b.settings,"qr_ordering") && b.settings.platformFlags?.flags?.customer_ordering!==false && organizationFeatures(organization).flags.customer_ordering && !b.settings.orderingPaused && !!b.menu_version && availableNow(b.settings.serviceHours,b.timezone) && subscriptionEntitlement(organization.subscription,organization.subscription?.approvedPolicySnapshot||organization.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production").newOrdersAllowed,
       pricingPolicy:b.settings.pricingPolicy||null,
       // Counter and takeout venues offer no tables; customers should not see table options.
@@ -2494,12 +2496,16 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
       const input = branchSettingsInputSchema.parse(req.body);
       res.json(
         await locked(scope(req), async (c, b) => {
-          const {timezone,cutoff,requestKey,version,...settingsInput}=input;
+          const {currency,timezone,cutoff,requestKey,version,...settingsInput}=input;
           const attempt={requestKey,operation:"branch_settings",targetId:b.id,intent:input};
           const prior=await beginAccessOperation(c,req,attempt); if(prior)return prior;
           if(version!==undefined && version!==(b.settings.version||1))throw fail("Location settings changed. Refresh before editing.",409,"STALE_VERSION");
           if(Object.keys(locationFields).some(key=>input[key]!==undefined) && (!requestKey || version===undefined))throw fail("Location changes require a request key and version.",400);
           if(input.code) { const duplicate=(await c.query("SELECT id FROM mera_branches WHERE organization_id=$1 AND settings->>'code'=$2 AND id<>$3",[b.organization_id,input.code,b.id])).rows[0]; if(duplicate)throw fail("Location code is already in use.",409); }
+          if (currency !== undefined) {
+            await validateCurrencyChange(c, b, currency);
+            await c.query("UPDATE mera_branches SET currency=$1,menu_version=CASE WHEN currency<>$1 AND menu_version>0 THEN menu_version+1 ELSE menu_version END WHERE id=$2 AND organization_id=$3", [currency, b.id, b.organization_id]);
+          }
           const settings = { ...b.settings, ...locationSettings(settingsInput),version:(b.settings.version||1)+1 };
           await recordAccessOperation(c,req,attempt,settings);
           if(timezone!==undefined || cutoff!==undefined) await c.query("UPDATE mera_branches SET timezone=$1,cutoff=$2 WHERE id=$3 AND organization_id=$4",[timezone??b.timezone,cutoff??b.cutoff,b.id,b.organization_id]);

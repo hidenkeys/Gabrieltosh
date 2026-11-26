@@ -1,8 +1,9 @@
+import { useMoney } from "../ui/Currency";
 import Combobox from "../ui/Combobox";
 import ReasonInput from "../ui/ReasonInput";
 import React, { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
-import { formatMoney, workspaceApi, WorkspaceError } from "./api";
+import { workspaceApi, WorkspaceError } from "./api";
 import { Action, Disclosure, ReadState } from "../ui/OperationalPrimitives";
 type Props = {
   base: string;
@@ -28,6 +29,7 @@ function ScopedShiftActions({
   disabled,
   save,
 }: Props) {
+  const formatMoney = useMoney();
   const [staff, setStaff] = useState<any[]>([]),
     [staffLoading, setStaffLoading] = useState(shift.status === "open"),
     [staffError, setStaffError] = useState("");

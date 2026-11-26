@@ -1,6 +1,8 @@
+import { useCurrency } from "../ui/Currency";
+import { useMoney } from "../ui/Currency";
 import MoneyInput from "../ui/MoneyInput";
 import Chips from "../ui/Chips";
-import { formatMoney } from "./api";
+
 export default function PaymentEntry({
   order,
   method,
@@ -14,6 +16,9 @@ export default function PaymentEntry({
   tender: string;
   onChange: (patch: { amount?: string; cashTender?: string }) => void;
 }) {
+  const formatMoney = useMoney();
+  const currency = useCurrency();
+  const step = currency === "NGN" ? 50000 : 500;
   const due = order
     ? Math.max(
         0,
@@ -57,12 +62,12 @@ export default function PaymentEntry({
               ...(cash
                 ? [
                     {
-                      value: String((Math.floor(due / 50000) + 1) * 50000),
-                      label: `Next ₦500 · ${formatMoney((Math.floor(due / 50000) + 1) * 50000)}`,
+                      value: String((Math.floor(due / step) + 1) * step),
+                      label: `Next ${formatMoney(step)} · ${formatMoney((Math.floor(due / step) + 1) * step)}`,
                     },
                     {
-                      value: String((Math.floor(due / 100000) + 1) * 100000),
-                      label: `Next ₦1,000 · ${formatMoney((Math.floor(due / 100000) + 1) * 100000)}`,
+                      value: String((Math.floor(due / (step * 2)) + 1) * (step * 2)),
+                      label: `Next ${formatMoney(step * 2)} · ${formatMoney((Math.floor(due / (step * 2)) + 1) * (step * 2))}`,
                     },
                   ]
                 : []),

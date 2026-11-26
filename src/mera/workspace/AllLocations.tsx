@@ -1,7 +1,8 @@
+import { formatMoney } from "../../../shared/mera-money.js";
 import { useVenueWrite } from "./StockTransfers";
 import { useEffect, useRef, useState } from "react";
 import DateRangePresets from "../ui/DateRangePresets";
-import { formatMoney, workspaceApi } from "./api";
+import { workspaceApi } from "./api";
 import { uuid } from "../../api";
 import { LocationTag } from "./LocationSwitcher";
 export default function AllLocations({
@@ -136,7 +137,7 @@ export default function AllLocations({
                   <dd>
                     {["orders", "covers"].includes(key)
                       ? data.totals[key]
-                      : formatMoney(data.totals[key])}
+                      : data.currency === null ? "Multiple currencies" : formatMoney(data.totals[key], data.currency)}
                   </dd>
                 </div>
               ))}
@@ -149,7 +150,7 @@ export default function AllLocations({
                   {p.method === "room_charge"
                     ? "Charged to rooms (settled by the hotel)"
                     : p.method.replaceAll("_", " ")}
-                  : {formatMoney(p.amount)}
+                  : {data.currency === null ? "Multiple currencies" : formatMoney(p.amount, data.currency)}
                 </li>
               ))}
             </ul>
@@ -221,7 +222,7 @@ export default function AllLocations({
                       ].map((key) => (
                         <td key={key}>
                           {["revenue", "averageOrder", "refunds"].includes(key)
-                            ? formatMoney(b[key])
+                            ? formatMoney(b[key], b.currency)
                             : b[key]}
                         </td>
                       ))}
@@ -258,7 +259,7 @@ export default function AllLocations({
                       {location(b.branchId)}:{" "}
                       {b.value === null
                         ? "Add item costs to see stock value"
-                        : formatMoney(b.value)}
+                        : formatMoney(b.value, branches.find(location => location.id === b.branchId)?.currency || data.branches.find((location: any) => location.id === b.branchId)?.currency)}
                     </li>
                   ))}
                 </ul>

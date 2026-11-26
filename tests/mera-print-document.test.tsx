@@ -297,3 +297,11 @@ test("unsupported snapshots are rejected and explicit sample documents remain re
   });
   assert(html.includes("SAMPLE — NOT A SALE"));
 });
+
+test('receipt formatting uses the immutable USD snapshot currency', () => {
+  const job = structuredClone(receipt);
+  job.documentSnapshot.currency = 'USD';
+  const document = parse(job);
+  assert.match(document.body.textContent || '', /\$[\d,]+\.\d{2}/);
+  assert(!(document.body.textContent || '').includes('₦'));
+});

@@ -1,3 +1,4 @@
+import { allowedCurrencies } from "../../../shared/mera-money.js";
 import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useRef, useState } from "react";
 type Branch = {
@@ -9,7 +10,7 @@ type Branch = {
 type Draft = {
   name: string;
   timezone: string;
-  currency: "NGN";
+  currency: string;
   serviceModes: string[];
   cutoff: number;
 };
@@ -76,7 +77,7 @@ function validIntent(value: any): value is Intent {
     value.name.length > 100 ||
     typeof value.timezone !== "string" ||
     value.timezone.length > 100 ||
-    value.currency !== "NGN" ||
+    !allowedCurrencies.includes(value.currency) ||
     !Number.isInteger(value.cutoff) ||
     value.cutoff < 0 ||
     value.cutoff > 1439 ||
@@ -434,9 +435,9 @@ function ScopedBranchAdministration({
                   <ChoiceField
                     label={<>Currency</>}
                     value={draft.currency}
-                    onChange={() => {}}
+                    onChange={(currency) => setDraft({ ...draft, currency })}
                   >
-                    <option value="NGN">Nigerian naira (NGN)</option>
+                    {allowedCurrencies.map(code => <option key={code} value={code}>{code}</option>)}
                   </ChoiceField>
                   <label>
                     Trading day starts

@@ -1,3 +1,4 @@
+import { allowedCurrencies } from "../../../shared/mera-money.js";
 import { type ReactNode, useRef, useState } from "react";
 import { TYPE_DEFAULTS, deriveVenueType } from "./setup/venues";
 import Switch from "../ui/Switch";
@@ -48,6 +49,7 @@ export default function BranchSettings({
   guided = false,
 }: Props) {
   const [settings, setSettings] = useState({
+    currency: branch.currency || "NGN",
     orderingPaused: branch.settings?.orderingPaused ?? true,
     payLater: branch.settings?.payLater ?? false,
     reservationsEnabled: branch.settings?.reservationsEnabled ?? false,
@@ -249,6 +251,11 @@ export default function BranchSettings({
                   setSettings({ ...settings, address: event.target.value })
                 }
               />
+            </label>
+            <label>Currency
+              <select value={settings.currency} onChange={e => setSettings({ ...settings, currency: e.target.value })}>
+                {allowedCurrencies.map(code => <option key={code} value={code}>{code}</option>)}
+              </select>
             </label>
             <Combobox
               label="Branch timezone"

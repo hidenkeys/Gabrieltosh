@@ -1,3 +1,4 @@
+import { formatMoney } from "../../../shared/mera-money.js";
 import { useRef } from "react";
 import { Disclosure } from "../ui/OperationalPrimitives";
 const object = (value: unknown): value is Record<string, any> =>
@@ -72,10 +73,7 @@ export function printDocumentHtml(job: any): string {
       return "Amount unavailable";
     try {
       return escape(
-        new Intl.NumberFormat("en-NG", {
-          style: "currency",
-          currency: document.currency,
-        }).format(value / 100),
+        formatMoney(value, document.currency),
       );
     } catch {
       return "Amount unavailable";

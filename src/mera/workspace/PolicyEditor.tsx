@@ -54,6 +54,7 @@ export default function PolicyEditor({
       />
     ) : ["monthlyPrice", "additionalBranchPrice"].includes(key) ? (
       <MoneyInput
+        currency={policy.currency || "NGN"}
         label={label}
         value={draft[key]}
         onChange={(value) => setDraft({ ...draft, [key]: value })}

@@ -1,8 +1,9 @@
+import { useMoney } from "../ui/Currency";
 import ReasonInput from "../ui/ReasonInput";
 import MoneyInput from "../ui/MoneyInput";
 import React, { useState } from "react";
 import { uuid } from "../../api";
-import { formatMoney, WorkspaceError } from "./api";
+import { WorkspaceError } from "./api";
 export default function WriteOff({
   base,
   order,
@@ -19,6 +20,7 @@ export default function WriteOff({
     message: string,
   ) => Promise<any>;
 }) {
+  const formatMoney = useMoney();
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [approved, setApproved] = useState(false);

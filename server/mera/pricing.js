@@ -23,7 +23,7 @@ export async function resolveQuotedPricing(c,s,b,input,actor,guestId,subtotal) {
  if(!b.settings.pricingPolicy?.enabled)return priceBreakdown(subtotal,null);
  if(!input.quoteId)throw fail("Review the current item, discount, charge and tax quote before submitting.",409,"QUOTE_REQUIRED");
  const q=(await c.query("SELECT data FROM mera_records WHERE id=$1 AND organization_id=$2 AND branch_id=$3 AND kind='order_quote'",[input.quoteId,s.organizationId,s.branchId])).rows[0]?.data;
- if(!q||q.actorId!==(actor?.id||null)||q.guestId!==(guestId||null)||q.intentHash!==pricingItemsHash(input)||q.policyVersion!==b.settings.pricingPolicy.version||Date.parse(q.expiresAt)<=Date.now()||q.subtotal!==subtotal)throw fail("The checkout quote changed or expired. Review a fresh quote.",409,"QUOTE_CHANGED");
+ if(!q||q.currency!==b.currency||q.actorId!==(actor?.id||null)||q.guestId!==(guestId||null)||q.intentHash!==pricingItemsHash(input)||q.policyVersion!==b.settings.pricingPolicy.version||Date.parse(q.expiresAt)<=Date.now()||q.subtotal!==subtotal)throw fail("The checkout quote changed or expired. Review a fresh quote.",409,"QUOTE_CHANGED");
  const {id,actorId,guestId:ignored,intentHash,createdAt,expiresAt,menuVersion,...pricing}=q;
  return pricing;
 }

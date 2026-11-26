@@ -1,9 +1,10 @@
+import { useMoney } from "../ui/Currency";
 import Combobox from "../ui/Combobox";
 import Segmented from "../ui/Segmented";
 import MoneyInput from "../ui/MoneyInput";
 import { useState } from "react";
 import { uuid } from "../../api";
-import { formatMoney } from "./api";
+
 export default function ReservationSettlement({
   reservation,
   tables,
@@ -28,6 +29,7 @@ export default function ReservationSettlement({
     message: string,
   ) => Promise<any>;
 }) {
+  const formatMoney = useMoney();
   const [form, setForm] = useState<any>({});
   const [error, setError] = useState("");
   const perform = (suffix: string, body: any, message: string) => {

@@ -1,6 +1,7 @@
+import { useMoney } from "../ui/Currency";
 import { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
-import { workspaceApi, formatMoney } from "./api";
+import { workspaceApi } from "./api";
 import { Action, Disclosure, ReadState } from "../ui/OperationalPrimitives";
 type Props = {
   base: string;
@@ -28,6 +29,7 @@ function ScopedMinimumSpend({
   canWaive,
   save,
 }: Props) {
+  const formatMoney = useMoney();
   const path = base + "/visits/" + visitId + "/minimum-spend";
   const [data, setData] = useState<any>(null),
     [reason, setReason] = useState(""),

@@ -275,7 +275,7 @@ test("cash counter uses an explicit total and date choices submit unchanged loca
     screen.getByRole("button", { name: "Count notes and coins" }),
   );
   fireEvent.click(
-    screen.getByRole("button", { name: "Increase ₦1,000 notes or coins" }),
+    screen.getByRole("button", { name: "Increase ₦1,000.00 notes or coins" }),
   );
   assert.equal(
     new dom.window.FormData(document.querySelector("form")!).get("cash"),
@@ -618,4 +618,17 @@ test("suggested booking hours do not prohibit an explicitly entered preferred ti
   });
   assert.equal(document.querySelector("form")!.checkValidity(), true);
   assert.equal(screen.queryByRole("radio", { name: "10:00" }), null);
+});
+
+test('branch currency context formats money inputs and cash counting in USD while preserving decimal drafts', async () => {
+  const { CurrencyContext } = await import('../src/mera/ui/Currency');
+  let amount = '';
+  render(<CurrencyContext.Provider value="USD"><MoneyInput label="Price in naira" value="12.34" onChange={v=>{amount=v;}} /><CashCounter label="Cash" value="" onChange={()=>{}} /></CurrencyContext.Provider>);
+  assert(screen.getByLabelText('Price in USD'));
+  assert(screen.getByText('$12.34'));
+  fireEvent.change(screen.getByLabelText('Price in USD'),{target:{value:'1,234.56'}});
+  assert.equal(amount,'1234.56');
+  fireEvent.click(screen.getByRole('button',{name:'Count notes and coins'}));
+  assert(screen.getByRole('button',{name:'Increase $20.00 notes or coins'}));
+  assert(!document.body.textContent?.includes('₦'));
 });

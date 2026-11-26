@@ -1,3 +1,5 @@
+import { useCurrency } from "../ui/Currency";
+import { useMoney } from "../ui/Currency";
 import ItemContents, {
   ComboChoices,
   choiceKey,
@@ -7,7 +9,7 @@ import Stepper from "../ui/Stepper";
 import Segmented from "../ui/Segmented";
 import Chips from "../ui/Chips";
 import Combobox from "../ui/Combobox";
-import { formatMoney } from "./api";
+
 import { catalogPriceLabel } from "./catalogPresentation";
 import { validateStaffSelection } from "./staffSelection";
 export default function StaffOrderItems({
@@ -23,6 +25,8 @@ export default function StaffOrderItems({
   onChange: (lines: any[]) => void;
   disabled: boolean;
 }) {
+  const currency = useCurrency();
+  const formatMoney = useMoney();
   const update = (id: string, patch: any) => {
     const existing = lines.find((line) => line.productId === id) || {
       productId: id,
@@ -54,7 +58,7 @@ export default function StaffOrderItems({
               : selection.complete
                 ? `${formatMoney(selection.baseEstimate!)}${selection.extrasEstimate ? " + " + formatMoney(selection.extrasEstimate) + " add-ons" : ""} per item`
                 : "Complete selections"
-            : catalogPriceLabel(product);
+            : catalogPriceLabel(product, currency);
           return (
             <div
               key={product.id}

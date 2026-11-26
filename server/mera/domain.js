@@ -257,7 +257,7 @@ export function report(records, branch, date) {
     entry.eventCount++; const action=h.action||"unknown";entry.actions[action]=(entry.actions[action]||0)+1;staff.set(key,entry);
   }
   return {
-    metadata:{currency:branch.currency||"NGN",moneyUnit:"kobo",timezone:branch.timezone,cutoffMinutes:branch.cutoff||0},
+    metadata:{currency:branch.currency||"NGN",moneyUnit:branch.currency && branch.currency!=="NGN" ? "minor_units" : "kobo",timezone:branch.timezone,cutoffMinutes:branch.cutoff||0},
     orderStates:{basis:"current_state_of_orders_created_on_trading_day",counts,total:orders.length},
     staffActivity:{basis:"recorded_order_history_events_on_trading_day",entries:[...staff.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([,entry])=>entry),unattributedEvents},
     platformFees:{status:"unavailable",amount:null,reason:"No authoritative branch-scoped Mera fee assessment records are available in this report."},

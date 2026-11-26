@@ -18,7 +18,7 @@ export default function VariantsEditor({
     <fieldset className="mw-wide">
       <legend>Sizes & sellable stock</legend>
       <p className="mw-note">
-        Set each size’s full price in naira. Stock balances are adjusted
+        Set each size’s full price. Stock balances are adjusted
         separately with a reason and stock permission. New sizes begin with
         unlimited stock; a stock adjustment initializes counted stock.
       </p>

@@ -1,9 +1,10 @@
+import { useMoney } from "../ui/Currency";
 import CashCounter from "../ui/CashCounter";
 import ReasonInput from "../ui/ReasonInput";
 import { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
 import { reservationDate } from "./reservationPresentation";
-import { workspaceApi, formatMoney } from "./api";
+import { workspaceApi } from "./api";
 import { Action, Disclosure } from "../ui/OperationalPrimitives";
 import {
   readShiftOperationJournal,
@@ -40,6 +41,7 @@ export default function ShiftOperation(props: Props) {
   );
 }
 function ScopedShiftOperation(props: Props) {
+  const formatMoney = useMoney();
   const { userId, organizationId, branchId, disabled, canManage, save } = props,
     scope = { actorId: userId, organizationId, branchId },
     base = `/organizations/${organizationId}/branches/${branchId}`;

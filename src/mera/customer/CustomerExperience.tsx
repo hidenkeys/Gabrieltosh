@@ -54,7 +54,8 @@ import {
   reservationDateLabel,
 } from "./reservationPresentation";
 import { ProductImage } from "../../ProductImage";
-import { money } from "../../api";
+import { formatMoney } from "../../../shared/mera-money.js";
+import { CurrencyContext } from "../ui/Currency";
 import { customerRequest, requestId } from "./client";
 
 type Product = {
@@ -157,6 +158,8 @@ export default function CustomerExperience({
     /^\/api\/mera\/v1\/public\/assets\/[a-zA-Z0-9-]+$/.test(value)
       ? value
       : undefined;
+  const currency = menu?.branch?.currency || "NGN";
+  const money = (minor: number) => formatMoney(minor, currency);
   const logo = assetUrl(menu?.organization?.branding?.logo);
   const cover = assetUrl(menu?.organization?.branding?.coverImage);
   const [quote, setQuote] = useState<any>(null);
@@ -1474,7 +1477,7 @@ export default function CustomerExperience({
       />
     );
   return (
-    <div
+    <CurrencyContext.Provider value={currency}><div
       className={"mera-customer" + (tab === "menu" ? " mc-menu-view" : "")}
       style={{
         ...brandingStyle(menu?.organization?.branding),
@@ -2945,7 +2948,7 @@ export default function CustomerExperience({
           fallbackFocus={() => searchRef.current?.focus()}
         />
       )}
-    </div>
+    </div></CurrencyContext.Provider>
   );
 }
 function Feedback({

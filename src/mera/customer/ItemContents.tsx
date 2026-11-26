@@ -1,3 +1,4 @@
+import { useMoney } from "../ui/Currency";
 export const choiceKey = (groupId: string, option: any) =>
   JSON.stringify([groupId, option.productId, option.variantId || null]);
 export function selectedChoices(groups: any[], keys: string[]) {
@@ -86,6 +87,7 @@ export function ComboChoices({
   onChange: (keys: string[]) => void;
   disabled?: boolean;
 }) {
+  const money = useMoney();
   return (
     <>
       {groups.map((g) => {
@@ -131,7 +133,7 @@ export function ComboChoices({
                     {contentName(o, products)}
                     <small>
                       {o.priceDelta
-                        ? `+₦${(o.priceDelta / 100).toLocaleString("en-NG", { minimumFractionDigits: 2 })}`
+                        ? `+${money(o.priceDelta)}`
                         : "No extra charge"}
                       {unavailable ? " · Unavailable" : ""}
                     </small>

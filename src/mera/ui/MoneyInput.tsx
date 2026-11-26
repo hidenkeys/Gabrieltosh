@@ -1,4 +1,10 @@
+import { useCurrency } from "./Currency";
+import { formatMoney } from "../../../shared/mera-money.js";
 import { useEffect, useId, useRef } from "react";
+function useCurrencyValue(explicit?: string) {
+  const current = useCurrency();
+  return explicit || current;
+}
 export type MoneyInputProps = {
   label: string;
   value: string;
@@ -24,9 +30,10 @@ export function MoneyInput({
   required,
   disabled,
   placeholder = "0.00",
-  currency = "NGN",
+  currency: explicitCurrency,
   className = "",
 }: MoneyInputProps) {
+  const currency = useCurrencyValue(explicitCurrency);
   const generated = useId(),
     input = useRef<HTMLInputElement>(null);
   const numeric = Number(value),
@@ -50,7 +57,9 @@ export function MoneyInput({
       (fraction !== undefined ? "." + fraction : "");
   return (
     <div className={`mi-control mi-money ${className}`}>
-      <label htmlFor={id || generated}>{label}</label>
+      <label htmlFor={id || generated}>
+        {currency === "NGN" ? label : label.replace(/naira|₦/gi, currency)}
+      </label>
       <div className="mi-money-row">
         <span aria-hidden="true">{currency === "NGN" ? "₦" : currency}</span>
         <input
@@ -76,12 +85,7 @@ export function MoneyInput({
         {currency === "NGN" ? "Nigerian naira" : currency}
       </span>
       <output className="mi-sr-only" aria-live="polite">
-        {value && valid
-          ? new Intl.NumberFormat("en-NG", {
-              style: "currency",
-              currency,
-            }).format(numeric)
-          : ""}
+        {value && valid ? formatMoney(Math.round(numeric * 100), currency) : ""}
       </output>
     </div>
   );
