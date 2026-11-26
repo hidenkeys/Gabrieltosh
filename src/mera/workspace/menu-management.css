@@ -403,8 +403,40 @@ img.mw-menu-product-photo[src*="/assets/"] {
   z-index: 2;
 }
 @media (max-width: 1000px) and (min-width: 640px) {
+  /* Two lines per item: photo + name, then price, station, options and details. */
   .mmi tbody > tr {
-    grid-template-columns: 36px minmax(120px, 1fr) 100px 170px 110px;
+    grid-template-columns: 36px 120px auto minmax(0, 1fr) auto;
+    row-gap: 6px;
+  }
+  .mmi tbody > tr > td:first-child {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .mmi tbody > tr > td:nth-child(2) {
+    grid-column: 2 / -1;
+    grid-row: 1;
+  }
+  .mmi tbody > tr > td:nth-child(3) {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .mmi tbody > tr > td:nth-child(5) {
+    grid-column: 3;
+    grid-row: 2;
+  }
+  .mmi tbody > tr .mmi-option-count {
+    grid-column: 4;
+    grid-row: 2;
+    justify-self: end;
+    white-space: nowrap;
+  }
+  .mmi tbody > tr .mmi-details-toggle {
+    grid-column: 5;
+    grid-row: 2;
+  }
+  .mmi tbody > tr .mmi-detail-panel {
+    grid-column: 1 / -1;
+    grid-row: 3;
   }
 }
 @media (max-width: 639px) {
@@ -537,7 +569,7 @@ img.mw-menu-product-photo[src*="/assets/"] {
   width: 48px;
   height: 48px;
 }
-.mmi-photo-remove {
+.mmi .mmi-photo-remove {
   position: absolute;
   top: -6px;
   right: -6px;
