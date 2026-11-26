@@ -2321,8 +2321,10 @@ export default function OrganizationWorkspace({
                       save={mutate}
                     />
                   }
+                  // Settings follow the venue's capabilities: no booking, deposit or
+                  // minimum-spend forms for businesses that don't take reservations.
                   booking={
-                    <ReservationPolicy
+                    capabilities.includes("reservations") && <ReservationPolicy
                       key={branchBase + "reservation-policy"}
                       base={branchBase}
                       policy={branch?.settings?.reservationPolicy}
@@ -2340,7 +2342,7 @@ export default function OrganizationWorkspace({
                     />
                   }
                   minimumSpend={
-                    <MinimumSpendPolicy
+                    capabilities.includes("minimum_spend") && <MinimumSpendPolicy
                       key={branchBase + "minimum-spend-policy"}
                       base={branchBase}
                       policy={minimumSpendPolicy}
@@ -2349,7 +2351,7 @@ export default function OrganizationWorkspace({
                     />
                   }
                   deposits={
-                    <DepositPolicy
+                    (capabilities.includes("deposits") || capabilities.includes("reservations")) && <DepositPolicy
                       key={branchId}
                       policy={branch?.settings?.depositPolicy}
                       base={branchBase}
