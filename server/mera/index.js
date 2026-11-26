@@ -2251,6 +2251,9 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
       providers,
       orderingAvailable: !preview && hasCapability(b.settings,"qr_ordering") && b.settings.platformFlags?.flags?.customer_ordering!==false && organizationFeatures(organization).flags.customer_ordering && !b.settings.orderingPaused && !!b.menu_version && availableNow(b.settings.serviceHours,b.timezone) && subscriptionEntitlement(organization.subscription,organization.subscription?.approvedPolicySnapshot||organization.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production").newOrdersAllowed,
       pricingPolicy:b.settings.pricingPolicy||null,
+      // Counter and takeout venues offer no tables; customers should not see table options.
+      tableService:hasCapability(b.settings,"table_service"),
+      reservationsOffered:hasCapability(b.settings,"reservations"),
       reservationPolicy: {
         minimumSpendPolicy:publicMinimumSpend(b.settings.minimumSpendPolicy),
         enabled: !preview && hasCapability(b.settings,"reservations") && b.settings.platformFlags?.flags?.new_reservations!==false && !!b.settings.reservationsEnabled,

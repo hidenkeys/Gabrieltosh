@@ -2,7 +2,8 @@ import QrLinkPreview from "./QrLinkPreview";
 import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useRef, useState } from "react";
 import { workspaceApi } from "./api";
-type Props = { base: string; tables: any[]; demo: boolean };
+// Counter and takeout venues have no tables, so they only get menu codes.
+type Props = { base: string; tables: any[]; demo: boolean; allowTables?: boolean };
 const validCode = (value: any) => {
   if (
     !value ||
@@ -20,7 +21,7 @@ const validCode = (value: any) => {
 export default function QrCodes(props: Props) {
   return <ScopedQrCodes key={props.base} {...props} />;
 }
-function ScopedQrCodes({ base, tables, demo }: Props) {
+function ScopedQrCodes({ base, tables, demo, allowTables = true }: Props) {
   const [codes, setCodes] = useState<any[]>([]),
     [kind, setKind] = useState("branch"),
     [tableId, setTableId] = useState(""),
@@ -260,7 +261,9 @@ function ScopedQrCodes({ base, tables, demo }: Props) {
                   Organization · choose a branch
                 </option>
                 <option value="branch">This branch</option>
-                <option value="table">A specific table</option>
+                {allowTables && (
+                  <option value="table">A specific table</option>
+                )}
               </ChoiceField>
               {kind === "table" && (
                 <ChoiceField

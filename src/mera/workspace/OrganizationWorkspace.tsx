@@ -2373,6 +2373,7 @@ export default function OrganizationWorkspace({
                 <QrCodes
                   key={branchBase}
                   base={branchBase}
+                  allowTables={sectionEnabled("tables", capabilities)}
                   tables={list(data.tables)}
                   demo={!!context?.demo}
                 />

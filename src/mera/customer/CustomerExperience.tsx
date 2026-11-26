@@ -1582,8 +1582,12 @@ export default function CustomerExperience({
           {[
             ["menu", "Menu"],
             ["track", "Your order"],
-            ["reserve", "Reserve a table"],
-            ["visit", visit ? "Your table" : "Join a table"],
+            ...(menu?.reservationsOffered !== false || tab === "reserve"
+              ? [["reserve", "Reserve a table"]]
+              : []),
+            ...(menu?.tableService !== false || visit
+              ? [["visit", visit ? "Your table" : "Join a table"]]
+              : []),
             ["help", "Ask for help"],
           ].map(([value, label]) => (
             <button

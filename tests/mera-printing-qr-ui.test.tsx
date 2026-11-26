@@ -464,3 +464,23 @@ test("O7 partially entered sticker dimensions show a recoverable preview error w
     globalThis.fetch = original;
   }
 });
+
+test("counter and takeout venues are not offered table QR codes", async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async (input) =>
+    String(input).includes("/qr-preview")
+      ? Response.json({ url: "https://menu.example.test/mera/menu/venue/branch", opensAs: "menu_only", warnings: [] })
+      : Response.json({ codes: [] });
+  try {
+    const view = render(<QrCodes base={base} tables={[]} demo={false} allowTables={false} />);
+    await screen.findByText("No menu codes have been created for this branch.");
+    assert.equal(view.container.querySelector('input[type="radio"][value="table"]'), null);
+    cleanup();
+    const dining = render(<QrCodes base={base} tables={[]} demo={false} />);
+    await screen.findByText("No menu codes have been created for this branch.");
+    assert.ok(dining.container.querySelector('input[type="radio"][value="table"]'));
+  } finally {
+    cleanup();
+    globalThis.fetch = original;
+  }
+});
