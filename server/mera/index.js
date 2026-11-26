@@ -1,3 +1,4 @@
+import { mountMenuPhotos } from "./menu-photos.js";
 import { migrateMenuImport, mountMenuImport } from "./menu-import.js";
 import bcrypt from "bcryptjs";
 import { resolveMeraHost } from "./domains.js";
@@ -3293,6 +3294,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
   mountMeraVisitAccess(router,{guard,scope,locked,find,update,event});
   mountMeraMinimumSpend(router,{db,guard,scope,locked,record,readRecords,find,update,event,publicContext,guest});
   mountMeraWriteoffs(router,{guard,scope,locked,find,readRecords,record,update,event,orderBalance});
+  mountMenuPhotos(router,{db,guard,scope,locked,readRecords,find,update,event,env,aiFetch});
   mountMenuImport(router,{db,guard,scope,locked,record,readRecords,find,update,event,env,aiFetch});
   mountMeraCategories(router,{db,guard,scope,locked,record,readRecords,find,update,event});
   mountMeraHelp(router,{db,guard,scope,locked,record,readRecords,find,update,event,publicContext,guest});

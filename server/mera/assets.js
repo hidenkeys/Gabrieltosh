@@ -10,8 +10,10 @@ export async function migrateMeraAssets(db) {
   );
 }
 export function inspectImage(bytes, mime) {
-  try { return inspectRaster(bytes,mime); } catch(error) {
-    if(error.status) throw error;
+  try {
+    return inspectRaster(bytes, mime);
+  } catch (error) {
+    if (error.status) throw error;
     throw fail("Use a valid PNG, JPEG or WebP image.");
   }
 }
@@ -108,6 +110,84 @@ export async function assertMeraAsset(db, organizationId, branchId, url) {
       403,
     );
 }
+export async function storeMeraAsset(c, s, branchId, value, actor, event) {
+  const bytes = Buffer.from(value.data, "base64");
+  if (
+    !value.data ||
+    bytes.length > 524288 ||
+    bytes.toString("base64") !== value.data
+  )
+    throw fail("Choose an image up to 512 KB in valid base64 encoding.");
+  const dimensions = inspectImage(bytes, value.mime);
+  const sha = createHash("sha256").update(bytes).digest("hex");
+  await c.query("SELECT id FROM mera_organizations WHERE id=$1 FOR UPDATE", [
+    s.organizationId,
+  ]);
+  const existing = (
+    await c.query(
+      "SELECT id,filename,mime,width,height FROM mera_assets WHERE organization_id=$1 AND branch_id IS NOT DISTINCT FROM $2 AND sha256=$3",
+      [s.organizationId, branchId, sha],
+    )
+  ).rows[0];
+  if (existing) return existing;
+  const count = Number(
+    (
+      await c.query(
+        "SELECT COUNT(*) AS count FROM mera_assets WHERE organization_id=$1",
+        [s.organizationId],
+      )
+    ).rows[0].count,
+  );
+  if (count >= 500)
+    throw fail(
+      "Image storage limit reached. Contact an administrator before uploading more.",
+      409,
+    );
+  const row = {
+    id: randomUUID(),
+    filename: value.filename,
+    mime: value.mime,
+    ...dimensions,
+  };
+  await c.query(
+    "INSERT INTO mera_assets(id,organization_id,branch_id,filename,mime,width,height,bytes,sha256,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+    [
+      row.id,
+      s.organizationId,
+      branchId,
+      row.filename,
+      row.mime,
+      row.width,
+      row.height,
+      bytes,
+      sha,
+      actor.id,
+    ],
+  );
+  const auditBranch =
+    branchId ||
+    (
+      await c.query(
+        "SELECT id FROM mera_branches WHERE organization_id=$1 ORDER BY id LIMIT 1",
+        [s.organizationId],
+      )
+    ).rows[0]?.id;
+  if (auditBranch && event)
+    await event(
+      c,
+      { organizationId: s.organizationId, branchId: auditBranch },
+      "image_uploaded",
+      actor,
+      {
+        assetId: row.id,
+        mime: row.mime,
+        width: row.width,
+        height: row.height,
+        bytes: bytes.length,
+      },
+    );
+  return row;
+}
 export function mountMeraAssets(router, { db, guard, scope, event }) {
   const B = "/organizations/:organizationId/branches/:branchId",
     O = "/organizations/:organizationId";
@@ -139,83 +219,11 @@ export function mountMeraAssets(router, { db, guard, scope, event }) {
   ]) {
     router.post(base + "/assets", guard(permission), async (req, res) => {
       const value = input.parse(req.body),
-        bytes = Buffer.from(value.data, "base64");
-      if (bytes.length > 524288 || bytes.toString("base64") !== value.data)
-        throw fail("Choose an image up to 512 KB in valid base64 encoding.");
-      const dimensions = inspectImage(bytes, value.mime),
         s = scope(req),
-        branchId = req.params.branchId || null,
-        sha = createHash("sha256").update(bytes).digest("hex");
-      const asset = await db.transaction(async (c) => {
-        await c.query(
-          "SELECT id FROM mera_organizations WHERE id=$1 FOR UPDATE",
-          [s.organizationId],
-        );
-        const existing = (
-          await c.query(
-            "SELECT id,filename,mime,width,height FROM mera_assets WHERE organization_id=$1 AND branch_id IS NOT DISTINCT FROM $2 AND sha256=$3",
-            [s.organizationId, branchId, sha],
-          )
-        ).rows[0];
-        if (existing) return existing;
-        const count = Number(
-          (
-            await c.query(
-              "SELECT COUNT(*) AS count FROM mera_assets WHERE organization_id=$1",
-              [s.organizationId],
-            )
-          ).rows[0].count,
-        );
-        if (count >= 500)
-          throw fail(
-            "Image storage limit reached. Contact an administrator before uploading more.",
-            409,
-          );
-        const row = {
-          id: randomUUID(),
-          filename: value.filename,
-          mime: value.mime,
-          ...dimensions,
-        };
-        await c.query(
-          "INSERT INTO mera_assets(id,organization_id,branch_id,filename,mime,width,height,bytes,sha256,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
-          [
-            row.id,
-            s.organizationId,
-            branchId,
-            row.filename,
-            row.mime,
-            row.width,
-            row.height,
-            bytes,
-            sha,
-            req.user.id,
-          ],
-        );
-        const auditBranch =
-          branchId ||
-          (
-            await c.query(
-              "SELECT id FROM mera_branches WHERE organization_id=$1 ORDER BY id LIMIT 1",
-              [s.organizationId],
-            )
-          ).rows[0]?.id;
-        if (auditBranch && event)
-          await event(
-            c,
-            { organizationId: s.organizationId, branchId: auditBranch },
-            "image_uploaded",
-            req.user,
-            {
-              assetId: row.id,
-              mime: row.mime,
-              width: row.width,
-              height: row.height,
-              bytes: bytes.length,
-            },
-          );
-        return row;
-      });
+        branchId = req.params.branchId || null;
+      const asset = await db.transaction((c) =>
+        storeMeraAsset(c, s, branchId, value, req.user, event),
+      );
       res.status(201).json(view(asset, req.path.replace(/\/assets$/, "")));
     });
     router.get(base + "/assets", guard(permission), async (req, res) => {
