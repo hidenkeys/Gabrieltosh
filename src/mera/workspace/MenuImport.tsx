@@ -25,6 +25,8 @@ type Result = {
   categoriesCreated: number;
 };
 type Props = {
+  products?: { id: string; name: string; image?: string }[];
+  onPhotos?: () => void;
   base: string;
   onClose: () => void;
   onImported: () => void | Promise<void>;
@@ -42,7 +44,10 @@ async function prepare(file: File) {
   let blob: Blob = file;
   // createImageBitmap avoids blob: image URLs, which the site's CSP (img-src 'self' data:) blocks.
   // If the browser cannot decode the photo here, upload the original and let the server check it.
-  if (/^image\/(jpeg|png|webp)$/.test(file.type) && typeof createImageBitmap === "function") {
+  if (
+    /^image\/(jpeg|png|webp)$/.test(file.type) &&
+    typeof createImageBitmap === "function"
+  ) {
     let bitmap: ImageBitmap | null = null;
     try {
       bitmap = await createImageBitmap(file);
@@ -52,7 +57,8 @@ async function prepare(file: File) {
     if (bitmap) {
       try {
         const scale = Math.min(1, 2000 / Math.max(bitmap.width, bitmap.height));
-        const ctx = scale < 1 ? document.createElement("canvas").getContext("2d") : null;
+        const ctx =
+          scale < 1 ? document.createElement("canvas").getContext("2d") : null;
         if (ctx) {
           ctx.canvas.width = Math.round(bitmap.width * scale);
           ctx.canvas.height = Math.round(bitmap.height * scale);
@@ -108,6 +114,8 @@ export default function MenuImport({
   onClose,
   onImported,
   initialDraft,
+  products,
+  onPhotos,
 }: Props) {
   const [draft, setDraft] = useState<MenuDraft | undefined>(initialDraft),
     [files, setFiles] = useState<File[]>([]),
@@ -116,6 +124,7 @@ export default function MenuImport({
     [importId, setImportId] = useState<string>(),
     [result, setResult] = useState<Result>(),
     [busy, setBusy] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const applying = useRef(false);
   const controller = useRef<AbortController | null>(null),
     root = useRef<HTMLElement>(null);
@@ -279,8 +288,9 @@ export default function MenuImport({
             }}
           >
             <label>
-              Choose menu files
+              Choose files
               <input
+                className="mmi-file"
                 type="file"
                 accept={accept}
                 multiple
@@ -383,6 +393,7 @@ export default function MenuImport({
                   />
                   Select category
                 </label>
+                <span>{group.items.length} items</span>
               </header>
               <table>
                 <caption className="mi-sr-only">{group.name} items</caption>
@@ -417,7 +428,7 @@ export default function MenuImport({
                       </td>
                       <td>
                         <label>
-                          Item name
+                          <span className="mi-sr-only">Item name</span>
                           <input
                             value={i.name}
                             onChange={(e) =>
@@ -426,20 +437,13 @@ export default function MenuImport({
                           />
                         </label>
                         {(i.confidence === "low" || i.price === null) && (
-                          <p className="mmi-reason">
+                          <p
+                            className="mmi-reason"
+                            title={i.note || "Check the price"}
+                          >
                             {i.note || "Check the price"}
                           </p>
                         )}
-                        <details>
-                          <summary>Description</summary>
-                          <textarea
-                            aria-label={`Description for ${i.name}`}
-                            value={i.description}
-                            onChange={(e) =>
-                              edit(g, n, { description: e.target.value })
-                            }
-                          />
-                        </details>
                       </td>
                       <td>
                         <DraftMoney
@@ -450,79 +454,117 @@ export default function MenuImport({
                         />
                       </td>
                       <td>
-                        {(["sizes", "addOns"] as const).map((kind) => (
-                          <details key={kind} open={i[kind].length > 0}>
-                            <summary>
-                              {kind === "sizes" ? "Sizes" : "Add-ons"} (
-                              {i[kind].length})
-                            </summary>
-                            {i[kind].map((o, oi) => (
-                              <div className="mmi-chip" key={oi}>
-                                <label>
-                                  {kind === "sizes" ? "Size" : "Add-on"} name
-                                  <input
-                                    value={o.name}
-                                    onChange={(e) =>
-                                      edit(g, n, {
-                                        [kind]: i[kind].map((v, j) =>
-                                          j === oi
-                                            ? { ...v, name: e.target.value }
-                                            : v,
-                                        ),
-                                      })
-                                    }
-                                  />
-                                </label>
-                                <DraftMoney
-                                  label={`${o.name} price`}
-                                  currency={draft.currency}
-                                  value={o.price}
-                                  onChange={(v) =>
-                                    edit(g, n, {
-                                      [kind]: i[kind].map((o, j) =>
-                                        j === oi
-                                          ? { ...o, price: v ?? NaN }
-                                          : o,
-                                      ),
-                                    })
-                                  }
-                                />
+                        <span className="mmi-option-count">
+                          {i.sizes.length} sizes · {i.addOns.length} add-ons
+                        </span>
+                        <div className="mmi-details">
+                          <button
+                            type="button"
+                            className="secondary mmi-details-toggle"
+                            aria-expanded={expanded.has(`${g}-${n}`)}
+                            onClick={() =>
+                              setExpanded((old) => {
+                                const next = new Set(old);
+                                const key = `${g}-${n}`;
+                                if (next.has(key)) next.delete(key);
+                                else next.add(key);
+                                return next;
+                              })
+                            }
+                          >
+                            Details
+                          </button>
+                          <div
+                            className="mmi-detail-panel"
+                            hidden={!expanded.has(`${g}-${n}`)}
+                          >
+                            <div>
+                              <label>Description</label>
+                              <textarea
+                                aria-label={`Description for ${i.name}`}
+                                value={i.description}
+                                onChange={(e) =>
+                                  edit(g, n, { description: e.target.value })
+                                }
+                              />
+                            </div>
+                            {(["sizes", "addOns"] as const).map((kind) => (
+                              <details key={kind} open>
+                                <summary>
+                                  {kind === "sizes" ? "Sizes" : "Add-ons"} (
+                                  {i[kind].length})
+                                </summary>
+                                {i[kind].map((o, oi) => (
+                                  <div className="mmi-chip" key={oi}>
+                                    <label>
+                                      {kind === "sizes" ? "Size" : "Add-on"}{" "}
+                                      name
+                                      <input
+                                        value={o.name}
+                                        onChange={(e) =>
+                                          edit(g, n, {
+                                            [kind]: i[kind].map((v, j) =>
+                                              j === oi
+                                                ? { ...v, name: e.target.value }
+                                                : v,
+                                            ),
+                                          })
+                                        }
+                                      />
+                                    </label>
+                                    <DraftMoney
+                                      label={`${o.name} price`}
+                                      currency={draft.currency}
+                                      value={o.price}
+                                      onChange={(v) =>
+                                        edit(g, n, {
+                                          [kind]: i[kind].map((o, j) =>
+                                            j === oi
+                                              ? { ...o, price: v ?? NaN }
+                                              : o,
+                                          ),
+                                        })
+                                      }
+                                    />
+                                    <button
+                                      type="button"
+                                      className="secondary"
+                                      aria-label={`Remove ${o.name}`}
+                                      onClick={() =>
+                                        edit(g, n, {
+                                          [kind]: i[kind].filter(
+                                            (_, j) => j !== oi,
+                                          ),
+                                        })
+                                      }
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                ))}
                                 <button
                                   type="button"
                                   className="secondary"
-                                  aria-label={`Remove ${o.name}`}
+                                  disabled={i[kind].length >= 30}
                                   onClick={() =>
                                     edit(g, n, {
-                                      [kind]: i[kind].filter(
-                                        (_, j) => j !== oi,
-                                      ),
+                                      [kind]: [
+                                        ...i[kind],
+                                        {
+                                          name:
+                                            kind === "sizes" ? "Size" : "Extra",
+                                          price: 0,
+                                        },
+                                      ],
                                     })
                                   }
                                 >
-                                  Remove
+                                  Add {kind === "sizes" ? "size" : "extra"}
                                 </button>
-                              </div>
+                              </details>
                             ))}
-                            <button
-                              type="button"
-                              className="secondary"
-                              disabled={i[kind].length >= 30}
-                              onClick={() =>
-                                edit(g, n, {
-                                  [kind]: [
-                                    ...i[kind],
-                                    {
-                                      name: kind === "sizes" ? "Size" : "Extra",
-                                      price: 0,
-                                    },
-                                  ],
-                                })
-                              }
-                            >
-                              Add {kind === "sizes" ? "size" : "extra"}
-                            </button>
-                          </details>
-                        ))}
+                          </div>
+                        </div>
                       </td>
                       <td>
                         <ChoiceField
@@ -547,28 +589,33 @@ export default function MenuImport({
               Check the price for included items before importing.
             </p>
           )}
-          <button
-            className="primary"
-            disabled={
-              busy ||
-              missing ||
-              !included.length ||
-              draft.categories.some(
-                (c) =>
-                  !c.name.trim() ||
-                  c.items.some(
-                    (i) =>
-                      i.include !== false &&
-                      (!i.name.trim() ||
-                        i.sizes.some((o) => !o.name.trim()) ||
-                        i.addOns.some((o) => !o.name.trim())),
-                  ),
-              )
-            }
-            onClick={apply}
-          >
-            {busy ? "Importing…" : `Import ${included.length} items`}
-          </button>
+          <footer className="mmi-footer">
+            <span>
+              {included.length} items · {checks} need a check
+            </span>
+            <button
+              className="primary"
+              disabled={
+                busy ||
+                missing ||
+                !included.length ||
+                draft.categories.some(
+                  (c) =>
+                    !c.name.trim() ||
+                    c.items.some(
+                      (i) =>
+                        i.include !== false &&
+                        (!i.name.trim() ||
+                          i.sizes.some((o) => !o.name.trim()) ||
+                          i.addOns.some((o) => !o.name.trim())),
+                    ),
+                )
+              }
+              onClick={apply}
+            >
+              {busy ? "Importing…" : `Import ${included.length} items`}
+            </button>
+          </footer>
         </>
       )}
       {step === "done" && result && (
@@ -586,6 +633,11 @@ export default function MenuImport({
           <p>
             Items are in your draft menu. Publish the menu when you're ready.
           </p>
+          {onPhotos && products?.some((p) => !p.image) && (
+            <button className="secondary" onClick={onPhotos}>
+              Generate photos
+            </button>
+          )}
           <button className="primary" onClick={close}>
             Back to menu
           </button>

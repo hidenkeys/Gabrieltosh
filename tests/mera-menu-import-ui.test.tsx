@@ -61,6 +61,13 @@ test("review renders draft and low-confidence reason; missing price disables imp
       />,
     );
     assert(screen.getByRole("table"));
+    assert.equal(screen.getAllByRole("row").length, 2);
+    assert.equal(
+      screen
+        .getByRole("button", { name: "Details" })
+        .getAttribute("aria-expanded"),
+      "false",
+    );
     assert(screen.getByText("Review all prices"));
     assert(screen.getByText("Check the price"));
     assert(
@@ -144,7 +151,7 @@ test("upload validates total size and offers an accessible file picker", () => {
       type: "image/jpeg",
     });
     Object.defineProperty(file, "size", { value: 11 * 1024 * 1024 });
-    fireEvent.change(screen.getByLabelText("Choose menu files"), {
+    fireEvent.change(screen.getByLabelText("Choose files"), {
       target: { files: [file] },
     });
     assert(screen.getByRole("alert").textContent?.includes("10 MB"));
