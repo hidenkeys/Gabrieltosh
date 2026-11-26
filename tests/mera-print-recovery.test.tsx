@@ -245,7 +245,7 @@ test("template recorded proof rejects altered intent before clearing and retains
   fireEvent.click(
     screen.getByRole("button", { name: "Check print request outcome" }),
   );
-  await screen.findByText(/original format save was recorded/);
+  await screen.findByText(/Templates saved\. Future print jobs/);
   assert.equal(readPrintStudioMarker(actorId, base), null);
 });
 test("reprint proof must identify a queued marked duplicate with unconfirmed physical output, then one authoritative result clears recovery", async () => {

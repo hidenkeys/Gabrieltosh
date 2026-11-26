@@ -427,7 +427,7 @@ function ScopedPrintStudio({
       setNotice(
         result.status === "recorded"
           ? m.operation === "template_save"
-            ? "The original format save was recorded. Review the latest saved format before editing again."
+            ? "Templates saved. Future print jobs will use this layout."
             : "The original duplicate request was recorded once. Check the queue for its current status; physical printing is still unconfirmed."
           : "The original print request is stopped. It cannot be applied later. Review the current records before making a new request.",
       );

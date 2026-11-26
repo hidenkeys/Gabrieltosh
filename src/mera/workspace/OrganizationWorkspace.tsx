@@ -2734,8 +2734,9 @@ export default function OrganizationWorkspace({
                               {product.kind === "combo" && <span className="mw-pill">Combo</span>}
                               {product.serves && <span className="mw-pill">Serves {product.serves}</span>}
                               <small>
-                                {product.category} · {product.size} ·{" "}
-                                {catalogPriceLabel(product)}
+                                {[product.category, product.size, catalogPriceLabel(product)]
+                                  .filter(Boolean)
+                                  .join(" · ")}
                               </small>
                             </div>
                           </div>

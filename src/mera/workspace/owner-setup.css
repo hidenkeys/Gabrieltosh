@@ -782,9 +782,27 @@
   background: #f0f3df;
   padding: 19px;
 }
-.mera-venue-card input {
-  margin-top: 5px;
+.mera-venue-card {
+  gap: 14px;
+}
+/* A global input rule sets width:100%; keep the radio at its natural size. */
+.mera-venue-card input[type="radio"] {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  min-height: 0;
+  margin: 4px 0 0;
+  padding: 0;
   accent-color: #153f32;
+}
+.mera-venue-card > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+}
+.mera-venue-card ul {
+  margin: 8px 0;
+  padding-left: 18px;
 }
 .mera-venue-card strong {
   font-size: 20px;

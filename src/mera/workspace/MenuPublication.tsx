@@ -352,6 +352,16 @@ function ScopedPublication({
     }
   }
   const review = pending?.preview || preview;
+  // Categories keep the order they were created in; items follow their category, then name.
+  const sortedCategories = review ? review.categories : [];
+  const categoryRank = new Map(sortedCategories.map((c, i) => [c.name, i]));
+  const sortedProducts = review
+    ? [...review.products].sort(
+        (a: any, b: any) =>
+          (categoryRank.get(a.category) ?? 999) - (categoryRank.get(b.category) ?? 999) ||
+          String(a.name).localeCompare(String(b.name)),
+      )
+    : [];
   return (
     <section className="mw-publication" aria-label="Menu publication">
       <button
@@ -402,13 +412,14 @@ function ScopedPublication({
           {notice && open && <p role="status">{notice}</p>}
           {review && (
             <>
+              {/* Show the menu in its own order: categories by position, then items by name. */}
               <p>
                 Current published version: <b>{review.publishedVersion}</b>
               </p>
               <h3>Category groups ({review.categories.length})</h3>
               {review.categories.length ? (
                 <ul>
-                  {review.categories.map((category) => (
+                  {sortedCategories.map((category) => (
                     <li key={category.id}>{category.name}</li>
                   ))}
                 </ul>
@@ -421,7 +432,7 @@ function ScopedPublication({
               <h3>Included products ({review.products.length})</h3>
               {review.products.length ? (
                 <ul className="mw-publication-products">
-                  {review.products.map((product) => (
+                  {sortedProducts.map((product) => (
                     <li key={product.id}>
                       <span>
                         <strong>{product.name}</strong>

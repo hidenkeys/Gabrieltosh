@@ -55,6 +55,9 @@ export default function LaunchReadiness({
   const [methods, setMethods] = useState<string[]>(
     settings?.manualPaymentMethods || [],
   );
+  // Rapid toggles must build on the latest choice, not the last saved one.
+  const methodsRef = useRef<string[]>(methods);
+  const methodSaves = useRef<Promise<void>>(Promise.resolve());
   useEffect(() => {
     onPaymentDraft?.(methods);
   }, [methods]);
@@ -213,30 +216,39 @@ export default function LaunchReadiness({
               <input
                 type="checkbox"
                 checked={methods.includes(method)}
-                onChange={async (e) => {
-                  const next = e.target.checked
-                    ? [...methods, method]
-                    : methods.filter((v) => v !== method);
-                  setBusy(true);
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  const previous = methodsRef.current;
+                  const next = checked
+                    ? [...new Set([...previous, method])]
+                    : previous.filter((v) => v !== method);
+                  methodsRef.current = next;
+                  setMethods(next);
                   setError("");
-                  try {
-                    await save(
-                      base + "/launch-policy",
-                      "PATCH",
-                      {
-                        manualPaymentMethods: next,
-                        ...(validPublicContact(contact)
-                          ? { publicContact: contact }
-                          : {}),
-                      },
-                      "Payment choices saved.",
-                    );
-                    setMethods(next);
-                  } catch (e) {
-                    setError((e as Error).message);
-                  } finally {
-                    setBusy(false);
-                  }
+                  // Saves run in order so the server ends on the latest selection.
+                  methodSaves.current = methodSaves.current.then(async () => {
+                    if (methodsRef.current !== next) return;
+                    setBusy(true);
+                    try {
+                      await save(
+                        base + "/launch-policy",
+                        "PATCH",
+                        {
+                          manualPaymentMethods: next,
+                          ...(validPublicContact(contact)
+                            ? { publicContact: contact }
+                            : {}),
+                        },
+                        "Payment choices saved.",
+                      );
+                    } catch (e) {
+                      methodsRef.current = previous;
+                      setMethods(previous);
+                      setError((e as Error).message);
+                    } finally {
+                      setBusy(false);
+                    }
+                  });
                 }}
               />
             </label>

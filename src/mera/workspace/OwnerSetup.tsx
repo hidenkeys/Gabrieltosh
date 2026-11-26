@@ -758,7 +758,18 @@ function GuidedSetup({
               {locations
                 .map(
                   (l) =>
-                    `${l.name}: ${(paymentDrafts.current[l.id!] || []).join(", ") || "None selected"}`,
+                    `${l.name}: ${
+                      (paymentDrafts.current[l.id!] || [])
+                        .map(
+                          (m) =>
+                            ({
+                              cash: "Cash",
+                              external_pos: "Card / POS",
+                              external_transfer: "Bank transfer",
+                            })[m] || m,
+                        )
+                        .join(", ") || "None selected"
+                    }`,
                 )
                 .join("; ")}
             </p>
