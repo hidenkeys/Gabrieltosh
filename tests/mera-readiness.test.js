@@ -165,6 +165,8 @@ test("publishing a branch requires readiness and never claims hosting or provide
       })
     ).json();
     assert.equal(launch.launchState, "published");
+    // Going live is what lets customers order: a newly created location starts paused.
+    assert.equal(branch.settings.orderingPaused, false);
     assert.equal(launch.publicHostingVerified, false);
     assert.equal(launch.paymentProviderState, "blocked");
   } finally {

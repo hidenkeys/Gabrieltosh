@@ -167,6 +167,8 @@ export function mountMeraReadiness(
           ...b.settings,
           launchState: "published",
           publishedAt: new Date().toISOString(),
+          // New locations start with ordering paused; going live is when customers can order.
+          orderingPaused: false,
         };
         await c.query(
           "UPDATE mera_branches SET settings=$1 WHERE id=$2 AND organization_id=$3",
