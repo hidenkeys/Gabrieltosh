@@ -88,13 +88,13 @@ export async function photoPreview(
   const bitmap = await createImageBitmap(blob);
   try {
     const [y, x, Y, X] = box || [0, 0, 1000, 1000];
-    const left = (Math.max(0, x - (X - x) * 0.02) / 1000) * bitmap.width;
-    const top = (Math.max(0, y - (Y - y) * 0.02) / 1000) * bitmap.height;
+    const left = (Math.max(0, x - (X - x) * 0.01) / 1000) * bitmap.width;
+    const top = (Math.max(0, y - (Y - y) * 0.01) / 1000) * bitmap.height;
     const width =
-      Math.min(bitmap.width, ((X + (X - x) * 0.02) / 1000) * bitmap.width) -
+      Math.min(bitmap.width, ((X + (X - x) * 0.01) / 1000) * bitmap.width) -
       left;
     const height =
-      Math.min(bitmap.height, ((Y + (Y - y) * 0.02) / 1000) * bitmap.height) -
+      Math.min(bitmap.height, ((Y + (Y - y) * 0.01) / 1000) * bitmap.height) -
       top;
     const scale = Math.min(1, 800 / Math.max(width, height));
     const canvas = document.createElement("canvas");
@@ -552,7 +552,9 @@ export default function MenuImport({
                               </button>
                               <button
                                 type="button"
-                                className="secondary"
+                                className="mmi-photo-remove"
+                                aria-label="Remove photo"
+                                title="Remove photo"
                                 onClick={() =>
                                   edit(g, n, {
                                     preview: undefined,
@@ -561,7 +563,7 @@ export default function MenuImport({
                                   })
                                 }
                               >
-                                Remove photo
+                                ×
                               </button>
                             </>
                           ) : (

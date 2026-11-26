@@ -87,6 +87,10 @@
   object-fit: contain;
   background: #f8f7f4;
 }
+/* Uploaded or imported photos fill the tile; cut-out catalogue shots keep "contain". */
+img.mw-menu-product-photo[src*="/assets/"] {
+  object-fit: cover;
+}
 .mw-menu-product-fallback {
   display: grid;
   place-items: center;
@@ -398,24 +402,6 @@
   border-top: 1px solid var(--line);
   z-index: 2;
 }
-.mmp-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
-}
-.mmp-grid article {
-  min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 12px;
-}
-.mmp-grid img {
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: 10px;
-}
 @media (max-width: 1000px) and (min-width: 640px) {
   .mmi tbody > tr {
     grid-template-columns: 36px minmax(120px, 1fr) 100px 170px 110px;
@@ -536,12 +522,35 @@
   border-radius: 8px;
   padding: 2px 6px;
 }
-.mmi-photo {
-  display: flex;
+/* Photo sits beside the item name so each item stays one row. */
+.mmi tbody > tr > td:nth-child(2) {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  column-gap: 10px;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  flex-wrap: wrap;
+}
+.mmi tbody > tr > td:nth-child(2) > .mmi-reason {
+  grid-column: 1 / -1;
+}
+.mmi-photo {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+.mmi-photo-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1;
 }
 .mmi-photo img {
   display: block;
