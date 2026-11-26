@@ -447,7 +447,7 @@ export function mountMenuImport(
           const count = Number(
             (
               await c.query(
-                "SELECT COUNT(*) AS count FROM mera_ai_usage WHERE organization_id=$1 AND created_at >= now() - interval '1 hour'",
+                "SELECT COUNT(*) AS count FROM mera_ai_usage WHERE organization_id=$1 AND feature='menu_import' AND created_at >= now() - interval '1 hour'",
                 [s.organizationId],
               )
             ).rows[0]?.count || 0,

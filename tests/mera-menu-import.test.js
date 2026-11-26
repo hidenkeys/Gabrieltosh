@@ -44,9 +44,10 @@ function fixture({
   spend = 0,
   failProduct = 0,
   assetId,
+  priorUsage = [],
 } = {}) {
   let records = [],
-    usage = [],
+    usage = [...priorUsage],
     productWrites = 0,
     transactions = 0;
   const db = {
@@ -73,7 +74,13 @@ function fixture({
       else if (sql.includes("SUM(cost_usd)"))
         rows = [{ total: spend + usage.reduce((n, r) => n + r.cost_usd, 0) }];
       else if (sql.includes("COUNT(*)") && sql.includes("mera_ai_usage"))
-        rows = [{ count: usage.length }];
+        rows = [
+          {
+            count: sql.includes("feature='menu_import'")
+              ? usage.filter((r) => r.feature === "menu_import").length
+              : usage.length,
+          },
+        ];
       else if (sql.startsWith("INSERT INTO mera_ai_usage"))
         usage.push({
           id: p[0],
@@ -553,4 +560,14 @@ test("extract returns only referenced embedded photos and drops unknown and over
   assert.deepEqual(Object.keys(r.body.photos), ["img1"]);
   assert.equal(r.body.draft.categories[0].items[1].photo, null);
   assert.equal(r.body.draft.categories[0].items[2].photo, null);
+});
+
+test("other AI features do not use up the hourly menu import limit", async () => {
+  const other = Array.from({ length: 30 }, () => ({ feature: "menu_photo", cost_usd: 0 }));
+  const f = fixture({ priorUsage: other });
+  assert.equal((await f.call("extract", { files: [photo] })).statusCode, 200);
+  const busy = fixture({
+    priorUsage: Array.from({ length: 10 }, () => ({ feature: "menu_import", cost_usd: 0 })),
+  });
+  assert.equal((await busy.call("extract", { files: [photo] })).statusCode, 429);
 });
