@@ -1,6 +1,7 @@
 import { z } from "zod";
 import QRCode from "qrcode";
-import { resolveOrganizationSlug } from "./organization-aliases.js";
+import { resolveMeraHost } from "./domains.js";
+import { organizationSlugSchema, resolveOrganizationSlug } from "./organization-aliases.js";
 const B = "/organizations/:organizationId/branches/:branchId";
 const input = z
   .object({
@@ -27,6 +28,20 @@ export function qrOrigin(req) {
       { status: 503 },
     );
   }
+}
+export function qrUrl(req, slug, id) {
+  const root = String(process.env.MERA_ROOT_DOMAIN || "").trim().toLowerCase();
+  const parsed = organizationSlugSchema.safeParse(slug);
+  if (root && parsed.success && resolveMeraHost(`${parsed.data}.${root}`, root)?.surface === "organization" && !(process.env.MERA_DEMO === "true" && process.env.NODE_ENV !== "production"))
+    return `https://${parsed.data}.${root}/q/${id}`;
+  return qrOrigin(req) + "/api/mera/v1/public/qr/" + id;
+}
+// Dispatch at app level so the legacy router, validation and errors stay shared.
+export function meraQrShortRoute(req, res, next) {
+  const match = /^\/q\/([0-9a-fA-F-]{36})$/.exec(req.path);
+  if (match && ["GET", "HEAD"].includes(req.method))
+    req.url = "/api/mera/v1/public/qr/" + match[1];
+  next();
 }
 export function mountMeraQr(router, services) {
   const {
@@ -136,12 +151,12 @@ export function mountMeraQr(router, services) {
     guard(["menu.publish", "tables.manage"]),
     async (req, res) => {
       const s = scope(req),
-        origin = qrOrigin(req);
+        org = (await db.query("SELECT slug FROM mera_organizations WHERE id=$1", [s.organizationId])).rows[0];
       const codes = (
         await readRecords(db, s.organizationId, s.branchId, "qr_code")
       ).map((r) => ({
         ...r.data,
-        url: origin + "/api/mera/v1/public/qr/" + r.id,
+        url: qrUrl(req, org?.slug, r.id),
       }));
       res.json({ codes });
     },
@@ -151,8 +166,9 @@ export function mountMeraQr(router, services) {
     guard(["menu.publish", "tables.manage"]),
     async (req, res) => {
       const values = input.parse(req.body),
-        origin = qrOrigin(req),
-        s = scope(req);
+        s = scope(req),
+        org = (await db.query("SELECT slug FROM mera_organizations WHERE id=$1", [s.organizationId])).rows[0];
+      qrUrl(req, org?.slug, ""); // Validate export configuration before creating a record.
       const code = await locked(s, async (c,b) => {
         if(b.settings?.role==='stock_room')throw Object.assign(new Error("Stock rooms do not have guest QR codes."),{status:409,code:"CAPABILITY_OFF"});
         if (values.tableId) await find(c, s, "table", values.tableId);
@@ -180,7 +196,7 @@ export function mountMeraQr(router, services) {
       });
       res
         .status(201)
-        .json({ ...code, url: origin + "/api/mera/v1/public/qr/" + code.id });
+        .json({ ...code, url: qrUrl(req, org?.slug, code.id) });
     },
   );
   router.get(
@@ -192,7 +208,8 @@ export function mountMeraQr(router, services) {
       const code = await find(db, scope(req), "qr_code", req.params.id);
       if (code.active === false)
         return res.status(404).json({ error: "QR code not found." });
-      const value = qrOrigin(req) + "/api/mera/v1/public/qr/" + code.id;
+      const org = (await db.query("SELECT slug FROM mera_organizations WHERE id=$1", [scope(req).organizationId])).rows[0];
+      const value = qrUrl(req, org?.slug, code.id);
       const options = { errorCorrectionLevel: "M", margin: 4, width: 1024 };
       res.attachment("mera-menu-" + code.id + "." + req.params.format);
       res.type(req.params.format);
@@ -226,6 +243,11 @@ export function mountMeraQr(router, services) {
     ).rows[0];
     if (!org || !branch || branch.settings?.role==='stock_room')
       return res.status(404).json({ error: "This menu code is unavailable." });
+    const host = resolveMeraHost(req.hostname, process.env.MERA_ROOT_DOMAIN);
+    if (host?.surface === "organization") {
+      const hostOrg = await resolveOrganizationSlug(db, host.slug);
+      if (hostOrg?.id !== org.id) return res.status(404).json({ error: "This menu code is unavailable." });
+    }
     let suffix = row.data.kind === "organization" ? "?chooseBranch=1" : "";
     if (row.data.kind === "table") {
       const table = await find(

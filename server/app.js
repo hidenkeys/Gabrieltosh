@@ -1,3 +1,4 @@
+import { meraQrShortRoute } from "./mera/qr.js";
 import { createInboxForwardingWebhook, MERA_FORWARD_WEBHOOK } from "./mera/inbound-forwarding.js";
 import express from "express";
 import { hostingOptions, stagingHeaders } from "./mera-hosting.js";
@@ -160,6 +161,7 @@ export function createApp() {
       next(e);
     }
   });
+  if (process.env.MERA_ENABLED === "true") app.use(meraQrShortRoute);
   if (process.env.MERA_ENABLED === "true")
     app.use(
       "/api/mera/v1",

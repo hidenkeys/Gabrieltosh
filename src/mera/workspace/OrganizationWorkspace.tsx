@@ -1769,6 +1769,7 @@ export default function OrganizationWorkspace({
       {!loading && context && !organizations.length && (
         <CreateOrganization
           key={context.user.id}
+          rootDomain={context.rootDomain}
           actorId={context.user.id}
           actorName={context.user.name}
           disabled={busy || offline}
@@ -2321,6 +2322,7 @@ export default function OrganizationWorkspace({
                   }
                   operations={
                     <BranchSettings
+                      items={products}
                       key={branchId}
                       branch={branch}
                       organization={organization}

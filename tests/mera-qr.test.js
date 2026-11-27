@@ -144,3 +144,85 @@ test("public directory projects published branches; explicit consent is private 
     await new Promise((r) => server.close(r));
   }
 });
+
+test("QR URLs use validated tenant subdomains and preserve legacy and demo URLs", async () => {
+  const { qrUrl } = await import("../server/mera/qr.js");
+  const old = { ...process.env };
+  try {
+    process.env.MERA_DEMO = "false";
+    process.env.MERA_ROOT_DOMAIN = " Example.com ";
+    process.env.MERA_PUBLIC_ORIGIN = "https://legacy.example.com";
+    assert.equal(qrUrl({}, "juniper", "123"), "https://juniper.example.com/q/123");
+    assert.equal(qrUrl({}, "app", "123"), "https://legacy.example.com/api/mera/v1/public/qr/123");
+    delete process.env.MERA_ROOT_DOMAIN;
+    assert.equal(qrUrl({}, "juniper", "123"), "https://legacy.example.com/api/mera/v1/public/qr/123");
+    process.env.MERA_ROOT_DOMAIN = "example.com";
+    process.env.MERA_DEMO = "true";
+    process.env.NODE_ENV = "test";
+    assert.equal(qrUrl({ protocol: "http", get: () => "localhost:3003" }, "juniper", "123"), "http://localhost:3003/api/mera/v1/public/qr/123");
+  } finally {
+    for (const key of ["MERA_ROOT_DOMAIN", "MERA_PUBLIC_ORIGIN", "MERA_DEMO", "NODE_ENV"]) old[key] === undefined ? delete process.env[key] : process.env[key] = old[key];
+  }
+});
+test("shared QR handler keeps redirects relative and permits aliases but rejects foreign tenant hosts", async () => {
+  const handlers = new Map();
+  const old = process.env.MERA_ROOT_DOMAIN;
+  process.env.MERA_ROOT_DOMAIN = "example.com";
+  try {
+    mountMeraQr({ get: (path, ...fns) => handlers.set(path, fns.at(-1)), post() {}, put() {} }, {
+      guard: () => () => {},
+      db: { query: async (sql, args) => ({ rows: sql.includes("mera_records") ? [{ organization_id: "org", branch_id: "branch", data: { kind: "branch" } }] : sql.includes("mera_branches") ? [{ id: "branch", settings: {} }] : sql.includes("mera_slug_claims") ? [{ id: args[0] === "foreign" ? "other" : "org" }] : [{ id: "org", slug: "juniper" }] }) },
+    });
+    for (const hostname of ["juniper.example.com", "old-name.example.com", "foreign.example.com", "example.com"]) {
+      const response = { statusCode: 200, location: "", status(n) { this.statusCode = n; return this; }, json() { return this; }, set() { return this; }, redirect(n, location) { this.statusCode = n; this.location = location; } };
+      await handlers.get("/public/qr/:id")({ hostname, params: { id: "10000000-0000-4000-8000-000000000001" } }, response);
+      assert.equal(response.statusCode, hostname.startsWith("foreign") ? 404 : 302);
+      if (response.statusCode === 302) assert.equal(response.location, "/mera/menu/juniper/branch");
+    }
+  } finally { old === undefined ? delete process.env.MERA_ROOT_DOMAIN : process.env.MERA_ROOT_DOMAIN = old; }
+});
+
+test("app short route dispatches GET and HEAD scans to the permanent public QR route", async () => {
+  const { meraQrShortRoute } = await import("../server/mera/qr.js");
+  const id = "10000000-0000-4000-8000-000000000001";
+  for (const method of ["GET", "HEAD", "POST"]) {
+    const req = { method, path: "/q/" + id, url: "/q/" + id };
+    let called = false;
+    meraQrShortRoute(req, {}, () => { called = true; });
+    assert.ok(called);
+    assert.equal(req.url, method === "POST" ? "/q/" + id : "/api/mera/v1/public/qr/" + id);
+  }
+  // Malformed codes are left alone (no decode errors) and fall through to the normal 404.
+  for (const bad of ["/q/123", "/q/%E0%A4%A"]) {
+    const req = { method: "GET", path: bad, url: bad };
+    meraQrShortRoute(req, {}, () => {});
+    assert.equal(req.url, bad);
+  }
+});
+test("QR list, creation and SVG export all use the tenant URL", async () => {
+  const handlers = new Map(), old = { ...process.env };
+  try {
+    process.env.MERA_DEMO = "false";
+    process.env.MERA_ROOT_DOMAIN = "example.com";
+    const code = { id: "10000000-0000-4000-8000-000000000001", kind: "branch", active: true };
+    mountMeraQr({ get: (path, ...fns) => handlers.set("GET " + path, fns.at(-1)), post: (path, ...fns) => handlers.set("POST " + path, fns.at(-1)), put() {} }, {
+      guard: () => () => {}, scope: () => ({ organizationId: "org", branchId: "branch" }),
+      db: { query: async () => ({ rows: [{ slug: "juniper" }] }) },
+      readRecords: async () => [{ id: code.id, data: code }],
+      locked: async (_s, fn) => fn({}, {}), find: async () => code,
+    });
+    const req = { body: { kind: "branch" }, params: { id: code.id, format: "svg" } };
+    const res = { body: null, status() { return this; }, json(value) { this.body = value; return this; }, attachment() { return this; }, type() { return this; }, send(value) { this.body = value; return this; } };
+    const path = "/organizations/:organizationId/branches/:branchId/qr-codes";
+    await handlers.get("GET " + path)(req, res);
+    const url = `https://juniper.example.com/q/${code.id}`;
+    assert.equal(res.body.codes[0].url, url);
+    await handlers.get("POST " + path)(req, res);
+    assert.equal(res.body.url, url);
+    await handlers.get("GET " + path + "/:id/image.:format")(req, res);
+    const { default: QRCode } = await import("qrcode");
+    assert.equal(res.body, await QRCode.toString(url, { type: "svg", errorCorrectionLevel: "M", margin: 4, width: 1024 }));
+  } finally {
+    for (const key of ["MERA_DEMO", "MERA_ROOT_DOMAIN"]) old[key] === undefined ? delete process.env[key] : process.env[key] = old[key];
+  }
+});

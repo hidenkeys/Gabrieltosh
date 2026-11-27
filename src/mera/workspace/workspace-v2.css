@@ -294,3 +294,28 @@
     overflow-wrap: normal;
   }
 }
+
+.mera-palette-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 12px; }
+.mera-palette-presets button { min-height: 64px; padding: 8px 12px; border: 1px solid var(--line, #d8ded6); border-radius: 12px; }
+.mera-palette-presets button[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: 2px; }
+.mera-palette-presets span { display: flex; margin-bottom: 5px; }
+.mera-palette-presets i { width: 18px; height: 18px; border: 1px solid #8885; }
+.mera-palette-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.mera-onboarding-brand { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 370px); gap: 24px; align-items: start; }
+.mera-brand-studio > .mera-guest-preview { grid-column: 2; grid-row: 1 / span 8; }
+.mera-brand-studio > .mw-wide { grid-column: 1; }
+@media (max-width: 760px) {
+  .mera-onboarding-brand { grid-template-columns: minmax(0, 1fr); }
+  .mera-brand-studio > .mera-guest-preview { grid-column: 1 / -1; grid-row: auto; }
+}
+
+.mw-form.mera-brand-studio { grid-template-columns: minmax(0, 1fr) minmax(280px, 370px); align-items: start; }
+.mera-onboarding-brand { grid-column: 1 / -1; min-width: 0; }
+@media (max-width: 760px) {
+  .mw-form.mera-brand-studio { grid-template-columns: minmax(0, 1fr); }
+}
+/* Workspace typography must not recolour the venue's phone preview. */
+.mera-workspace .mera-guest-preview .mc-hero h2 { font-family: var(--mc-display); font-size: 24px; color: var(--mc-ink); margin: 0; }
+.mera-workspace .mera-guest-preview .mc-product h3 { font-family: var(--mc-display); color: var(--mc-surface-ink, var(--mc-ink)); }
+.mera-workspace .mera-guest-preview .mc-hero p { color: var(--mc-muted); }
+.mera-workspace .mera-guest-preview .mc-product :is(p, small) { color: var(--mc-surface-muted, var(--mc-muted)); }

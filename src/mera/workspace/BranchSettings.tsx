@@ -7,8 +7,9 @@ import Combobox from "../ui/Combobox";
 import Segmented from "../ui/Segmented";
 import TimeWindows from "./TimeWindows";
 import MediaUpload from "../MediaUpload";
-import { brandingTokens } from "../branding";
-import BrandColorField from "./BrandColorField";
+import BrandPaletteFields from "./BrandPaletteFields";
+import GuestMenuPreview from "./GuestMenuPreview";
+
 function OptionalSettings({
   guided,
   title,
@@ -28,6 +29,7 @@ function OptionalSettings({
   );
 }
 type Props = {
+  items?: any[];
   guided?: boolean;
   branch: any;
   organization: any;
@@ -41,6 +43,7 @@ type Props = {
   ) => Promise<any>;
 };
 export default function BranchSettings({
+  items,
   branch,
   organization,
   base,
@@ -66,6 +69,10 @@ export default function BranchSettings({
     serviceModes: capabilitiesToLegacyModes(effectiveCapabilities(branch.settings || {})) as string[],
   });
   const [branding, setBranding] = useState({
+    background: organization.branding?.background,
+    surface: organization.branding?.surface,
+    text: organization.branding?.text,
+    palettePreset: organization.branding?.palettePreset || "custom",
     primary: organization.branding?.primary || "#1558c9",
     accent: organization.branding?.accent || "#83ddf7",
     description: organization.branding?.description || "",
@@ -73,7 +80,7 @@ export default function BranchSettings({
     logo: organization.branding?.logo || "",
     coverImage: organization.branding?.coverImage || "",
   });
-  const tokens = brandingTokens(branding);
+
   const [setupStep, setSetupStep] = useState(0);
   const operationsForm = useRef<HTMLFormElement>(null);
   const setupSteps = [
@@ -519,7 +526,7 @@ export default function BranchSettings({
       >
         <h2>Brand studio</h2>
         <form
-          className="mw-form"
+          className="mw-form mera-brand-studio"
           onSubmit={(event) => {
             event.preventDefault();
             void saveSettings(
@@ -572,16 +579,7 @@ export default function BranchSettings({
               }
             />
           </div>
-          <BrandColorField
-            label="Primary color"
-            value={branding.primary}
-            onChange={(primary) => setBranding({ ...branding, primary })}
-          />
-          <BrandColorField
-            label="Accent color"
-            value={branding.accent}
-            onChange={(accent) => setBranding({ ...branding, accent })}
-          />
+          <BrandPaletteFields branding={branding} onChange={setBranding} />
           <Segmented
             label="Approved font"
             value={branding.font}
@@ -602,36 +600,7 @@ export default function BranchSettings({
               }
             />
           </label>
-          <div
-            className="mw-wide mw-preview"
-            style={{
-              background: tokens.accent,
-              color: tokens.accentForeground,
-              fontFamily: tokens.font,
-            }}
-          >
-            <span
-              className="mw-eyebrow"
-              style={{ color: tokens.accentForeground }}
-            >
-              LIVE STYLE PREVIEW
-            </span>
-            <h2 style={{ color: tokens.accentForeground }}>
-              {organization.name}
-            </h2>
-            <p style={{ color: tokens.accentForeground }}>
-              {branding.description}
-            </p>
-            <span
-              style={{
-                display: "inline-block",
-                borderBottom: `3px solid ${branding.primary}`,
-                paddingTop: 8,
-              }}
-            >
-              Menu & service
-            </span>
-          </div>
+          <GuestMenuPreview organization={{ ...organization, currency: branch.currency }} branding={branding} items={items} />
           <div className="mw-wide">
             <button className="primary" disabled={disabled}>
               Save branding

@@ -947,3 +947,56 @@
 .mc-kind-badge { display: inline-block; font-size: .8rem; margin: 4px 8px 4px 0; padding: 3px 8px; border: 1px solid var(--mc-line); border-radius: 10px; background: var(--mc-tint); color: var(--mc-ink); font-weight: 650; }
 .mc-item-contents { padding-left: 20px; font-size: .9rem; }
 .mc-preview-bar { position: sticky; top: 0; z-index: 20; padding: 12px; text-align: center; background: var(--mc-paper); color: var(--mc-primary); border-bottom: 1px solid var(--mc-line); font-weight: 650; }
+
+/* Venue palette also covers surfaces inherited from the original customer sheet. */
+.mera-customer[style*="--mc-surface-ink"] .mc-product,
+.mera-customer[style*="--mc-surface-ink"] .mc-panel,
+.mera-customer[style*="--mc-surface-ink"] .mc-cart,
+.mera-customer[style*="--mc-surface-ink"] .mc-search,
+.mera-customer[style*="--mc-surface-ink"] .mc-secondary,
+.mera-customer[style*="--mc-surface-ink"] .mc-categories button,
+.mera-customer[style*="--mc-surface-ink"] input,
+.mera-customer[style*="--mc-surface-ink"] select,
+.mera-customer[style*="--mc-surface-ink"] textarea { color: var(--mc-surface-ink, var(--mc-ink)); }
+.mera-customer[style*="--mc-surface-ink"] .mc-panel input,
+.mera-customer[style*="--mc-surface-ink"] .mc-panel select,
+.mera-customer[style*="--mc-surface-ink"] .mc-panel textarea { background: var(--mc-paper); color: var(--mc-ink); }
+.mera-customer[style*="--mc-surface-ink"] .mc-product h3,
+.mera-customer[style*="--mc-surface-ink"] .mc-product .mc-price { color: var(--mc-surface-ink, var(--mc-ink)); }
+.mera-customer[style*="--mc-surface-ink"] .mc-categories button[aria-pressed="true"] { color: var(--mc-paper); }
+.mera-customer[style*="--mc-surface-ink"] .mc-product button,
+.mera-customer[style*="--mc-surface-ink"] .mc-primary { background: var(--mc-primary); color: var(--mc-primary-foreground); }
+.mera-customer[style*="--mc-surface-ink"] .mc-photo-placeholder { background: var(--mc-tint); color: var(--mc-ink); }
+.mera-customer[style*="--mc-surface-ink"] a { color: var(--mc-link); }
+.mera-guest-preview { box-sizing: border-box; width: 100%; max-width: 370px; min-height: 0; padding: 16px; border: 7px solid var(--mc-ink); border-radius: 36px; overflow: hidden; margin-inline: auto; }
+.mera-guest-preview .mgp-browser { text-align: center; overflow-wrap: anywhere; font-size: 12px; padding: 8px; background: var(--mc-bone); color: var(--mc-surface-ink, var(--mc-ink)); border-radius: 20px; }
+.mera-guest-preview .mgp-cover { width: 100%; height: 100px; object-fit: cover; margin-top: 12px; border-radius: 14px; }
+.mera-guest-preview .mgp-logo { max-width: 60px; max-height: 50px; object-fit: contain; }
+.mera-guest-preview .mc-hero { margin: 16px 0; padding-bottom: 12px; }
+.mera-guest-preview .mc-hero h2 { color: var(--mc-ink); font-size: 24px; margin: 0; }
+.mera-guest-preview .mc-hero p { font-size: 14px; }
+.mera-guest-preview .mc-categories { display: flex; gap: 8px; }
+.mera-guest-preview .mgp-items { display: grid; gap: 10px; margin-block: 14px; }
+.mera-guest-preview .mc-product { display: flex; align-items: center; justify-content: space-between; padding: 12px; }
+.mera-guest-preview .mc-product h3 { margin: 0 0 6px; }
+.mera-guest-preview .mc-product button { min-width: 44px; min-height: 44px; }
+.mera-guest-preview .mgp-cart { display: flex; justify-content: space-between; gap: 10px; padding: 16px; border-radius: 18px; background: var(--mc-primary); color: var(--mc-primary-foreground); font-size: 14px; }
+
+.mera-customer[style*="--mc-surface-ink"] .mc-product p { color: var(--mc-surface-muted, var(--mc-muted)); }
+.mera-customer[style*="--mc-surface-ink"] :is(.mc-menu-empty, .mc-modal-actions, .mc-receipt, .mc-customization-dialog, .mc-session, .mc-consent, .mc-help article) { background: var(--mc-bone); color: var(--mc-surface-ink, var(--mc-ink)); border-color: var(--mc-line); }
+.mera-customer[style*="--mc-surface-ink"] :is(.mc-ordering-status, .mc-alert, .mc-customization-allergens) { background: var(--mc-tint); color: var(--mc-ink); border-color: var(--mc-line); }
+.mera-customer[style*="--mc-surface-ink"] :is(.mc-close, .mc-line-controls button) { background: var(--mc-paper); color: var(--mc-ink); }
+.mera-customer[style*="--mc-surface-ink"] .mc-search::placeholder { color: var(--mc-surface-muted, var(--mc-muted)); }
+.mera-customer[style*="--mc-surface-ink"] :is(.mc-cart, .mc-panel) :is(h2, h3, label, .mc-price) { color: inherit; }
+.mera-customer[style*="--mc-surface-ink"] .mc-line-controls b { color: inherit; }
+/* Opposing page/card surfaces each retain their own readable foreground. */
+.mera-customer[style*="--mc-surface-ink"] :is(.mc-product, .mc-cart, .mc-panel, .mc-modal, .mc-customization-dialog) {
+  --mc-ink: var(--mc-surface-ink);
+  --mc-muted: var(--mc-surface-muted);
+  --mc-link: var(--mc-surface-link);
+}
+
+.mera-customer[style*="--mc-surface-ink"] .mc-customization-dialog :is(.mc-customization-eyebrow, .mc-modifier small, .mc-option-hint, .mc-customization-price-note) { color: var(--mc-surface-muted); }
+.mera-customer[style*="--mc-surface-ink"] .mc-customization-dialog :is(.mc-modal-header, .mc-modal-actions, .mc-option-group, .mc-customization-allergens) { border-color: var(--mc-line); }
+.mera-customer[style*="--mc-surface-ink"] .mc-customization-dialog .mc-modal-actions { background: var(--mc-bone); }
+.mera-customer[style*="--mc-surface-ink"] .mc-customization-dialog .mc-option-error { color: var(--mc-link); }

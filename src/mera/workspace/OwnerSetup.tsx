@@ -1,3 +1,5 @@
+import BrandPaletteFields from "./BrandPaletteFields";
+import GuestMenuPreview from "./GuestMenuPreview";
 import { allowedCurrencies } from "../../../shared/mera-money.js";
 import { validPublicContact } from "./publicContact";
 import React, { useEffect, useRef, useState } from "react";
@@ -68,6 +70,7 @@ type Snapshot = {
   capabilities: string[];
   sameKind: boolean;
   payments?: Record<string, string[]>;
+  branding?: any;
 };
 type Attempt = { writes: Write[]; target: number; snapshot?: Snapshot };
 type Write = {
@@ -103,6 +106,10 @@ function GuidedSetup({
     recovery = { writes: [], target: -1 };
   }
   const snapshot = recovery?.snapshot;
+  const [branding, setBranding] = useState<any>(() => {
+    const b = organization.branding || {};
+    return snapshot?.branding || { primary: b.primary || "#1558c9", accent: b.accent || "#83ddf7", description: b.description || "", font: b.font || "system", logo: b.logo, coverImage: b.coverImage, background: b.background, surface: b.surface, text: b.text, palettePreset: b.palettePreset };
+  });
   const [currency, setCurrency] = useState(snapshot?.currency || branch.currency || "NGN");
   const initialType = snapshot?.venueType || deriveVenueType(branch.settings);
   const [venueType, setVenueType] = useState(initialType);
@@ -177,6 +184,7 @@ function GuidedSetup({
     "Locations",
     ...(multiple ? ["Menu & stock"] : []),
     "Payments",
+    "Look & feel",
     "Review & finish setup",
   ];
   const legacyV2 = [0, 1, 2, 5, 6],
@@ -186,10 +194,10 @@ function GuidedSetup({
     legacyV2[data[`ownerGuideV2Step_${branch.id}`]] ??
     legacyV1[data[`ownerGuideStep_${branch.id}`]] ??
     0;
-  // Store canonical seven-step indexes so single-location progress survives a later count change.
+  // Preserve existing step indexes; appearance uses a new index before review.
   const [canonical, setCanonical] = useState(old);
   // Menu & stock (4) is a setup step only for multi-location businesses.
-  const canonicalSteps = multiple ? [0, 1, 2, 3, 4, 5, 6] : [0, 1, 2, 3, 5, 6];
+  const canonicalSteps = multiple ? [0, 1, 2, 3, 4, 5, 7, 6] : [0, 1, 2, 3, 5, 7, 6];
   const step = Math.max(
     0,
     canonicalSteps.indexOf(!multiple && canonical === 4 ? 5 : canonical),
@@ -411,6 +419,8 @@ function GuidedSetup({
             );
           });
         }
+        if (forward && canonical === 7)
+          writes.push(write(`${orgBase}/branding`, { ...branding, logo }));
         if (forward && canonical === 4)
           writes.push(
             write(
@@ -453,6 +463,7 @@ function GuidedSetup({
             capabilities,
             sameKind,
             payments: paymentDrafts.current,
+            branding: { ...branding, logo },
           },
         });
         window.sessionStorage.setItem(recoveryKey, JSON.stringify(attempt));
@@ -797,6 +808,12 @@ function GuidedSetup({
                 {...operating}
                 onChange={(patch) => setOperating({ ...operating, ...patch })}
               />
+            )}
+            {canonical === 7 && (
+              <section aria-label="Look & feel" className="mera-onboarding-brand">
+                <div><BrandPaletteFields branding={branding} onChange={setBranding} /></div>
+                <GuestMenuPreview organization={{ ...organization, currency }} branding={{ ...branding, logo }} />
+              </section>
             )}
           </fieldset>
         </form>

@@ -47,6 +47,7 @@ test("O3 settings sections retain edits and canonical save payloads", async () =
       screen.queryByRole("button", { name: "Save branch policies" }),
       null,
     );
+    fireEvent.click(screen.getByRole("button", { name: "Midnight" }));
     fireEvent.change(screen.getByLabelText("Brand description"), {
       target: { value: "Fresh tea daily" },
     });
@@ -56,6 +57,10 @@ test("O3 settings sections retain edits and canonical save payloads", async () =
     await waitFor(() => assert.equal(calls.length, 1));
     assert.equal(calls[0][0], "/organizations/org-1/branding");
     assert.equal(calls[0][2].description, "Fresh tea daily");
+    assert.equal(calls[0][2].palettePreset, "midnight");
+    assert.equal(calls[0][2].background, "#151c26");
+    assert.equal(calls[0][2].surface, "#222d3a");
+    assert.equal(calls[0][2].text, "#f4f6fa");
     fireEvent.click(screen.getByRole("button", { name: "Operating settings" }));
     assert.equal(
       (screen.getByLabelText("Branch address") as HTMLInputElement).value,

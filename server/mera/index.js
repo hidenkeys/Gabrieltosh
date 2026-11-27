@@ -1,3 +1,4 @@
+import { brandingSchema } from "./branding.js";
 import { currencySchema, validateCurrencyChange, providersForCurrency } from "./currency.js";
 import { migrateMenuImport, mountMenuImport } from "./menu-import.js";
 import bcrypt from "bcryptjs";
@@ -476,6 +477,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
         name: m.name,
         slug: m.slug,
         publicAddress: resolveMeraHost(`${m.slug}.${process.env.MERA_ROOT_DOMAIN||""}`, process.env.MERA_ROOT_DOMAIN)?.slug===m.slug ? `${m.slug}.${process.env.MERA_ROOT_DOMAIN.trim().toLowerCase()}` : null,
+        rootDomain: process.env.MERA_ROOT_DOMAIN?.trim().toLowerCase() || null,
         branding: m.branding,
         onboarding: m.onboarding,
         subscription: safeSubscription(m.subscription,m.permissions),
@@ -496,6 +498,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
       contractVersion: CONTRACT_VERSION,
       user: { id: req.user.id, name: req.user.name },
       organizations,
+      rootDomain: process.env.MERA_ROOT_DOMAIN?.trim().toLowerCase() || null,
       providers,
       policy: proposedPolicy,
       billingEnabled: billingEnabled(),
@@ -2551,17 +2554,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
     "/organizations/:organizationId/branding",
     guard("organization.manage"),
     async (req, res) => {
-      const branding = z
-        .object({
-          primary: z.string().regex(/^#[a-fA-F0-9]{6}$/),
-          accent: z.string().regex(/^#[a-fA-F0-9]{6}$/),
-          description: z.string().max(500),
-          font: z.enum(["system", "serif", "sans"]).default("system"),
-          logo:z.string().max(200).optional(),
-          coverImage:z.string().max(200).optional(),
-        })
-        .strict()
-        .parse(req.body);
+      const branding = brandingSchema.parse(req.body);
       const oldBranding=(await q("SELECT branding FROM mera_organizations WHERE id=$1",[req.params.organizationId])).rows[0].branding;
       for(const field of ["logo","coverImage"]) if(branding[field]!==undefined && branding[field]!==oldBranding[field]) await assertMeraAsset(db,req.params.organizationId,null,branding[field]);
       await q("UPDATE mera_organizations SET branding=$1 WHERE id=$2", [

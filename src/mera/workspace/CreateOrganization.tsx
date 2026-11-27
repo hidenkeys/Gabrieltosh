@@ -4,6 +4,7 @@ import { MeraBrand } from "../ui/MeraBrand";
 import { workspaceApi } from "./api";
 import OwnerVerification from "./OwnerVerification";
 type Props = {
+  rootDomain?: string | null;
   actorId: string;
   actorName: string;
   disabled: boolean;
@@ -17,6 +18,7 @@ type Props = {
   onCreated: () => Promise<any>;
 };
 export default function CreateOrganization({
+  rootDomain,
   actorId,
   actorName,
   disabled,
@@ -278,6 +280,7 @@ export default function CreateOrganization({
                   {checking ? "Checking…" : "Check address"}
                 </button>
               </div>
+              {rootDomain && slug.trim() && <p>Your menu link: https://{slug.trim().toLowerCase()}.{rootDomain}</p>}
               <p id="mera-owner-address-help" role="status">
                 {availability?.text ||
                   "Choose a unique address for your organization. This is not a custom domain."}

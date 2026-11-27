@@ -137,6 +137,7 @@ test("organization creation checks address, normalizes claim and resumes setup o
   try {
     render(
       <CreateOrganization
+        rootDomain="example.com"
         actorId="test-owner"
         actorName="Owner"
         disabled={false}
@@ -153,6 +154,7 @@ test("organization creation checks address, normalizes claim and resumes setup o
     fireEvent.change(screen.getByLabelText("Organization name"), {
       target: { value: " Venue " },
     });
+    assert.ok(screen.getByText("Your menu link: https://venue.example.com"));
     fireEvent.change(screen.getByLabelText("Requested Mera address"), {
       target: { value: "Test-Venue" },
     });
@@ -488,7 +490,7 @@ test("legacy nine-step progress maps forward to the review stage and never mount
       screen
         .getByRole("navigation", { name: "Owner setup steps" })
         .querySelectorAll("ol button").length,
-      6,
+      7,
     );
   } finally {
     cleanup();
@@ -682,6 +684,10 @@ test("payments Continue saves reviewed manual methods, preserves caveats verbati
       ),
     );
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByRole("heading", { name: "Look & feel" });
+    assert.ok(screen.getByRole("region", { name: "Guest menu preview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Midnight" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByRole("heading", { name: "Review & finish setup" });
     assert.deepEqual(
       writes.find((w) => w.path.endsWith("/launch-policy")).body,
@@ -695,6 +701,8 @@ test("payments Continue saves reviewed manual methods, preserves caveats verbati
       false,
     );
     assert.ok(screen.getByRole("button", { name: "Finish setup" }));
+    assert.equal(writes.find(w => w.path.endsWith("/branding")).body.palettePreset, "midnight");
+    assert.equal(writes.find(w => w.path.endsWith("/branding")).body.background, "#151c26");
   } finally {
     cleanup();
     window.sessionStorage.clear();
@@ -859,7 +867,7 @@ test("review finishes onboarding without publication and returns home", async ()
       screen
         .getAllByRole("navigation", { name: "Owner setup steps" })[0]
         .querySelectorAll("li").length,
-      6,
+      7,
     );
     assert.equal(screen.queryByRole("button", { name: "Go live" }), null);
     fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
