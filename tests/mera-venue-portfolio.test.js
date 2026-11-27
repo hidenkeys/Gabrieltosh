@@ -302,3 +302,26 @@ test("pay-at-end venue defaults enable preparation without changing pay-first de
   for (const type of ["quick_service", "cafe"])
     assert.equal(TYPE_DEFAULTS[type].payLater, false, type);
 });
+test("every guest-facing branch gets a branch QR and each table a table QR, with an audit entry", () => {
+  for (const org of buildVenuePortfolio({ now })) {
+    const ids = new Set(org.records.map((r) => r.id));
+    assert.equal(ids.size, org.records.length);
+    for (const b of org.branches) {
+      const of = (kind) =>
+        org.records.filter((r) => r.branch_id === b.id && r.kind === kind).map((r) => r.data);
+      const codes = of("qr_code");
+      if (b.settings.role === "stock_room") {
+        assert.equal(codes.length, 0);
+        continue;
+      }
+      assert.equal(codes.filter((q) => q.kind === "branch" && q.active).length, 1);
+      for (const t of of("table"))
+        assert.equal(codes.filter((q) => q.kind === "table" && q.tableId === t.id && q.active).length, 1);
+      for (const q of codes)
+        assert.ok(
+          of("audit").some((a) => a.action === "qr_code_created" && a.details.id === q.id),
+          `audit for ${org.slug} ${q.kind} QR`,
+        );
+    }
+  }
+});

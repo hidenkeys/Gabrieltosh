@@ -233,6 +233,24 @@ export function buildVenuePortfolio({ now = new Date(), days = 14 } = {}) {
             version: 1,
           })
         : null;
+      // Guest QR codes, as the workspace would create them: one for the
+      // branch and one per table, so QR ordering works without setup.
+      const qrAt = new Date(+anchor - days * 86400000).toISOString();
+      for (const target of [{ kind: "branch" }, ...(table ? [{ kind: "table", tableId: table.id }] : [])]) {
+        const code = add(b, "qr_code", target.kind, {
+          ...target,
+          active: true,
+          createdBy: owner,
+          createdAt: qrAt,
+        });
+        add(b, "audit", `qr_code:${target.kind}`, {
+          action: "qr_code_created",
+          actorId: owner,
+          actorName: "Mera sample seed",
+          details: { id: code.id, kind: target.kind, tableId: target.tableId || null },
+          createdAt: qrAt,
+        });
+      }
       for (let day = 0; day < days; day++) {
         const date = new Date(+anchor - day * 86400000);
         date.setUTCHours(type === "club" ? 1 : 15, 0, 0, 0);
