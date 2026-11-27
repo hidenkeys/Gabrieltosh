@@ -5498,3 +5498,46 @@ test("owner guide stays mounted while setup saves and branch refresh is in fligh
     assert.ok(screen.getByRole("heading",{name:"Your business"}));
   } finally {cleanup(); globalThis.fetch=originalFetch; window.history.replaceState(null,"","/mera/workspace");}
 });
+
+
+test('hand-created menu items default to kitchen and drink categories use bar', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = (async (input: any, init: any) => {
+    if (String(input).endsWith('/context')) return Response.json({...context, organizations:[{...context.organizations[0], permissions:['menu.edit']}]});
+    if (String(input).endsWith('/categories')) return Response.json({categories:[]});
+    return original(input,init);
+  }) as any;
+  try {
+    render(<Workspace user={user} notify={() => {}} />);
+    fireEvent.click(await screen.findByRole('button',{name:'New product'}));
+    assert.equal(choiceValue(screen,'Preparation station'),'kitchen');
+    for (const category of ['Drinks', 'Beverages', 'Bar', 'Cocktails', 'Wine', 'Beer', 'Juice', 'Coffee', 'Tea', 'Soda', 'Shakes']) {
+      fireEvent.change(screen.getByRole('textbox',{name:'Category',exact:true}),{target:{value:category}});
+      assert.equal(choiceValue(screen,'Preparation station'),'bar',category);
+    }
+    fireEvent.change(screen.getByRole('textbox',{name:'Category',exact:true}),{target:{value:'Main dishes'}});
+    assert.equal(choiceValue(screen,'Preparation station'),'kitchen');
+  } finally {cleanup(); globalThis.fetch=original;}
+});
+
+test('successful table creation clears the draft before a second submission', async () => {
+  const original = globalThis.fetch;
+  let creates=0;
+  globalThis.fetch = (async (input: any, init: any) => {
+    const path=String(input);
+    if (path.endsWith('/context')) return Response.json({...context, organizations:[{...context.organizations[0], permissions:['tables.manage']}]});
+    if (path.endsWith('/tables') && init?.method === 'POST') {creates++; return Response.json({id:'new-table'});}
+    return original(input,init);
+  }) as any;
+  try {
+    render(<Workspace user={user} notify={() => {}} />);
+    fireEvent.click(await screen.findByRole('button',{name:'Floor layout'}));
+    fireEvent.change(screen.getByRole('textbox',{name:'Table label',exact:true}),{target:{value:'Garden'}});
+    fireEvent.change(screen.getByRole('textbox',{name:'Zone',exact:true}),{target:{value:'Outside'}});
+    fireEvent.click(screen.getByRole('button',{name:'Create table'}));
+    await waitFor(()=>assert.equal(creates,1));
+    await waitFor(()=>assert.equal((screen.getByRole('textbox',{name:'Table label',exact:true}) as HTMLInputElement).value,''));
+    assert.equal((screen.getByRole('textbox',{name:'Zone',exact:true}) as HTMLInputElement).value,'');
+    assert.equal((screen.getByRole('form',{name:'Create branch table'}) as HTMLFormElement).checkValidity(),false);
+  } finally {cleanup(); globalThis.fetch=original;}
+});

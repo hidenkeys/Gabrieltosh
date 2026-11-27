@@ -11,6 +11,7 @@ export default function MeraSignIn({
   onSignedIn?: (user: User) => void;
 }) {
   const operator = mode === "operator";
+  const resetRequested = !operator && new URLSearchParams(window.location.search).get("reset") === "1";
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -202,6 +203,11 @@ export default function MeraSignIn({
               </a>
             </p>
           )}
+          {resetRequested && <div role="status">
+            <h2>Reset password</h2>
+            <p>Contact your organization administrator to reset your password. If you own the account, contact Mera support through the Contact page on the Mera website.</p>
+            <a href="/mera/contact">Get account help</a>
+          </div>}
           <p className="mera-signin-help">
             {operator
               ? "Need operator access or an authenticator reset? Contact your authorized platform administrator."

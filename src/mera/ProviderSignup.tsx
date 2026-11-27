@@ -43,6 +43,7 @@ export default function ProviderSignup({
   const [initial] = useState(recovery),
     [key, setKey] = useState(initial.key),
     [blocked, setBlocked] = useState(initial.blocked);
+  const [emailExists, setEmailExists] = useState(false);
   const [pendingResend, setPendingResend] = useState<any>(initial.pending);
   const [recoveryMode, setRecoveryMode] = useState(
     () => new URLSearchParams(window.location.search).get("resend") === "1",
@@ -156,7 +157,7 @@ export default function ProviderSignup({
     } catch (e: any) {
       if (
         kind === "register" &&
-        (e.status === 400 || e.code === "RECIPIENT_NOT_ALLOWED")
+        (e.status === 400 || e.code === "RECIPIENT_NOT_ALLOWED" || (e.status === 409 && e.code === "ACCOUNT_CONFLICT"))
       ) {
         try {
           if (sessionStorage.getItem(storageKey) === requestKey) {
@@ -178,7 +179,9 @@ export default function ProviderSignup({
           setBlocked(true);
         }
       }
-      setError(e.message || "This action could not be confirmed.");
+      const existingEmail = kind === "register" && e.status === 409 && e.code === "ACCOUNT_CONFLICT";
+      setEmailExists(existingEmail);
+      setError(existingEmail ? "An account with this email already exists" : e.message || "This action could not be confirmed.");
       if (kind === "verify") setVerifyUnknown(true);
     } finally {
       flight.current = false;
@@ -389,6 +392,7 @@ export default function ProviderSignup({
           " Registration is restricted to approved recipients."}
       </p>
       {error && <p role="alert">{error}</p>}
+      {emailExists && <p><a href="/mera/workspace?setup=1">Sign in</a>{" · "}<a href="/mera/workspace?reset=1">Reset password</a></p>}
       <button
         type="button"
         className="secondary"

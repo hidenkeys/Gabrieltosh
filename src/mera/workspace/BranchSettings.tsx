@@ -1,6 +1,6 @@
 import { allowedCurrencies } from "../../../shared/mera-money.js";
 import { type ReactNode, useRef, useState } from "react";
-import { TYPE_DEFAULTS, deriveVenueType } from "./setup/venues";
+import { TYPE_DEFAULTS, deriveVenueType, capabilitiesToLegacyModes, effectiveCapabilities } from "./setup/venues";
 import Switch from "../ui/Switch";
 import Stepper from "../ui/Stepper";
 import Combobox from "../ui/Combobox";
@@ -63,7 +63,7 @@ export default function BranchSettings({
     timezone: branch.timezone || "Africa/Lagos",
     cutoff:
       branch.cutoff ?? TYPE_DEFAULTS[deriveVenueType(branch.settings)].cutoff,
-    serviceModes: (branch.settings?.serviceModes || []) as string[],
+    serviceModes: capabilitiesToLegacyModes(effectiveCapabilities(branch.settings || {})) as string[],
   });
   const [branding, setBranding] = useState({
     primary: organization.branding?.primary || "#1558c9",

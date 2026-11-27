@@ -353,3 +353,18 @@ test("accepted email exposes disabled resend during cooldown and refresh enables
   );
   assert.equal(checks, 2);
 });
+
+test('existing email conflict clears registration recovery and offers sign-in and reset', async () => {
+  reset();
+  globalThis.fetch = async () => Response.json({error: 'Account conflict', code: 'ACCOUNT_CONFLICT'}, {status: 409});
+  render(<ProviderSignup />);
+  fill();
+  fireEvent.click(screen.getByRole('button', {name: 'Create owner account'}));
+  await screen.findByText('An account with this email already exists');
+  assert.equal(sessionStorage.getItem(key), null);
+  assert.ok(screen.getByRole('link', {name: 'Sign in'}));
+  assert.ok(screen.getByRole('link', {name: 'Reset password'}));
+  assert.equal((screen.getByLabelText('Email address') as HTMLInputElement).disabled, false);
+  assert.ok(screen.getByRole('button', {name: 'Create owner account'}));
+  reset();
+});

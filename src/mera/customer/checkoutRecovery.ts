@@ -36,6 +36,7 @@ export const checkoutIntentSchema = z
     fulfillment: z.enum(["counter_pickup", "takeaway", "table_service"]),
     visitId: z.string().uuid().optional(),
     tableId: z.string().uuid().optional(),
+  qrId: z.string().uuid().optional(),
     reservationId: z.string().uuid().optional(),
     items: z.array(item).min(1).max(100),
     note: z.string().max(500),

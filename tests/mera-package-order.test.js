@@ -109,7 +109,7 @@ test("real package checkout requires a validated open table visit and leaves sto
   const f = fixture();
   const body = { requestKey: randomUUID(), menuVersion: 1, displayName: "Fictional guest", items: [{ productId: f.packageId, quantity: 1 }] };
   await assert.rejects(() => f.invoke("/orders", body), /table/i);
-  await assert.rejects(() => f.invoke("/orders", { ...body, fulfillment: "table_service", visitId: randomUUID() }), /Record not found/);
+  await assert.rejects(() => f.invoke("/orders", { ...body, fulfillment: "table_service", visitId: randomUUID() }), {status:403});
   assert.equal(f.records("product").find(p => p.id === f.componentId).stock, 20);
   assert.equal(f.records("order").length, 0);
 });

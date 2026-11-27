@@ -7,7 +7,7 @@ import {
   customerSummary,
 } from "../server/mera/workspace-admin.js";
 const B = "/organizations/:organizationId/branches/:branchId";
-function fixture() {
+function fixture(initialSettings) {
   const handlers = new Map(),
     calls = [],
     events = [],
@@ -48,7 +48,7 @@ function fixture() {
       return { rows: p[0] === "org" ? [{ id: "org" }] : [] };
     if (sql.startsWith("SELECT data FROM mera_records") && sql.includes("kind='branch_creation'")) return { rows: branchCreations.filter(r => r.org === p[0] && r.data.requestKey === p[1]).map(r => ({data:r.data})) };
     if (sql.startsWith("INSERT INTO mera_records") && sql.includes("'branch_creation'")) {branchCreations.push({org:p[1],data:JSON.parse(p[3])});return {rows:[]};}
-    if (sql.startsWith("SELECT id,settings FROM mera_branches"))return {rows:branchInserts.map(p=>({id:p[0],settings:JSON.parse(p[6])}))};
+    if (sql.startsWith("SELECT id,settings FROM mera_branches"))return {rows:[...(initialSettings ? [{id:"first",settings:initialSettings}] : []), ...branchInserts.map(p=>({id:p[0],settings:JSON.parse(p[6])}))]};
     if (sql.startsWith("INSERT INTO mera_branches")) {
       branchInserts.push(p);
       return { rows: [] };
@@ -314,4 +314,20 @@ test("branch creation replays only exact normalized actor intent without another
   await assert.rejects(f.call("post",path,{...input,name:"Different branch"}), e=>e.code==="IDEMPOTENCY_CONFLICT");
   await assert.rejects(f.call("post",path,input,{actorId:"another-owner"}), e=>e.code==="IDEMPOTENCY_CONFLICT");
   assert.equal(f.branchInserts.length,1);
+});
+
+for (const settings of [{venueType:'lounge', capabilities:['qr_ordering','reservations','table_service','open_tabs']}, {venueType:'reservation_restaurant', serviceModes:['table_service','reservations']}, {venueType:'lounge'}])
+  test('later branch inherits existing venue capabilities and reservation availability', async () => {
+    const f = fixture(settings);
+    const result = await f.call('post', '/organizations/:organizationId/branches', {requestKey:randomUUID(), name:'Second venue'});
+    assert.ok(result.value.settings.capabilities.includes('reservations'));
+    assert.ok(result.value.settings.capabilities.includes('table_service'));
+    assert.equal(result.value.settings.reservationsEnabled, true);
+    assert.equal(result.value.settings.venueType, settings.venueType);
+  });
+test('explicit venue type uses its preset for a new branch', async () => {
+  const f = fixture();
+  const result = await f.call('post','/organizations/:organizationId/branches',{requestKey:randomUUID(), name:'Lounge', venueType:'lounge'});
+  assert.ok(result.value.settings.capabilities.includes('open_tabs'));
+  assert.equal(result.value.settings.reservationsEnabled,true);
 });

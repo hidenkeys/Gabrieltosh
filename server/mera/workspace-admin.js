@@ -1,6 +1,6 @@
 import { currencySchema } from "./currency.js";
 import { locationFields, locationSettings } from "./venue-access.js";
-import { defaultLocationCode,deriveVenueType,TYPE_DEFAULTS } from "../../shared/mera-venues.js";
+import { defaultLocationCode,deriveVenueType,TYPE_DEFAULTS,effectiveCapabilities,capabilitiesToLegacyModes } from "../../shared/mera-venues.js";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { resolveRole } from "./roles.js";
@@ -146,15 +146,21 @@ export function mountMeraWorkspaceAdmin(router, { db, guard, scope, event }) {
               ...locationSettings(Object.fromEntries(Object.keys(locationFields).filter(k=>input[k]!==undefined).map(k=>[k,input[k]]))),
               serviceModes: locationSettings(input).serviceModes,
               orderingPaused: true,
-              reservationsEnabled: false,
               showSoldOut: true,
               capacity: 30,
               holdMinutes: 10,
             };
-          const existing=(await c.query("SELECT id,settings FROM mera_branches WHERE organization_id=$1",[org.id])).rows;
+          const existing=(await c.query("SELECT id,settings FROM mera_branches WHERE organization_id=$1 ORDER BY id",[org.id])).rows;
           settings.code=input.code||defaultLocationCode(input.name,existing.map(b=>b.settings?.code));
           if(existing.some(b=>b.settings?.code===settings.code))throw fail("Location code is already in use.");
-          settings.venueType ||= deriveVenueType(settings);
+          const first = existing.find(b => b.settings?.role !== 'stock_room')?.settings;
+          settings.venueType ||= first ? deriveVenueType(first) : deriveVenueType(settings);
+          settings.capabilities = input.capabilities ?? (input.venueType
+            ? [...TYPE_DEFAULTS[input.venueType].capabilities]
+            : first && (Array.isArray(first.capabilities) || Array.isArray(first.serviceModes))
+              ? effectiveCapabilities(first) : [...TYPE_DEFAULTS[settings.venueType].capabilities]);
+          settings.serviceModes = capabilitiesToLegacyModes(settings.capabilities);
+          settings.reservationsEnabled = settings.capabilities.includes("reservations");
           settings.payLater = TYPE_DEFAULTS[settings.venueType].payLater;
           settings.role ||= 'outlet'; settings.colorTag ||= 'forest';settings.version=1;
           await c.query(

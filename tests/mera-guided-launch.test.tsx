@@ -90,7 +90,7 @@ test("one explicit go-live persists reviewed original policy then publication; n
     window.sessionStorage.clear();
   }
 });
-test("blocked authoritative policy never publishes; malformed acknowledgement stays locked across remount", async () => {
+test("blocked authoritative policy never publishes; malformed acknowledgement requires an explicit authoritative recheck", async () => {
   globalThis.fetch = async () => Response.json(ready);
   window.sessionStorage.clear();
   let writes = 0;
@@ -127,12 +127,11 @@ test("blocked authoritative policy never publishes; malformed acknowledgement st
       true,
     );
     fireEvent.click(screen.getByRole("button", { name: "Recheck readiness" }));
-    await waitFor(() => assert.equal(writes, 2));
-    assert.equal(
-      (screen.getByRole("button", { name: "Go live" }) as HTMLButtonElement)
-        .disabled,
-      true,
-    );
+    await waitFor(() => assert.equal(
+      (screen.getByRole("button", { name: "Go live" }) as HTMLButtonElement).disabled,
+      false,
+    ));
+    assert.equal(writes, 2);
   } finally {
     cleanup();
     window.sessionStorage.clear();
@@ -307,4 +306,24 @@ test("checklist shows actionable readiness and a definite409 clears recovery", a
     cleanup();
     window.sessionStorage.clear();
   }
+});
+
+test('recheck after a lost go-live response reads server state and unlocks an unpublished branch', async () => {
+  window.sessionStorage.clear();
+  let reads = 0;
+  globalThis.fetch = async () => { reads++; return Response.json(ready); };
+  try {
+    render(<LaunchReadiness {...props} save={async (path: string) => {
+      if (path.endsWith('launch-policy')) return ready;
+      throw Error('Connection lost');
+    }} />);
+    const go = await screen.findByRole('button', {name: 'Go live'});
+    fireEvent.click(go);
+    await screen.findByText('Connection lost');
+    assert.equal((go as HTMLButtonElement).disabled, true);
+    fireEvent.click(screen.getByRole('button', {name: /Recheck/}));
+    await waitFor(() => assert.equal((go as HTMLButtonElement).disabled, false));
+    assert.ok(reads >= 2);
+    assert.equal(window.sessionStorage.length, 0);
+  } finally { cleanup(); window.sessionStorage.clear(); }
 });

@@ -29,3 +29,5 @@ export const defaultLocationCode = catalogue.defaultLocationCode as (
   name?: string,
   taken?: string[],
 ) => string;
+
+export const capabilitiesToLegacyModes = catalogue.capabilitiesToLegacyModes as (capabilities?: string[]) => string[];

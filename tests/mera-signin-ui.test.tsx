@@ -161,3 +161,13 @@ test("organization entry links real registration and separate operator entry wit
     cleanup();
   }
 });
+
+test('reset password link destination explains administrator recovery without claiming an email was sent', () => {
+  window.history.replaceState({},'', '/mera/workspace?reset=1');
+  try {
+    render(<MeraSignIn />);
+    assert.ok(screen.getByRole('heading',{name:'Reset password'}));
+    assert.match(screen.getByRole('status').textContent || '', /Contact your organization administrator/);
+    assert.equal(screen.getByRole('link',{name:'Get account help'}).getAttribute('href'),'/mera/contact');
+  } finally {cleanup(); window.history.replaceState({},'', '/mera/platform/sign-in');}
+});

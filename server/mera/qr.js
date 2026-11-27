@@ -234,9 +234,9 @@ export function mountMeraQr(router, services) {
         "table",
         row.data.tableId,
       );
-      if (table.status === "unavailable")
+      if (table.active === false || table.status === "unavailable")
         return res.status(404).json({ error: "This table is unavailable." });
-      suffix = "?tableId=" + encodeURIComponent(table.id);
+      suffix = "?tableId=" + encodeURIComponent(table.id) + "&qrId=" + encodeURIComponent(id);
     }
     // Only routing context, never a visit token or joining code, is encoded here.
     res.set("Cache-Control", "no-store");

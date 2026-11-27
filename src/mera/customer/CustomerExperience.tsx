@@ -122,6 +122,8 @@ export default function CustomerExperience({
   const requestedTable = new URLSearchParams(window.location.search).get(
     "tableId",
   );
+  const scannedQrId = new URLSearchParams(window.location.search).get("qrId");
+  const [rejectedLines, setRejectedLines] = useState<string[]>([]);
   const [joinTable, setJoinTable] = useState(requestedTable || "");
   const [tableOrderDefaulted, setTableOrderDefaulted] = useState(false);
   const [branches, setBranches] = useState<any[]>([]);
@@ -989,7 +991,7 @@ export default function CustomerExperience({
           visitId: visit?.visit?.id,
           // Scanned a table QR without joining a party: send the order to that table.
           ...(fulfillment === "table_service" && !visit?.visit?.id && scannedTable
-            ? { tableId: scannedTable.id }
+            ? { tableId: scannedTable.id, ...(scannedQrId ? { qrId: scannedQrId } : {}) }
             : {}),
           ...(bookedReservationId
             ? { reservationId: bookedReservationId }
@@ -1041,20 +1043,21 @@ export default function CustomerExperience({
       setCheckoutRecovery({ phase: "ready", message: "" });
       setQuote(null);
       setCart([]);
+      setRejectedLines([]);
       setTab("track");
       checkoutKey.current = requestId();
     } catch (e) {
       if (generation !== checkoutGeneration.current) return;
       const message = (e as Error).message;
-      const canCorrectFirstDomainRejection =
-        !checkoutUncertain.current &&
-        (e as any).status === 409 &&
-        ["MENU_CHANGED", "QUOTE_CHANGED", "QUOTE_REQUIRED"].includes(
+      const definiteRejection =
+        (["OUT_OF_STOCK", "MENU_CHANGED", "TOO_MANY_OPEN_ORDERS"].includes((e as any).code) || !checkoutUncertain.current) &&
+        [409, 429].includes((e as any).status) &&
+        ["OUT_OF_STOCK", "MENU_CHANGED", "TOO_MANY_OPEN_ORDERS", "QUOTE_CHANGED", "QUOTE_REQUIRED"].includes(
           (e as any).code,
         );
-      if (canCorrectFirstDomainRejection && !attempt) {
+      if (definiteRejection && !attempt) {
         setQuote(null);
-      } else if (canCorrectFirstDomainRejection) {
+      } else if (definiteRejection) {
         try {
           const scope = checkoutScopeFromMenu(
             menu?.organization?.id,
@@ -1066,6 +1069,12 @@ export default function CustomerExperience({
           checkoutReviewRef.current = null;
           checkoutIntentRef.current = null;
           setCheckoutIntent(null);
+          checkoutUncertain.current = false;
+          setCheckoutRecovery({ phase: "ready", message: "" });
+          checkoutKey.current = requestId();
+          setTab("menu");
+          if (["OUT_OF_STOCK", "MENU_CHANGED"].includes((e as any).code))
+            setRejectedLines(cart.map(line => line.key));
           setQuote(null);
         } catch (clearError) {
           checkoutUncertain.current = true;
@@ -1904,6 +1913,7 @@ export default function CustomerExperience({
                         <div className="mc-line" key={line.key}>
                           <strong>{line.name}</strong>
                           <small>{line.summary}</small>
+                          {rejectedLines.includes(line.key) && <small role="status">Review this item before ordering again.</small>}
                           <div className="mc-line-controls">
                             <Stepper
                               label={`Quantity for ${line.name}${line.summary ? ` (${line.summary})` : ""}`}

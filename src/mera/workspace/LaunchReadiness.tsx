@@ -86,7 +86,13 @@ export default function LaunchReadiness({
           throw new Error(
             "Publication checks are unavailable. Please try again.",
           );
-        if (!controller.signal.aborted) setReadiness(result);
+        if (!controller.signal.aborted) {
+          setReadiness(result);
+          if (revision > 0 && !inFlight.current && ["draft", "published"].includes(result.launchState)) {
+            window.sessionStorage.removeItem(attemptKey);
+            setUncertain(false);
+          }
+        }
       })
       .catch((e) => {
         if (e.name !== "AbortError") setError(e.message);
@@ -99,6 +105,7 @@ export default function LaunchReadiness({
   async function goLive() {
     if (
       disabled ||
+      checking ||
       inFlight.current ||
       uncertain ||
       !methods.length ||
@@ -499,7 +506,7 @@ export default function LaunchReadiness({
             <p role="alert">
               A previous launch attempt is unconfirmed. Recheck readiness;
               publication will not be repeated automatically. If the branch
-              remains unpublished, ask support to review the original attempt.
+              is still unpublished after rechecking, you can try Go live again.
             </p>
           )}
           <div className="mw-actions">
@@ -510,6 +517,7 @@ export default function LaunchReadiness({
                 disabled={
                   disabled ||
                   busy ||
+                  checking ||
                   uncertain ||
                   !methods.length ||
                   !validPublicContact(contact) ||
@@ -551,24 +559,8 @@ export default function LaunchReadiness({
             )}
             <button
               className="secondary"
-              disabled={busy}
-              onClick={async () => {
-                setError("");
-                try {
-                  const next = await workspaceApi(base + "/readiness");
-                  if (!next || !Array.isArray(next.checks))
-                    throw new Error(
-                      "Publication checks are unavailable. Please try again.",
-                    );
-                  setReadiness(next);
-                  if (next.launchState === "published") {
-                    window.sessionStorage.removeItem(attemptKey);
-                    setUncertain(false);
-                  }
-                } catch (e) {
-                  setError((e as Error).message);
-                }
-              }}
+              disabled={busy || checking}
+              onClick={() => setRevision((value) => value + 1)}
             >
               Recheck readiness
             </button>

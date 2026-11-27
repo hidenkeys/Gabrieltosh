@@ -727,3 +727,18 @@ test("overview presets retain organization permission and restrict reads to assi
   await assert.rejects(() => request({ preset: "today" }, { permissions: [] }));
   assert.equal(reads.length, before);
 });
+
+test('legacy service modes writes update capability authority', () => {
+  const settings = locationSettings({serviceModes: ['table_service', 'reservations']});
+  assert.ok(settings.capabilities?.includes('reservations'));
+  assert.ok(settings.capabilities?.includes('table_service'));
+  assert.deepEqual(locationSettings({serviceModes: ['table_service'], capabilities: ['qr_ordering']}).capabilities, ['qr_ordering']);
+});
+test('legacy switches preserve capabilities with no legacy switch', () => {
+  const settings=locationSettings({serviceModes:['reservations']},{capabilities:['room_charge','guest_list','table_service','deposits']});
+  assert.ok(settings.capabilities.includes('reservations'));
+  assert.ok(settings.capabilities.includes('room_charge'));
+  assert.ok(settings.capabilities.includes('guest_list'));
+  assert.ok(settings.capabilities.includes('deposits'));
+  assert.equal(settings.capabilities.includes('table_service'),false);
+});

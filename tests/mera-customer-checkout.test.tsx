@@ -370,3 +370,35 @@ test("tracking and receipt present unpaid truth and branch-labelled activity dat
     false,
   );
 });
+
+for (const [code, status] of [["OUT_OF_STOCK", 409], ["MENU_CHANGED", 409], ["TOO_MANY_OPEN_ORDERS", 429]] as const)
+  test(`${code} is a definite rejection that unlocks the basket and clears recovery`, async (t) => {
+    let reads = 0;
+    api(t, (path) => path.endsWith('/orders')
+      ? Response.json({error: 'You have 3 orders waiting. Ask staff or wait for them to be prepared.', code}, {status})
+      : Response.json({orders: [], reservations: [], feedback: []}), () => { reads++; return menu; });
+    await mount();
+    add();
+    fireEvent.click(screen.getByRole('button', {name: 'Submit order'}));
+    await screen.findByText('You have 3 orders waiting. Ask staff or wait for them to be prepared.');
+    assert.equal((screen.getByRole('button', {name: 'Submit order'}) as HTMLButtonElement).disabled, false);
+    assert.equal(Object.keys(window.sessionStorage).some(k => k.startsWith('mera:checkout:tab:')), false);
+    assert.equal(screen.queryByRole('button', {name: /Check original order/}), null);
+    assert.ok(reads >= 2);
+    if (code !== 'TOO_MANY_OPEN_ORDERS') assert.ok(screen.getByText('Review this item before ordering again.'));
+  });
+
+test('table QR identity is sent with the table and retained in checkout recovery', async (t) => {
+  const tableId='50000000-0000-4000-8000-000000000001', qrId='60000000-0000-4000-8000-000000000001';
+  window.history.replaceState({},'',`?tableId=${tableId}&qrId=${qrId}`);
+  const writes=api(t, (path) => {if(path.endsWith('/orders')) throw Error('Connection lost'); return Response.json({});}, {...menu,tables:[{id:tableId,name:'Window'}]});
+  try {
+    await mount(); add();
+    fireEvent.click(screen.getByRole('button',{name:'Submit order'}));
+    await screen.findByText(/Connection interrupted\. Your basket/);
+    const body=writes.find(w=>w.path.endsWith('/orders')).body;
+    assert.equal(body.tableId,tableId); assert.equal(body.qrId,qrId);
+    const saved=Object.keys(window.sessionStorage).find(k=>k.startsWith('mera:checkout:tab:'))!;
+    assert.equal(JSON.parse(window.sessionStorage.getItem(saved)!).intent.qrId,qrId);
+  } finally {window.history.replaceState({},'','/mera/menu/bing-chun/20000000-0000-4000-8000-000000000001');}
+});

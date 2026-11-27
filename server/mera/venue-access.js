@@ -4,6 +4,9 @@ import {
   VENUE_TYPES,
   LOCATION_COLORS,
   capabilitiesToLegacyModes,
+  capabilitiesFromLegacyModes,
+  effectiveCapabilities,
+  LEGACY_MODE_TO_CAPABILITIES,
 } from "../../shared/mera-venues.js";
 import { hasCapability } from "../../shared/mera-venues.js";
 import { rolePermissions } from "../../shared/mera-contracts.js";
@@ -23,11 +26,16 @@ export const locationFields = {
   role: z.enum(["outlet", "stock_room"]).optional(),
   entryProductId: z.string().uuid().nullable().optional(),
 };
-export function locationSettings(input) {
+export function locationSettings(input, previous = {}) {
+  // Legacy controls own only the capabilities represented by their switches.
+  const legacyOwned = new Set(Object.values(LEGACY_MODE_TO_CAPABILITIES).flat());
+  const capabilities = input.capabilities ?? (input.serviceModes
+    ? [...effectiveCapabilities(previous).filter(cap => !legacyOwned.has(cap)), ...capabilitiesFromLegacyModes(input.serviceModes)]
+    : undefined);
   return {
     ...input,
-    ...(input.capabilities
-      ? { serviceModes: capabilitiesToLegacyModes(input.capabilities) }
+    ...(capabilities
+      ? { capabilities, serviceModes: capabilitiesToLegacyModes(capabilities) }
       : {}),
   };
 }

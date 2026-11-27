@@ -321,7 +321,8 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
   router.use("/public", previewWriteGuard);
   const rateBuckets = new Map();
   router.use(["/public", "/invitations", /^\/organizations\/[^/]+\/branches\/[^/]+\/menu-import\/extract$/], (req, res, next) => {
-    const key = req.ip + ":" + (req.method === "GET" ? "read" : "write");
+    const orderCreate = req.method === "POST" && /^\/[^/]+\/[^/]+\/orders\/?$/.test(req.path);
+    const key = req.ip + ":" + (orderCreate ? "order-create" : req.method === "GET" ? "read" : "write");
     const stamp = Date.now();
     let bucket = rateBuckets.get(key);
     if (!bucket || stamp - bucket.start > 60000) {
@@ -330,7 +331,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
       rateBuckets.set(key, bucket);
     }
     bucket.count++;
-    if (bucket.count > (req.method === "GET" ? 300 : 60))
+    if (bucket.count > (orderCreate ? 10 : req.method === "GET" ? 300 : 60))
       return res.status(429).json({
         error: "Too many requests. Please wait a minute.",
         code: "RATE_LIMITED",
@@ -1014,6 +1015,26 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
         409,
         "MENU_CHANGED",
       );
+    // A visit can attach any order to its bill, regardless of fulfillment.
+    if (input.visitId) {
+      if (source === "zidi") throw fail("The table-visit integration authorization contract is not configured.", 409, "INTEGRATION_SCOPE_REQUIRED");
+      const row = (await c.query(
+        "SELECT data FROM mera_records WHERE id=$1 AND organization_id=$2 AND branch_id=$3 AND kind=$4",
+        [input.visitId, s.organizationId, s.branchId, "visit"],
+      )).rows[0];
+      if (!row || row.data.status !== "open" ||
+          (source === "customer_qr" && (!guestId || !row.data.guestIds?.includes(guestId))))
+        throw fail("Join this visit using its private joining code.", 403);
+    }
+    // locked() holds the branch row lock until commit, including this count and insert.
+    if (source === "customer_qr") {
+      const { rows } = await c.query(
+        "SELECT COUNT(*) AS count FROM mera_records WHERE organization_id=$1 AND branch_id=$2 AND kind='order' AND data->>'guestId'=$3 AND data->>'source'='customer_qr' AND data->>'status' IN ('submitted','accepted','preparing','ready') AND COALESCE(data->>'outstandingBalance', data->>'total')::numeric > 0 AND data->>'paymentStatus' IS DISTINCT FROM 'paid'",
+        [s.organizationId, s.branchId, guestId],
+      );
+      if (Number(rows[0].count) >= 3)
+        throw fail("You have 3 orders waiting. Ask staff or wait for them to be prepared.", 429, "TOO_MANY_OPEN_ORDERS");
+    }
     let tableForOrder = null;
     if (input.fulfillment === "table_service") {
       if (source === "zidi")
@@ -1023,19 +1044,20 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
           "INTEGRATION_SCOPE_REQUIRED",
         );
       if (input.visitId) {
-        const visit = await find(c, s, "visit", input.visitId);
-        if (
-          visit.status !== "open" ||
-          (guestId && !visit.guestIds.includes(guestId))
-        )
-          throw fail("Join this visit using its private joining code.", 403);
+        // Visit authorization is checked for every fulfillment above.
       } else if (input.tableId) {
         // A table QR order: delivered to the table as its own order, never added to a party's bill.
         if (!hasCapability(b.settings, "table_service"))
           throw fail("This location does not serve tables.", 409, "CAPABILITY_DISABLED");
+        if (source === "customer_qr") {
+          const qr = input.qrId && (await readRecords(c, s.organizationId, s.branchId, "qr_code"))
+            .find((r) => r.id === input.qrId)?.data;
+          if (!qr || qr.active === false || qr.kind !== "table" || qr.tableId !== input.tableId)
+            throw fail("Open this table’s QR code before ordering.", 403, "TABLE_QR_REQUIRED");
+        }
         const table = (await readRecords(c, s.organizationId, s.branchId, "table"))
           .map((r) => r.data)
-          .find((t) => t.id === input.tableId && t.active !== false);
+          .find((t) => t.id === input.tableId && t.active !== false && (source !== "customer_qr" || t.status !== "unavailable"));
         if (!table) throw fail("This table is not available. Ask staff for help.", 409);
         tableForOrder = { id: table.id, name: table.name };
       } else throw fail("Join a current table visit before ordering.");
@@ -2506,7 +2528,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
             await validateCurrencyChange(c, b, currency);
             await c.query("UPDATE mera_branches SET currency=$1,menu_version=CASE WHEN currency<>$1 AND menu_version>0 THEN menu_version+1 ELSE menu_version END WHERE id=$2 AND organization_id=$3", [currency, b.id, b.organization_id]);
           }
-          const settings = { ...b.settings, ...locationSettings(settingsInput),version:(b.settings.version||1)+1 };
+          const settings = { ...b.settings, ...locationSettings(settingsInput, b.settings),version:(b.settings.version||1)+1 };
           await recordAccessOperation(c,req,attempt,settings);
           if(timezone!==undefined || cutoff!==undefined) await c.query("UPDATE mera_branches SET timezone=$1,cutoff=$2 WHERE id=$3 AND organization_id=$4",[timezone??b.timezone,cutoff??b.cutoff,b.id,b.organization_id]);
           await c.query(

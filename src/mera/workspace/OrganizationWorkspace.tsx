@@ -250,9 +250,12 @@ export default function OrganizationWorkspace({
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [productEdit, setProductEdit] = useState<RecordData | null>(null);
+  const stationChosen = useRef(false);
+  const defaultStation = (category: string) => /drink|beverage|bar|cocktail|wine|beer|juice|coffee|tea|soda|shake/i.test(category) ? "bar" : "kitchen";
   const productEditorRef = useRef<HTMLElement | null>(null);
   const productEditorTrigger = useRef<HTMLElement | null>(null);
   const beginProductEdit = (product: RecordData) => {
+    stationChosen.current = !!product.id;
     productEditorTrigger.current =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
@@ -2686,7 +2689,7 @@ export default function OrganizationWorkspace({
                               stockMode: "unlimited",
                               stock: 0,
                               available: true,
-                              station: "bar",
+                              station: "kitchen",
                             }),
                           "menu.edit",
                         )}
@@ -2893,6 +2896,7 @@ export default function OrganizationWorkspace({
                                 ...(category
                                   ? {
                                       category: category.name,
+                                      ...(!stationChosen.current ? { station: defaultStation(category.name) } : {}),
                                       categoryPath: categoryPath(
                                         category,
                                         categories,
@@ -2922,6 +2926,7 @@ export default function OrganizationWorkspace({
                                     setProductEdit({
                                       ...productEdit,
                                       category: event.target.value,
+                                      ...(!stationChosen.current ? { station: defaultStation(event.target.value) } : {}),
                                     })
                                   }
                                 />
@@ -2989,12 +2994,10 @@ export default function OrganizationWorkspace({
                           <ChoiceField
                             label="Preparation station"
                             value={productEdit.station}
-                            onChange={(value) =>
-                              setProductEdit({
-                                ...productEdit,
-                                station: value,
-                              })
-                            }
+                            onChange={(value) => {
+                              stationChosen.current = true;
+                              setProductEdit({ ...productEdit, station: value });
+                            }}
                           >
                             <option value="bar">Bar</option>
                             <option value="kitchen">Kitchen</option>
@@ -4032,8 +4035,8 @@ export default function OrganizationWorkspace({
                           disabled={
                             busy || offline || !Array.isArray(data.tables)
                           }
-                          onSubmit={() =>
-                            mutate(
+                          onSubmit={async () => {
+                            const created = await mutate(
                               branchBase + "/tables",
                               "POST",
                               {
@@ -4044,8 +4047,9 @@ export default function OrganizationWorkspace({
                                 y: 0,
                               },
                               "Table created.",
-                            )
-                          }
+                            );
+                            if (created) setTabForm(current => ({...current, tableName: "", capacity: 1, zone: ""}));
+                          }}
                         >
                           {field("Table label", "tableName")}
                           {field("Seats", "capacity", "number")}

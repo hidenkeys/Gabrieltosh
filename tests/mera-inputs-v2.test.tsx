@@ -371,6 +371,9 @@ test("date input-only events preserve exact local values and billing can omit av
     );
   }
   render(<Example />);
+  // The exact-date field is hidden while the value falls within the quick day chips.
+  if (!screen.queryByLabelText("Date"))
+    fireEvent.click(screen.getByRole("button", { name: "Choose another date" }));
   fireEvent.input(screen.getByLabelText("Date"), {
     target: { value: "2026-12-02" },
   });
