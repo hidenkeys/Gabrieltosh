@@ -1,3 +1,6 @@
+import { minimumSpendSnapshot } from "./minimum-spend.js";
+import { effectiveCapabilities } from "../../shared/mera-venues.js";
+import { availabilityWindowSchema } from "../../shared/mera-contracts.js";
 import { allowedCurrencies } from "../../shared/mera-money.js";
 import { validPublicContact } from "./public-contact.js";
 import { z } from "zod";
@@ -23,11 +26,105 @@ export function mountMeraReadiness(
         [s.organizationId],
       )
     ).rows[0];
-    const templates = await readRecords(
-      c,
-      s.organizationId,
-      s.branchId,
-      "template",
+    const settings = b.settings || {};
+    const caps = effectiveCapabilities(settings);
+    const records = async (kind) =>
+      (await readRecords(c, s.organizationId, s.branchId, kind)).map(
+        (r) => r.data,
+      );
+    const tables =
+      caps.includes("table_service") || caps.includes("room_charge")
+        ? await records("table")
+        : [];
+    const codes = caps.includes("table_service")
+      ? await records("qr_code")
+      : [];
+    const activeTables = tables.filter(
+      (t) => t.active !== false && t.status !== "unavailable",
+    );
+    const hoursReady =
+      Array.isArray(settings.serviceHours) &&
+      settings.serviceHours.length > 0 &&
+      settings.serviceHours.every(
+        (w) => availabilityWindowSchema.safeParse(w).success,
+      );
+    const capabilityChecks = [];
+    const add = (cap, label, ready, detail, fixTarget) => {
+      if (caps.includes(cap))
+        capabilityChecks.push({
+          id: cap,
+          label,
+          ready: !!ready,
+          detail,
+          fixTarget,
+        });
+    };
+    add(
+      "table_service",
+      "Tables and table QR codes",
+      activeTables.some((t) =>
+        codes.some(
+          (q) => q.active !== false && q.kind === "table" && q.tableId === t.id,
+        ),
+      ),
+      "Create an active table and its table QR code in Tables before going live.",
+      "tables",
+    );
+    add(
+      "reservations",
+      "Reservation capacity and hours",
+      settings.reservationsEnabled === true &&
+        Number.isInteger(settings.capacity) &&
+        settings.capacity > 0 &&
+        hoursReady,
+      "Enable reservations and set guest capacity and service hours in location settings.",
+      "operations",
+    );
+    add(
+      "deposits",
+      "Booking deposit policy",
+      settings.depositPolicy?.approved === true &&
+        settings.depositPolicy?.enabled === true &&
+        Number.isSafeInteger(settings.depositPolicy?.amount) &&
+        settings.depositPolicy.amount > 0 &&
+        ["refundable_before_cutoff", "non_refundable"].includes(
+          settings.depositPolicy.refundRule,
+        ),
+      "Review and approve the booking deposit amount and refund rules.",
+      "deposits",
+    );
+    let minimumReady = false;
+    if (caps.includes("minimum_spend")) {
+      try {
+        minimumReady = !!minimumSpendSnapshot(b);
+      } catch {
+        /* The checklist offers the policy editor instead of failing the request. */
+      }
+    }
+    add(
+      "minimum_spend",
+      "Minimum spend policy",
+      minimumReady,
+      "Review and approve the minimum spend amount and guest terms.",
+      "minimum-spend",
+    );
+    if (caps.includes("guest_list")) {
+      const entries = await records("guest_list_entry");
+      add(
+        "guest_list",
+        "Door and guest list",
+        entries.some((e) => !e.deleted) ||
+          settings.guestListWalkInsOnly === true,
+        "Add a guest list entry at the door, or explicitly choose walk-ins only in location settings.",
+        "door",
+      );
+    }
+    add(
+      "room_charge",
+      "Rooms for room service",
+      activeTables.some((t) => t.zone?.trim().toLowerCase() === "rooms"),
+      "Create a room such as Room 204 in the Rooms zone in Tables, then create its table QR code.",
+      "tables",
     );
     let validTimezone = true;
     try {
@@ -42,12 +139,24 @@ export function mountMeraReadiness(
       demo(),
     );
     const checks = [
-      ...(billingEnabled() ? [{
-        id: "subscription_access",
-        label: "Subscription access reviewed",
-        ready: entitlements.newOrdersAllowed,
-        detail: entitlements.warning,
-      }] : []),
+      {
+        id: "service_hours",
+        label: "Service hours",
+        ready: hoursReady,
+        detail: "Set the days and times this location serves guests.",
+        fixTarget: "operations",
+      },
+      ...capabilityChecks,
+      ...(billingEnabled()
+        ? [
+            {
+              id: "subscription_access",
+              label: "Subscription access reviewed",
+              ready: entitlements.newOrdersAllowed,
+              detail: entitlements.warning,
+            },
+          ]
+        : []),
       {
         id: "owner_identity",
         label: "Verified owner identity",
@@ -69,8 +178,14 @@ export function mountMeraReadiness(
       {
         id: "contacts",
         label: "Customer contact details",
-        ready: [org.branding?.contact, org.branding?.phone, org.branding?.email,
-          b.settings?.contact, b.settings?.phone, b.settings?.publicContact].some(validPublicContact),
+        ready: [
+          org.branding?.contact,
+          org.branding?.phone,
+          org.branding?.email,
+          b.settings?.contact,
+          b.settings?.phone,
+          b.settings?.publicContact,
+        ].some(validPublicContact),
       },
       {
         id: "menu",
@@ -99,6 +214,29 @@ export function mountMeraReadiness(
       billingEnabled: billingEnabled(),
       checks: checks.map((c) => ({
         ...c,
+        detail:
+          c.detail ||
+          {
+            identity: "Set the business and location names.",
+            timezone: "Choose a valid timezone and supported currency.",
+            contacts: "Add a customer phone number or email.",
+            menu: "Publish a menu with at least one item.",
+            manual_branch_policy:
+              "Choose the manual payment methods staff can record.",
+          }[c.id] ||
+          "Review this setting before going live.",
+        fixTarget:
+          c.fixTarget ||
+          {
+            owner_identity: "account",
+            identity: "business",
+            timezone: "operations",
+            contacts: "business",
+            menu: "menu",
+            printing: "printing",
+            manual_branch_policy: "payments",
+            subscription_access: "billing",
+          }[c.id],
         status: c.ready ? "ready" : "blocked",
       })),
       canPublish: checks.every((c) => c.ready),
@@ -137,7 +275,15 @@ export function mountMeraReadiness(
             .max(3)
             .refine((v) => new Set(v).size === v.length),
           launchAcknowledged: z.literal(true).optional(),
-          publicContact: z.string().trim().max(160).refine(validPublicContact, "Enter a valid customer phone number or email.").optional(),
+          publicContact: z
+            .string()
+            .trim()
+            .max(160)
+            .refine(
+              validPublicContact,
+              "Enter a valid customer phone number or email.",
+            )
+            .optional(),
         })
         .strict()
         .parse(req.body);
@@ -159,7 +305,8 @@ export function mountMeraReadiness(
       .parse(req.body);
     res.json(
       await locked(scope(req), async (c, b) => {
-        if(b.settings.role==="stock_room")throw error("Stock rooms cannot go live.");
+        if (b.settings.role === "stock_room")
+          throw error("Stock rooms cannot go live.");
         const readiness = await inspect(c, scope(req), b);
         if (!readiness.canPublish)
           throw error(

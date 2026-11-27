@@ -1,3 +1,4 @@
+import { getReadinessTarget } from "./readinessTargets";
 import PostLaunchSettings from "./PostLaunchSettings";
 import OnboardingMenu from "./OnboardingMenu";
 import OnboardingLaunch from "./OnboardingLaunch";
@@ -46,8 +47,9 @@ export const OWNER_SETUP_FULLSCREEN = true;
 export default function OwnerSetup(props: Props) {
   const [guided, setGuided] = useState(
     () =>
-      new URLSearchParams(window.location.search).get("setup") === "1" ||
-      props.branch.settings?.launchState !== "published",
+      !getReadinessTarget() &&
+      (new URLSearchParams(window.location.search).get("setup") === "1" ||
+        props.branch.settings?.launchState !== "published"),
   );
   if (!props.canGuide) return <SetupChecklist {...props} />;
   if (!guided)
@@ -100,6 +102,7 @@ function GuidedSetup({
   disabled,
   save,
   onClose,
+  onOpen,
   onFinished,
   products,
 }: Props & { onClose: () => void }) {
@@ -927,6 +930,10 @@ function GuidedSetup({
             methods={paymentDrafts.current[branch.id] || ["cash"]}
             save={save}
             disabled={disabled || busy || !!pending}
+            onOpen={(section) => {
+              if (section === "onboarding") onClose();
+              else onOpen(section);
+            }}
             onFix={(index) => void move(index, false)}
             onFinished={() => {
               onFinished?.();

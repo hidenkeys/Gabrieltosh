@@ -30,7 +30,7 @@ test("billing requires the exact opt-in and expired trials never restrict servic
 test("readiness omits subscription access while off and checks expired trials when on", async () => {
   const previous = process.env.MERA_BILLING_ENABLED;
   const handlers = new Map();
-  const branch = { name: "Branch", timezone: "Africa/Lagos", currency: "NGN", menu_version: 1, published_menu: [{}], settings: { manualPaymentMethods: ["cash"] } };
+  const branch = { name: "Branch", timezone: "Africa/Lagos", currency: "NGN", menu_version: 1, published_menu: [{}], settings: { serviceHours: [{days:[0],start:"08:00",end:"22:00"}], manualPaymentMethods: ["cash"] } };
   const db = { query: async (sql) => ({ rows: sql.includes("mera_organizations") ? [{ name: "Venue", slug: "venue", branding: { email: "venue@example.com" }, subscription: { status: "trialing", trialEndsAt: "2020-01-01T00:00:00Z" } }] : sql.includes("mera_branches") ? [branch] : [{ user_id: "owner" }] }) };
   mountMeraReadiness({ get: (path, ...callbacks) => handlers.set(path, callbacks.at(-1)), patch() {}, post() {} }, {
     db, guard: () => () => {}, scope: () => ({ organizationId: "org", branchId: "branch" }), readRecords: async () => [{}],

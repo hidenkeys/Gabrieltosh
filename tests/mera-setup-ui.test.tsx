@@ -115,3 +115,16 @@ test("O3 supplied real loading and error states survive layout composition uncha
     cleanup();
   }
 });
+
+test("readiness Fix opens and focuses the requested setup disclosure", async () => {
+  const { openReadinessTarget, clearReadinessTarget } = await import("../src/mera/workspace/readinessTargets");
+  try {
+    const opened: string[] = [];
+    render(<SetupChecklist operations={<p>Service hours editor</p>} deposits={<p>Deposit policy editor</p>} />);
+    openReadinessTarget("deposits", section => opened.push(section));
+    assert.deepEqual(opened, ["onboarding"]);
+    assert.equal((document.getElementById("mera-setup-deposits") as HTMLDetailsElement).open, true);
+    assert.equal(document.activeElement, document.querySelector("#mera-setup-deposits summary"));
+    assert.equal((document.getElementById("mera-setup-operations") as HTMLDetailsElement).open, false);
+  } finally {clearReadinessTarget();cleanup();}
+});

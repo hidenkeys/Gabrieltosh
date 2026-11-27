@@ -537,3 +537,16 @@ test("basket storage is scoped and remains optional when storage is denied", asy
   assert.equal(readBasket("cafe:" + branch, menu), null);
   assert.doesNotThrow(() => saveBasket("cafe:" + branch, 1, [line]));
 });
+
+test("hotel room QR names the room and keeps table QR checkout context", async (t) => {
+  window.history.replaceState({}, "", `/mera/menu/hotel/${branch}?tableId=${tableId}&qrId=60000000-0000-4000-8000-000000000001`);
+  const writes = mockApi(t, {...menu, tables:[{id:tableId,name:"Room 204",zone:"Rooms"}]});
+  await mount();
+  assert.ok(screen.getByText(/Room 204 · ordering to your room/));
+  fireEvent.click(screen.getByRole("button", {name:"Add: Tea"}));
+  fireEvent.click(screen.getByRole("button", {name:/View basket,/}));
+  fireEvent.click(screen.getByRole("button", {name:"Submit order"}));
+  await screen.findByRole("region", {name:"Order progress"});
+  assert.equal(writes[0].tableId, tableId);
+  assert.equal(writes[0].qrId,"60000000-0000-4000-8000-000000000001");
+});

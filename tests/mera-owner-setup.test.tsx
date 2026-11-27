@@ -916,7 +916,7 @@ test("go live publishes, creates branch QR and offers all three end actions", as
         }}
       />,
     );
-    assert.ok(screen.getByText("Add tables (optional)"));
+    assert.ok(screen.getByText("Create tables and QR codes"));
     fireEvent.click(
       screen.getAllByRole("button", { name: "Go live", exact: true }).at(-1)!,
     );
@@ -1088,7 +1088,7 @@ test("table creation reuses existing names and creates a QR for each table", asy
         }}
       />,
     );
-    fireEvent.click(screen.getByText("Add tables (optional)"));
+    fireEvent.click(screen.getByText("Create tables and QR codes"));
     fireEvent.change(screen.getByLabelText("Number of tables"), {
       target: { value: "2" },
     });
@@ -1205,4 +1205,25 @@ test("uncertain menu publication retries its original reviewed body", async () =
     cleanup();
     window.sessionStorage.clear();
   }
+});
+
+test("launch blockers preserve wizard step IDs and link capability checks to workspace sections", async () => {
+  const {default: OnboardingLaunch} = await import("../src/mera/workspace/OnboardingLaunch");
+  const {clearReadinessTarget, getReadinessTarget} = await import("../src/mera/workspace/readinessTargets");
+  const fixes: number[] = [], opened: string[] = [];
+  globalThis.fetch = async () => Response.json({checks:[
+    {id:"menu",label:"Published menu",detail:"Publish items",status:"blocked",fixTarget:"menu"},
+    {id:"table_service",label:"Table QR",detail:"Create one",status:"blocked",fixTarget:"tables"},
+    {id:"service_hours",label:"Service hours",detail:"Set hours",status:"blocked",fixTarget:"operations"},
+  ],canPublish:false});
+  try {
+    render(<OnboardingLaunch base="/organizations/org/branches/branch" organization={org} branding={{}} items={[]} capabilities={[]} contact="hello@venue.test" methods={["cash"]} disabled={false} save={async()=>({})} onFix={step=>fixes.push(step)} onOpen={section=>opened.push(section)} onFinished={()=>{}} />);
+    fireEvent.click(await screen.findByRole("button",{name:"Fix Published menu"}));
+    assert.deepEqual(fixes,[8]);
+    fireEvent.click(screen.getByRole("button",{name:"Fix Table QR"}));
+    assert.deepEqual(opened,["tables"]);
+    fireEvent.click(screen.getByRole("button",{name:"Fix Service hours"}));
+    assert.equal(opened.at(-1),"onboarding");
+    assert.equal(getReadinessTarget(),"operations");
+  } finally {clearReadinessTarget();cleanup();window.sessionStorage.clear();}
 });

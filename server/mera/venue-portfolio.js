@@ -224,9 +224,9 @@ export function buildVenuePortfolio({ now = new Date(), days = 14 } = {}) {
       if (stockRoom) continue;
       const table = caps.includes("table_service")
         ? add(b, "table", "one", {
-            name: type === "club" ? "VIP 1" : "Table 1",
+            name: type === "hotel_fb" ? "Room 204" : type === "club" ? "VIP 1" : "Table 1",
             capacity: 6,
-            zone: type === "club" ? "VIP" : "Main",
+            zone: type === "hotel_fb" ? "Rooms" : type === "club" ? "VIP" : "Main",
             x: 10,
             y: 10,
             status: "available",

@@ -144,6 +144,7 @@ export const branchSettingsInputSchema = z
             .optional(),
           address: z.string().max(300).optional(),
           serviceHours:z.array(availabilityWindowSchema).max(30).optional(),
+          guestListWalkInsOnly: z.boolean().optional(),
           currency:currencySchema.optional(),
           timezone:z.string().refine(v=>{try{new Intl.DateTimeFormat("en",{timeZone:v});return true;}catch{return false;}},"Invalid IANA timezone").optional(),
           cutoff:z.number().int().min(0).max(1439).optional(),
@@ -2260,6 +2261,8 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
     items: o.items,
     version: o.version,
     fulfillment: o.fulfillment,
+    tableId: o.tableId || null,
+    tableName: o.tableName || null,
     visitId: o.visitId,
     createdAt: o.createdAt,
     collectedAt: o.collectedAt,
@@ -2288,7 +2291,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
           (p.available && (p.stockMode === "unlimited" || p.stock > 0)),
       );
     const tables = (await readRecords(db, organization.id, b.id, "table")).map(
-      (r) => ({ id: r.id, name: r.data.name }),
+      (r) => ({ id: r.id, name: r.data.name, zone: r.data.zone }),
     );
     res.json({
       organization: {

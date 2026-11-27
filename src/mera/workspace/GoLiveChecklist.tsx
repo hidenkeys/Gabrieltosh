@@ -1,3 +1,4 @@
+import { openReadinessTarget } from "./readinessTargets";
 import React, { useRef, useState } from "react";
 import { effectiveCapabilities, CAPABILITY_LABELS } from "./setup/venues";
 import LaunchReadiness from "./LaunchReadiness";
@@ -224,7 +225,12 @@ export default function GoLiveChecklist(
               <>
                 <ol className="mgl-list">
                   {rows.map((c: any) => {
-                    const row = checks[c.id] || [c.label, c.detail];
+                    const row = checks[c.id] || [
+                      c.label,
+                      c.detail,
+                      c.fixTarget,
+                      `Fix ${c.label}`,
+                    ];
                     const state =
                       c.status === "ready"
                         ? "done"
@@ -260,7 +266,12 @@ export default function GoLiveChecklist(
                             className={
                               state === "todo" ? "primary" : "secondary"
                             }
-                            onClick={() => props.onOpen?.(row[2]!)}
+                            onClick={() =>
+                              openReadinessTarget(
+                                c.fixTarget || row[2]!,
+                                props.onOpen,
+                              )
+                            }
                           >
                             {row[3]}
                           </button>

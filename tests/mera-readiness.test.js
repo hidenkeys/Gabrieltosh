@@ -83,7 +83,7 @@ test("publishing a branch requires readiness and never claims hosting or provide
       currency: "NGN",
       menu_version: 1,
       published_menu: [{ id: "product" }],
-      settings: {},
+      settings: {serviceHours: [{days:[0,1,2,3,4,5,6],start:"00:00",end:"23:59"}]},
     },
     writes = 0;
   const db = {
@@ -181,7 +181,7 @@ test("publishing a branch requires readiness and never claims hosting or provide
 
 test("receipt defaults are ready without saved templates (no listening socket)", async () => {
   const handlers = new Map();
-  const branch = {id:"branch",organization_id:"org",name:"Branch",timezone:"Africa/Lagos",currency:"NGN",menu_version:1,published_menu:[{id:"item"}],settings:{publicContact:"hello@venue.test",manualPaymentMethods:["cash"]}};
+  const branch = {id:"branch",organization_id:"org",name:"Branch",timezone:"Africa/Lagos",currency:"NGN",menu_version:1,published_menu:[{id:"item"}],settings:{serviceHours:[{days:[0],start:"08:00",end:"22:00"}],publicContact:"hello@venue.test",manualPaymentMethods:["cash"]}};
   const db={query:async(sql)=>({rows:sql.includes("mera_owner_identities")?[{user_id:"owner"}]:sql.includes("mera_organizations")?[{name:"Venue",slug:"venue",branding:{}}]:[branch]})};
   mountMeraReadiness({get:(path,...middleware)=>handlers.set(path,middleware.at(-1)),patch:()=>{},post:()=>{}},{db,guard:()=>()=>{},scope:()=>({organizationId:"org",branchId:"branch"}),locked:async(_scope,fn)=>fn(db,branch),readRecords:async()=>[],event:async()=>{}});
   let result;

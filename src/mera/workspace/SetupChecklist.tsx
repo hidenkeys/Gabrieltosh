@@ -1,4 +1,5 @@
-import React from "react";
+import { getReadinessTarget, clearReadinessTarget } from "./readinessTargets";
+import React, { useEffect } from "react";
 type Props = {
   basics?: React.ReactNode;
   branchAdministration?: React.ReactNode;
@@ -22,6 +23,25 @@ export default function SetupChecklist({
   deposits,
   readiness,
 }: Props) {
+  useEffect(() => {
+    function focusTarget() {
+      const target = getReadinessTarget();
+      if (!target) return;
+      const section = document.getElementById(
+        `mera-setup-${target}`,
+      ) as HTMLDetailsElement | null;
+      if (section) {
+        section.open = true;
+        section.scrollIntoView?.({ block: "start" });
+        section.querySelector("summary")?.focus();
+        clearReadinessTarget();
+      }
+    }
+    focusTarget();
+    window.addEventListener("mera:readiness-target", focusTarget);
+    return () =>
+      window.removeEventListener("mera:readiness-target", focusTarget);
+  }, []);
   const hasBasics = basics != null && basics !== false;
   const optional = [
     {
@@ -106,7 +126,11 @@ export default function SetupChecklist({
             </div>
           </header>
           {optional.map((section) => (
-            <details className="mw-setup-disclosure" key={section.id}>
+            <details
+              id={`mera-setup-${section.id}`}
+              className="mw-setup-disclosure"
+              key={section.id}
+            >
               <summary>
                 <span>
                   <strong>{section.title}</strong>

@@ -1722,7 +1722,7 @@ export default function CustomerExperience({
           <div className="mc-alert" role="status">
             {scannedTable ? (
               <>
-                {scannedTable.name} · ordering to your table{" "}
+                {scannedTable.name} · ordering to your {scannedTable.zone?.trim().toLowerCase() === "rooms" ? "room" : "table"}{" "}
                 <button
                   className="mc-secondary"
                   onClick={() => setTab("visit")}

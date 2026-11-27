@@ -1,3 +1,4 @@
+import { openReadinessTarget, readinessStep } from "./readinessTargets";
 import { useEffect, useRef, useState } from "react";
 import GuestMenuPreview from "./GuestMenuPreview";
 import { workspaceApi } from "./api";
@@ -12,6 +13,7 @@ export default function OnboardingLaunch({
   save,
   disabled,
   onFix,
+  onOpen,
   onFinished,
 }: {
   base: string;
@@ -24,6 +26,7 @@ export default function OnboardingLaunch({
   save: any;
   disabled: boolean;
   onFix: (step: number) => void;
+  onOpen?: (section: string) => void;
   onFinished: () => void;
 }) {
   const [readiness, setReadiness] = useState<any>(null),
@@ -188,9 +191,9 @@ export default function OnboardingLaunch({
             <button
               type="button"
               onClick={() =>
-                onFix(
-                  c.id === "menu" ? 8 : c.id === "manual_branch_policy" ? 5 : 1,
-                )
+                c.fixTarget in readinessStep
+                  ? onFix(readinessStep[c.fixTarget])
+                  : openReadinessTarget(c.fixTarget || "business", onOpen)
               }
             >
               Fix {c.label}
@@ -199,7 +202,7 @@ export default function OnboardingLaunch({
         ))}
       {capabilities.includes("table_service") && (
         <details>
-          <summary>Add tables (optional)</summary>
+          <summary>Create tables and QR codes</summary>
           <label>
             Number of tables
             <input

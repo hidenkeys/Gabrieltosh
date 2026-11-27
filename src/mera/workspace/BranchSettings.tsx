@@ -57,6 +57,7 @@ export default function BranchSettings({
     payLater: branch.settings?.payLater ?? false,
     reservationsEnabled: branch.settings?.reservationsEnabled ?? false,
     capacity: branch.settings?.capacity || 30,
+    guestListWalkInsOnly: branch.settings?.guestListWalkInsOnly ?? false,
     holdMinutes: branch.settings?.holdMinutes || 10,
     showSoldOut: branch.settings?.showSoldOut ?? false,
     address: branch.settings?.address || "",
@@ -394,6 +395,7 @@ export default function BranchSettings({
               not confirm payment or enable a payment provider.
             </p>
           </fieldset>
+          {effectiveCapabilities(branch.settings).includes("guest_list") && <Switch disabled={disabled} label="Walk-ins only at the door" checked={settings.guestListWalkInsOnly} onChange={(guestListWalkInsOnly) => setSettings({...settings, guestListWalkInsOnly})} />}
           {reservationsAvailable && <OptionalSettings guided={guided} title="Reservations and capacity">
             <fieldset
               className="mw-wide mi-setup-panel"
