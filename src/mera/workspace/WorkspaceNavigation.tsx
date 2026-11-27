@@ -29,6 +29,7 @@ const pageIcons: Record<string, typeof LayoutGrid> = {
   counter: LayoutGrid,
   orders: ClipboardList,
   preparation: ChefHat,
+  soldout: Package,
   overview: ChartNoAxesCombined,
   team: Users,
   onboarding: Settings2,
@@ -55,25 +56,28 @@ const groups = [
       "counter",
       "orders",
       "preparation",
+      "soldout",
       "tables",
       "reservations",
       "waitlist",
       "door",
       "help",
+      "payments",
+      "shifts",
+      "organization",
+      "overview",
     ],
   ],
   [
-    "Management",
+    "Menu",
     [
-      "organization",
-      "overview",
       "menu",
       "transfers",
-      "payments",
-      "shifts",
-      "team",
+
     ],
   ],
+  ["Team", ["team"]],
+
 ] as const;
 const moreIds = [
   "care",
@@ -95,8 +99,10 @@ export default function WorkspaceNavigation({
   logo,
   connectionState = "unknown",
   billingEnabled = false,
+  role = "",
 }: {
   sections: string[][];
+  role?: string;
   billingEnabled?: boolean;
   turnedOffSections?: string[];
   active: string;
@@ -107,6 +113,19 @@ export default function WorkspaceNavigation({
   connectionState?: "unknown" | "connecting" | "connected" | "offline";
 }) {
   sections = sections.filter(([id]) => billingEnabled || !["billing", "subscription", "invoices"].includes(id));
+  const [phone, setPhone] = useState(() => typeof window.matchMedia === "function" && window.matchMedia("(max-width: 767px)").matches);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia("(max-width: 767px)");
+    const changed = () => setPhone(media.matches);
+    media.addEventListener("change", changed);
+    return () => media.removeEventListener("change", changed);
+  }, []);
+  const preferred = /owner|manager|admin/.test(role) ? ["overview", "orders", "menu"] : /kitchen|bar/.test(role) ? ["preparation", sections.some(s=>s[0]==="soldout") ? "soldout" : "menu"] : ["orders", "tables", "counter", "help"];
+  const phoneItems = preferred.flatMap(id => {
+    const item = sections.find(s => s[0] === id && !turnedOffSections.includes(id));
+    return item ? [[id, ({soldout: "Sold out", counter: "New order", preparation: "Tickets", menu: /kitchen|bar/.test(role) ? "Sold out" : "Menu", help: "Help requests", tables: "Tables", overview: "Overview"} as Record<string,string>)[id] || item[1]]] : [];
+  });
   const extraMoreIds = [...moreIds, ...turnedOffSections];
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(() => extraMoreIds.includes(active));
@@ -116,11 +135,12 @@ export default function WorkspaceNavigation({
   }, [active, turnedOffSections.join("|")]);
   const [logoFailed, setLogoFailed] = useState(false);
   useEffect(() => setLogoFailed(false), [logo]);
+  const bottomMore = useRef<HTMLButtonElement>(null);
   const navigation = useRef<HTMLElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
   const closeMenu = () => {
     setOpen(false);
-    toggle.current?.focus();
+    (bottomMore.current || toggle.current)?.focus();
   };
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return;
@@ -193,6 +213,10 @@ export default function WorkspaceNavigation({
   };
   return (
     <>
+      {phone && <nav className="mw-bottom-nav" aria-label="Quick workspace pages">
+        {phoneItems.map(([id,label]) => <button key={id} type="button" aria-current={active === id ? "page" : undefined} onClick={() => onSelect(id, {focusDestination:true})}>{label}</button>)}
+        <button ref={bottomMore} type="button" aria-current={!phoneItems.some(([id])=>id===active) ? "page" : undefined} aria-expanded={open} aria-controls="mw-operational-navigation" onClick={() => {setMoreOpen(true); setOpen(!open);}}>More</button>
+      </nav>}
       <button
         type="button"
         ref={toggle}
@@ -317,8 +341,9 @@ export default function WorkspaceNavigation({
                 ids.filter((id) => !turnedOffSections.includes(id)),
               ),
             )}
+            {phone && renderGroup("Settings", extraMoreIds)}
           </div>
-          {extraMoreIds.some((id) =>
+          {!phone && extraMoreIds.some((id) =>
             sections.some((section) => section[0] === id),
           ) && (
             <div className="mw-nav-more">
@@ -343,7 +368,7 @@ export default function WorkspaceNavigation({
                 aria-orientation="vertical"
                 hidden={!moreOpen}
               >
-                {renderGroup("", extraMoreIds)}
+                {renderGroup("Settings", extraMoreIds)}
               </div>
             </div>
           )}

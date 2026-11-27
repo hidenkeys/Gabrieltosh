@@ -104,8 +104,8 @@ test("F5 special navigation permissions respect organization-wide support scope"
     "help",
   );
 });
-test("F5 all twenty task titles and descriptions are concise and avoid implementation jargon", () => {
-  assert.equal(Object.keys(sectionPresentation).length, 20);
+test("F5 all task titles and descriptions are concise and avoid implementation jargon", () => {
+  assert.equal(Object.keys(sectionPresentation).length, 21);
   for (const item of Object.values(sectionPresentation)) {
     assert(item.title.length < 35);
     assert(item.description.length < 110);

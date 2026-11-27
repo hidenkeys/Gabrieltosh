@@ -26,6 +26,7 @@ export const sectionPresentation = {
     title: "Preparation",
     description: "Follow station tickets and mark items ready for service.",
   },
+  soldout: {title: "Sold out", description: "Review availability at your station."},
   tables: {
     title: "Tables & visits",
     description: "Manage tables, current parties and their bills.",
@@ -101,6 +102,7 @@ const sectionPermissions: Record<WorkspaceSection, readonly string[]> = {
   orders: ["orders.view"],
   counter: ["orders.create"],
   preparation: ["orders.prepare"],
+  soldout: ["orders.prepare"],
   tables: ["tables.manage"],
   reservations: ["reservations.manage"],
   payments: ["payments.record"],

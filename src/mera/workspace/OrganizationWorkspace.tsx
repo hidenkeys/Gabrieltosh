@@ -43,6 +43,9 @@ import OperationalOverview from "./OperationalOverview";
 import { serviceState } from "./overviewPresentation";
 import PolicyEditor from "./PolicyEditor";
 import BillingManagement from "./BillingManagement";
+import OrderPrimaryAction from "./OrderPrimaryAction";
+import WorkspaceSound from "./WorkspaceSound";
+import TableQr from "./TableQr";
 import LiveOrderCard, {
   orderStatusLabel,
   paymentStatusLabel,
@@ -136,21 +139,17 @@ type Props = {
   notify: (message: string) => void;
   onLogout?: () => Promise<void>;
 };
-const nextState: Record<string, string> = {
-  submitted: "accepted",
-  ready: "collected",
-  collected: "completed",
-};
 const sections = [
   ["organization", "All locations", "organization.overview"],
   ["door", "Door & guest list", "door.manage"],
   ["transfers", "Stock transfers", "stock.transfer"],
   ["overview", "Your branch", "reports.view"],
-  ["onboarding", "Getting started", "organization.manage"],
+  ["onboarding", "Settings", "organization.manage"],
   ["menu", "Menu & stock", "menu.edit"],
   ["orders", "Orders", "orders.view"],
   ["counter", "Point of sale", "orders.create"],
   ["preparation", "Preparation", "orders.prepare"],
+  ["soldout", "Sold out", "orders.prepare"],
   ["tables", "Tables & visits", "tables.manage"],
   ["reservations", "Reservations", "reservations.manage"],
   ["payments", "Transactions", "payments.record"],
@@ -249,6 +248,15 @@ export default function OrganizationWorkspace({
   const error = writeError || readError;
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [phoneHeader, setPhoneHeader] = useState(() => typeof window.matchMedia === "function" && window.matchMedia("(max-width: 767px)").matches);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia("(max-width: 767px)");
+    const changed = () => setPhoneHeader(media.matches);
+    media.addEventListener("change", changed);
+    return () => media.removeEventListener("change", changed);
+  }, []);
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null);
   const [offline, setOffline] = useState(false);
   const [productEdit, setProductEdit] = useState<RecordData | null>(null);
   const stationChosen = useRef(false);
@@ -517,6 +525,7 @@ export default function OrganizationWorkspace({
     authorizationEpoch.current++;
     setPrivateAccess(null);
     setData(null);
+    setUpdatedAt(null);
     setCategories([]);
     setProductEdit(null);
     setTabForm({});
@@ -752,6 +761,7 @@ export default function OrganizationWorkspace({
         )
           return;
         setData(response);
+        setUpdatedAt(Date.now());
         setOffline(false);
         setReadError("");
       } catch (e) {
@@ -809,11 +819,14 @@ export default function OrganizationWorkspace({
       if (!document.hidden) void refresh(controller.signal);
     }, 2500);
     const reconnect = () => void refresh(controller.signal);
+    const returned = () => { if (!document.hidden) reconnect(); };
+    document.addEventListener("visibilitychange", returned);
     window.addEventListener("online", reconnect);
     return () => {
       controller.abort();
       clearInterval(interval);
       window.removeEventListener("online", reconnect);
+      document.removeEventListener("visibilitychange", returned);
     };
   }, [refresh]);
   useEffect(() => {
@@ -1579,13 +1592,7 @@ export default function OrganizationWorkspace({
   const branch =
     data?.branch || branches.find((row: any) => row.id === branchId);
 
-  return (
-    <CurrencyContext.Provider value={currency}><div className="mera-workspace mw-operational">
-      <header className="mw-header">
-        <a href="/mera" className="mw-brand" aria-label="Mera home">
-          mera<span>.</span>
-        </a>
-        <div className="mw-context">
+  const workspaceSwitchers = <>
           <ChoiceField
             label="Organization"
             id="mw-organization-switcher"
@@ -1610,7 +1617,19 @@ export default function OrganizationWorkspace({
             onChange={setBranchId}
             onAllLocations={() => selectSection("organization")}
           />
+  </>;
+
+  return (
+    <CurrencyContext.Provider value={currency}><div className="mera-workspace mw-operational">
+      <header className="mw-header">
+        <strong className="mw-phone-location">{branch?.name || "Choose a branch"} <span aria-label={offline ? "Offline" : data ? "Connected" : "Connecting"}>{offline ? "○" : "●"}</span></strong>
+        <a href="/mera" className="mw-brand" aria-label="Mera home">
+          mera<span>.</span>
+        </a>
+        <div className="mw-context">
+          {!phoneHeader && workspaceSwitchers}
           <WorkspaceAccount
+            secondary={<>{phoneHeader && <div className="mw-account-switchers">{workspaceSwitchers}</div>}<WorkspaceSound key={branchBase} orders={list(data?.orders)} enabled={activeSection !== "preparation"} /><p>{organization?.name} · {branch?.name}</p><p>{updatedAt ? (Date.now() - updatedAt < 60000 ? "Updated just now" : "Update pending") : "Connecting…"}</p><button type="button" className="secondary" onClick={() => void refresh()}>Refresh workspace data</button></>}
             triggerRef={accountTrigger}
             name={context?.user?.name || user?.name || "Staff member"}
             role={sourceLabel(organization?.role)}
@@ -1660,6 +1679,7 @@ export default function OrganizationWorkspace({
           </button>
         </div>
       </header>
+      {updatedAt && <span className="mw-update-indicator" role="status">{offline ? "Offline · update pending" : Date.now() - updatedAt < 60000 ? "Updated just now" : "Update pending"}</span>}
       {logoutConfirm && (
         <div className="mw-dialog-backdrop">
           <section
@@ -2153,7 +2173,7 @@ export default function OrganizationWorkspace({
       {!!organizations.length && (
         <>
           {branchId && branches.some((row: any) => row.id === branchId) && (
-            <WorkspaceNavigation billingEnabled={billingEnabled}
+            <WorkspaceNavigation role={organization?.role || ""} billingEnabled={billingEnabled}
               sections={visibleSections}
               turnedOffSections={turnedOffSections}
               active={activeSection}
@@ -2362,7 +2382,7 @@ export default function OrganizationWorkspace({
                     />
                   }
                   deposits={
-                    (capabilities.includes("deposits") || capabilities.includes("reservations")) && <DepositPolicy
+                    capabilities.includes("deposits") && <DepositPolicy
                       key={branchId}
                       policy={branch?.settings?.depositPolicy}
                       base={branchBase}
@@ -2648,9 +2668,30 @@ export default function OrganizationWorkspace({
                 />
               )}
 
+              {activeSection === "soldout" && allowed("orders.prepare") && <MenuManagement
+                key={branchBase + "soldout"} availabilityOnly allowedViews={["products"]}
+                products={products.filter((product:any) => !["kitchen", "bar"].includes(organization?.role) || product.station === organization.role)}
+                disabled={busy || offline}
+                updateProduct={allowed("menu.edit") ? async (product, patch) => {
+                  if (activeScope.current !== branchBase || authorizationEpoch.current !== renderedAuthorizationVersion) throw new Error("Workspace access changed. Refresh before editing.");
+                  return mutate(branchBase + "/products/availability", "POST", {productIds:[product.id],available:patch.available,reason:"Station menu availability"}, "Availability updated.");
+                } : undefined}
+                renderProducts={rows => <div className="mw-list">{rows.map(product => <div className="mw-row" key={product.id}><strong>{product.name}</strong><span>{product.available === false ? "Sold out" : "Available"}</span></div>)}{!allowed("menu.edit") && <p>Ask a manager with menu access to change availability.</p>}</div>}
+                header={null} categories={null} stock={null} shared={null}
+              />}
+
               {activeSection === "menu" && (
                 <MenuManagement
                   importBase={allowed("menu.edit") ? branchBase : undefined}
+                  availabilityOnly={["kitchen", "bar"].includes(organization?.role)}
+                  disabled={busy || offline}
+                  categoryOptions={list(data.categories).filter((category:any) => category.active !== false)}
+                  updateProduct={allowed("menu.edit") ? async (product, patch) => {
+                    if (activeScope.current !== branchBase || authorizationEpoch.current !== renderedAuthorizationVersion) throw new Error("Workspace access changed. Refresh before editing.");
+                    return Object.keys(patch).length === 1 && typeof patch.available === "boolean"
+                    ? mutate(branchBase + "/products/availability", "POST", {productIds:[product.id], available:patch.available, reason:"Staff menu availability"}, "Availability updated.")
+                    : mutate(branchBase + `/products/${product.id}`, "PUT", {...product,...patch}, "Product updated."); } : undefined}
+                  bulkAvailability={allowed("menu.edit") ? async (productIds, available) => { if (activeScope.current !== branchBase || authorizationEpoch.current !== renderedAuthorizationVersion) throw new Error("Workspace access changed. Refresh before editing."); return mutate(branchBase + "/products/availability", "POST", {productIds,available,reason:"Staff bulk availability"}, "Availability updated."); } : undefined}
                   importRequested={menuImportRequested}
                   onImportRequestHandled={() => setMenuImportRequested(false)}
                   onImported={refresh}
@@ -2720,7 +2761,7 @@ export default function OrganizationWorkspace({
                       </div>
                     </div>
                   }
-                  renderProducts={(visibleProducts) => (
+                  renderProducts={(visibleProducts, controls) => (
                     <div className="mw-list">
                       {visibleProducts.map((product) => (
                         <div
@@ -2785,6 +2826,7 @@ export default function OrganizationWorkspace({
                                 : "Availability unknown"}
                           </span>
                           <div className="mw-actions">
+                            {controls?.(product)}
                             {button(
                               "Edit",
                               () => beginProductEdit({ ...product }),
@@ -3429,25 +3471,9 @@ export default function OrganizationWorkspace({
                         timeZone={branch?.timezone}
                         actions={
                           <div className="mw-actions">
-                            {!order.historicalReadOnly &&
-                              nextState[order.status] &&
-                              button(
-                                "Mark " + sourceLabel(nextState[order.status]),
-                                () =>
-                                  act(
-                                    branchBase + `/orders/${order.id}/status`,
-                                    {
-                                      status: nextState[order.status],
-                                      version: order.version,
-                                    },
-                                    "Order updated.",
-                                  ),
-                                ["submitted", "accepted", "preparing"].includes(
-                                  order.status,
-                                )
-                                  ? "orders.prepare"
-                                  : "orders.fulfill",
-                              )}
+                            {!order.historicalReadOnly && allowed(["accepted", "preparing"].includes(order.status) ? "orders.prepare" : "orders.fulfill") && (
+                              <OrderPrimaryAction order={order} disabled={busy || offline} advance={status => mutate(branchBase + `/orders/${order.id}/status`, "POST", {status, version:order.version}, "Order updated.")} />
+                            )}
                           </div>
                         }
                       >
@@ -3635,7 +3661,7 @@ export default function OrganizationWorkspace({
                             }}
                             visits={list(data.visits)}
                             tables={list(data.tables)}
-                            canUseTables={allowed("tables.manage")}
+                            canUseTables={allowed("tables.manage") && capabilities.includes("table_service")}
                             disabled={busy || offline || !!uncertainOrder}
                             onChange={(patch) => {
                               requestKey.current = null;
@@ -3770,6 +3796,15 @@ export default function OrganizationWorkspace({
                       (visitOpening?.scope === branchBase && visitOpening.locked)
                     }
                     renderTableTools={(table, held) => (
+                      <>
+                      {allowed("orders.create") && list(data.visits).some((v:any) => v.status === "open" && (v.tableIds || [v.tableId]).includes(table.id)) && <button type="button" className="primary" disabled={busy || offline || !!uncertainOrder || orderDraft.items.length > 0} onClick={() => {
+                        const visit = list(data.visits).find((v:any) => v.status === "open" && (v.tableIds || [v.tableId]).includes(table.id));
+                        if (!visit || uncertainOrder || orderDraft.items.length) return;
+                        requestKey.current = null; setStaffQuote(null);
+                        setOrderDraft({...orderDraft, displayName:visit.displayName || "", fulfillment:"table_service", visitId:visit.id});
+                        selectSection("counter", {focusDestination:true});
+                      }}>New order</button>}
+                      <TableQr key={branchBase + table.id + "qr"} base={branchBase} table={table} disabled={busy || offline} />
                       <TableEditor
                         key={branchBase + table.id}
                         table={table}
@@ -3778,10 +3813,11 @@ export default function OrganizationWorkspace({
                         disabled={busy || offline}
                         save={mutate}
                       />
+                      </>
                     )}
                     renderPartyTools={(visit) => (
                       <>
-                        {visit.minimumSpendPolicy?.enabled && (
+                        {capabilities.includes("minimum_spend") && visit.minimumSpendPolicy?.enabled && (
                           <VisitMinimumSpend
                             key={branchBase + visit.id + "minimum"}
                             base={branchBase}

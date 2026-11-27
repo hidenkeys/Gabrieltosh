@@ -59,6 +59,7 @@ test("guided branch settings retain changes through all steps and submit only re
     screen.getByRole("button", { name: "Continue to service modes" }),
   );
   fireEvent.click(screen.getByRole("switch", { name: "Table service" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Reservations", exact: true }));
   fireEvent.click(screen.getByRole("button", { name: "Continue to hours" }));
   fireEvent.click(screen.getByRole("button", { name: "Continue to payments" }));
   fireEvent.click(
@@ -90,7 +91,7 @@ test("guided branch settings retain changes through all steps and submit only re
   assert.equal(writes[0][0], "/org/branch/settings");
   assert.equal(writes[0][2].payLater, true);
   assert.equal(writes[0][2].capacity, 31);
-  assert.deepEqual(writes[0][2].serviceModes, ["table_service"]);
+  assert.deepEqual(writes[0][2].serviceModes, ["table_service", "reservations"]);
 });
 test("branch settings redirect incomplete business timezone before progressing", () => {
   render(

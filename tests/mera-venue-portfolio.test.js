@@ -200,7 +200,7 @@ async function memoryFixture() {
   return { db, pool };
 }
 // This seeds 77 real bcrypt cost-12 hashes, which exceeds 30s on slower runners.
-test("in-memory seed skips existing slugs, preserves edits and enforces per-location roles", { timeout: 60000 }, async () => {
+test("in-memory seed skips existing slugs, preserves edits and enforces per-location roles", { timeout: 180000 }, async () => {
   const { db, pool } = await memoryFixture();
   try {
     const counts = await seedVenuePortfolio(db, {

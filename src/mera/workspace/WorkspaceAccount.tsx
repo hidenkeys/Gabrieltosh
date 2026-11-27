@@ -1,8 +1,9 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { ChevronDown, LogOut, CircleAlert } from "lucide-react";
 
 /** Pilot account controls. Sign-out reconciliation stays with the workspace. */
 export default function WorkspaceAccount({
+  secondary,
   name,
   role,
   disabled,
@@ -12,6 +13,7 @@ export default function WorkspaceAccount({
   triggerRef,
 }: {
   triggerRef?: RefObject<HTMLElement | null>;
+  secondary?: ReactNode;
   name: string;
   role: string;
   disabled: boolean;
@@ -70,6 +72,7 @@ export default function WorkspaceAccount({
       <div className="mw-account-panel">
         <strong>{name}</strong>
         <span>{role}</span>
+        {secondary}
         {notice && (
           <>
             <p id="mw-account-notice">{notice.message}</p>

@@ -1,3 +1,4 @@
+import useSoundPreference from "./useSoundPreference";
 import ItemContents from "../customer/ItemContents";
 import React, { useState, useRef, useEffect } from "react";
 import {
@@ -82,10 +83,11 @@ function ScopedTickets({
     [busyTicket, setBusyTicket] = useState(""),
     [pending, setPending] = useState<Intent | null>(null),
     [denied, setDenied] = useState(false),
-    [chime, setChime] = useState(false),
     [fullscreen, setFullscreen] = useState(false),
     [toolError, setToolError] = useState(""),
     [clockTick, setClockTick] = useState(0);
+  const [chime, setChime] = useSoundPreference();
+  const [optimisticStatus,setOptimisticStatus] = useState<Record<string,string>>({});
   const active = useRef(true),
     flight = useRef(false),
     pendingRef = useRef<Intent | null>(null),
@@ -215,16 +217,20 @@ function ScopedTickets({
     }
     previousIds.current = ids;
   }, [tickets, stationScope, valid, loading, loadError, chime]);
+  const [soundUnlocked, setSoundUnlocked] = useState(false);
   async function toggleChime() {
-    if (chime) {
+    if (chime && soundUnlocked) {
       setChime(false);
       return;
     }
+    setChime(true);
     try {
       audio.current ||= new AudioContext();
       await audio.current.resume();
+      if (audio.current.state !== "running") throw new Error("Audio requires a gesture");
       if (active.current) {
         setChime(true);
+        setSoundUnlocked(true);
         setToolError("");
       }
     } catch {
@@ -262,6 +268,7 @@ function ScopedTickets({
     setBusyTicket(intent.ticketId);
     setError("");
     setErrorTicket(intent.ticketId);
+    if (intent.body.status) setOptimisticStatus(old => ({...old,[intent.ticketId]:intent.body.status}));
     if (intent.itemKey && intent.quantity !== undefined)
       setOptimistic((old) => ({
         ...old,
@@ -310,6 +317,7 @@ function ScopedTickets({
       if (active.current) {
         setWorking(false);
         setBusyTicket("");
+        setOptimisticStatus({});
       }
     }
   };
@@ -422,7 +430,7 @@ function ScopedTickets({
             ) : (
               <BellOff size={16} aria-hidden="true" />
             )}{" "}
-            New ticket sound {chime ? "on" : "off"}
+            {chime && !soundUnlocked ? "Tap to enable sound" : `New ticket sound ${chime ? "on" : "off"}`}
           </button>
           <button
             type="button"
@@ -565,6 +573,7 @@ function ScopedTickets({
             </div>
           ))}
           {permitted.map((ticket) => {
+            const shownStatus = optimisticStatus[ticket.id] || ticket.status;
             const order = orders?.find((row) => row?.id === ticket.orderId),
               closed = ["ready", "cancelled"].includes(ticket.status);
             const inactive =
@@ -649,11 +658,11 @@ function ScopedTickets({
                     >
                       {minutes === null ? "Time unavailable" : `${minutes} min`}
                     </time>
-                    <span className="mw-preparation-status">
-                      {ticket.status === "ready"
+                    <span className="mw-preparation-status" aria-live="polite">
+                      {shownStatus === "ready"
                         ? "Ready for service"
-                        : ticket.status[0].toUpperCase() +
-                          ticket.status.slice(1)}
+                        : shownStatus[0].toUpperCase() +
+                          shownStatus.slice(1)}
                     </span>
                   </div>
                 </header>

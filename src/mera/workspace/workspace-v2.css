@@ -319,3 +319,47 @@
 .mera-workspace .mera-guest-preview .mc-product h3 { font-family: var(--mc-display); color: var(--mc-surface-ink, var(--mc-ink)); }
 .mera-workspace .mera-guest-preview .mc-hero p { color: var(--mc-muted); }
 .mera-workspace .mera-guest-preview .mc-product :is(p, small) { color: var(--mc-surface-muted, var(--mc-muted)); }
+
+/* Phone service controls use existing workspace surfaces and venue accent. */
+.mw-bottom-nav, .mw-phone-location { display: none; }
+.mw-menu-quick { margin-block: 12px; }
+.mw-menu-quick .mw-row { gap: 12px; flex-wrap: wrap; }
+.mw-menu-quick label { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.mw-bulk-tools { border: 1px solid var(--wx-line); display: grid; gap: 8px; min-width: 0; }
+.mw-primary-progress > button { min-height: 48px; min-width: 160px; }
+.mw-table-qr-preview { max-width: 100%; overflow-wrap: anywhere; }
+@media (max-width: 767px) {
+  .mera-workspace.mw-operational { padding-bottom: calc(84px + env(safe-area-inset-bottom)); min-width: 0; }
+  .mw-operational header.mw-header { display: flex; flex-wrap: nowrap; gap: 8px; padding: 8px 12px; min-height: 60px; }
+  .mw-operational header.mw-header > .mw-brand { display: none; }
+  .mw-phone-location { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .mw-phone-location span { font-size: 12px; }
+  .mw-operational .mw-header .mw-context { display: contents; }
+  .mw-operational .mw-header .mw-context > :not(.mw-account) { display: none; }
+  .mw-header .mw-account-name { display: none; }
+  .mw-header .mw-account summary { min-height: 44px; min-width: 44px; }
+  .mw-account-panel { position: absolute; right: 8px; max-width: calc(100vw - 24px); }
+  .mw-operational .mw-mobile-nav-toggle { display: none; }
+  .mw-bottom-nav { display: flex; position: fixed; z-index: 45; inset: auto 0 0; padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); background: var(--wx-bone); border-top: 1px solid var(--wx-line); }
+  .mw-bottom-nav button { flex: 1; min-width: 0; min-height: 56px; padding: 6px 3px; font-size: 12px; background: transparent; color: var(--wx-ink); border: 0; border-radius: 10px; }
+  .mw-bottom-nav button[aria-current="page"] { background: var(--wx-tint); color: var(--wx-accent); font-weight: 700; }
+  .mw-operational .mw-side-nav.is-open { inset: auto 0 calc(74px + env(safe-area-inset-bottom)); width: 100%; height: auto; max-height: 75dvh; border-radius: 18px 18px 0 0; z-index: 50; }
+  .mw-operational .mw-side-nav.is-open .mw-side-links { overflow-y: auto; }
+  .mera-workspace :is(button, summary, input:not([type="checkbox"]), select) { min-height: 44px; }
+  .mera-workspace :is(.mw-live-order, .mw-card, .mw-pos-container, .mw-menu-management) { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+  .mw-live-order-facts { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .mw-primary-progress, .mw-primary-progress > button { width: 100%; }
+}
+@media print {
+  body:has(.mw-table-qr-preview[data-printing]) * { visibility: hidden; }
+  body .mw-table-qr-preview[data-printing], body .mw-table-qr-preview[data-printing] * { visibility: visible; }
+  .mw-table-qr-preview[data-printing] { position: absolute; top: 0; left: 0; }
+  .mw-table-qr-preview .mw-actions { display: none; }
+}
+@media (max-width: 767px) {
+  .mw-operational .mw-account-panel { max-height: calc(100dvh - 150px); overflow-y: auto; }
+  .mw-account-switchers { display: grid; gap: 12px; min-width: 0; }
+  .mw-operational > .mw-heading > .mw-pill { display: none; }
+}
+.mw-menu-feedback { position: fixed; z-index: 55; right: 16px; bottom: 16px; max-width: min(480px, calc(100vw - 32px)); max-height: 35dvh; overflow-y: auto; background: var(--wx-bone); border: 1px solid var(--wx-line); box-shadow: 0 8px 24px #111b2f12; }
+@media (max-width: 767px) { .mw-menu-feedback { bottom: calc(84px + env(safe-area-inset-bottom)); left: 16px; } }

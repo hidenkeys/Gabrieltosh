@@ -91,6 +91,9 @@ export default function BranchSettings({
     "Reservations",
     "Review",
   ];
+  const reservationsAvailable = effectiveCapabilities({serviceModes: settings.serviceModes}).includes("reservations");
+  const stepIds = [0, 1, 2, 3, ...(reservationsAvailable ? [4] : []), 5];
+  const stepPosition = Math.max(0, stepIds.indexOf(setupStep));
   const goToStep = (next: number) => {
     if (next > setupStep) {
       const invalid = operationsForm.current?.querySelector<HTMLElement>(
@@ -221,23 +224,23 @@ export default function BranchSettings({
         >
           <div className="mw-wide mi-setup-progress" hidden={guided}>
             <p>
-              Step {setupStep + 1} of {setupSteps.length}:{" "}
+              Step {stepPosition + 1} of {stepIds.length}:{" "}
               {setupSteps[setupStep]}
             </p>
             <progress
               aria-label="Branch settings progress"
-              value={setupStep + 1}
-              max={setupSteps.length}
+              value={stepPosition + 1}
+              max={stepIds.length}
             />
             <nav aria-label="Branch settings steps">
-              {setupSteps.map((label, index) => (
+              {stepIds.map((index, position) => (
                 <button
                   type="button"
-                  key={label}
+                  key={setupSteps[index]}
                   aria-current={setupStep === index ? "step" : undefined}
                   onClick={() => goToStep(index)}
                 >
-                  {index + 1}. {label}
+                  {position + 1}. {setupSteps[index]}
                 </button>
               ))}
             </nav>
@@ -391,7 +394,7 @@ export default function BranchSettings({
               not confirm payment or enable a payment provider.
             </p>
           </fieldset>
-          <OptionalSettings guided={guided} title="Reservations and capacity">
+          {reservationsAvailable && <OptionalSettings guided={guided} title="Reservations and capacity">
             <fieldset
               className="mw-wide mi-setup-panel"
               data-setup-step="4"
@@ -419,7 +422,7 @@ export default function BranchSettings({
                 settings.
               </p>
             </fieldset>
-          </OptionalSettings>
+          </OptionalSettings>}
           <OptionalSettings guided={guided} title="Review branch settings">
             <section
               className="mw-wide mi-setup-review"
@@ -470,14 +473,14 @@ export default function BranchSettings({
                       : "Full payment required before preparation"}
                   </dd>
                 </div>
-                <div>
+                {reservationsAvailable && <div>
                   <dt>Reservations</dt>
                   <dd>
                     {settings.reservationsEnabled
                       ? `Accepted · capacity ${settings.capacity}`
                       : "Not accepted"}
                   </dd>
-                </div>
+                </div>}
                 <div>
                   <dt>Hours</dt>
                   <dd>
@@ -498,7 +501,7 @@ export default function BranchSettings({
               <button
                 type="button"
                 className="secondary"
-                onClick={() => goToStep(setupStep - 1)}
+                onClick={() => goToStep(stepIds[stepPosition - 1])}
               >
                 Back
               </button>
@@ -507,9 +510,9 @@ export default function BranchSettings({
               <button
                 type="button"
                 className="primary"
-                onClick={() => goToStep(setupStep + 1)}
+                onClick={() => goToStep(stepIds[stepPosition + 1])}
               >
-                Continue to {setupSteps[setupStep + 1].toLowerCase()}
+                Continue to {setupSteps[stepIds[stepPosition + 1]].toLowerCase()}
               </button>
             ) : (
               <button className="primary" disabled={disabled}>

@@ -1,3 +1,4 @@
+import MenuQuickActions from "./MenuQuickActions";
 import MenuImport from "./MenuImport";
 import ChoiceField from "../ui/ChoiceField";
 import React, { useEffect, useId, useRef, useState } from "react";
@@ -9,13 +10,18 @@ type Product = {
   category?: string;
 };
 type Props = {
+  updateProduct?: (product:Product, patch:Record<string,any>) => Promise<any>;
+  bulkAvailability?: (ids:string[], available:boolean) => Promise<any>;
+  categoryOptions?: {id:string;name:string}[];
+  disabled?: boolean;
+  availabilityOnly?: boolean;
   importBase?: string;
   importRequested?: boolean;
   onImportRequestHandled?: () => void;
   onImported?: () => void | Promise<void>;
   products: Product[];
   header: React.ReactNode;
-  renderProducts: (products: Product[]) => React.ReactNode;
+  renderProducts: (products: Product[], controls?: (product:Product)=>React.ReactNode) => React.ReactNode;
   editor?: React.ReactNode;
   categories: React.ReactNode;
   stock: React.ReactNode;
@@ -31,6 +37,7 @@ const views = [
 ] as const;
 export default function MenuManagement({
   products,
+  categoryOptions, updateProduct, bulkAvailability, disabled, availabilityOnly = false,
   importBase,
   importRequested,
   onImportRequestHandled,
@@ -78,7 +85,7 @@ export default function MenuManagement({
   const shown = filtered.slice(0, limit);
   return (
     <div className="mw-menu-management">
-      {importBase &&
+      {!availabilityOnly && importBase &&
         isAllowed("products") &&
         (importOpen ? (
           <MenuImport
@@ -95,7 +102,7 @@ export default function MenuManagement({
       {!visibleViews.length && (
         <p role="status">No menu tools are available for your access.</p>
       )}
-      <div
+      {!availabilityOnly && <div
         role="tablist"
         aria-label="Menu management"
         className="mw-menu-views"
@@ -129,7 +136,7 @@ export default function MenuManagement({
             {label}
           </button>
         ))}
-      </div>
+      </div>}
       {isAllowed("products") && (
         <div
           role="tabpanel"
@@ -138,7 +145,7 @@ export default function MenuManagement({
           hidden={activeView !== "products"}
         >
           <section className="mw-card mw-menu-products">
-            {header}
+            {availabilityOnly ? <h2>Sold out</h2> : header}
             <div className="mw-menu-filters">
               <label>
                 Find a product
@@ -171,7 +178,8 @@ export default function MenuManagement({
                 {filtered.length === 1 ? "product" : "products"}
               </span>
             </div>
-            {filtered.length ? (
+            {updateProduct && <MenuQuickActions renderProducts={!availabilityOnly ? controls => renderProducts(shown, controls) : undefined} categoryOptions={categoryOptions} availabilityOnly={availabilityOnly} products={shown} update={updateProduct} bulkAvailability={bulkAvailability} disabled={disabled} />}
+            {!updateProduct && (filtered.length ? (
               renderProducts(shown)
             ) : (
               <div className="mw-empty">
@@ -199,7 +207,7 @@ export default function MenuManagement({
                   </button>
                 )}
               </div>
-            )}
+            ))}
             {!!filtered.length && (
               <div className="mw-menu-pagination">
                 <span>
@@ -217,10 +225,10 @@ export default function MenuManagement({
               </div>
             )}
           </section>
-          {editor}
+          {!availabilityOnly && editor}
         </div>
       )}
-      {[
+      {!availabilityOnly && [
         ["categories", categories],
         ["stock", stock],
         ["shared", shared],

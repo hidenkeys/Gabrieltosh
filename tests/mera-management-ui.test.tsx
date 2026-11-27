@@ -66,7 +66,7 @@ test("O3 settings sections retain edits and canonical save payloads", async () =
       (screen.getByLabelText("Branch address") as HTMLInputElement).value,
       "New address",
     );
-    fireEvent.click(screen.getByRole("button", { name: "6. Review" }));
+    fireEvent.click(screen.getByRole("button", { name: /[56]\. Review/ }));
     fireEvent.submit(
       screen
         .getByRole("button", { name: "Save branch policies" })
@@ -93,7 +93,7 @@ test("O3 save failures remain visible without claiming success", async () => {
         }}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "6. Review" }));
+    fireEvent.click(screen.getByRole("button", { name: /[56]\. Review/ }));
     fireEvent.submit(
       screen
         .getByRole("button", { name: "Save branch policies" })
@@ -218,7 +218,7 @@ test("O3 settings locks duplicate and cross-form submits synchronously without r
         }}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "6. Review" }));
+    fireEvent.click(screen.getByRole("button", { name: /[56]\. Review/ }));
     const operations = screen
       .getByRole("button", { name: "Save branch policies" })
       .closest("form")!;
@@ -254,7 +254,7 @@ test("O3 disabled setup rejects programmatic submissions and explicit validation
   };
   try {
     const view = render(<BranchSettings {...props} disabled />);
-    fireEvent.click(screen.getByRole("button", { name: "6. Review" }));
+    fireEvent.click(screen.getByRole("button", { name: /[56]\. Review/ }));
     const form = screen
       .getByRole("button", { name: "Save branch policies" })
       .closest("form")!;

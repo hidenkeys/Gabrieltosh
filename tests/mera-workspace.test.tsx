@@ -1049,7 +1049,7 @@ test("branch service windows save local timezone and trading cutoff without assu
     fireEvent.change(screen.getByLabelText("Window 1 ends"), {
       target: { value: "22:00" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "6. Review" }));
+    fireEvent.click(screen.getByRole("button", { name: /[56]\. Review/ }));
     await act(async () =>
       fireEvent.click(
         screen.getByRole("button", { name: "Save branch policies" }),
@@ -3255,7 +3255,7 @@ test("merchant support is visible only to explicitly organization-wide administr
   try {
     organization.organizationWide = false;
     render(React.createElement(Workspace, { user, notify: () => {} }));
-    await findRareWorkspaceTab("Getting started");
+    await findRareWorkspaceTab("Settings");
     assert.equal(screen.queryByRole("tab", { name: "Mera support" }), null);
     cleanup();
     organization.organizationWide = true;
@@ -3846,7 +3846,7 @@ test("branch service modes save canonical settings without conflating reservatio
     fireEvent.click(screen.getByRole("button", { name: "2. Service modes" }));
     fireEvent.click(screen.getByRole("switch", { name: "Table service" }));
     fireEvent.click(screen.getByRole("switch", { name: "Lounge & club" }));
-    fireEvent.click(screen.getByRole("button", { name: "6. Review" }));
+    fireEvent.click(screen.getByRole("button", { name: /[56]\. Review/ }));
     fireEvent.submit(
       screen
         .getByRole("button", { name: "Save branch policies" })
