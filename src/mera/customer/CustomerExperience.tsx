@@ -3003,7 +3003,7 @@ export default function CustomerExperience({
         checkoutRecovery.phase === "ready" && (
           <div
             className="mc-mobile-basket"
-            hidden={phone ? basketOpen : basketViewed}
+            hidden={basketQuantity === 0 || (phone ? basketOpen : basketViewed)}
             inert={!!selected}
             aria-hidden={selected ? true : undefined}
           >

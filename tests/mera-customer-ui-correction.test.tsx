@@ -249,7 +249,22 @@ test("C1 basket visibility suppresses the fixed shortcut during ordinary scrolli
     null,
   );
   await act(() => callback([{ isIntersecting: false }]));
-  assert(screen.getByRole("button", { name: "View basket, 0 items, ₦0.00" }));
+  // An empty basket never shows the shortcut.
+  assert.equal(
+    screen.queryByRole("button", { name: /^View basket, 0 items/ }),
+    null,
+  );
+  const { fireEvent } = await import("@testing-library/react");
+  fireEvent.click(screen.getByRole("button", { name: "Choose: Brown Sugar Boba" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Less sugar" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
+  await act(() => callback([{ isIntersecting: true }]));
+  assert.equal(screen.queryByRole("button", { name: /^View basket, 1 item,/ }), null);
+  await act(() => callback([{ isIntersecting: false }]));
+  assert.ok(
+    screen.getByRole("button", { name: /^View basket, 1 item,/ }),
+    "shortcut returns when the basket scrolls out of view",
+  );
 });
 
 test("C2 freezes the complete order intent through pending and uncertain delivery", async (t) => {
