@@ -1,3 +1,4 @@
+import { aiLimit, aiTotal, aiCost, insertAiUsage, hasAiBudget } from "./ai-usage.js";
 import { assertMeraAsset } from "./assets.js";
 import { embeddedImages } from "./embedded-images.js";
 import { randomUUID } from "node:crypto";
@@ -358,11 +359,6 @@ export function uploadParts(files) {
   });
   return { parts, metadata, photos };
 }
-const fallback = {
-  "anthropic/claude-sonnet-5.5": [2e-6, 1e-5],
-  "anthropic/claude-haiku-5.5": [1e-7, 5e-7],
-  "google/gemini-3-flash": [5e-7, 3e-6],
-};
 export function mountMenuImport(
   router,
   { db, guard, scope, locked, record, readRecords, event, env, aiFetch },
@@ -374,20 +370,8 @@ export function mountMenuImport(
       env.AI_GATEWAY_BASE_URL || "https://ai-gateway.vercel.sh/v1"
     ).replace(/\/$/, ""),
     mock = env.MERA_AI_MOCK === "true";
-  const configuredLimit = Number(env.MERA_AI_MONTHLY_LIMIT_USD ?? 5),
-    limit =
-      Number.isFinite(configuredLimit) && configuredLimit >= 0
-        ? configuredLimit
-        : 5;
-  const totals = async (org, c = db) =>
-    Number(
-      (
-        await c.query(
-          "SELECT COALESCE(SUM(cost_usd),0) AS total FROM mera_ai_usage WHERE organization_id=$1 AND created_at >= date_trunc('month',now())",
-          [org],
-        )
-      ).rows[0]?.total || 0,
-    );
+  const limit = aiLimit(env);
+  const totals = (org, c = db) => aiTotal(c, org);
   router.get(
     "/organizations/:organizationId/ai-usage",
     guard("organization.manage"),
@@ -416,23 +400,7 @@ export function mountMenuImport(
         costUsd = 0,
         reserved = false,
         output;
-      const save = async (c = db) =>
-        c.query(
-          "INSERT INTO mera_ai_usage(id,organization_id,branch_id,user_id,feature,model,input_tokens,output_tokens,cost_usd,status,files) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
-          [
-            id,
-            s.organizationId,
-            s.branchId,
-            req.user.id,
-            "menu_import",
-            model,
-            inputTokens,
-            outputTokens,
-            costUsd,
-            status,
-            JSON.stringify(metadata),
-          ],
-        );
+      const save = (c = db) => insertAiUsage(c, {id, ...s, userId:req.user.id, feature:"menu_import", model, inputTokens, outputTokens, costUsd, status, files:metadata});
       try {
         const uploaded = uploadParts(req.body.files);
         metadata = uploaded.metadata;
@@ -457,7 +425,7 @@ export function mountMenuImport(
               "You have reached the hourly menu import limit. Try again later.",
               429,
             );
-          if ((await totals(s.organizationId, c)) >= limit)
+          if (!(await hasAiBudget(c, s.organizationId, env)))
             throw fail(
               "Your monthly AI menu import limit has been reached.",
               429,
@@ -531,16 +499,7 @@ export function mountMenuImport(
               }
             }
             const p = prices?.find((p) => p.id === model)?.pricing;
-            const rates = p
-              ? [Number(p.input), Number(p.output)]
-              : fallback[model] || fallback["anthropic/claude-sonnet-5.5"];
-            // Prefer the gateway's own charge; fall back to list prices.
-            const charged = Number(data.usage?.cost);
-            costUsd =
-              Number.isFinite(charged) && charged >= 0
-                ? charged
-                : inputTokens * (Number.isFinite(rates[0]) ? rates[0] : 0) +
-                  outputTokens * (Number.isFinite(rates[1]) ? rates[1] : 0);
+            costUsd = aiCost(model, data.usage, p);
             const content = String(data.choices?.[0]?.message?.content || "")
               .trim()
               .replace(/^```(?:json)?\s*/i, "")

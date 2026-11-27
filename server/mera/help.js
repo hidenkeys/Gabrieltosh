@@ -3,7 +3,7 @@ import {isDeepStrictEqual} from "node:util";
 import { randomUUID } from "node:crypto";
 const P = "/public/:slug/:branchId",
   B = "/organizations/:organizationId/branches/:branchId";
-const categoryPermissions = {
+export const categoryPermissions = {
   service: ["orders.fulfill", "tables.manage"],
   payment: ["payments.record", "refunds.approve"],
   reservation: ["reservations.manage"],

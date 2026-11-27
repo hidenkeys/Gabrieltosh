@@ -90,6 +90,7 @@ const moreIds = [
   "support",
 ];
 export default function WorkspaceNavigation({
+  onAsk,
   sections,
   turnedOffSections = [],
   active,
@@ -101,6 +102,7 @@ export default function WorkspaceNavigation({
   billingEnabled = false,
   role = "",
 }: {
+  onAsk?: () => void;
   sections: string[][];
   role?: string;
   billingEnabled?: boolean;
@@ -341,6 +343,7 @@ export default function WorkspaceNavigation({
                 ids.filter((id) => !turnedOffSections.includes(id)),
               ),
             )}
+            {phone && onAsk && <button type="button" className="nav-item" onClick={()=>{closeMenu();onAsk();}}>Ask Mera</button>}
             {phone && renderGroup("Settings", extraMoreIds)}
           </div>
           {!phone && extraMoreIds.some((id) =>

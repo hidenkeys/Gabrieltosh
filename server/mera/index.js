@@ -1,3 +1,4 @@
+import { mountAssistant } from "./assistant.js";
 import { brandingSchema } from "./branding.js";
 import { currencySchema, validateCurrencyChange, providersForCurrency } from "./currency.js";
 import { migrateMenuImport, mountMenuImport } from "./menu-import.js";
@@ -403,6 +404,19 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
       if (!b) throw fail("Branch not found.", 404);
       return fn(c, b);
     });
+  // Shared by the normal endpoints and confirmed assistant actions. Caller holds branch lock.
+  const availability = async (c, s, actor, input, tags = {}) => {
+    const products = await Promise.all(input.productIds.map(id => find(c,s,"product",id)));
+    for (const product of products) { product.available=input.available; await update(c,s,"product",product.id,product); }
+    await event(c,s,"bulk_product_availability",actor,{...input,...tags});
+    return {updated:products.length,available:input.available};
+  };
+  const persistSettings = async (c,s,actor,b,settings,tags={}) => {
+    await c.query("UPDATE mera_branches SET settings=$1 WHERE id=$2 AND organization_id=$3",[JSON.stringify(settings),b.id,s.organizationId]);
+    await event(c,s,"branch_settings_updated",actor,{settings,...tags});
+    return settings;
+  };
+  const saveSettings = (c,s,actor,b,input,tags) => persistSettings(c,s,actor,b,{...b.settings,...locationSettings(input,b.settings),version:(b.settings.version||1)+1},tags);
   const branchView = (b) => ({
     id: b.id,
     organizationId: b.organization_id,
@@ -742,9 +756,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
   router.post(B+"/products/availability",guard("menu.edit"),async(req,res)=>{
     const input=z.object({productIds:z.array(uuid).min(1).max(200).refine(v=>new Set(v).size===v.length),available:z.boolean(),reason:z.string().trim().min(3).max(300)}).strict().parse(req.body);
     res.json(await locked(scope(req),async c=>{
-      const products=await Promise.all(input.productIds.map(id=>find(c,scope(req),"product",id)));
-      for(const product of products){product.available=input.available;await update(c,scope(req),"product",product.id,product);}
-      await event(c,scope(req),"bulk_product_availability",req.user,input);return {updated:products.length,available:input.available};
+      return availability(c,scope(req),req.user,input);
     }));
   });
   const publicationInput = z.object({requestKey:uuid,previewHash:z.string().regex(/^[a-f0-9]{64}$/),expectedVersion:z.number().int().nonnegative()}).strict();
@@ -2555,14 +2567,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
           const settings = { ...b.settings, ...locationSettings(settingsInput, b.settings),version:(b.settings.version||1)+1 };
           await recordAccessOperation(c,req,attempt,settings);
           if(timezone!==undefined || cutoff!==undefined) await c.query("UPDATE mera_branches SET timezone=$1,cutoff=$2 WHERE id=$3 AND organization_id=$4",[timezone??b.timezone,cutoff??b.cutoff,b.id,b.organization_id]);
-          await c.query(
-            "UPDATE mera_branches SET settings=$1 WHERE id=$2 AND organization_id=$3",
-            [JSON.stringify(settings), b.id, b.organization_id],
-          );
-          await event(c, scope(req), "branch_settings_updated", req.user, {
-            settings,
-          });
-          return settings;
+          return persistSettings(c,scope(req),req.user,b,settings);
         }),
       );
     },
@@ -3379,6 +3384,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
   mountMeraVisitAccess(router,{guard,scope,locked,find,update,event});
   mountMeraMinimumSpend(router,{db,guard,scope,locked,record,readRecords,find,update,event,publicContext,guest});
   mountMeraWriteoffs(router,{guard,scope,locked,find,readRecords,record,update,event,orderBalance});
+  mountAssistant(router,{db,guard,scope,locked,record,readRecords,find,update,event,env,aiFetch,availability,saveSettings});
   mountMenuImport(router,{db,guard,scope,locked,record,readRecords,find,update,event,env,aiFetch});
   mountMeraCategories(router,{db,guard,scope,locked,record,readRecords,find,update,event});
   mountMeraHelp(router,{db,guard,scope,locked,record,readRecords,find,update,event,publicContext,guest});

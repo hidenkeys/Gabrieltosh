@@ -1,3 +1,4 @@
+import AskMera, { canAskMera } from "./AskMera";
 import { defaultStation } from "./setup/onboardingDefaults";
 import { CurrencyContext } from "../ui/Currency";
 import { formatMoney as sharedMoney } from "../../../shared/mera-money.js";
@@ -288,6 +289,7 @@ export default function OrganizationWorkspace({
   const organization = organizations.find(
     (row: any) => row.id === organizationId,
   );
+  const [askOpen,setAskOpen] = useState(false);
   const membershipPermissions = list(organization?.permissions);
   const branches = list(organization?.branches);
   const selectedBranch = branches.find((row: any) => row.id === branchId);
@@ -1628,6 +1630,7 @@ export default function OrganizationWorkspace({
         </a>
         <div className="mw-context">
           {!phoneHeader && workspaceSwitchers}
+          {organizationId && branchId && canAskMera(permissions) && <button className="secondary mw-ask-trigger" onClick={()=>setAskOpen(true)}>Ask Mera</button>}
           <WorkspaceAccount
             secondary={<>{phoneHeader && <div className="mw-account-switchers">{workspaceSwitchers}</div>}<WorkspaceSound key={branchBase} orders={list(data?.orders)} enabled={activeSection !== "preparation"} /><p>{organization?.name} · {branch?.name}</p><p>{updatedAt ? (Date.now() - updatedAt < 60000 ? "Updated just now" : "Update pending") : "Connecting…"}</p><button type="button" className="secondary" onClick={() => void refresh()}>Refresh workspace data</button></>}
             triggerRef={accountTrigger}
@@ -1679,6 +1682,7 @@ export default function OrganizationWorkspace({
           </button>
         </div>
       </header>
+      {askOpen && organizationId && branchId && canAskMera(permissions) && <AskMera key={String(context?.user?.id || user?.id)+branchBase} actorId={context?.user?.id || user?.id} base={branchBase} permissions={permissions} onClose={()=>setAskOpen(false)} onChanged={refresh} />}
       {updatedAt && <span className="mw-update-indicator" role="status">{offline ? "Offline · update pending" : Date.now() - updatedAt < 60000 ? "Updated just now" : "Update pending"}</span>}
       {logoutConfirm && (
         <div className="mw-dialog-backdrop">
@@ -2173,7 +2177,7 @@ export default function OrganizationWorkspace({
       {!!organizations.length && (
         <>
           {branchId && branches.some((row: any) => row.id === branchId) && (
-            <WorkspaceNavigation role={organization?.role || ""} billingEnabled={billingEnabled}
+            <WorkspaceNavigation onAsk={organizationId && branchId && canAskMera(permissions)?()=>setAskOpen(true):undefined} role={organization?.role || ""} billingEnabled={billingEnabled}
               sections={visibleSections}
               turnedOffSections={turnedOffSections}
               active={activeSection}
