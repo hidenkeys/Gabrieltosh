@@ -26,7 +26,7 @@ const { render, screen, fireEvent, cleanup, waitFor } =
   await import("@testing-library/react");
 const { default: CustomerExperience } =
   await import("../src/mera/customer/CustomerExperience.tsx");
-test.beforeEach(() => window.sessionStorage.clear());
+test.beforeEach(() => { window.sessionStorage.clear(); window.localStorage.clear(); });
 test.afterEach(() => cleanup());
 
 const product = {
@@ -121,7 +121,7 @@ test("C1 search and category recovery have a clear empty state", async (t) => {
   render(React.createElement(CustomerExperience));
   await screen.findByText("Brown Sugar Boba");
   fireEvent.click(screen.getByRole("radio", { name: "Drinks", exact: true }));
-  assert.equal(screen.queryByText("Seasonal smoothie"), null);
+  assert.ok(screen.getByText("Seasonal smoothie"), "chip navigation keeps other sections visible");
   fireEvent.change(screen.getByRole("textbox", { name: "Search menu" }), {
     target: { value: "missing menu item" },
   });
@@ -225,11 +225,9 @@ test("C1 basket visibility suppresses the fixed shortcut during ordinary scrolli
   Object.defineProperty(globalThis, "IntersectionObserver", {
     configurable: true,
     value: class {
-      constructor(cb: any) {
-        callback = cb;
-      }
+      constructor(private cb: any) {}
       observe(element: Element) {
-        observed = element;
+        if (element.id === "mc-basket") { observed = element; callback = this.cb; }
       }
       disconnect() {}
     },
@@ -826,7 +824,7 @@ test("C1 unrelated organization without a product photo gets a neutral placehold
   });
   render(<CustomerExperience />);
   await screen.findByText("Brown Sugar Boba");
-  assert(screen.getByText("Photo coming soon"));
+  assert.equal(screen.queryByText("Photo coming soon"), null);
   assert.equal(document.querySelector(".mc-product img"), null);
   assert.equal(
     document.querySelector('img[src="/brand/brand-logo.png"]'),

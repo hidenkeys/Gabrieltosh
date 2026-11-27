@@ -42,7 +42,7 @@ export const checkoutIntentSchema = z
     note: z.string().max(500),
   })
   .strict();
-const line = z
+export const basketLineSchema = z
   .object({
     key: z.string().min(1).max(5000),
     productId: z.string().uuid(),
@@ -109,7 +109,7 @@ export const checkoutJournalSchema = z
     savedAt: z.string().datetime(),
     intent: checkoutIntentSchema,
     review: z
-      .object({ lines: z.array(line).min(1).max(100), quote: quote.nullable() })
+      .object({ lines: z.array(basketLineSchema).min(1).max(100), quote: quote.nullable() })
       .strict(),
   })
   .strict()

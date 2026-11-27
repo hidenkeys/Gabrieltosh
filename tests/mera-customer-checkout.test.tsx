@@ -50,15 +50,14 @@ const menu = {
     },
   ],
 };
-test.beforeEach(() => window.sessionStorage.clear());
+test.beforeEach(() => { window.sessionStorage.clear(); window.localStorage.clear(); });
 test.afterEach(cleanup);
 async function mount() {
   render(<CustomerExperience />);
   await screen.findByRole("heading", { name: "Your basket" });
 }
 function add() {
-  fireEvent.click(screen.getByRole("button", { name: "Choose: Tea" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add: Tea" }));
 }
 function api(
   t: any,

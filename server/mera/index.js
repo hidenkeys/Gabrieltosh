@@ -1083,8 +1083,22 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
     ).map((r) => r.data);
     const published = publishedCounterProducts(b,current);
     if(!availableNow(b.settings.serviceHours,b.timezone)) throw fail("Ordering is closed outside branch service hours.",409,"BRANCH_CLOSED");
-    const priced = quote(input.items, published, {tableContext:reservationContext||(input.fulfillment==="table_service"&&(!!input.visitId||!!tableForOrder))});
+    let priced;
+    try {
+      priced = quote(input.items, published, {tableContext:reservationContext||(input.fulfillment==="table_service"&&(!!input.visitId||!!tableForOrder))});
+    } catch (error) {
+      if (Array.isArray(error.details?.productIds)) {
+        const ids = new Set(error.details.productIds);
+        const productIds = input.items.filter(line => {
+          const product = published.find(product => product.id === line.productId);
+          return ids.has(line.productId) || (product?.components || []).some(ref => ids.has(ref.productId)) || (line.choices || []).some(ref => ids.has(ref.productId));
+        }).map(line => line.productId);
+        error.details = productIds.length ? { productIds: [...new Set(productIds)] } : undefined;
+      }
+      throw error;
+    }
     const pricing=await resolveQuotedPricing(c,s,b,input,actor,guestId,priced.total);
+    const affectedProductIds = id => [...new Set(priced.items.filter(line => line.productId === id || (line.components || []).some(ref => ref.productId === id)).map(line => line.productId))];
     const quantities = new Map();
     for (const l of stockLines(priced.items))
       quantities.set(
@@ -1094,7 +1108,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
     for (const [id, qty] of quantities) {
       const p = current.find((p) => p.id === id);
       if (p.stockMode === "counted") {
-        if (p.stock < qty) throw fail("Not enough stock.", 409, "OUT_OF_STOCK");
+        if (p.stock < qty) throw fail("Not enough stock.", 409, "OUT_OF_STOCK", { productIds: affectedProductIds(id) });
         p.stock -= qty;
         await update(c, s, "product", p.id, p);
         await record(c, s, "stock_movement", {
@@ -1110,7 +1124,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
     for(const line of variantTotals.values()) {
       const product=await find(c,s,"product",line.productId),variant=product.variants.find(v=>v.id===line.variantId);
       if(variant?.stockMode==="counted") {
-        if(variant.stock<line.quantity) throw fail("Not enough stock for this size.",409,"OUT_OF_STOCK");
+        if(variant.stock<line.quantity) throw fail("Not enough stock for this size.",409,"OUT_OF_STOCK", { productIds: affectedProductIds(line.productId) });
         variant.stock-=line.quantity;
         await update(c,s,"product",product.id,product);
         await record(c,s,"stock_movement",{productId:product.id,variantId:variant.id,type:"checkout_hold",quantity:-line.quantity,createdAt:now()});
@@ -3436,7 +3450,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
     if (err.status)
       return res
         .status(err.status)
-        .json({ error: err.message, code: err.code || "INVALID_REQUEST" });
+        .json({ error: err.message, code: err.code || "INVALID_REQUEST", ...(["OUT_OF_STOCK", "MENU_CHANGED"].includes(err.code) && Array.isArray(err.details?.productIds) ? { details: { productIds: err.details.productIds } } : {}) });
     console.error("Mera request failed", err.code || err.name);
     res.status(500).json({
       error: "The request could not be completed.",

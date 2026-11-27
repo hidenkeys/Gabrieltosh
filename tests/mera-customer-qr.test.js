@@ -26,7 +26,7 @@ const { render, screen, fireEvent, cleanup, waitFor } =
   await import("@testing-library/react");
 const { default: CustomerExperience } =
   await import("../src/mera/customer/CustomerExperience.tsx");
-test.beforeEach(() => window.sessionStorage.clear());
+test.beforeEach(() => { window.sessionStorage.clear(); window.localStorage.clear(); });
 test.afterEach(() => cleanup());
 
 const menu = {
@@ -269,9 +269,8 @@ test("configured charges require server review and uncertain retries preserve qu
   await screen.findByText("Brown Sugar Boba");
   await screen.findByRole("heading", { name: "Your basket" });
   fireEvent.click(
-    screen.getByRole("button", { name: "Choose: Brown Sugar Boba" }),
+    screen.getByRole("button", { name: "Add: Brown Sugar Boba" }),
   );
-  fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
   fireEvent.change(
     screen.getByRole("textbox", {
       name: /^(?:Your name|What should we call you\?)$/,
@@ -298,7 +297,7 @@ test("configured charges require server review and uncertain retries preserve qu
 test("customization modal contains keyboard focus and restores its trigger", async (t) => {
   mockGuestSessionFetch(t, async (input) =>
     String(input).endsWith("/menu")
-      ? Response.json(menu)
+      ? Response.json({ ...menu, products: [{ ...menu.products[0], variants: [{ id: "regular", name: "Regular", price: 380000 }] }] })
       : Response.json({ error: "guest" }, { status: 401 }),
   );
   render(React.createElement(CustomerExperience));
@@ -637,7 +636,7 @@ test("customer private requests select organization from explicit menu/store rou
   );
 });
 
-test("published nested category IDs filter descendants and retain legacy category fallback", async (t) => {
+test("published nested category chips navigate descendants and retain legacy sections", async (t) => {
   const graph = [
     {
       id: "drinks",
@@ -686,14 +685,14 @@ test("published nested category IDs filter descendants and retain legacy categor
   );
   fireEvent.click(screen.getByRole("radio", { name: "Drinks", exact: true }));
   assert(screen.getByText("Brown Sugar Boba"));
-  assert.equal(screen.queryByText("Legacy sundae"), null);
+  assert.ok(screen.getByText("Legacy sundae"), "other sections remain visible");
   fireEvent.click(
     screen.getByRole("radio", { name: "Drinks / Tea", exact: true }),
   );
   assert(screen.getByText("Brown Sugar Boba"));
   fireEvent.click(screen.getByRole("radio", { name: "Desserts", exact: true }));
   assert(screen.getByText("Legacy sundae"));
-  assert.equal(screen.queryByText("Brown Sugar Boba"), null);
+  assert.ok(screen.getByText("Brown Sugar Boba"), "other sections remain visible");
   cleanup();
 });
 
@@ -890,7 +889,7 @@ test("table QR package stays blocked until joining and quotes with the joined vi
   try {
     render(React.createElement(CustomerExperience));
     const choosePackage = await screen.findByRole("button", {
-      name: "Choose: VIP bottle package",
+      name: "Add: VIP bottle package",
     });
     assert.equal(
       choosePackage.disabled,
@@ -912,11 +911,10 @@ test("table QR package stays blocked until joining and quotes with the joined vi
       "You have joined this visit. Additional rounds will be linked to this table.",
     );
     const joinedPackage = screen.getByRole("button", {
-      name: "Choose: VIP bottle package",
+      name: "Add: VIP bottle package",
     });
     assert.equal(joinedPackage.disabled, false);
     fireEvent.click(joinedPackage);
-    fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
     fireEvent.click(screen.getByRole("button", { name: "Review total" }));
     await waitFor(() => assert.equal(quotes.length, 1));
     assert.equal(quotes[0].visitId, "visit-one");

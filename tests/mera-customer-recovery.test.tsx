@@ -87,7 +87,7 @@ function record() {
     quote: null,
   });
 }
-test.beforeEach(() => window.sessionStorage.clear());
+test.beforeEach(() => { window.sessionStorage.clear(); window.localStorage.clear(); });
 test.afterEach(() => cleanup());
 test("journal is bounded, scope-isolated and never expires an unresolved record into a new basket", () => {
   const saved = { ...record(), savedAt: "2020-01-01T00:00:00.000Z" };
@@ -228,8 +228,7 @@ test("remount restores exact review only after cookie proof, with no automatic w
   });
   render(React.createElement(CustomerExperience));
   await screen.findByRole("heading", { name: "Your basket" });
-  fireEvent.click(screen.getByRole("button", { name: "Choose: Original tea" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add: Original tea" }));
   fireEvent.change(
     screen.getByRole("textbox", {
       name: /^(?:Your name|What should we call you\?)$/,
@@ -314,7 +313,7 @@ for (const mode of ["mismatch", "missing", "expired", "offline"] as const)
         null,
       );
       assert.equal(
-        screen.getByRole("button", { name: "Choose: Original tea" }).disabled,
+        screen.getByRole("button", { name: /^(Add: Original tea|Increase Menu quantity for Original tea)$/ }).disabled,
         true,
       );
       assert.equal(
@@ -352,8 +351,7 @@ test("storage refusal prevents order POST rather than claiming recoverability", 
   });
   render(React.createElement(CustomerExperience));
   await screen.findByRole("heading", { name: "Your basket" });
-  fireEvent.click(screen.getByRole("button", { name: "Choose: Original tea" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add: Original tea" }));
   fireEvent.change(
     screen.getByRole("textbox", {
       name: /^(?:Your name|What should we call you\?)$/,
@@ -367,7 +365,7 @@ test("storage refusal prevents order POST rather than claiming recoverability", 
   assert.equal(orders, 0);
   assert.equal(screen.queryByRole("button", { name: "Submit order" }), null);
   assert.equal(
-    screen.getByRole("button", { name: "Choose: Original tea" }).disabled,
+    screen.getByRole("button", { name: /^(Add: Original tea|Increase Menu quantity for Original tea)$/ }).disabled,
     true,
   );
 });
@@ -428,7 +426,7 @@ test("not_found keeps the original frozen; only explicit abandoned proof permits
   await screen.findByText(/The venue has not recorded this request yet/);
   assert(readCheckoutJournal(scope));
   assert.equal(
-    screen.getByRole("button", { name: "Choose: Original tea" }).disabled,
+    screen.getByRole("button", { name: /^(Add: Original tea|Increase Menu quantity for Original tea)$/ }).disabled,
     true,
   );
   fireEvent.click(
@@ -451,8 +449,7 @@ test("not_found keeps the original frozen; only explicit abandoned proof permits
   assert.equal(orderBodies.length, 0);
   assert.equal(writes.length, 1);
   assert(writes[0].path.endsWith("/" + intent.requestKey + "/abandon"));
-  fireEvent.click(screen.getByRole("button", { name: "Choose: Original tea" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
+  fireEvent.click(screen.getByRole("button", { name: /^(Add: Original tea|Increase Menu quantity for Original tea)$/ }));
   fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
   await screen.findByText("M-NEW");
   assert.notEqual(orderBodies[0].requestKey, intent.requestKey);

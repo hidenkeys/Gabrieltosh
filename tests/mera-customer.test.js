@@ -26,7 +26,7 @@ const { render, screen, fireEvent, cleanup } =
   await import("@testing-library/react");
 const { default: CustomerExperience } =
   await import("../src/mera/customer/CustomerExperience.tsx");
-test.beforeEach(() => window.sessionStorage.clear());
+test.beforeEach(() => { window.sessionStorage.clear(); window.localStorage.clear(); });
 test.afterEach(() => cleanup());
 
 const menu = {
@@ -76,9 +76,8 @@ test("an uncertain checkout remains visible and retries retain the original idem
   await screen.findByText("Brown Sugar Boba");
   await screen.findByRole("heading", { name: "Your basket" });
   fireEvent.click(
-    screen.getByRole("button", { name: "Choose: Brown Sugar Boba" }),
+    screen.getByRole("button", { name: "Add: Brown Sugar Boba" }),
   );
-  fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
   fireEvent.change(
     screen.getByRole("textbox", {
       name: /^(?:Your name|What should we call you\?)$/,

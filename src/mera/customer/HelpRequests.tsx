@@ -40,6 +40,7 @@ type Props = {
   orderId?: string;
   visitId?: string;
   nameLocked?: boolean;
+  tableName?: string;
 };
 const topics: Record<string, string> = {
   service: "Service",
@@ -65,6 +66,7 @@ function ScopedHelpRequests({
   orderId,
   visitId,
   nameLocked = false,
+  tableName,
 }: Props) {
   const [requests, setRequests] = useState<OwnRequest[]>([]),
     [readError, setReadError] = useState(""),
@@ -210,7 +212,7 @@ function ScopedHelpRequests({
         body: {
           requestKey: requestId(),
           category: preset?.category || category,
-          message: nextMessage,
+          message: tableName ? `${tableName}: ${nextMessage}` : nextMessage,
           ...(context === "order" && orderId
             ? { orderId }
             : context === "visit" && visitId
@@ -273,6 +275,7 @@ function ScopedHelpRequests({
     <section className="mc-panel mc-help">
       <header className="mc-help-heading">
         <h2>Ask the team for help</h2>
+        {tableName && <p>For {tableName}</p>}
         <p>
           Send a request and check the team’s reply here. For urgent assistance,
           speak to staff. We will not send a text or email.

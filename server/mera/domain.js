@@ -1,7 +1,7 @@
 import { resolveContents, stockLines } from "./product-kinds.js";
 import { proposedPolicy } from "../../shared/mera-contracts.js";
-export const fail = (message, status = 400, code = "INVALID_REQUEST") =>
-  Object.assign(new Error(message), { status, code });
+export const fail = (message, status = 400, code = "INVALID_REQUEST", details) =>
+  Object.assign(new Error(message), { status, code, details });
 export const providers = {
   rubies: {
     state: "blocked",
@@ -47,17 +47,22 @@ export function quote(items, products, {tableContext=false}={}) {
   const result = items.map((line) => {
     const p = products.find((p) => p.id === line.productId);
     if (!p || !p.available)
-      throw fail("A selected item is unavailable.", 409, "MENU_CHANGED");
+      throw fail("A selected item is unavailable.", 409, "MENU_CHANGED", { productIds: [line.productId] });
     if (p.stockMode === "counted" && p.stock < line.quantity)
-      throw fail("Not enough stock.", 409, "OUT_OF_STOCK");
+      throw fail("Not enough stock.", 409, "OUT_OF_STOCK", { productIds: [line.productId] });
     if(p.requiresTable&&!tableContext)throw fail("This package requires a current table visit or reservation.",409,"TABLE_REQUIRED");
-    const components=resolveContents(p,line.choices||[],products);
+    let components;
+    try { components=resolveContents(p,line.choices||[],products); }
+    catch (error) {
+      if (["OUT_OF_STOCK", "MENU_CHANGED"].includes(error.code)) error.details = { productIds: [line.productId] };
+      throw error;
+    }
     let unit = p.price+components.reduce((n,c)=>n+(c.priceDelta||0),0);
     let variant = null;
     if (p.variants.length) {
       variant = p.variants.find((v) => v.id === line.variantId);
       if (!variant) throw fail("Select a valid product size.");
-      if(variant.stockMode==="counted" && variant.stock<line.quantity) throw fail("Not enough stock for this size.",409,"OUT_OF_STOCK");
+      if(variant.stockMode==="counted" && variant.stock<line.quantity) throw fail("Not enough stock for this size.",409,"OUT_OF_STOCK", { productIds: [line.productId] });
       unit = variant.price+components.reduce((n,c)=>n+(c.priceDelta||0),0);
     } else if (line.variantId) throw fail("Invalid size.");
     const selected = new Set(line.modifiers);
@@ -104,11 +109,12 @@ export function quote(items, products, {tableContext=false}={}) {
       station: p.station,
     };
   });
+  const affectedProductIds = id => [...new Set(result.filter(line => line.productId === id || (line.components || []).some(ref => ref.productId === id)).map(line => line.productId))];
   const demand=new Map();
   for(const l of stockLines(result)){const key=l.productId+":"+(l.variantId||"");const old=demand.get(key);demand.set(key,{...l,quantity:(old?.quantity||0)+l.quantity});}
   const totals=new Map();
-  for(const l of demand.values()){const p=products.find(p=>p.id===l.productId),v=p?.variants?.find(v=>v.id===l.variantId);totals.set(p.id,(totals.get(p.id)||0)+l.quantity);if(v?.stockMode==="counted"&&v.stock<l.quantity)throw fail("Not enough component stock.",409,"OUT_OF_STOCK");}
-  for(const [id,q] of totals){const p=products.find(p=>p.id===id);if(p.stockMode==="counted"&&p.stock<q)throw fail("Not enough component stock.",409,"OUT_OF_STOCK");}
+  for(const l of demand.values()){const p=products.find(p=>p.id===l.productId),v=p?.variants?.find(v=>v.id===l.variantId);totals.set(p.id,(totals.get(p.id)||0)+l.quantity);if(v?.stockMode==="counted"&&v.stock<l.quantity)throw fail("Not enough component stock.",409,"OUT_OF_STOCK", { productIds: affectedProductIds(l.productId) });}
+  for(const [id,q] of totals){const p=products.find(p=>p.id===id);if(p.stockMode==="counted"&&p.stock<q)throw fail("Not enough component stock.",409,"OUT_OF_STOCK", { productIds: affectedProductIds(id) });}
   return {
     items: result,
     total: assertMoney(result.reduce((n, i) => n + i.total, 0)),

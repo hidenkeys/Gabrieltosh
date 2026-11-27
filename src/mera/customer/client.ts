@@ -54,7 +54,7 @@ export async function customerRequest<T = any>(
           data.error ||
           "The venue could not complete this request.",
       ),
-      { status: response.status, code: data.code || data.error?.code },
+      { status: response.status, code: data.code || data.error?.code, details: data.details || data.error?.details },
     );
   return data;
 }

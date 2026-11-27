@@ -1,3 +1,7 @@
+import { productPhotos } from "../../brand";
+import { useDialogFocus } from "../ui/useDialogFocus";
+import { readBasket, saveBasket } from "./basketStorage";
+import OrderProgress from "./OrderProgress";
 import { orderingStatus } from "./orderingStatus";
 import ItemContents, {
   choiceKey,
@@ -53,7 +57,6 @@ import {
   reservationStatusLabel,
   reservationDateLabel,
 } from "./reservationPresentation";
-import { ProductImage } from "../../ProductImage";
 import { formatMoney } from "../../../shared/mera-money.js";
 import { CurrencyContext } from "../ui/Currency";
 import { customerRequest, requestId } from "./client";
@@ -119,6 +122,9 @@ export default function CustomerExperience({
   const [choiceKeys, setChoiceKeys] = useState<string[]>([]);
   const prefix = `/public/${encodeURIComponent(slug)}/${encodeURIComponent(branch)}`;
   const bingChun = slug === "bing-chun";
+  const currentPrefix = useRef(prefix);
+  currentPrefix.current = prefix;
+  const menuPrefix = useRef("");
   const requestedTable = new URLSearchParams(window.location.search).get(
     "tableId",
   );
@@ -227,13 +233,43 @@ export default function CustomerExperience({
   }
   const basketRef = useRef<HTMLElement>(null);
   const [basketViewed, setBasketViewed] = useState(false);
+  const [basketOpen, setBasketOpen] = useState(false);
+  const [phone, setPhone] = useState(
+    () => window.matchMedia?.("(max-width: 700px)").matches ?? false,
+  );
+  useEffect(() => {
+    const query = window.matchMedia?.("(max-width: 700px)");
+    if (!query) return;
+    const update = () => setPhone(query.matches);
+    query.addEventListener?.("change", update);
+    return () => query.removeEventListener?.("change", update);
+  }, []);
+  useDialogFocus({
+    dialogRef: basketRef,
+    open: phone && basketOpen && tab === "menu",
+    onClose: () => setBasketOpen(false),
+  });
+  useEffect(() => {
+    if (tab !== "menu") setBasketOpen(false);
+  }, [tab]);
+  const basketRestored = useRef("");
+  const basketMenuVersion = useRef(0);
+  useEffect(() => {
+    if (!menu || menuPrefix.current !== prefix) return;
+    const key = slug + ":" + branch;
+    if (basketRestored.current !== key) {
+      basketRestored.current = key;
+      basketMenuVersion.current = menu.version;
+      const restored = readBasket(key, menu);
+      if (restored) setCart(restored);
+      return;
+    }
+    if (!cart.length) basketMenuVersion.current = menu.version;
+    saveBasket(key, basketMenuVersion.current, cart);
+  }, [menu, cart, slug, branch]);
   useEffect(() => {
     const basket = basketRef.current;
-    if (
-      tab !== "menu" ||
-      !basket ||
-      typeof IntersectionObserver === "undefined"
-    )
+    if (tab !== "menu" || !basket || typeof IntersectionObserver === "undefined")
       return;
     const observer = new IntersectionObserver(
       (entries) => setBasketViewed(entries[0]?.isIntersecting || false),
@@ -261,15 +297,12 @@ export default function CustomerExperience({
   async function load() {
     setError("");
     try {
-      setMenu(
-        await customerRequest(
-          prefix +
-            "/menu" +
-            (previewToken
-              ? "?preview=" + encodeURIComponent(previewToken)
-              : ""),
-        ),
+      const result = await customerRequest(
+          prefix + "/menu" + (previewToken ? "?preview=" + encodeURIComponent(previewToken) : ""),
       );
+      if (currentPrefix.current !== prefix) return;
+      menuPrefix.current = prefix;
+      setMenu(result);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -646,8 +679,7 @@ export default function CustomerExperience({
   const visibleProducts = products
     .filter(
       (product) =>
-        matchesCategory(product, category, publishedCategories) &&
-        `${product.name} ${product.description} ${product.category}`
+        `${product.name} ${product.description} ${product.category} ${categories.find(c => c.key === "id:" + product.categoryId)?.label || ""}`
           .toLowerCase()
           .includes(search.toLowerCase()),
     )
@@ -655,15 +687,101 @@ export default function CustomerExperience({
       (a: any, b: any) =>
         ((categoryRank.get(a.categoryId) as number) ?? 9999) -
           ((categoryRank.get(b.categoryId) as number) ?? 9999) ||
+        String(a.categoryId || a.category).localeCompare(String(b.categoryId || b.category)) ||
         String(a.name).localeCompare(String(b.name)),
     );
+  function needsChoices(p: Product) {
+    return (
+      !!p.variants?.length ||
+      p.modifierGroups?.some((g) => g.min > 0) ||
+      p.choiceGroups?.some((g) => g.min > 0)
+    );
+  }
+  function customize(p: Product) {
+    setSelected(p);
+    setChoiceKeys([]);
+    setModifierError(null);
+    setCustomizationError("");
+    setVariant(p.variants?.[0]?.id || "");
+    setModifiers([]);
+    setError("");
+  }
+  function changePlain(p: Product, delta: number) {
+    if (checkoutLocked) return;
+    const key = p.id + ":";
+    setCart((old) => {
+      const existing = old.find((line) => line.key === key);
+      const quantity = Math.min(
+        100,
+        Math.max(0, (existing?.quantity || 0) + delta),
+      );
+      return existing
+        ? old
+            .map((line) => (line.key === key ? { ...line, quantity } : line))
+            .filter((line) => line.quantity > 0)
+        : quantity
+          ? [
+              ...old,
+              {
+                key,
+                productId: p.id,
+                name: p.name,
+                quantity,
+                unitPrice: p.price,
+                modifiers: [],
+                choices: [],
+                summary: (p.components || [])
+                  .map(
+                    (ref: any) =>
+                      `${ref.quantity} × ${contentName(ref, products)}`,
+                  )
+                  .join(" · "),
+              },
+            ]
+          : old;
+    });
+    checkoutKey.current = requestId();
+  }
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined" || tab !== "menu") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries.find((entry) => entry.isIntersecting);
+        if (entry?.target)
+          setCategory((entry.target as HTMLElement).dataset.menuSection || "All");
+      },
+      { rootMargin: "-10% 0px -70% 0px" },
+    );
+    document
+      .querySelectorAll("[data-menu-section]")
+      .forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, [menu, search, tab]);
+  useEffect(() => {
+    if (!menu || scannedTable || visit) return;
+    const settings = menu.branch.settings;
+    const counter = settings?.capabilities
+      ? settings.capabilities.includes("counter_ordering")
+      : !settings?.serviceModes ||
+        settings.serviceModes.includes("counter_takeaway");
+    if (
+      !counter &&
+      menu.tableService !== false &&
+      (settings?.capabilities?.includes("table_service") ||
+        settings?.serviceModes?.includes("table_service"))
+    )
+      setFulfillment("table_service");
+  }, [menu, scannedTable, visit]);
   const basketQuantity = cart.reduce((count, line) => count + line.quantity, 0);
   function openBasket() {
+    setBasketOpen(true);
     setBasketViewed(true);
+    if (phone) return;
     basketRef.current?.scrollIntoView?.({ block: "start", behavior: "auto" });
     basketHeadingRef.current?.focus({ preventScroll: true });
   }
   function returnToMenu() {
+    setBasketOpen(false);
     setBasketViewed(false);
     searchRef.current?.scrollIntoView?.({ block: "start", behavior: "auto" });
     searchRef.current?.focus({ preventScroll: true });
@@ -893,6 +1011,7 @@ export default function CustomerExperience({
     }
   }, [checkoutNotice, tab]);
   function reviewCheckout() {
+    setBasketOpen(true);
     setTab("menu");
     setBasketViewed(true);
   }
@@ -1055,6 +1174,15 @@ export default function CustomerExperience({
         ["OUT_OF_STOCK", "MENU_CHANGED", "TOO_MANY_OPEN_ORDERS", "QUOTE_CHANGED", "QUOTE_REQUIRED"].includes(
           (e as any).code,
         );
+      if (definiteRejection) {
+        const code = (e as any).code;
+        if (code === "TOO_MANY_OPEN_ORDERS") setRejectedLines([]);
+        if (["OUT_OF_STOCK", "MENU_CHANGED"].includes(code)) {
+          const ids = (e as any).details?.productIds;
+          const affected = Array.isArray(ids) ? cart.filter(line => ids.includes(line.productId)) : [];
+          setRejectedLines((affected.length ? affected : cart).map(line => line.key));
+        }
+      }
       if (definiteRejection && !attempt) {
         setQuote(null);
       } else if (definiteRejection) {
@@ -1073,8 +1201,6 @@ export default function CustomerExperience({
           setCheckoutRecovery({ phase: "ready", message: "" });
           checkoutKey.current = requestId();
           setTab("menu");
-          if (["OUT_OF_STOCK", "MENU_CHANGED"].includes((e as any).code))
-            setRejectedLines(cart.map(line => line.key));
           setQuote(null);
         } catch (clearError) {
           checkoutUncertain.current = true;
@@ -1594,20 +1720,14 @@ export default function CustomerExperience({
         </section>
         {requestedTable && menu && (
           <div className="mc-alert" role="status">
-            {menu.tables?.some((table: any) => table.id === requestedTable) ? (
+            {scannedTable ? (
               <>
-                You scanned{" "}
-                {
-                  menu.tables.find((table: any) => table.id === requestedTable)
-                    .name
-                }
-                . Ask staff for the current visit’s joining code before opening
-                its private bill.{" "}
+                {scannedTable.name} · ordering to your table{" "}
                 <button
                   className="mc-secondary"
                   onClick={() => setTab("visit")}
                 >
-                  Join table
+                  Join table bill
                 </button>
               </>
             ) : (
@@ -1724,33 +1844,60 @@ export default function CustomerExperience({
                   {orderingStatus(menu.branch)}
                 </p>
               )}
+              {!scannedTable && !visit && (
+                    <Segmented
+                      label="Enjoy it"
+                      value={fulfillment}
+                      disabled={checkoutLocked}
+                      onChange={(value) => {
+                        if (!checkoutLocked) setFulfillment(value);
+                      }}
+                      options={[
+                        ...((menu.branch.settings?.capabilities ? menu.branch.settings.capabilities.includes("counter_ordering") : !menu.branch.settings?.serviceModes || menu.branch.settings.serviceModes.includes("counter_takeaway"))
+                          ? [{ value: "counter_pickup", label: "Counter pickup" }, { value: "takeaway", label: "Takeaway" }] : []),
+                        ...(visit ||
+                        scannedTable || menu.tableService === true || menu.branch.settings?.serviceModes?.includes("table_service") || menu.branch.settings?.capabilities?.includes("table_service") ||
+                        checkoutIntent?.fulfillment === "table_service"
+                          ? [
+                              {
+                                value: "table_service",
+                                label:
+                                  !visit && scannedTable
+                                    ? `Serve at ${scannedTable.name}`
+                                    : "At my table",
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
+              )}
+              {fulfillment === "table_service" && !scannedTable && !visit && <p className="mc-checkout-hint">Join your table to order to it. <button type="button" className="mc-secondary" onClick={() => setTab("visit")}>Join table</button></p>}
               <Chips
                 className="mc-category-chips"
                 label="Menu categories"
                 value={category}
-                onChange={setCategory}
+                onChange={(key) => {
+                  setCategory(key);
+                  const target = key === "All" ? document.getElementById("mc-menu-sections") :
+                    Array.from(document.querySelectorAll<HTMLElement>("[data-menu-section]")).find(node => {
+                      const product = products.find(p => p.id === node.dataset.productId);
+                      return product && matchesCategory(product, key, publishedCategories);
+                    });
+                  target?.scrollIntoView?.({ block: "start", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+                }}
                 options={categories.map((c) => ({
                   value: c.key,
                   label: c.label,
                 }))}
               />
-              <div className="mc-products">
-                {visibleProducts.map((p) => (
-                  <article className="mc-product" key={p.id}>
-                    {assetUrl(p.image) || bingChun || p.imageCode ? (
-                      <ProductImage
-                        product={{
-                          ...p,
-                          image: assetUrl(p.image),
-                          code: p.imageCode || p.code,
-                        }}
-                        decorative
-                      />
-                    ) : (
-                      <div className="mc-photo-placeholder">
-                        Photo coming soon
-                      </div>
-                    )}
+              <div className="mc-products" id="mc-menu-sections">
+                {visibleProducts.map((p, index) => (
+                  <section className="mc-menu-row" key={p.id}>
+                  {(index === 0 || (visibleProducts[index - 1].categoryId || visibleProducts[index - 1].category) !== (p.categoryId || p.category)) && (
+                    <h2 data-menu-section={p.categoryId ? "id:" + p.categoryId : "legacy:" + p.category} data-product-id={p.id} className="mc-section-heading">{publishedCategories.find((c: any) => c.id === p.categoryId)?.name || p.category || "Menu"}</h2>
+                  )}
+                  <article className="mc-product mc-compact-product">
+                    {(assetUrl(p.image) || ((bingChun || p.imageCode) && productPhotos[p.imageCode || p.code]?.src)) && <img src={assetUrl(p.image) || "/products/" + productPhotos[p.imageCode || p.code]?.src} alt="" loading="lazy" onError={event => { event.currentTarget.hidden = true; }} />}
                     <div>
                       <h3>{p.name}</h3>
                       <p>{p.description || p.size}</p>
@@ -1767,7 +1914,8 @@ export default function CustomerExperience({
                           : money(p.price)}
                       </span>
                       <button
-                        aria-label={`${!p.available || (p.stockMode === "counted" && p.stock <= 0) ? "Sold out" : "Choose"}: ${p.name}`}
+                        hidden={!needsChoices(p) && cart.some(line => line.key === p.id + ":")}
+                        aria-label={`${!p.available || (p.stockMode === "counted" && p.stock <= 0) ? "Sold out" : needsChoices(p) ? "Choose" : "Add"}: ${p.name}`}
                         disabled={
                           checkoutLocked ||
                           !p.available ||
@@ -1777,22 +1925,20 @@ export default function CustomerExperience({
                           (p.requiresTable && !hasTableContext)
                         }
                         onClick={() => {
-                          setSelected(p);
-                          setChoiceKeys([]);
-                          setModifierError(null);
-                          setCustomizationError("");
-                          setVariant(p.variants?.[0]?.id || "");
-                          setModifiers([]);
-                          setError("");
+                          if (!needsChoices(p)) { changePlain(p, 1); return; }
+                          customize(p);
                         }}
                       >
                         {!p.available ||
                         (p.stockMode === "counted" && p.stock <= 0)
                           ? "Sold out"
-                          : "Choose"}
+                          : needsChoices(p) ? "Choose" : "+"}
                       </button>
+                      {!needsChoices(p) && (p.modifierGroups?.length > 0 || !!p.choiceGroups?.length) && <button type="button" className="mc-secondary" aria-label={`Customize: ${p.name}`} disabled={checkoutLocked || !p.available || !menu.orderingAvailable || !!previewToken || (p.requiresTable && !hasTableContext)} onClick={() => customize(p)}>Customize</button>}
+                      {!needsChoices(p) && cart.some(line => line.key === p.id + ":") && <Stepper label={`Menu quantity for ${p.name}`} value={cart.find(line => line.key === p.id + ":")!.quantity} min={0} max={100} disabled={checkoutLocked} onChange={quantity => changePlain(p, quantity - (cart.find(line => line.key === p.id + ":")?.quantity || 0))} /> }
                     </div>
                   </article>
+                  </section>
                 ))}
               </div>
               {!visibleProducts.length && (
@@ -1827,11 +1973,17 @@ export default function CustomerExperience({
               )}
             </section>
             <aside
-              className="mc-panel mc-cart"
+              className={`mc-panel mc-cart${phone && basketOpen ? " mc-basket-sheet" : ""}`}
+              role={phone && basketOpen ? "dialog" : undefined}
+              hidden={phone && !basketOpen}
               id="mc-basket"
               ref={basketRef}
               aria-labelledby="mc-basket-title"
             >
+              {phone && basketOpen && <>
+                <button type="button" className="mc-secondary" onClick={() => setBasketOpen(false)}>Close basket</button>
+                <p className="mc-basket-live" aria-live="polite" aria-atomic="true">{basketQuantity} items in basket · {money(total)}</p>
+              </>}
               {checkoutNotice && (
                 <div
                   className="mc-checkout-notice"
@@ -1983,31 +2135,6 @@ export default function CustomerExperience({
                     <p id="mc-order-name-hint" className="mc-checkout-hint">
                       Optional. We’ll use “Guest” if you leave this blank.
                     </p>
-                    <Segmented
-                      label="Enjoy it"
-                      value={fulfillment}
-                      disabled={checkoutLocked}
-                      onChange={(value) => {
-                        if (!checkoutLocked) setFulfillment(value);
-                      }}
-                      options={[
-                        { value: "counter_pickup", label: "Counter pickup" },
-                        { value: "takeaway", label: "Takeaway" },
-                        ...(visit ||
-                        scannedTable ||
-                        checkoutIntent?.fulfillment === "table_service"
-                          ? [
-                              {
-                                value: "table_service",
-                                label:
-                                  !visit && scannedTable
-                                    ? `Serve at ${scannedTable.name}`
-                                    : "At my table",
-                              },
-                            ]
-                          : []),
-                      ]}
-                    />
                     {fulfillment === "table_service" && (
                       <p className="mc-checkout-hint">
                         {visit?.visit?.tableName
@@ -2270,6 +2397,7 @@ export default function CustomerExperience({
             nameLocked={checkoutLocked}
             orderId={order?.id}
             visitId={visit?.visit?.id}
+            tableName={scannedTable?.name || visit?.visit?.tableName}
           />
         )}
         {tab === "track" && (
@@ -2296,6 +2424,9 @@ export default function CustomerExperience({
                 <p>
                   Reference <b>{order.reference || "Reference unavailable"}</b>
                 </p>
+                <OrderProgress order={order} />
+                <button className="mc-secondary" onClick={() => { setTab("menu"); setBasketOpen(false); }}>Order more</button>
+                <button className="mc-secondary" onClick={() => setTab("help")}>Ask for help</button>
                 <span className="mc-state">
                   {orderStateLabel(order.status)}
                 </span>
@@ -2869,10 +3000,10 @@ export default function CustomerExperience({
       </main>
       {menu &&
         tab === "menu" &&
-        !basketViewed &&
         checkoutRecovery.phase === "ready" && (
           <div
             className="mc-mobile-basket"
+            hidden={phone ? basketOpen : basketViewed}
             inert={!!selected}
             aria-hidden={selected ? true : undefined}
           >
@@ -2883,17 +3014,13 @@ export default function CustomerExperience({
               onClick={openBasket}
             >
               <span>
-                View basket{" "}
-                <small>
-                  {basketQuantity} {basketQuantity === 1 ? "item" : "items"}
-                </small>
+                {basketQuantity} {basketQuantity === 1 ? "item" : "items"} · {money(currentQuote?.total ?? total)} — View basket
               </span>
-              <strong key={String(currentQuote?.total ?? total)}>
-                {money(currentQuote?.total ?? total)}
-              </strong>
+
             </button>
           </div>
         )}
+      {!(phone && basketOpen) && <p className="mc-basket-live" aria-live="polite" aria-atomic="true">{basketQuantity} {basketQuantity === 1 ? "item" : "items"} in basket · {money(total)}</p>}
       <footer
         className="mc-footer"
         inert={!!selected}

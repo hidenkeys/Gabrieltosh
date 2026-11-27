@@ -1000,3 +1000,156 @@
 .mera-customer[style*="--mc-surface-ink"] .mc-customization-dialog :is(.mc-modal-header, .mc-modal-actions, .mc-option-group, .mc-customization-allergens) { border-color: var(--mc-line); }
 .mera-customer[style*="--mc-surface-ink"] .mc-customization-dialog .mc-modal-actions { background: var(--mc-bone); }
 .mera-customer[style*="--mc-surface-ink"] .mc-customization-dialog .mc-option-error { color: var(--mc-link); }
+
+/* Guest menu v2: dense sections and a handheld basket sheet. */
+.mera-customer .mc-products {
+  display: block;
+}
+.mera-customer .mc-menu-row {
+  min-width: 0;
+}
+.mera-customer .mc-section-heading {
+  scroll-margin-top: calc(var(--mc-header-height, 76px) + 110px);
+  padding: 24px 0 12px;
+  margin: 0;
+  color: var(--mc-ink);
+}
+.mera-customer .mc-compact-product {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  border: 0;
+  border-bottom: 1px solid var(--mc-line);
+  border-radius: 0;
+  background: var(--mc-paper);
+  color: var(--mc-ink);
+}
+.mera-customer .mc-compact-product > div {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+}
+.mera-customer .mc-compact-product > img {
+  width: 76px;
+  height: 76px;
+  flex: 0 0 76px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+.mera-customer .mc-compact-product h3 {
+  margin: 0 0 4px;
+  color: var(--mc-ink);
+}
+.mera-customer .mc-compact-product p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin: 4px 0;
+  color: var(--mc-muted);
+}
+.mera-customer .mc-compact-product button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.mera-customer .mc-compact-product button[hidden] {
+  display: none;
+}
+.mera-customer .mc-category-chips {
+  position: sticky;
+  top: var(--mc-header-height, 76px);
+  z-index: 12;
+  background: var(--mc-paper);
+  padding: 8px 0;
+  min-width: 0;
+}
+.mera-customer .mc-category-chips .mi-choice-options {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  max-width: 100%;
+}
+.mera-customer .mc-category-chips .mi-choice-option {
+  flex: 0 0 auto;
+  min-height: 44px;
+}
+.mera-customer .mc-basket-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.mera-customer .mc-order-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+  color: var(--mc-muted);
+}
+.mera-customer .mc-order-steps [aria-current] {
+  font-weight: 700;
+  color: var(--mc-ink);
+  border-bottom: 2px solid var(--mc-primary);
+}
+@media (max-width: 700px) {
+  .mera-customer .mc-cart[hidden] {
+    display: none;
+  }
+  .mera-customer .mc-basket-sheet {
+    position: fixed;
+    z-index: 50;
+    inset: auto 0 0;
+    margin: 0;
+    width: 100%;
+    max-height: 90dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 24px 24px 0 0;
+    padding: 20px;
+    box-sizing: border-box;
+    background: var(--mc-paper);
+    color: var(--mc-ink);
+    box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--mc-ink) 45%, transparent);
+  }
+  .mera-customer .mc-wrap,
+  .mera-customer .mc-menu,
+  .mera-customer .mc-layout {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+/* Rows use the card surface so its inherited readable foreground stays paired. */
+.mera-customer .mc-compact-product {
+  background: var(--mc-bone);
+}
+.mera-customer .mc-basket-sheet {
+  background: var(--mc-bone);
+}
+.mera-customer .mc-compact-product .mc-price {
+  display: inline-block;
+  margin-right: 12px;
+}
+.mera-customer .mc-compact-product .mi-stepper {
+  display: inline-block;
+  vertical-align: middle;
+}
+.mera-customer .mc-compact-product .mi-stepper > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.mera-customer .mc-compact-product .mi-stepper button {
+  margin: 0;
+}
+.mera-customer .mc-compact-product .mi-stepper input {
+  width: 48px;
+}
+.mera-customer .mc-mobile-basket[hidden] {
+  display: none;
+}

@@ -55,7 +55,7 @@ const summary = (balance: number) => ({
   bills: [],
   orders: [],
 });
-test.beforeEach(() => window.sessionStorage.clear());
+test.beforeEach(() => { window.sessionStorage.clear(); window.localStorage.clear(); });
 test.afterEach(cleanup);
 function api(
   t: any,
@@ -195,8 +195,7 @@ test("successful visit refresh does not clear an unrelated uncertain order write
   );
   await join();
   fireEvent.click(screen.getByRole("button", { name: "Menu" }));
-  fireEvent.click(screen.getByRole("button", { name: "Choose: Original tea" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add to basket" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add: Original tea" }));
   fireEvent.click(screen.getByRole("button", { name: "Submit order" }));
   await act(async () => {});
   fireEvent.click(screen.getByRole("button", { name: "Your table" }));
