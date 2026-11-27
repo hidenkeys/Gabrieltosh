@@ -40,7 +40,7 @@ import { mountMeraHelp } from "./help.js";
 import { mountMeraFulfillment } from "./fulfillment.js";
 import { bindProductCategory, publishedCounterProducts } from "./catalog.js";
 import { mountMeraFinancialRequests,assertFinancialRequestActive } from "./financial-requests.js";
-import { subscriptionEntitlement } from "./subscriptions.js";
+import { billingEnabled, subscriptionEntitlement } from "./subscriptions.js";
 import { migrateMeraAssets,mountMeraAssets,assertMeraAsset } from "./assets.js";
 import { mountMeraPricing, resolveQuotedPricing, createPricingQuote } from "./pricing.js";
 import { mountMeraShifts } from "./shifts.js";
@@ -161,6 +161,7 @@ export async function migrateMera(db) {
   await migrateMeraAliases(db);
   await migrateCompanyLeads(db);
   await migrateMenuImport(db);
+  if (!billingEnabled()) return;
   // Businesses created before automatic trials get one, counted from when they signed up.
   const untimed = (
     await db.query(
@@ -480,6 +481,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
         subscription: safeSubscription(m.subscription,m.permissions),
         policy:commercial(m.permissions)?m.policy:null,
         features:organizationFeatures(m),
+        billingEnabled:billingEnabled(),
         entitlements:subscriptionEntitlement(m.subscription,m.subscription?.approvedPolicySnapshot||m.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production"),
         branches: branches.map(b=>({...branchView(b),permissions:effectiveBranchAccess(m,b.id).permissions,role:effectiveBranchAccess(m,b.id).role})),
         permissions: effectiveBranchAccess(m).permissions,
@@ -496,7 +498,8 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
       organizations,
       providers,
       policy: proposedPolicy,
-      demo: process.env.MERA_DEMO === "true",
+      billingEnabled: billingEnabled(),
+      demo: process.env.MERA_DEMO === "true" && process.env.NODE_ENV !== "production",
     });
   });
   // Advisory only: organization creation still performs the atomic claim.
@@ -535,7 +538,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
           JSON.stringify({
             status: "trialing",
             // Every new business starts a free trial; after it ends they pay to keep taking orders.
-            trialEndsAt: new Date(Date.now() + trialDays() * 86400000).toISOString(),
+            ...(billingEnabled() ? { trialEndsAt: new Date(Date.now() + trialDays() * 86400000).toISOString() } : {}),
             billingEnabled: false,
             includedBranchIds: [branchId],
           }),
@@ -683,6 +686,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
           : [],
         report:access.includes("reports.view")?{...report(snapshot.reportRecords,b,reportDate),reservationLiability:snapshot.reservationLiabilityAsOf}:null,
         subscription: safeSubscription(org.subscription,access),
+        billingEnabled:billingEnabled(),
         entitlements:subscriptionEntitlement(org.subscription,org.subscription?.approvedPolicySnapshot||org.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production"),
         policy: commercial(access)?org.policy:null,
         features:organizationFeatures(org),
@@ -996,7 +1000,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
       ).rows[0].count,
     );
     if (
-      branchCount > financialPolicy.includedBranches &&
+      billingEnabled() && branchCount > financialPolicy.includedBranches &&
       financialPolicy.additionalBranchPrice === null &&
       !(organization.subscription.includedBranchIds || [DEMO_BRANCH]).includes(
         s.branchId,
@@ -2571,6 +2575,7 @@ export function createMeraRouter(db, {sendEmail = sendMeraEmail, env = process.e
     "/organizations/:organizationId/policy",
     guard("billing.manage"),
     async (req, res) => {
+      if (!billingEnabled()) return res.status(409).json({ error: "Billing is off.", code: "BILLING_DISABLED" });
       const input = z
         .object({
           monthlyPrice: z.number().int().safe().min(0).max(100000000000).nullable(),

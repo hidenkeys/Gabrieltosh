@@ -1,6 +1,13 @@
 import { chooseField, choiceValue } from "./choice-field-helpers";
 import test from "node:test";
-import assert from "node:assert/strict";
+import strictAssert from "node:assert/strict";
+// A bare assert(value) makes Node re-read this compiled file to build its message, which can loop
+// forever inside waitFor retries. A default message skips that lookup.
+const assert: typeof strictAssert = Object.assign(
+  (value: unknown, message: string | Error = "Expected a truthy value") =>
+    strictAssert(value, message),
+  strictAssert,
+);
 import { JSDOM } from "jsdom";
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {
   url: "http://localhost:3003/mera/workspace",
@@ -220,6 +227,7 @@ test("uncertain manual collection retries retain one request key and are never s
 
 test("pricing editor preserves unresolved choices and never requests live billing", async () => {
   const previous = [...context.organizations[0].permissions];
+  Object.assign(context.organizations[0], {billingEnabled: true});
   context.organizations[0].permissions.push("billing.manage");
   submittedPolicy = null;
   try {
@@ -241,6 +249,7 @@ test("pricing editor preserves unresolved choices and never requests live billin
     assert.equal(submittedPolicy.graceDays, null);
     assert(!Object.hasOwn(submittedPolicy, "liveBillingEnabled"));
   } finally {
+    Object.assign(context.organizations[0], {billingEnabled: false});
     context.organizations[0].permissions = previous;
     cleanup();
   }

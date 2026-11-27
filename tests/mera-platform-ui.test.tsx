@@ -61,6 +61,7 @@ test("uncertain operator status change retains exact request intent and key", as
       return Response.json({ subscription: { status: "suspended" } });
     }
     return Response.json({
+      billingEnabled: true,
       organizations: [
         {
           id: "org",
@@ -189,6 +190,7 @@ test("platform sections and subscription filter keep operational tasks focused",
     if (String(input).endsWith("/support-cases"))
       return Response.json({ cases: [] });
     return Response.json({
+      billingEnabled: true,
       organizations: [
         {
           id: "one",
@@ -246,6 +248,7 @@ test("organization review opens a named dialog and returns keyboard focus when c
     if (String(input).endsWith("/support-cases"))
       return Response.json({ cases: [] });
     return Response.json({
+      billingEnabled: true,
       organizations: [
         {
           id: "org",
@@ -386,6 +389,7 @@ test("action reasons remain task-local while disclosures preserve drafts", async
       return Response.json({ subscription: { status: "past_due" } });
     }
     return Response.json({
+      billingEnabled: true,
       organizations: [
         {
           id: "org",
@@ -582,6 +586,7 @@ test("configuration support uses its own reason and never borrows a status reaso
       });
     }
     return Response.json({
+      billingEnabled: true,
       organizations: [
         {
           id: "org",
@@ -623,4 +628,21 @@ test("configuration support uses its own reason and never borrows a status reaso
   } finally {
     cleanup();
   }
+});
+
+test("billing off hides platform subscription and invoice controls and shows one readiness note", async () => {
+  globalThis.fetch = (async (input: any) => String(input).endsWith("/auth")
+    ? Response.json({ enrolled: true, verified: true })
+    : Response.json({ billingEnabled: false, organizations: [{ id: "org", name: "Venue", slug: "venue", subscription: { status: "trialing" }, policy: { status: "proposed" } }], audits: [], operationalSignals: { jobs: [], invoices: [], observedAt: new Date().toISOString() } })) as any;
+  try {
+    render(<Platform />);
+    await screen.findByRole("button", { name: "Review organization" });
+    assert.equal(screen.queryByText("Subscription status"), null);
+    assert.equal(screen.queryByRole("columnheader", { name: "Subscription" }), null);
+    fireEvent.click(screen.getByRole("button", { name: "Review organization" }));
+    assert.equal(screen.queryByRole("button", { name: "Save service status" }), null);
+    assert.equal(screen.queryByText("Commercial policy review"), null);
+    assert.equal(screen.getAllByText("Billing: off").length, 1);
+    assert.equal(screen.queryByText(/Draft invoices are not collected revenue/), null);
+  } finally { cleanup(); }
 });

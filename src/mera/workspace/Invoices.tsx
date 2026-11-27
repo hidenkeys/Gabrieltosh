@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { uuid } from "../../api";
 import { workspaceApi, formatMoney } from "./api";
 type Props = {
+  billingEnabled?: boolean;
   organizationId: string;
   disabled: boolean;
   showServiceSummary?: boolean;
@@ -15,6 +16,7 @@ type Props = {
   ) => Promise<any>;
 };
 export default function Invoices(props: Props) {
+  if (props.billingEnabled !== true) return null;
   return <ScopedInvoices key={props.organizationId} {...props} />;
 }
 function ScopedInvoices({

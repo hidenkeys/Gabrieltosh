@@ -547,3 +547,15 @@ test("More keeps rare tasks quiet and reveals a selected rare destination", () =
     cleanup();
   }
 });
+
+test("billing navigation is hidden by default and restored only by explicit opt-in", () => {
+  const props = { sections: [["counter", "Counter"], ["billing", "Subscription"]], active: "counter", onSelect: () => {}, organization: "Venue", branch: "Branch" };
+  try {
+    const { rerender } = render(<WorkspaceNavigation {...props} />);
+    assert.equal(screen.queryByRole("tab", { name: "Subscription", hidden: true }), null);
+    rerender(<WorkspaceNavigation {...props} billingEnabled />);
+    assert(screen.getByRole("tab", { name: "Subscription", hidden: true }));
+    rerender(<WorkspaceNavigation {...props} billingEnabled={false} />);
+    assert.equal(screen.queryByRole("tab", { name: "Subscription", hidden: true }), null);
+  } finally { cleanup(); }
+});

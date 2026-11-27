@@ -1,5 +1,6 @@
 import React from "react";
 type Props = {
+  billingEnabled?: boolean;
   status?: React.ReactNode;
   services?: React.ReactNode;
   invoices?: React.ReactNode;
@@ -10,12 +11,14 @@ const present = (slot: React.ReactNode) =>
   slot !== undefined && slot !== null && slot !== false;
 /** Composition only: callers retain data, permissions, mutations and uncertainty state. */
 export default function BillingManagement({
+  billingEnabled = false,
   status,
   services,
   invoices,
   proposedPolicy,
   reconciliation,
 }: Props) {
+  if (!billingEnabled) return null;
   return (
     <div className="mw-billing-management">
       <section

@@ -32,7 +32,7 @@ test("O7 invoice read failure offers retry without claiming empty records or end
       : Response.json(billing);
   try {
     render(
-      <Invoices
+      <Invoices billingEnabled={true}
         organizationId="org-a"
         disabled={false}
         save={async () => {}}
@@ -71,7 +71,7 @@ test("O7 invoice list precedes disclosed creation and pending retry retains orig
     });
   try {
     const { container } = render(
-      <Invoices
+      <Invoices billingEnabled={true}
         organizationId="org-a"
         disabled={false}
         save={async (...args) => {
@@ -149,7 +149,7 @@ test("O7 old organization invoice reads cannot restore private records into the 
       : Response.json(billing);
   try {
     const view = render(
-      <Invoices
+      <Invoices billingEnabled={true}
         organizationId="org-a"
         disabled={false}
         save={async () => {}}
@@ -157,7 +157,7 @@ test("O7 old organization invoice reads cannot restore private records into the 
     );
     assert(release);
     view.rerender(
-      <Invoices
+      <Invoices billingEnabled={true}
         organizationId="org-b"
         disabled={false}
         save={async () => {}}
@@ -205,7 +205,7 @@ test("O7 composed invoice view hides duplicate service summary but retains recor
         });
   try {
     render(
-      <Invoices
+      <Invoices billingEnabled={true}
         organizationId="org-a"
         disabled={false}
         showServiceSummary={false}
@@ -240,7 +240,7 @@ test("invoice period presets keep device-local boundaries explicit and never cre
   globalThis.fetch = async () => Response.json(billing);
   try {
     render(
-      <Invoices
+      <Invoices billingEnabled={true}
         organizationId="org"
         disabled={false}
         save={async (...args: any[]) => {
@@ -273,4 +273,17 @@ test("invoice period presets keep device-local boundaries explicit and never cre
     cleanup();
     globalThis.fetch = before;
   }
+});
+
+test("billing off never mounts invoice records or requests billing data", () => {
+  const original = globalThis.fetch;
+  let reads = 0;
+  globalThis.fetch = (async () => { reads++; return Response.json(billing); }) as any;
+  try {
+    const { container, rerender } = render(<Invoices organizationId="org" disabled={false} save={async () => {}} billingEnabled={false} />);
+    assert.equal(container.textContent, "");
+    rerender(<Invoices organizationId="org" disabled={false} save={async () => {}} />);
+    assert.equal(container.textContent, "");
+    assert.equal(reads, 0);
+  } finally { cleanup(); globalThis.fetch = original; }
 });

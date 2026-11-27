@@ -94,8 +94,10 @@ export default function WorkspaceNavigation({
   branch,
   logo,
   connectionState = "unknown",
+  billingEnabled = false,
 }: {
   sections: string[][];
+  billingEnabled?: boolean;
   turnedOffSections?: string[];
   active: string;
   onSelect: (id: string, options?: { focusDestination: boolean }) => void;
@@ -104,6 +106,7 @@ export default function WorkspaceNavigation({
   logo?: string;
   connectionState?: "unknown" | "connecting" | "connected" | "offline";
 }) {
+  sections = sections.filter(([id]) => billingEnabled || !["billing", "subscription", "invoices"].includes(id));
   const extraMoreIds = [...moreIds, ...turnedOffSections];
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(() => extraMoreIds.includes(active));

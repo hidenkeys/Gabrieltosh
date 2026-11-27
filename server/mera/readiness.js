@@ -1,7 +1,7 @@
 import { allowedCurrencies } from "../../shared/mera-money.js";
 import { validPublicContact } from "./public-contact.js";
 import { z } from "zod";
-import { subscriptionEntitlement } from "./subscriptions.js";
+import { billingEnabled, subscriptionEntitlement } from "./subscriptions.js";
 const B = "/organizations/:organizationId/branches/:branchId";
 const error = (message, status = 409) =>
   Object.assign(new Error(message), { status });
@@ -42,12 +42,12 @@ export function mountMeraReadiness(
       demo(),
     );
     const checks = [
-      {
+      ...(billingEnabled() ? [{
         id: "subscription_access",
         label: "Subscription access reviewed",
         ready: entitlements.newOrdersAllowed,
         detail: entitlements.warning,
-      },
+      }] : []),
       {
         id: "owner_identity",
         label: "Verified owner identity",
@@ -96,6 +96,7 @@ export function mountMeraReadiness(
       },
     ];
     return {
+      billingEnabled: billingEnabled(),
       checks: checks.map((c) => ({
         ...c,
         status: c.ready ? "ready" : "blocked",

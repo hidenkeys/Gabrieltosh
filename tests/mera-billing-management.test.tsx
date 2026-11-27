@@ -19,7 +19,7 @@ const { default: BillingManagement } =
 test("O7 subscription and invoices precede closed advanced details without inventing plan data", () => {
   try {
     const { container } = render(
-      <BillingManagement
+      <BillingManagement billingEnabled={true}
         status={<p>Subscription: trial</p>}
         services={<p>New orders permitted</p>}
         invoices={<h2>Existing invoice records</h2>}
@@ -74,7 +74,7 @@ test("O7 closing a disclosure preserves the actual mounted draft and unknown int
   }
   try {
     const { container } = render(
-      <BillingManagement
+      <BillingManagement billingEnabled={true}
         status={<p>Known status</p>}
         invoices={<p>Known invoice state</p>}
         reconciliation={<Existing />}
@@ -104,7 +104,7 @@ test("O7 closing a disclosure preserves the actual mounted draft and unknown int
 test("O7 supplied read errors and missing permission-controlled slots stay honest", () => {
   try {
     const { container, rerender } = render(
-      <BillingManagement
+      <BillingManagement billingEnabled={true}
         status={<p role="status">Loading actual subscription…</p>}
         invoices={<p role="alert">Invoice records could not be loaded</p>}
         proposedPolicy={false}
@@ -114,7 +114,7 @@ test("O7 supplied read errors and missing permission-controlled slots stay hones
     assert(screen.getByRole("status"));
     assert(screen.getByRole("alert"));
     assert.equal(container.querySelector("details"), null);
-    rerender(<BillingManagement />);
+    rerender(<BillingManagement billingEnabled={true} />);
     assert(
       screen.getByText(
         "Subscription details are unavailable. Refresh your records to check again.",
@@ -133,4 +133,11 @@ test("O7 supplied read errors and missing permission-controlled slots stay hones
   } finally {
     cleanup();
   }
+});
+
+test("billing management hides all supplied controls while billing is off", () => {
+  try {
+    const { container } = render(<BillingManagement billingEnabled={false} status={<p>Trial</p>} invoices={<button>Create invoice</button>} />);
+    assert.equal(container.textContent, "");
+  } finally { cleanup(); }
 });

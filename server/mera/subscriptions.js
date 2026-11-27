@@ -1,3 +1,7 @@
+export function billingEnabled() {
+  return process.env.MERA_BILLING_ENABLED === "true";
+}
+
 // Pure access projection: no recurring debit, billing state mutation or money movement.
 export function subscriptionEntitlement(
   subscription = {},
@@ -9,11 +13,13 @@ export function subscriptionEntitlement(
     newOrdersAllowed: true,
     exportsAllowed: true,
     existingPaidOrdersContinue: true,
-    effectiveState: subscription.status || "trialing",
+    effectiveState: billingEnabled() ? subscription.status || "trialing" : "not_billed",
+    billingEnabled: billingEnabled(),
     warning: null,
     restrictionAt: null,
     policyVersion: policy.version || null,
   };
+  if (!result.billingEnabled) return result;
   const deny = (message) => ({
     ...result,
     newOrdersAllowed: false,

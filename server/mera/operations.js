@@ -2,7 +2,7 @@ import { buildOverview } from "./overview.js";
 import { effectiveBranchAccess,canSeeBranch } from "./venue-access.js";
 import { z } from "zod";
 import { loadBranchReportRecords } from "./queries.js";
-import { subscriptionEntitlement } from "./subscriptions.js";
+import { billingEnabled, subscriptionEntitlement } from "./subscriptions.js";
 import { randomUUID } from "node:crypto";
 import { report, fail,assertMoney } from "./domain.js";
 const now = () => new Date().toISOString();
@@ -266,13 +266,14 @@ export function mountMeraOperations(
           [req.params.organizationId],
         )
       ).rows.map((r) => r.data);
-      res.json({ ...org, entitlements:subscriptionEntitlement(org.subscription,org.subscription?.approvedPolicySnapshot||org.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production"),invoices, liveBillingEnabled: false });
+      res.json({ ...org, billingEnabled: billingEnabled(), entitlements:subscriptionEntitlement(org.subscription,org.subscription?.approvedPolicySnapshot||org.policy,Date.now(),process.env.MERA_DEMO==="true"&&process.env.NODE_ENV!=="production"),invoices, liveBillingEnabled: false });
     },
   );
   router.post(
     "/organizations/:organizationId/invoices",
     guard("billing.manage"),
     async (req, res) => {
+      if (!billingEnabled()) return res.status(409).json({ error: "Billing is off.", code: "BILLING_DISABLED" });
       const input = z
         .object({
           periodStart: z.string().datetime(),

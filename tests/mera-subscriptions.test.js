@@ -1,4 +1,4 @@
-import test from "node:test";
+import test, { before, after } from "node:test";
 import assert from "node:assert/strict";
 import { subscriptionEntitlement } from "../server/mera/subscriptions.js";
 test("subscription restrictions use explicit dates and preserve paid service/exports", () => {
@@ -48,3 +48,7 @@ test("subscription restrictions use explicit dates and preserve paid service/exp
     "past_due",
   );
 });
+
+const previousBilling = process.env.MERA_BILLING_ENABLED;
+before(() => { process.env.MERA_BILLING_ENABLED = "true"; });
+after(() => { if (previousBilling === undefined) delete process.env.MERA_BILLING_ENABLED; else process.env.MERA_BILLING_ENABLED = previousBilling; });

@@ -417,7 +417,7 @@ export default function Platform() {
   const organizations = (data?.organizations || []).filter(
     (o: any) =>
       (o.name + " " + o.slug).toLowerCase().includes(search.toLowerCase()) &&
-      (subscriptionFilter === "all" ||
+      (data.billingEnabled !== true || subscriptionFilter === "all" ||
         o.subscription?.status === subscriptionFilter),
   );
   return (
@@ -592,12 +592,12 @@ export default function Platform() {
               >
                 {[
                   ["Organizations", data.organizations.length],
-                  [
+                  ...(data.billingEnabled === true ? [[
                     "Proposed monthly base",
                     data.policy?.monthlyPrice == null
                       ? "Not set"
                       : formatMoney(data.policy.monthlyPrice),
-                  ],
+                  ]] : []),
                   ["Live collections", "Disabled"],
                   ["Support", "In-app cases"],
                 ].map(([label, value]) => (
@@ -629,13 +629,13 @@ export default function Platform() {
                       .join(" · ") || "No jobs recorded"}
                     .
                   </p>
-                  <p>
+                  {data.billingEnabled === true && <p>
                     Invoices:{" "}
                     {(data.operationalSignals.invoices || [])
                       .map((i: any) => `${i.status}: ${i.count}`)
                       .join(" · ") || "No invoices recorded"}
                     . Draft invoices are not collected revenue.
-                  </p>
+                  </p>}
                   <p>
                     Database snapshot at{" "}
                     {new Date(
@@ -777,7 +777,7 @@ export default function Platform() {
                       placeholder="Name or organization address"
                     />
                   </label>
-                  <ChoiceField
+                  {data.billingEnabled === true && <ChoiceField
                     label={<>Subscription status</>}
                     value={subscriptionFilter}
                     onChange={(nextValue) => setSubscriptionFilter(nextValue)}
@@ -794,7 +794,7 @@ export default function Platform() {
                         {subscriptionLabel(value)}
                       </option>
                     ))}
-                  </ChoiceField>
+                  </ChoiceField>}
                 </div>
                 <div
                   className="table-wrap"
@@ -807,7 +807,7 @@ export default function Platform() {
                       <tr>
                         <th>Organization</th>
                         <th>Subdomain</th>
-                        <th>Subscription</th>
+                        {data.billingEnabled === true && <th>Subscription</th>}
                         <th>Branches</th>
                         <th>Operations</th>
                       </tr>
@@ -819,14 +819,14 @@ export default function Platform() {
                             <strong>{org.name}</strong>
                           </td>
                           <td>{org.slug}</td>
-                          <td>
+                          {data.billingEnabled === true && <td>
                             <span
                               className="mera-subscription-state"
                               data-state={org.subscription?.status || "unknown"}
                             >
                               {subscriptionLabel(org.subscription?.status)}
                             </span>
-                          </td>
+                          </td>}
                           <td>{org.branches?.length ?? "—"}</td>
                           <td>
                             <button
@@ -913,8 +913,8 @@ export default function Platform() {
                     </p>
                   )}
                   <p className="mera-platform-org-context">
-                    {selected.slug} ·{" "}
-                    {subscriptionLabel(selected.subscription?.status)}
+                    {selected.slug}
+                    {data.billingEnabled === true && <> · {subscriptionLabel(selected.subscription?.status)}</>}
                   </p>
                   <details className="mera-platform-operation">
                     <summary>Organization address</summary>
@@ -967,7 +967,7 @@ export default function Platform() {
                       </button>
                     </form>
                   </details>
-                  <details className="mera-platform-operation" open>
+                  {data.billingEnabled === true && <details className="mera-platform-operation" open>
                     <summary>Service status</summary>
                     <form
                       id="mera-platform-service-form"
@@ -1064,7 +1064,7 @@ export default function Platform() {
                         </button>
                       </div>
                     </form>
-                  </details>
+                  </details>}
                   <details className="mera-platform-operation">
                     <summary>Configuration support</summary>
                     <label>
@@ -1241,7 +1241,7 @@ export default function Platform() {
                       ))}
                     </div>
                   )}
-                  {selected.policy && (
+                  {data.billingEnabled === true && selected.policy && (
                     <section style={{ marginTop: 24 }}>
                       <h3>Commercial policy review</h3>
                       <p>
@@ -1389,6 +1389,7 @@ export default function Platform() {
               </section>
               <section hidden={panel !== "health"} className="mera-panel">
                 <h2>Provider readiness</h2>
+                {data.billingEnabled !== true && <p>Billing: off</p>}
                 <p>
                   Production collections, settlements, withdrawals, email
                   delivery and the live Zidi connection require verified

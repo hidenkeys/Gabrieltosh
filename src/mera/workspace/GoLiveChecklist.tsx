@@ -74,7 +74,7 @@ export default function GoLiveChecklist(
       publicContact={props.settings?.publicContact}
       checklist={(readiness, actions) => {
         if (readiness?.launchState === "published") return null;
-        const rows = [...(readiness?.checks || [])].sort(
+        const rows = [...(readiness?.checks || [])].filter((check: any) => readiness?.billingEnabled !== false || check.id !== "subscription_access").sort(
             (a: any, b: any) =>
               Number(a.id === "manual_platform_policy") -
               Number(b.id === "manual_platform_policy"),

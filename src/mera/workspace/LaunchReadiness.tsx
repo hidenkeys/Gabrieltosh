@@ -53,7 +53,7 @@ export default function LaunchReadiness({
   }, []);
   const [readiness, setReadiness] = useState<any>(null);
   const [methods, setMethods] = useState<string[]>(
-    settings?.manualPaymentMethods || [],
+    settings?.manualPaymentMethods?.length ? settings.manualPaymentMethods : ["cash"],
   );
   // Rapid toggles must build on the latest choice, not the last saved one.
   const methodsRef = useRef<string[]>(methods);

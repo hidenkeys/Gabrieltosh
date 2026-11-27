@@ -673,7 +673,7 @@ test("payments Continue saves reviewed manual methods, preserves caveats verbati
       null,
     );
     assert.equal(screen.queryByText(/These choices are not saved yet/), null);
-    fireEvent.click(screen.getByRole("checkbox", { name: "Cash" }));
+    assert.equal((screen.getByRole("checkbox", { name: "Cash" }) as HTMLInputElement).checked, true);
     await waitFor(() =>
       assert.equal(
         (screen.getByRole("button", { name: "Continue" }) as HTMLButtonElement)

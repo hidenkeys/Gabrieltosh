@@ -319,6 +319,7 @@ export default function OrganizationWorkspace({
     const id = /^\/api\/mera\/v1\/public\/assets\/([a-f\d-]{36})$/i.exec(image || "")?.[1];
     return id ? `/api/mera/v1${branchBase}/assets/${id}` : image;
   };
+  const billingEnabled = (data?.billingEnabled ?? organization?.billingEnabled) === true;
   const permissionSections = sections.filter(([section, , permission]) =>
     section === "organization"
       ? branches.filter((b: any) => b.settings?.role !== "stock_room").length >= 2 && membershipPermissions.includes("organization.overview")
@@ -1616,7 +1617,7 @@ export default function OrganizationWorkspace({
             disabled={busy}
             signingOut={logoutBusy}
             notice={
-              allowed("billing.manage") &&
+              billingEnabled && allowed("billing.manage") &&
               entitlements?.warning ===
                 "Development trial duration is unresolved." &&
               entitlements.newOrdersAllowed !== false
@@ -1809,7 +1810,7 @@ export default function OrganizationWorkspace({
           reviewOverviewOrders(reference, "delayed")
         }
       />
-      {entitlements?.warning &&
+      {billingEnabled && entitlements?.warning &&
         !(
           entitlements.warning ===
             "Development trial duration is unresolved." &&
@@ -2151,7 +2152,7 @@ export default function OrganizationWorkspace({
       {!!organizations.length && (
         <>
           {branchId && branches.some((row: any) => row.id === branchId) && (
-            <WorkspaceNavigation
+            <WorkspaceNavigation billingEnabled={billingEnabled}
               sections={visibleSections}
               turnedOffSections={turnedOffSections}
               active={activeSection}
@@ -2466,8 +2467,8 @@ export default function OrganizationWorkspace({
                   save={mutate}
                 />
               )}
-              {activeSection === "billing" && allowed("billing.manage") && (
-                <BillingManagement
+              {billingEnabled && activeSection === "billing" && allowed("billing.manage") && (
+                <BillingManagement billingEnabled={billingEnabled}
                   status={
                     <p className="mw-billing-status">
                       {data.subscription?.status
@@ -2513,7 +2514,7 @@ export default function OrganizationWorkspace({
                     </dl>
                   }
                   invoices={
-                    <Invoices
+                    <Invoices billingEnabled={billingEnabled}
                       key={organizationId}
                       organizationId={organizationId}
                       showServiceSummary={false}

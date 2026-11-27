@@ -1,3 +1,4 @@
+import { billingEnabled } from "./subscriptions.js";
 import {
   createHmac,
   createHash,
@@ -156,6 +157,7 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
         )
       ).rows.length > 0;
     res.json({
+      billingEnabled: billingEnabled(),
       enrolled,
       userId: req.user.id,
       verified,
@@ -220,7 +222,7 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
         401,
         "MFA_INVALID",
       );
-    res.json({ verified: true, expiresInSeconds: 600 });
+    res.json({ billingEnabled: billingEnabled(), verified: true, expiresInSeconds: 600 });
   });
   async function audit(c, req, action, org, details) {
     await c.query(
@@ -276,8 +278,10 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
     ).rows;
     const aiSpend = (await db.query("SELECT organization_id,COALESCE(SUM(cost_usd),0) AS total FROM mera_ai_usage WHERE created_at >= date_trunc('month',now()) GROUP BY organization_id")).rows;
     res.json({
+      billingEnabled: billingEnabled(),
       organizations: organizations.map((o) => ({
         ...o,
+        billingEnabled: billingEnabled(),
         aiMonthToDateUsd: Number(aiSpend.find(row => row.organization_id === o.id)?.total || 0),
         features: organizationFeatures(o),
         branches: branches.filter((b) => b.organization_id === o.id),
@@ -382,6 +386,7 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
         customerIdentityIncluded: false,
       });
       res.json({
+      billingEnabled: billingEnabled(),
         records,
         currency: "NGN",
         customerIdentityIncluded: false,
@@ -393,6 +398,7 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
     "/platform/organizations/:organizationId/subscription",
     guard,
     async (req, res) => {
+      if (!billingEnabled()) return res.status(409).json({ error: "Billing is off.", code: "BILLING_DISABLED" });
       const value = z
         .object({
           status: z.enum([
@@ -464,6 +470,7 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
     "/platform/organizations/:organizationId/policy-approval",
     guard,
     async (req, res) => {
+      if (!billingEnabled()) return res.status(409).json({ error: "Billing is off.", code: "BILLING_DISABLED" });
       const orgId = z.string().uuid().parse(req.params.organizationId);
       const { version, reason } = z
         .object({
@@ -562,6 +569,7 @@ export function mountMeraPlatform(router, { db, providers, proposedPolicy }) {
         mode: "read_only_configuration",
       });
       res.json({
+      billingEnabled: billingEnabled(),
         organization: org,
         mode: "read_only_configuration",
         impersonationEnabled: false,

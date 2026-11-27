@@ -217,7 +217,7 @@ function GuidedSetup({
   const paymentDrafts = useRef<Record<string, string[]>>(
     snapshot?.payments || {
       ...Object.fromEntries(
-        [branch, ...branches].map((b) => [b.id, [] as string[]]),
+        [branch, ...branches].map((b) => [b.id, ["cash"] as string[]]),
       ),
       ...(data[`ownerSetupPayments_${branch.id}`] || {}),
       ...savedPayments,
@@ -429,7 +429,7 @@ function GuidedSetup({
             if (l.id)
               writes.push(
                 write(`${orgBase}/branches/${l.id}/launch-policy`, {
-                  manualPaymentMethods: paymentDrafts.current[l.id] || [],
+                  manualPaymentMethods: paymentDrafts.current[l.id] || ["cash"],
                   publicContact: contact,
                 }),
               );
@@ -811,7 +811,7 @@ function GuidedSetup({
                     base={`${orgBase}/branches/${l.id}`}
                     settings={{
                       ...(l.id === branch.id ? branch.settings : {}),
-                      manualPaymentMethods: paymentDrafts.current[l.id!] || [],
+                      manualPaymentMethods: paymentDrafts.current[l.id!] || ["cash"],
                     }}
                     disabled={disabled || busy || !!pending}
                     save={save}
@@ -835,7 +835,7 @@ function GuidedSetup({
                 .map(
                   (l) =>
                     `${l.name}: ${
-                      (paymentDrafts.current[l.id!] || [])
+                      (paymentDrafts.current[l.id!] || ["cash"])
                         .map(
                           (m) =>
                             ({

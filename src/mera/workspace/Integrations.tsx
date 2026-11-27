@@ -164,6 +164,8 @@ function ScopedIntegrations({ base, demo, newAccessAllowed = true }: Props) {
           Refresh integration access
         </button>
       </header>
+      <p>Online payments: Coming soon — Mera wallet</p>
+      <p>Zidi — coming soon, connect when credentials are issued</p>
       <div className="mw-utility-readiness">
         <strong>
           {demo ? "Development simulator" : "Live access blocked"}

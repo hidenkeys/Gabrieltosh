@@ -25,6 +25,7 @@ test(
   "isolated Mera PostgreSQL integration: tenant boundaries, last-unit concurrency, payments, guest/visit privacy and capacity",
   { skip: process.env.RUN_MERA_PG_TESTS !== "true", timeout: 120000 },
   async () => {
+    const previousBilling = process.env.MERA_BILLING_ENABLED;
     const directory = await mkdtemp(join(tmpdir(), "mera-integration-"));
     const postgres = new EmbeddedPostgres({
       databaseDir: join(directory, "db"),
@@ -83,6 +84,7 @@ test(
         [productId],
       );
       process.env.MERA_DEMO = "true";
+      process.env.MERA_BILLING_ENABLED = "true";
       await migrateMera(db);
       await seedMeraDemo({ ...db, userId: owner });
       const app = express();
@@ -2650,6 +2652,8 @@ test(
         403,
       );
     } finally {
+      if (previousBilling === undefined) delete process.env.MERA_BILLING_ENABLED;
+      else process.env.MERA_BILLING_ENABLED = previousBilling;
       if (server) await new Promise((r) => server.close(r));
       if (pool) await pool.end();
       await postgres.stop();

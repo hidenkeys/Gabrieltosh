@@ -1,4 +1,4 @@
-import test from "node:test";
+import test, { before, after } from "node:test";
 import assert from "node:assert/strict";
 import { subscriptionEntitlement } from "../server/mera/subscriptions.js";
 import { trialDays } from "../server/mera/index.js";
@@ -59,3 +59,7 @@ test("trial length defaults to 5 days and accepts a sane override", () => {
     else process.env.MERA_TRIAL_DAYS = before;
   }
 });
+
+const previousBilling = process.env.MERA_BILLING_ENABLED;
+before(() => { process.env.MERA_BILLING_ENABLED = "true"; });
+after(() => { if (previousBilling === undefined) delete process.env.MERA_BILLING_ENABLED; else process.env.MERA_BILLING_ENABLED = previousBilling; });
