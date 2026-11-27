@@ -917,3 +917,26 @@
 .mera-media-upload-compact label:focus-within {
   outline: 3px solid #153f32;
 }
+
+/* Onboarding v2 keeps the common choices compact and the next action within reach. */
+.mera-setup-fullscreen .mera-venue-types {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.mera-setup-fullscreen .mera-venue-types legend { margin-bottom: 12px; }
+.mera-setup-fullscreen .mera-venue-card { padding: 10px 12px; min-height: 44px; }
+.mera-setup-fullscreen .mera-venue-card strong { font-size: 14px; }
+.mera-setup-fullscreen :is(form,fieldset,section,details) { min-width: 0; }
+.mera-setup-fullscreen input { max-width: 100%; box-sizing: border-box; }
+.mera-setup-fullscreen a { display: inline-block; padding: 12px; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .mera-setup-fullscreen .mera-venue-types { grid-template-columns: 1fr; }
+  .mera-setup-fullscreen .mera-owner-step-footer {
+    position: sticky; bottom: 0; z-index: 3;
+    background: var(--wx-paper, #f7f6f0);
+    padding: 12px 0 max(12px, env(safe-area-inset-bottom));
+  }
+  .mera-setup-fullscreen section[aria-label="Go live"] > .primary {
+    position: sticky; bottom: 78px; z-index: 3; width: 100%;
+  }
+}

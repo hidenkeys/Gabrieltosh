@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
+import { effectiveCapabilities, CAPABILITY_LABELS } from "./setup/venues";
 import LaunchReadiness from "./LaunchReadiness";
 const checks: Record<string, [string, string, string?, string?]> = {
   subscription_access: [
@@ -57,6 +58,7 @@ const checks: Record<string, [string, string, string?, string?]> = {
 export default function GoLiveChecklist(
   props: Omit<React.ComponentProps<typeof LaunchReadiness>, "checklist"> & {
     onImportMenu?: () => void;
+    onboarding?: any;
   },
 ) {
   const key = `mera:go-live-collapsed:${props.base}`;
@@ -67,18 +69,120 @@ export default function GoLiveChecklist(
       return false;
     }
   });
+  const [dismissed, setDismissed] = useState(
+    !!props.onboarding?.data?.nextStepsDismissed,
+  );
+  const [dismissError, setDismissError] = useState("");
+  const [completed, setCompleted] = useState<Record<string, boolean>>(
+    props.onboarding?.data?.nextStepsCompleted || {},
+  );
+  const [savingNext, setSavingNext] = useState(false);
+  const nextFlight = useRef(false);
+  async function saveNext(data: any) {
+    if (nextFlight.current || props.disabled) return false;
+    nextFlight.current = true;
+    setSavingNext(true);
+    setDismissError("");
+    try {
+      const result = await props.save(
+        props.base.split("/branches/")[0] + "/onboarding",
+        "PATCH",
+        { step: 5, data },
+        "Next steps saved.",
+      );
+      if (!result?.saved)
+        throw Error("Next steps could not be confirmed. Try again.");
+      return true;
+    } catch (e) {
+      setDismissError((e as Error).message);
+      return false;
+    } finally {
+      nextFlight.current = false;
+      setSavingNext(false);
+    }
+  }
+  const nextSteps = (
+    <section className="mw-card" aria-label="Next steps">
+      <h2>Next steps</h2>
+      <ul>
+        {[
+          ["Add more locations, codes & colours", "onboarding"],
+          ["Shared menus and central stock", "onboarding"],
+          ["Receipt design", "printing"],
+          ["Counted stock and low-stock alerts", "menu"],
+          ...effectiveCapabilities(props.settings)
+            .filter((c: string) =>
+              [
+                "reservations",
+                "deposits",
+                "minimum_spend",
+                "guest_list",
+                "room_charge",
+              ].includes(c),
+            )
+            .map((c: string) => [
+              CAPABILITY_LABELS[c],
+              c === "guest_list" ? "door" : "onboarding",
+            ]),
+          ["Invite your team", "team"],
+        ].map(([label, section]) => (
+          <li key={label} className="mw-row">
+            <label>
+              <input
+                type="checkbox"
+                aria-label={`Mark ${label} done`}
+                checked={!!completed[label]}
+                disabled={props.disabled || savingNext}
+                onChange={async (e) => {
+                  const next = { ...completed, [label]: e.target.checked };
+                  if (await saveNext({ nextStepsCompleted: next }))
+                    setCompleted(next);
+                }}
+              />
+              Done
+            </label>
+            <button
+              className="secondary"
+              onClick={() => props.onOpen?.(section)}
+            >
+              {label}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {dismissError && <p role="alert">{dismissError}</p>}
+      <button
+        className="secondary"
+        disabled={props.disabled || savingNext}
+        onClick={async () => {
+          if (await saveNext({ nextStepsDismissed: true })) setDismissed(true);
+        }}
+      >
+        Dismiss next steps
+      </button>
+    </section>
+  );
+  if (props.settings?.launchState === "published")
+    return dismissed ? null : nextSteps;
   return (
     <LaunchReadiness
       {...props}
       guidedStage="review"
       publicContact={props.settings?.publicContact}
       checklist={(readiness, actions) => {
-        if (readiness?.launchState === "published") return null;
-        const rows = [...(readiness?.checks || [])].filter((check: any) => readiness?.billingEnabled !== false || check.id !== "subscription_access").sort(
-            (a: any, b: any) =>
-              Number(a.id === "manual_platform_policy") -
-              Number(b.id === "manual_platform_policy"),
-          ),
+        if (readiness?.launchState === "published")
+          return dismissed ? null : nextSteps;
+        const rows = [...(readiness?.checks || [])]
+            .filter(
+              (check: any) =>
+                readiness?.billingEnabled !== false ||
+                check.id !== "subscription_access",
+            )
+            .sort(
+              (a: any, b: any) =>
+                Number(a.id === "manual_platform_policy") -
+                Number(b.id === "manual_platform_policy"),
+            ),
           done = rows.filter((c: any) => c.status === "ready").length;
         return (
           <section className="mw-card mgl" aria-label="Go-live checklist">

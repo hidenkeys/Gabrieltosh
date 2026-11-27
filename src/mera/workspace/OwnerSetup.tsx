@@ -1,3 +1,9 @@
+import PostLaunchSettings from "./PostLaunchSettings";
+import OnboardingMenu from "./OnboardingMenu";
+import OnboardingLaunch from "./OnboardingLaunch";
+import { inferTimezone } from "./setup/onboardingDefaults";
+import { workspaceApi } from "./api";
+import TimeWindows from "./TimeWindows";
 import BrandPaletteFields from "./BrandPaletteFields";
 import GuestMenuPreview from "./GuestMenuPreview";
 import { allowedCurrencies } from "../../../shared/mera-money.js";
@@ -9,8 +15,7 @@ import MediaUpload from "../MediaUpload";
 import SetupChecklist from "./SetupChecklist";
 import LaunchReadiness from "./LaunchReadiness";
 import VenueTypeStep from "./setup/VenueTypeStep";
-import LocationsStep, { type LocationDraft } from "./setup/LocationsStep";
-import MenuStockStep, { ItemKindsIntro } from "./setup/MenuStockStep";
+import { type LocationDraft } from "./setup/LocationsStep";
 import {
   TYPE_DEFAULTS,
   deriveVenueType,
@@ -19,6 +24,7 @@ import {
 } from "./setup/venues";
 type Props = React.ComponentProps<typeof SetupChecklist> & {
   onFinished?: () => void;
+  products?: any[];
   organization: any;
   branches?: any[];
   branch: any;
@@ -50,6 +56,12 @@ export default function OwnerSetup(props: Props) {
         <button className="secondary" onClick={() => setGuided(true)}>
           Resume guided setup
         </button>
+        <PostLaunchSettings
+          organization={props.organization}
+          branches={props.branches || [props.branch]}
+          save={props.save}
+          disabled={props.disabled}
+        />
         <SetupChecklist {...props} />
       </>
     );
@@ -85,12 +97,11 @@ function GuidedSetup({
   branches = [],
   branch,
   onboarding,
-  actorName,
   disabled,
-  demo,
   save,
   onClose,
   onFinished,
+  products,
 }: Props & { onClose: () => void }) {
   const [logo, setLogo] = useState<string>(organization.branding?.logo || "");
   const [logoBusy, setLogoBusy] = useState(false);
@@ -108,9 +119,24 @@ function GuidedSetup({
   const snapshot = recovery?.snapshot;
   const [branding, setBranding] = useState<any>(() => {
     const b = organization.branding || {};
-    return snapshot?.branding || { primary: b.primary || "#1558c9", accent: b.accent || "#83ddf7", description: b.description || "", font: b.font || "system", logo: b.logo, coverImage: b.coverImage, background: b.background, surface: b.surface, text: b.text, palettePreset: b.palettePreset };
+    return (
+      snapshot?.branding || {
+        primary: b.primary || "#1558c9",
+        accent: b.accent || "#83ddf7",
+        description: b.description || "",
+        font: b.font || "system",
+        logo: b.logo,
+        coverImage: b.coverImage,
+        background: b.background,
+        surface: b.surface,
+        text: b.text,
+        palettePreset: b.palettePreset,
+      }
+    );
   });
-  const [currency, setCurrency] = useState(snapshot?.currency || branch.currency || "NGN");
+  const [currency, setCurrency] = useState(
+    snapshot?.currency || branch.currency || "NGN",
+  );
   const initialType = snapshot?.venueType || deriveVenueType(branch.settings);
   const [venueType, setVenueType] = useState(initialType);
   const [capabilities, setCapabilities] = useState<string[]>(
@@ -164,7 +190,9 @@ function GuidedSetup({
             ),
           colorTag: b.settings?.colorTag || "forest",
           address: b.settings?.address || "",
-          timezone: b.timezone || "Africa/Lagos",
+          timezone:
+            b.timezone ||
+            inferTimezone(b.settings?.address || "", b.currency || "NGN"),
           venueType: type,
           capabilities: b.settings?.capabilities || [
             ...TYPE_DEFAULTS[type].capabilities,
@@ -177,31 +205,31 @@ function GuidedSetup({
       }),
   );
   const multiple = operating.locationCount !== "one";
-  const steps = [
-    "Account",
-    "Your business",
-    "Kind of venue",
-    "Locations",
-    ...(multiple ? ["Menu & stock"] : []),
-    "Payments",
-    "Look & feel",
-    "Review & finish setup",
-  ];
+  const steps = ["Business", "Menu", "Payments", "Look & feel", "Go live"];
   const legacyV2 = [0, 1, 2, 5, 6],
     legacyV1 = [0, 1, 2, 2, 2, 2, 2, 5, 6];
   const old =
+    data[`ownerGuideV4Step_${branch.id}`] ??
     data[progressKey] ??
     legacyV2[data[`ownerGuideV2Step_${branch.id}`]] ??
     legacyV1[data[`ownerGuideStep_${branch.id}`]] ??
-    0;
-  // Preserve existing step indexes; appearance uses a new index before review.
-  const [canonical, setCanonical] = useState(old);
-  // Menu & stock (4) is a setup step only for multi-location businesses.
-  const canonicalSteps = multiple ? [0, 1, 2, 3, 4, 5, 7, 6] : [0, 1, 2, 3, 5, 7, 6];
-  const step = Math.max(
-    0,
-    canonicalSteps.indexOf(!multiple && canonical === 4 ? 5 : canonical),
+    1;
+  const [canonical, setCanonical] = useState(
+    old === 0 || old === 2 || old === 3 || old === 4 ? 1 : old,
   );
+  const canonicalSteps = [1, 8, 5, 7, 6];
+  const step = Math.max(0, canonicalSteps.indexOf(canonical));
+  const [items, setItems] = useState<any[]>(products || []);
+  useEffect(() => {
+    if (products) return;
+    const controller = new AbortController();
+    workspaceApi(base + "/workspace", "GET", undefined, controller.signal)
+      .then((result) => {
+        if (Array.isArray(result.products)) setItems(result.products);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [base]);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(
       recovery
@@ -313,6 +341,21 @@ function GuidedSetup({
       );
       return;
     }
+    if (!pending && forward && canonical === 8 && !items.length) {
+      setError("Add at least one menu item.");
+      return;
+    }
+    if (
+      !pending &&
+      forward &&
+      canonical === 5 &&
+      locations.some(
+        (l) => l.id && !(paymentDrafts.current[l.id] || ["cash"]).length,
+      )
+    ) {
+      setError("Choose at least one payment method.");
+      return;
+    }
     if (!pending && forward && !form.current?.reportValidity()) return;
     flight.current = true;
     setBusy(true);
@@ -323,7 +366,6 @@ function GuidedSetup({
       if (!attempt) {
         const writes: Write[] = [];
         if (forward && canonical === 1) {
-          if (currency !== (branch.currency || "NGN")) writes.push(write(base + "/settings", { currency }, "settings"));
           writes.push(
             write(`${orgBase}/onboarding`, {
               step: canonical + 1,
@@ -337,50 +379,14 @@ function GuidedSetup({
                 requestKey: crypto.randomUUID(),
                 version: operatingVersion.current,
                 locationCount: operating.locationCount,
+                defaultVenueType: venueType,
                 ...(!multiple ? { inventoryMode: "per_location" } : {}),
               },
               "operating",
             ),
           );
         }
-        if (forward && canonical === 2) {
-          writes.push(
-            write(
-              `${base}/settings`,
-              {
-                requestKey: crypto.randomUUID(),
-                version: locationVersions.current[branch.id],
-                venueType,
-                capabilities,
-                reservationsEnabled: capabilities.includes("reservations"),
-                payLater:
-                  locations[0]?.payLater ?? TYPE_DEFAULTS[venueType].payLater,
-              },
-              "settings",
-              0,
-            ),
-          );
-          writes.push(
-            write(`${orgBase}/onboarding`, {
-              step: canonical + 1,
-              data: { sameKind },
-            }),
-          );
-        }
-        if (forward && canonical === 2) {
-          writes.push(
-            write(
-              `${orgBase}/operating`,
-              {
-                requestKey: crypto.randomUUID(),
-                version: operatingVersion.current,
-                defaultVenueType: venueType,
-              },
-              "operating",
-            ),
-          );
-        }
-        if (forward && canonical === 3) {
+        if (forward && canonical === 1) {
           locations.forEach((l, index) => {
             const { id, name, version, ...settings } = l;
             if (!id)
@@ -408,6 +414,9 @@ function GuidedSetup({
                 id ? `${orgBase}/branches/${id}/settings` : "",
                 {
                   ...settings,
+                  currency,
+                  reservationsEnabled:
+                    settings.capabilities.includes("reservations"),
                   payLater:
                     settings.payLater ?? TYPE_DEFAULTS[l.venueType].payLater,
                   requestKey: crypto.randomUUID(),
@@ -421,19 +430,6 @@ function GuidedSetup({
         }
         if (forward && canonical === 7)
           writes.push(write(`${orgBase}/branding`, { ...branding, logo }));
-        if (forward && canonical === 4)
-          writes.push(
-            write(
-              `${orgBase}/operating`,
-              {
-                requestKey: crypto.randomUUID(),
-                version: operatingVersion.current,
-                menuMode: operating.menuMode,
-                inventoryMode: operating.inventoryMode,
-              },
-              "operating",
-            ),
-          );
         if (forward && canonical === 5)
           locations.forEach((l) => {
             if (l.id)
@@ -447,7 +443,13 @@ function GuidedSetup({
         writes.push(
           write(
             `${orgBase}/onboarding`,
-            { step: target + 1, data: { [progressKey]: target } },
+            {
+              step: canonicalSteps.indexOf(target) + 1,
+              data: {
+                [progressKey]: target,
+                [`ownerGuideV4Step_${branch.id}`]: target,
+              },
+            },
             "progress",
           ),
         );
@@ -550,7 +552,7 @@ function GuidedSetup({
       }
       window.sessionStorage.removeItem(recoveryKey);
       setPending(null);
-      setCanonical(attempt.target);
+      setCanonical([0, 2, 3, 4].includes(attempt.target) ? 1 : attempt.target);
       setStatus("Saved");
     } catch (e) {
       if ([400, 409, 422].includes((e as any).status)) {
@@ -635,20 +637,6 @@ function GuidedSetup({
             disabled={disabled || busy || !!pending}
             className="mera-setup-fields"
           >
-            {canonical === 0 && (
-              <>
-                <h3>Signed in as {actorName}</h3>
-                <p>
-                  You have organization-wide management access for{" "}
-                  {organization.name}.
-                </p>
-                <p>
-                  {demo
-                    ? "Demonstration access does not establish real email ownership. No subscription or online collection is activated."
-                    : "Signed-in access is separate from email verification and payment-provider approval. The launch checklist checks the required readiness independently."}
-                </p>
-              </>
-            )}
             {canonical === 1 && (
               <>
                 <label>
@@ -681,9 +669,25 @@ function GuidedSetup({
                     }}
                   />
                 </label>
-                <label>Currency
-                  <select value={currency} onChange={e => setCurrency(e.target.value)}>
-                    {allowedCurrencies.map(code => <option key={code} value={code}>{code}</option>)}
+                <label>
+                  Currency
+                  <select
+                    value={currency}
+                    onChange={(e) => {
+                      setCurrency(e.target.value);
+                      setLocations((ls) =>
+                        ls.map((l) => ({
+                          ...l,
+                          timezone: inferTimezone(l.address, e.target.value),
+                        })),
+                      );
+                    }}
+                  >
+                    {allowedCurrencies.map((code) => (
+                      <option key={code} value={code}>
+                        {code}
+                      </option>
+                    ))}
                   </select>
                 </label>
                 <p>The phone number or email customers use to reach you</p>
@@ -701,7 +705,10 @@ function GuidedSetup({
                         )}
                       />
                     ) : (
-                      <span className="mera-setup-logo-empty" aria-hidden="true">
+                      <span
+                        className="mera-setup-logo-empty"
+                        aria-hidden="true"
+                      >
                         {organization.name?.slice(0, 2)}
                       </span>
                     )}
@@ -725,7 +732,9 @@ function GuidedSetup({
                               description: b.description || "",
                               font: b.font || "system",
                               logo: asset.url,
-                              ...(b.coverImage ? { coverImage: b.coverImage } : {}),
+                              ...(b.coverImage
+                                ? { coverImage: b.coverImage }
+                                : {}),
                             },
                             "Logo saved.",
                           );
@@ -760,7 +769,7 @@ function GuidedSetup({
                 />
               </>
             )}
-            {canonical === 2 && (
+            {canonical === 1 && (
               <VenueTypeStep
                 value={venueType}
                 capabilities={capabilities}
@@ -792,31 +801,94 @@ function GuidedSetup({
                 }}
               />
             )}
-            {canonical === 3 && (
+            {canonical === 1 && (
               <>
-                <LocationsStep
-                  locations={locations}
-                  onChange={setLocations}
-                  multiple={multiple}
-                  sameKind={sameKind}
-                />
-                {!multiple && <ItemKindsIntro />}
+                <label>
+                  Address
+                  <input
+                    value={locations[0].address}
+                    onChange={(e) =>
+                      setLocations((ls) =>
+                        ls.map((l, i) =>
+                          i
+                            ? l
+                            : {
+                                ...l,
+                                address: e.target.value,
+                                timezone: inferTimezone(
+                                  e.target.value,
+                                  currency,
+                                ),
+                              },
+                        ),
+                      )
+                    }
+                  />
+                </label>
+                <label>
+                  Timezone
+                  <input
+                    required
+                    value={locations[0].timezone}
+                    onChange={(e) =>
+                      setLocations((ls) =>
+                        ls.map((l, i) =>
+                          i ? l : { ...l, timezone: e.target.value },
+                        ),
+                      )
+                    }
+                  />
+                </label>
+                {multiple && (
+                  <ul>
+                    {locations.map((l) => (
+                      <li key={l.id || l.name}>{l.name}</li>
+                    ))}
+                  </ul>
+                )}
+                <details>
+                  <summary>Edit opening hours (optional)</summary>
+                  <TimeWindows
+                    label="Opening hours"
+                    value={locations[0].serviceHours}
+                    onChange={(serviceHours) =>
+                      setLocations((ls) =>
+                        ls.map((l, i) => (i ? l : { ...l, serviceHours })),
+                      )
+                    }
+                  />
+                </details>
               </>
             )}
-            {canonical === 4 && multiple && (
-              <MenuStockStep
-                {...operating}
-                onChange={(patch) => setOperating({ ...operating, ...patch })}
-              />
-            )}
             {canonical === 7 && (
-              <section aria-label="Look & feel" className="mera-onboarding-brand">
-                <div><BrandPaletteFields branding={branding} onChange={setBranding} /></div>
-                <GuestMenuPreview organization={{ ...organization, currency }} branding={{ ...branding, logo }} />
+              <section
+                aria-label="Look & feel"
+                className="mera-onboarding-brand"
+              >
+                <div>
+                  <BrandPaletteFields
+                    branding={branding}
+                    onChange={setBranding}
+                  />
+                </div>
+                <GuestMenuPreview
+                  organization={{ ...organization, currency }}
+                  branding={{ ...branding, logo }}
+                />
               </section>
             )}
           </fieldset>
         </form>
+        {canonical === 8 && (
+          <OnboardingMenu
+            base={base}
+            currency={currency}
+            save={save}
+            items={items}
+            onItems={setItems}
+            disabled={disabled || busy || !!pending}
+          />
+        )}
         {canonical === 5 && (
           <div>
             {locations
@@ -828,7 +900,9 @@ function GuidedSetup({
                     base={`${orgBase}/branches/${l.id}`}
                     settings={{
                       ...(l.id === branch.id ? branch.settings : {}),
-                      manualPaymentMethods: paymentDrafts.current[l.id!] || ["cash"],
+                      manualPaymentMethods: paymentDrafts.current[l.id!] || [
+                        "cash",
+                      ],
                     }}
                     disabled={disabled || busy || !!pending}
                     save={save}
@@ -843,76 +917,24 @@ function GuidedSetup({
           </div>
         )}
         {canonical === 6 && (
-          <section aria-label="Setup summary">
-            <p>Account: {actorName}</p>
-            <p>Customer contact: {contact}</p>
-            <p>
-              Payments:{" "}
-              {locations
-                .map(
-                  (l) =>
-                    `${l.name}: ${
-                      (paymentDrafts.current[l.id!] || ["cash"])
-                        .map(
-                          (m) =>
-                            ({
-                              cash: "Cash",
-                              external_pos: "Card / POS",
-                              external_transfer: "Bank transfer",
-                            })[m] || m,
-                        )
-                        .join(", ") || "None selected"
-                    }`,
-                )
-                .join("; ")}
-            </p>
-            <p>
-              {organization.name} · {TYPE_DEFAULTS[venueType].label} ·{" "}
-              {locations.length} location{locations.length === 1 ? "" : "s"}
-            </p>
-            {[1, 2, 3, 5].map((index) => (
-              <button
-                type="button"
-                className="secondary"
-                key={index}
-                disabled={busy || !!pending}
-                onClick={() => void move(index, false)}
-              >
-                Edit {steps[canonicalSteps.indexOf(index)]}
-              </button>
-            ))}
-          </section>
+          <OnboardingLaunch
+            base={base}
+            organization={organization}
+            branding={{ ...branding, logo }}
+            items={items}
+            capabilities={capabilities}
+            contact={contact}
+            methods={paymentDrafts.current[branch.id] || ["cash"]}
+            save={save}
+            disabled={disabled || busy || !!pending}
+            onFix={(index) => void move(index, false)}
+            onFinished={() => {
+              onFinished?.();
+              onClose();
+            }}
+          />
         )}
         <footer className="mera-owner-step-footer">
-          {canonical === 6 && (
-            <button
-              type="button"
-              className="primary"
-              disabled={busy || disabled || !!pending}
-              onClick={async () => {
-                setBusy(true);
-                setError("");
-                try {
-                  const result = await save(
-                    `${orgBase}/onboarding`,
-                    "PATCH",
-                    { step: 6, data: {}, complete: true },
-                    "Setup complete.",
-                  );
-                  if (!result?.onboarding?.completedAt)
-                    throw Error("Setup completion could not be confirmed.");
-                  onFinished?.();
-                  onClose();
-                } catch (e) {
-                  setError((e as Error).message);
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              Finish setup
-            </button>
-          )}
           <button
             type="button"
             className="secondary"

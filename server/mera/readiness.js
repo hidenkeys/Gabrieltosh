@@ -83,9 +83,9 @@ export function mountMeraReadiness(
       {
         id: "printing",
         label: "Receipt and sticker layouts",
-        ready: templates.length > 0,
+        ready: true,
         detail:
-          "Layout configuration does not establish physical printer output.",
+          "Standard receipt and sticker layouts are applied automatically. You can customise them later.",
       },
       {
         id: "manual_branch_policy",

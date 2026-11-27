@@ -72,38 +72,34 @@ export default function VenueTypeStep({
               />
               <span>
                 <strong>{preset.label}</strong>
-                <p>{preset.bestFor}</p>
-                <ul>
-                  {preset.youGet.map((text) => (
-                    <li key={text}>{text}</li>
-                  ))}
-                </ul>
-                <p>{preset.differentBecause}</p>
               </span>
             </label>
           );
         })}
       </fieldset>
-      <fieldset className="mera-setup-chips">
-        <legend>Anything else you do here?</legend>
-        {CAPABILITIES.map((cap) => (
-          <button
-            type="button"
-            key={cap}
-            aria-pressed={capabilities.includes(cap)}
-            onClick={() =>
-              onChange(
-                value,
-                capabilities.includes(cap)
-                  ? capabilities.filter((c) => c !== cap)
-                  : [...capabilities, cap],
-              )
-            }
-          >
-            {CAPABILITY_LABELS[cap]}
-          </button>
-        ))}
-      </fieldset>
+      <details>
+        <summary>Customise</summary>
+        <fieldset className="mera-setup-chips">
+          <legend>Anything else you do here?</legend>
+          {CAPABILITIES.map((cap) => (
+            <button
+              type="button"
+              key={cap}
+              aria-pressed={capabilities.includes(cap)}
+              onClick={() =>
+                onChange(
+                  value,
+                  capabilities.includes(cap)
+                    ? capabilities.filter((c) => c !== cap)
+                    : [...capabilities, cap],
+                )
+              }
+            >
+              {CAPABILITY_LABELS[cap]}
+            </button>
+          ))}
+        </fieldset>
+      </details>
       {multiple && (
         <Switch
           label="Are all your locations the same kind?"

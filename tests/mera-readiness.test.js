@@ -117,7 +117,7 @@ test("publishing a branch requires readiness and never claims hosting or provide
     guard: () => (_r, _s, next) => next(),
     scope: () => ({ organizationId: "org", branchId: "branch" }),
     locked: async (_s, fn) => fn(db, branch),
-    readRecords: async () => [{ data: { kind: "receipt" } }],
+    readRecords: async () => [],
     event: async () => {},
   });
   app.use(router);
@@ -165,6 +165,7 @@ test("publishing a branch requires readiness and never claims hosting or provide
       })
     ).json();
     assert.equal(launch.launchState, "published");
+    assert.equal(launch.checks.find(c=>c.id==="printing").status,"ready");
     // Going live is what lets customers order: a newly created location starts paused.
     assert.equal(branch.settings.orderingPaused, false);
     assert.equal(launch.publicHostingVerified, false);
@@ -176,4 +177,15 @@ test("publishing a branch requires readiness and never claims hosting or provide
         ? delete process.env[key]
         : (process.env[key] = old[key]);
   }
+});
+
+test("receipt defaults are ready without saved templates (no listening socket)", async () => {
+  const handlers = new Map();
+  const branch = {id:"branch",organization_id:"org",name:"Branch",timezone:"Africa/Lagos",currency:"NGN",menu_version:1,published_menu:[{id:"item"}],settings:{publicContact:"hello@venue.test",manualPaymentMethods:["cash"]}};
+  const db={query:async(sql)=>({rows:sql.includes("mera_owner_identities")?[{user_id:"owner"}]:sql.includes("mera_organizations")?[{name:"Venue",slug:"venue",branding:{}}]:[branch]})};
+  mountMeraReadiness({get:(path,...middleware)=>handlers.set(path,middleware.at(-1)),patch:()=>{},post:()=>{}},{db,guard:()=>()=>{},scope:()=>({organizationId:"org",branchId:"branch"}),locked:async(_scope,fn)=>fn(db,branch),readRecords:async()=>[],event:async()=>{}});
+  let result;
+  await handlers.get("/organizations/:organizationId/branches/:branchId/readiness")({}, {json:value=>{result=value;}});
+  assert.equal(result.checks.find(c=>c.id==="printing").status,"ready");
+  assert.equal(result.canPublish,true);
 });

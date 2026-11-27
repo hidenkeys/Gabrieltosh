@@ -1,3 +1,4 @@
+import { defaultStation } from "./setup/onboardingDefaults";
 import { CurrencyContext } from "../ui/Currency";
 import { formatMoney as sharedMoney } from "../../../shared/mera-money.js";
 import GoLiveChecklist from "./GoLiveChecklist";
@@ -251,7 +252,6 @@ export default function OrganizationWorkspace({
   const [offline, setOffline] = useState(false);
   const [productEdit, setProductEdit] = useState<RecordData | null>(null);
   const stationChosen = useRef(false);
-  const defaultStation = (category: string) => /drink|beverage|bar|cocktail|wine|beer|juice|coffee|tea|soda|shake/i.test(category) ? "bar" : "kitchen";
   const productEditorRef = useRef<HTMLElement | null>(null);
   const productEditorTrigger = useRef<HTMLElement | null>(null);
   const beginProductEdit = (product: RecordData) => {
@@ -2187,7 +2187,7 @@ export default function OrganizationWorkspace({
               aria-labelledby={"mw-tab-" + activeSection}
               tabIndex={0}
             >
-              {["overview", "organization"].includes(activeSection) && allowed("organization.manage") && branch?.settings?.launchState !== "published" && branch?.settings?.role !== "stock_room" && <GoLiveChecklist onImportMenu={allowed("menu.edit") ? () => {setMenuImportRequested(true);selectSection("menu", {focusDestination:true});} : undefined} key={branchBase} base={branchBase} settings={{...branch?.settings, publicContact: branch?.settings?.publicContact || data?.onboarding?.data?.contact || organization?.onboarding?.data?.contact || organization?.branding?.contact || organization?.branding?.phone || organization?.branding?.email}} disabled={busy || offline} accessBlocked={offline || !allowed("organization.manage")} save={mutate} onOpen={section => selectSection(section, {focusDestination: true})} />}
+              {["overview", "organization"].includes(activeSection) && allowed("organization.manage") && branch?.settings?.role !== "stock_room" && <GoLiveChecklist onboarding={data?.onboarding || organization?.onboarding} onImportMenu={allowed("menu.edit") ? () => {setMenuImportRequested(true);selectSection("menu", {focusDestination:true});} : undefined} key={branchBase} base={branchBase} settings={{...branch?.settings, publicContact: branch?.settings?.publicContact || data?.onboarding?.data?.contact || organization?.onboarding?.data?.contact || organization?.branding?.contact || organization?.branding?.phone || organization?.branding?.email}} disabled={busy || offline} accessBlocked={offline || !allowed("organization.manage")} save={mutate} onOpen={section => selectSection(section, {focusDestination: true})} />}
               {roomWrite.pending && (
                 <section className="mw-card" role="alert">
                   <h2>Room charge needs checking</h2>
@@ -2275,6 +2275,7 @@ export default function OrganizationWorkspace({
                   organization={organization}
                   branch={branch}
                   branches={branches}
+                  products={data.products}
                   onboarding={data.onboarding || organization?.onboarding}
                   actorName={context?.user?.name || user.name}
                   canGuide={

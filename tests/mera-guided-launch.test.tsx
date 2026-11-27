@@ -127,10 +127,13 @@ test("blocked authoritative policy never publishes; malformed acknowledgement re
       true,
     );
     fireEvent.click(screen.getByRole("button", { name: "Recheck readiness" }));
-    await waitFor(() => assert.equal(
-      (screen.getByRole("button", { name: "Go live" }) as HTMLButtonElement).disabled,
-      false,
-    ));
+    await waitFor(() =>
+      assert.equal(
+        (screen.getByRole("button", { name: "Go live" }) as HTMLButtonElement)
+          .disabled,
+        false,
+      ),
+    );
     assert.equal(writes, 2);
   } finally {
     cleanup();
@@ -308,22 +311,92 @@ test("checklist shows actionable readiness and a definite409 clears recovery", a
   }
 });
 
-test('recheck after a lost go-live response reads server state and unlocks an unpublished branch', async () => {
+test("recheck after a lost go-live response reads server state and unlocks an unpublished branch", async () => {
   window.sessionStorage.clear();
   let reads = 0;
-  globalThis.fetch = async () => { reads++; return Response.json(ready); };
+  globalThis.fetch = async () => {
+    reads++;
+    return Response.json(ready);
+  };
   try {
-    render(<LaunchReadiness {...props} save={async (path: string) => {
-      if (path.endsWith('launch-policy')) return ready;
-      throw Error('Connection lost');
-    }} />);
-    const go = await screen.findByRole('button', {name: 'Go live'});
+    render(
+      <LaunchReadiness
+        {...props}
+        save={async (path: string) => {
+          if (path.endsWith("launch-policy")) return ready;
+          throw Error("Connection lost");
+        }}
+      />,
+    );
+    const go = await screen.findByRole("button", { name: "Go live" });
     fireEvent.click(go);
-    await screen.findByText('Connection lost');
+    await screen.findByText("Connection lost");
     assert.equal((go as HTMLButtonElement).disabled, true);
-    fireEvent.click(screen.getByRole('button', {name: /Recheck/}));
-    await waitFor(() => assert.equal((go as HTMLButtonElement).disabled, false));
+    fireEvent.click(screen.getByRole("button", { name: /Recheck/ }));
+    await waitFor(() =>
+      assert.equal((go as HTMLButtonElement).disabled, false),
+    );
     assert.ok(reads >= 2);
     assert.equal(window.sessionStorage.length, 0);
-  } finally { cleanup(); window.sessionStorage.clear(); }
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
+  }
+});
+
+test("published landing offers relevant next steps and persists dismissal", async () => {
+  cleanup();
+  const writes: any[] = [];
+  const opened: string[] = [];
+  const props = {
+    base: "/organizations/org/branches/branch",
+    settings: {
+      launchState: "published",
+      venueType: "club",
+      capabilities: ["guest_list", "minimum_spend"],
+    },
+    onboarding: { data: {} },
+    disabled: false,
+    save: async (p: string, m: string, b: any) => {
+      writes.push({ p, b });
+      return { saved: true };
+    },
+    onOpen: (section: string) => opened.push(section),
+  };
+  try {
+    const view = render(<GoLiveChecklist {...props} />);
+    assert.ok(screen.getByRole("heading", { name: "Next steps" }));
+    assert.ok(screen.getByRole("button", { name: "Door and guest list" }));
+    assert.equal(
+      screen.queryByRole("button", { name: "Charge to room" }),
+      null,
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Add more locations, codes & colours",
+      }),
+    );
+    assert.deepEqual(opened, ["onboarding"]);
+    fireEvent.click(screen.getByRole("checkbox", {name:"Mark Receipt design done"}));
+    await waitFor(() => assert.equal((screen.getByRole("checkbox", {name:"Mark Receipt design done"}) as HTMLInputElement).checked,true));
+    assert.equal(writes[0].b.data.nextStepsCompleted["Receipt design"],true);
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss next steps" }));
+    await waitFor(() =>
+      assert.equal(
+        !!screen.queryByRole("heading", { name: "Next steps" }),
+        false,
+      ),
+    );
+    assert.equal(writes.at(-1).b.data.nextStepsDismissed, true);
+    view.unmount();
+    render(
+      <GoLiveChecklist
+        {...props}
+        onboarding={{ data: { nextStepsDismissed: true } }}
+      />,
+    );
+    assert.equal(screen.queryByRole("heading", { name: "Next steps" }), null);
+  } finally {
+    cleanup();
+  }
 });

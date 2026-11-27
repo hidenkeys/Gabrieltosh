@@ -1,4 +1,8 @@
 import test from "node:test";
+import {
+  inferTimezone,
+  quickItem,
+} from "../src/mera/workspace/setup/onboardingDefaults";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {
@@ -47,83 +51,116 @@ const base = {
     <input aria-label="Business contact draft" defaultValue="Saved contact" />
   ),
 };
-test("guided setup autosaves business on Continue, preserves drafts and resumes without claiming readiness", async () => {
-  let persisted: any = {};
+const saved = async (path: string, _method: string, body: any) =>
+  path.endsWith("/settings") || path.endsWith("/operating")
+    ? { version: (body.version || 1) + 1 }
+    : { saved: true, onboarding: { data: body.data } };
+const mockWorkspace = () => {
+  globalThis.fetch = async () =>
+    Response.json({
+      products: [],
+      checks: [],
+      canPublish: true,
+      launchState: "draft",
+    });
+};
+test("five steps save merged Business, preserve drafts and resume", async () => {
+  mockWorkspace();
   const writes: any[] = [];
-  const save = async (path: string, method: string, body: any) => {
-    writes.push({ path, body });
-    assert.equal(method, "PATCH");
-    if (path.endsWith("/operating")) return { version: 2 };
-    persisted = { data: { ...persisted.data, ...body.data } };
-    return { saved: true, onboarding: persisted };
+  const save = async (p: string, m: string, b: any) => {
+    writes.push({ path: p, body: b });
+    return saved(p, m, b);
   };
   try {
     const view = render(<OwnerSetup {...base} save={save} />);
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    const title = await screen.findByRole("heading", { name: "Your business" });
-    await waitFor(() => assert.equal(document.activeElement, title));
-    fireEvent.change(screen.getByLabelText("Public customer contact"), {
-      target: { value: "owner@example.invalid" },
-    });
-    assert.equal(writes.length, 1);
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    await screen.findByRole("heading", { name: "Kind of venue" });
-    assert.ok(
-      writes.some((w) => w.body.data?.contact === "owner@example.invalid"),
+    assert.deepEqual(
+      Array.from(
+        screen
+          .getByRole("navigation", { name: "Owner setup steps" })
+          .querySelectorAll("button"),
+      ).map((b) => b.textContent),
+      ["Business", "Menu", "Payments", "Look & feel", "Go live"],
     );
+    fireEvent.change(screen.getByLabelText("Public customer contact"), {
+      target: { value: "hello@venue.test" },
+    });
+    fireEvent.change(screen.getByLabelText("Address"), {
+      target: { value: "Accra, Ghana" },
+    });
+    assert.equal(
+      (screen.getByLabelText("Timezone") as HTMLInputElement).value,
+      "Africa/Accra",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByRole("heading", { name: "Menu", exact: true });
+    assert.ok(writes.some((w) => w.body.timezone === "Africa/Accra"));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("Add at least one menu item.");
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    await screen.findByRole("heading", { name: "Your business" });
+    await screen.findByRole("heading", { name: "Business", exact: true });
     assert.equal(
       (screen.getByLabelText("Public customer contact") as HTMLInputElement)
         .value,
-      "owner@example.invalid",
+      "hello@venue.test",
     );
-    assert.equal(persisted.data["ownerGuideV3Step_branch-one"], 1);
     view.unmount();
-    render(<OwnerSetup {...base} onboarding={persisted} save={save} />);
-    assert.ok(screen.getByRole("heading", { name: "Your business" }));
-    assert.ok(screen.getByText("Visiting a step does not mark it complete."));
-    assert.equal(screen.queryByRole("button", { name: "Menu & stock" }), null);
+    render(
+      <OwnerSetup
+        {...base}
+        onboarding={{
+          data: {
+            ownerGuideV4Step_branch_one: 8,
+            "ownerGuideV4Step_branch-one": 8,
+          },
+        }}
+        save={save}
+      />,
+    );
+    assert.ok(screen.getByRole("heading", { name: "Menu", exact: true }));
   } finally {
     cleanup();
     window.sessionStorage.clear();
   }
 });
-test("unknown progress save locks navigation until exact step retry; branch-scoped users retain existing setup", async () => {
-  const bodies: any[] = [];
-  const save = async (_path: string, _method: string, body: any) => {
-    bodies.push(body);
-    if (bodies.length === 1) throw new Error("lost");
-    return { saved: true, onboarding: { data: body.data } };
+test("unknown save locks navigation and retries the exact write after remount", async () => {
+  mockWorkspace();
+  let fail = true;
+  const writes: any[] = [];
+  const save = async (p: string, m: string, b: any) => {
+    writes.push(structuredClone(b));
+    if (fail) throw Error("lost");
+    return saved(p, m, b);
+  };
+  const props = {
+    ...base,
+    onboarding: { data: { contact: "hello@venue.test" } },
+    save,
   };
   try {
-    const view = render(<OwnerSetup {...base} save={save} />);
+    const view = render(<OwnerSetup {...props} />);
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByRole("alert");
     assert.equal(
-      (
-        screen.getByRole("button", {
-          name: "Review & finish setup",
-        }) as HTMLButtonElement
-      ).disabled,
+      (screen.getByRole("button", { name: "Go live" }) as HTMLButtonElement)
+        .disabled,
       true,
     );
+    view.unmount();
+    fail = false;
+    render(<OwnerSetup {...props} />);
     fireEvent.click(
       screen.getByRole("button", { name: "Retry saving this step" }),
     );
-    await screen.findByRole("heading", { name: "Your business" });
-    assert.deepEqual(bodies[0], bodies[1]);
-    view.unmount();
+    await screen.findByRole("heading", { name: "Menu", exact: true });
+    assert.deepEqual(writes[0], writes[1]);
+    cleanup();
     render(<OwnerSetup {...base} canGuide={false} save={save} />);
-    assert.equal(
-      screen.queryByRole("region", { name: "Guided owner setup" }),
-      null,
-    );
     assert.ok(
       screen.getByRole("heading", { name: "Start with the essentials" }),
     );
   } finally {
     cleanup();
+    window.sessionStorage.clear();
   }
 });
 test("organization creation checks address, normalizes claim and resumes setup only after acknowledgement", async () => {
@@ -481,7 +518,7 @@ test("legacy nine-step progress maps forward to the review stage and never mount
         save={async () => ({})}
       />,
     );
-    assert.ok(screen.getByRole("heading", { name: "Review & finish setup" }));
+    assert.ok(screen.getByRole("heading", { name: "Go live" }));
     assert.equal(
       screen.queryByRole("button", { name: "Create another branch" }),
       null,
@@ -490,7 +527,7 @@ test("legacy nine-step progress maps forward to the review stage and never mount
       screen
         .getByRole("navigation", { name: "Owner setup steps" })
         .querySelectorAll("ol button").length,
-      7,
+      5,
     );
   } finally {
     cleanup();
@@ -504,17 +541,25 @@ test("venue cards use keyboard selection, real capabilities and save the selecte
     render(
       <OwnerSetup
         {...base}
-        onboarding={{ data: { "ownerGuideV3Step_branch-one": 2 } }}
+        onboarding={{
+          data: {
+            "ownerGuideV3Step_branch-one": 2,
+            contact: "hello@venue.test",
+          },
+        }}
         save={async (path, method, body) => {
           writes.push({ path, body });
           return path.endsWith("/operating")
             ? { version: 2 }
             : path.endsWith("/settings")
               ? { version: 2 }
-              : { saved: true, onboarding: { data: body.data } };
+              : path.endsWith("/settings")
+                ? { version: 2 }
+                : { saved: true, onboarding: { data: body.data } };
         }}
       />,
     );
+    fireEvent.click(screen.getByText("Customise"));
     fireEvent.click(screen.getByRole("radio", { name: "Club & nightlife" }));
     assert.equal(
       screen
@@ -541,13 +586,12 @@ test("venue cards use keyboard selection, real capabilities and save the selecte
       "true",
     );
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    await screen.findByRole("heading", { name: "Locations" });
+    await screen.findByRole("heading", { name: "Menu", exact: true });
     const body = writes.find((w) => w.path.endsWith("/settings")).body;
     assert.equal(body.venueType, "hotel_fb");
     assert.ok(body.capabilities.includes("room_charge"));
     assert.ok(body.requestKey);
     assert.equal(body.version, 1);
-    assert.ok(screen.getByText(/single items, packages like bottle service/));
   } finally {
     cleanup();
     window.sessionStorage.clear();
@@ -571,24 +615,22 @@ test("location count adapts setup and autosaves the operating choice", async () 
           writes.push({ path, body });
           return path.endsWith("/operating")
             ? { version: 2 }
-            : { saved: true, onboarding: { data: body.data } };
+            : path.endsWith("/settings")
+              ? { version: 2 }
+              : { saved: true, onboarding: { data: body.data } };
         }}
       />,
     );
     assert.equal(screen.queryByRole("button", { name: "Menu & stock" }), null);
     fireEvent.click(screen.getByRole("radio", { name: "2–5" }));
-    assert.ok(screen.getByRole("button", { name: "Menu & stock" }));
+    assert.equal(screen.queryByRole("button", { name: "Menu & stock" }), null);
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    await screen.findByRole("heading", { name: "Kind of venue" });
+    await screen.findByRole("heading", { name: "Menu", exact: true });
     assert.equal(
       writes.find((w) => w.path.endsWith("/operating")).body.locationCount,
       "few",
     );
-    assert.ok(
-      screen.getByRole("switch", {
-        name: "Are all your locations the same kind?",
-      }),
-    );
+    assert.equal(screen.queryByRole("button", { name: "Menu & stock" }), null);
   } finally {
     cleanup();
     window.sessionStorage.clear();
@@ -612,10 +654,16 @@ test("venue settings retry after remount reuses the original request and does no
     const view = render(
       <OwnerSetup
         {...base}
-        onboarding={{ data: { "ownerGuideV3Step_branch-one": 2 } }}
+        onboarding={{
+          data: {
+            "ownerGuideV3Step_branch-one": 2,
+            contact: "hello@venue.test",
+          },
+        }}
         save={save}
       />,
     );
+    fireEvent.click(screen.getByText("Customise"));
     fireEvent.click(screen.getByRole("radio", { name: "Club & nightlife" }));
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByRole("alert");
@@ -624,16 +672,21 @@ test("venue settings retry after remount reuses the original request and does no
     render(
       <OwnerSetup
         {...base}
-        onboarding={{ data: { "ownerGuideV3Step_branch-one": 2 } }}
+        onboarding={{
+          data: {
+            "ownerGuideV3Step_branch-one": 2,
+            contact: "hello@venue.test",
+          },
+        }}
         save={save}
       />,
     );
     fireEvent.click(
       screen.getByRole("button", { name: "Retry saving this step" }),
     );
-    await screen.findByRole("heading", { name: "Locations" });
+    await screen.findByRole("heading", { name: "Menu", exact: true });
     assert.deepEqual(writes[0], writes[1]);
-    assert.equal(writes[0].body.payLater, true);
+    assert.ok(writes.some((w) => w.body.payLater === true));
   } finally {
     cleanup();
     window.sessionStorage.clear();
@@ -675,7 +728,11 @@ test("payments Continue saves reviewed manual methods, preserves caveats verbati
       null,
     );
     assert.equal(screen.queryByText(/These choices are not saved yet/), null);
-    assert.equal((screen.getByRole("checkbox", { name: "Cash" }) as HTMLInputElement).checked, true);
+    assert.equal(
+      (screen.getByRole("checkbox", { name: "Cash" }) as HTMLInputElement)
+        .checked,
+      true,
+    );
     await waitFor(() =>
       assert.equal(
         (screen.getByRole("button", { name: "Continue" }) as HTMLButtonElement)
@@ -688,7 +745,7 @@ test("payments Continue saves reviewed manual methods, preserves caveats verbati
     assert.ok(screen.getByRole("region", { name: "Guest menu preview" }));
     fireEvent.click(screen.getByRole("button", { name: "Midnight" }));
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    await screen.findByRole("heading", { name: "Review & finish setup" });
+    await screen.findByRole("heading", { name: "Go live" });
     assert.deepEqual(
       writes.find((w) => w.path.endsWith("/launch-policy")).body,
       {
@@ -700,9 +757,18 @@ test("payments Continue saves reviewed manual methods, preserves caveats verbati
       writes.some((w) => w.path.endsWith("/launch")),
       false,
     );
-    assert.ok(screen.getByRole("button", { name: "Finish setup" }));
-    assert.equal(writes.find(w => w.path.endsWith("/branding")).body.palettePreset, "midnight");
-    assert.equal(writes.find(w => w.path.endsWith("/branding")).body.background, "#151c26");
+    assert.equal(
+      screen.getAllByRole("button", { name: "Go live", exact: true }).length,
+      2,
+    );
+    assert.equal(
+      writes.find((w) => w.path.endsWith("/branding")).body.palettePreset,
+      "midnight",
+    );
+    assert.equal(
+      writes.find((w) => w.path.endsWith("/branding")).body.background,
+      "#151c26",
+    );
   } finally {
     cleanup();
     window.sessionStorage.clear();
@@ -748,57 +814,20 @@ test("organization address follows the business name until the owner edits it", 
   }
 });
 
-test("new locations retain their exact creation key and overnight hours are split before settings save", async () => {
-  window.sessionStorage.clear();
-  const writes: any[] = [];
-  let loseCreate = true;
-  const save = async (path: string, method: string, body: any) => {
-    writes.push({ path, method, body: structuredClone(body) });
-    if (method === "POST") {
-      if (loseCreate) {
-        loseCreate = false;
-        throw Error("lost response");
-      }
-      return { id: "second-location" };
-    }
-    return path.endsWith("/operating")
-      ? { version: 2 }
-      : path.endsWith("/settings")
-        ? { version: body.version + 1 }
-        : { saved: true, onboarding: { data: body.data } };
-  };
+test("multiple locations use compact names and defer stock strategy", () => {
+  mockWorkspace();
   try {
     render(
       <OwnerSetup
         {...base}
-        organization={{ ...org, operating: { locationCount: "few" } }}
-        branch={{ ...branch, settings: { venueType: "club" } }}
-        onboarding={{ data: { "ownerGuideV3Step_branch-one": 3 } }}
-        save={save}
+        branches={[branch, { ...branch, id: "second", name: "North" }]}
+        save={saved}
       />,
     );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add another location" }),
-    );
-    const names = screen.getAllByLabelText("Location name");
-    fireEvent.change(names[1], { target: { value: "Fictional North" } });
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    await screen.findByRole("alert");
-    fireEvent.click(
-      screen.getByRole("button", { name: "Retry saving this step" }),
-    );
-    await screen.findByRole("heading", { name: "Menu & stock" });
-    const creations = writes.filter((w) => w.method === "POST");
-    assert.equal(creations.length, 2);
-    assert.deepEqual(creations[0], creations[1]);
-    assert.equal(creations[0].body.code, "FIC");
-    const second = writes.find((w) =>
-      w.path.endsWith("/second-location/settings"),
-    );
-    assert.ok(second);
-    assert.equal(second.body.payLater, true);
-    assert.equal(second.body.serviceHours.length, 2);
-    assert.ok(second.body.serviceHours.every((w: any) => w.end > w.start));
+    assert.ok(screen.getByText("North"));
+    assert.equal(screen.queryByLabelText("Location code"), null);
+    assert.equal(screen.queryByRole("button", { name: "Menu & stock" }), null);
+    assert.ok(screen.getByText("Edit opening hours (optional)"));
   } finally {
     cleanup();
     window.sessionStorage.clear();
@@ -816,17 +845,24 @@ test("saving an unchanged venue type preserves its explicit pay-first preference
           ...branch,
           settings: { venueType: "casual_dining", payLater: false },
         }}
-        onboarding={{ data: { "ownerGuideV3Step_branch-one": 2 } }}
+        onboarding={{
+          data: {
+            "ownerGuideV3Step_branch-one": 2,
+            contact: "hello@venue.test",
+          },
+        }}
         save={async (path, _method, body) => {
           writes.push({ path, body });
           return path.endsWith("/settings") || path.endsWith("/operating")
             ? { version: 2 }
-            : { saved: true, onboarding: { data: body.data } };
+            : path.endsWith("/settings")
+              ? { version: 2 }
+              : { saved: true, onboarding: { data: body.data } };
         }}
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    await screen.findByRole("heading", { name: "Locations" });
+    await screen.findByRole("heading", { name: "Menu", exact: true });
     assert.equal(
       writes.find((w) => w.path.endsWith("/settings")).body.payLater,
       false,
@@ -837,49 +873,71 @@ test("saving an unchanged venue type preserves its explicit pay-first preference
   }
 });
 
-test("review finishes onboarding without publication and returns home", async () => {
-  window.sessionStorage.clear();
-  let finished = false;
-  let request: any;
+test("go live publishes, creates branch QR and offers all three end actions", async () => {
+  const writes: any[] = [];
+  globalThis.fetch = async (url) =>
+    Response.json(
+      String(url).endsWith("publication-preview")
+        ? {
+            products: [{ id: "item", name: "Rice" }],
+            previewHash: "a".repeat(64),
+            publishedVersion: 0,
+          }
+        : String(url).endsWith("qr-codes")
+          ? { codes: [] }
+          : String(url).endsWith("workspace")
+            ? { products: [{ id: "item", name: "Rice", price: 10000 }] }
+            : { checks: [], canPublish: true, launchState: "draft" },
+    );
   try {
     render(
       <OwnerSetup
         {...base}
+        branch={{ ...branch, settings: { venueType: "casual_dining" } }}
         onboarding={{
           data: {
             "ownerGuideV3Step_branch-one": 6,
             contact: "hello@venue.test",
           },
         }}
-        onFinished={() => {
-          finished = true;
-        }}
-        save={async (path, method, body) => {
-          request = { path, method, body };
+        save={async (p, m, b) => {
+          writes.push({ path: p, body: b });
+          if (p.endsWith("qr-codes"))
+            return { id: "qr", url: "https://menu.example/q/qr" };
+          if (p.endsWith("launch-policy"))
+            return { checks: [], canPublish: true };
+          if (p.endsWith("/launch"))
+            return { checks: [], launchState: "published" };
           return {
+            version: 1,
             saved: true,
-            onboarding: { completedAt: "2026-11-24T00:00:00Z" },
+            onboarding: { completedAt: "2026-11-27T12:00:00Z" },
           };
         }}
       />,
     );
+    assert.ok(screen.getByText("Add tables (optional)"));
+    fireEvent.click(
+      screen.getAllByRole("button", { name: "Go live", exact: true }).at(-1)!,
+    );
+    await screen.findByRole("link", { name: "Open menu" });
+    assert.ok(screen.getByRole("link", { name: "Download QR" }));
     assert.equal(
       screen
-        .getAllByRole("navigation", { name: "Owner setup steps" })[0]
-        .querySelectorAll("li").length,
-      7,
+        .getByRole("link", { name: "Place a test order" })
+        .getAttribute("target"),
+      "_blank",
     );
-    assert.equal(screen.queryByRole("button", { name: "Go live" }), null);
-    fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
-    await waitFor(() => assert.equal(finished, true));
-    assert.equal(request.path, "/organizations/org-one/onboarding");
-    assert.equal(request.body.complete, true);
-    assert.equal(
-      screen.queryByRole("heading", { name: "Review & finish setup" }),
-      null,
+    assert.ok(
+      writes.some(
+        (w) => w.path.endsWith("/menu/publish") && w.body.previewHash,
+      ),
     );
+    assert.ok(writes.some((w) => w.path.endsWith("/launch")));
+    assert.ok(writes.some((w) => w.body.kind === "branch"));
   } finally {
     cleanup();
+    window.sessionStorage.clear();
   }
 });
 test("business contact rejects words and accepts a phone, clearing inline error on edit", async () => {
@@ -892,9 +950,11 @@ test("business contact rejects words and accepts a phone, clearing inline error 
         onboarding={{ data: { "ownerGuideV3Step_branch-one": 1 } }}
         save={async (path, method, body) => {
           writes++;
-          return path.endsWith("operating")
+          return path.endsWith("operating") || path.endsWith("/settings")
             ? { version: 2 }
-            : { saved: true, onboarding: { data: body.data } };
+            : path.endsWith("/settings")
+              ? { version: 2 }
+              : { saved: true, onboarding: { data: body.data } };
         }}
       />,
     );
@@ -909,8 +969,240 @@ test("business contact rejects words and accepts a phone, clearing inline error 
     });
     assert.equal(screen.queryByRole("alert"), null);
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    await screen.findByRole("heading", { name: "Kind of venue" });
+    await screen.findByRole("heading", { name: "Menu", exact: true });
   } finally {
     cleanup();
+  }
+});
+
+test("timezone defaults and kitchen/bar quick items", () => {
+  assert.equal(inferTimezone("Nairobi, Kenya", "NGN"), "Africa/Nairobi");
+  assert.equal(inferTimezone("", "GBP"), "Europe/London");
+  for (const [category, station] of [
+    ["Drinks", "bar"],
+    ["Meals", "kitchen"],
+  ]) {
+    const item = quickItem("House special", "12.50", category);
+    assert.match(item.code, /^ITEM-/);
+    assert.equal(item.price, 1250);
+    assert.equal(item.stockMode, "unlimited");
+    assert.equal(item.station, station);
+  }
+});
+test("payments require a method before continuing", async () => {
+  mockWorkspace();
+  try {
+    render(
+      <OwnerSetup
+        {...base}
+        onboarding={{
+          data: {
+            "ownerGuideV3Step_branch-one": 5,
+            contact: "hello@venue.test",
+          },
+        }}
+        save={async (p, m, b) =>
+          p.endsWith("launch-policy")
+            ? { checks: [], canPublish: true }
+            : saved(p, m, b)
+        }
+      />,
+    );
+    fireEvent.click(screen.getByRole("checkbox", { name: "Cash" }));
+    await waitFor(() =>
+      assert.equal(
+        (screen.getByRole("checkbox", { name: "Cash" }) as HTMLInputElement)
+          .checked,
+        false,
+      ),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("Choose at least one payment method.");
+    assert.ok(screen.getByRole("heading", { name: "Payments" }));
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
+  }
+});
+test("quick-add posts generated code and station", async () => {
+  mockWorkspace();
+  const bodies: any[] = [];
+  try {
+    render(
+      <OwnerSetup
+        {...base}
+        onboarding={{ data: { "ownerGuideV4Step_branch-one": 8 } }}
+        save={async (p, m, b) => {
+          bodies.push(b);
+          return { ...b, id: "created" };
+        }}
+      />,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fireEvent.change(screen.getByLabelText("Item name"), {
+      target: { value: "Lemonade" },
+    });
+    fireEvent.change(screen.getByLabelText("Price"), {
+      target: { value: "10" },
+    });
+    fireEvent.change(screen.getByLabelText("Category"), {
+      target: { value: "Drinks" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add item" }));
+    await screen.findByText("Lemonade");
+    assert.equal(bodies[0].station, "bar");
+    assert.match(bodies[0].code, /ITEM-/);
+    assert.equal(bodies[0].stockMode, "unlimited");
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
+  }
+});
+
+test("table creation reuses existing names and creates a QR for each table", async () => {
+  const { default: OnboardingLaunch } =
+    await import("../src/mera/workspace/OnboardingLaunch");
+  const writes: any[] = [];
+  globalThis.fetch = async (url) =>
+    Response.json(
+      String(url).endsWith("workspace")
+        ? { tables: [{ id: "existing", name: "Table 1" }] }
+        : { checks: [], launchState: "draft" },
+    );
+  try {
+    render(
+      <OnboardingLaunch
+        base="/organizations/org/branches/branch"
+        organization={org}
+        branding={{}}
+        items={[]}
+        capabilities={["table_service"]}
+        contact="hello@venue.test"
+        methods={["cash"]}
+        disabled={false}
+        onFix={() => {}}
+        onFinished={() => {}}
+        save={async (p: string, m: string, b: any) => {
+          writes.push({ p, b });
+          return { id: "new" };
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByText("Add tables (optional)"));
+    fireEvent.change(screen.getByLabelText("Number of tables"), {
+      target: { value: "2" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create tables and QRs" }),
+    );
+    await waitFor(() => assert.equal(writes.length, 3));
+    assert.deepEqual(
+      writes.map((w) => w.b),
+      [
+        { kind: "table", tableId: "existing" },
+        { name: "Table 2", capacity: 2, zone: "Main floor", x: 0, y: 0 },
+        { kind: "table", tableId: "new" },
+      ],
+    );
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
+  }
+});
+
+test("second location exposes shared menu settings after launch", async () => {
+  const { default: PostLaunchSettings } =
+    await import("../src/mera/workspace/PostLaunchSettings");
+  const bodies: any[] = [];
+  try {
+    render(
+      <PostLaunchSettings
+        organization={org}
+        branches={[branch, { ...branch, id: "second" }]}
+        disabled={false}
+        save={async (p: string, m: string, b: any) => {
+          bodies.push(b);
+          return { version: 2 };
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByText("Shared menus and central stock"));
+    fireEvent.click(
+      screen.getByRole("radio", {
+        name: "Same menu everywhere (prices can differ)",
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Save menu and stock settings" }),
+    );
+    await screen.findByText("Saved");
+    assert.equal(bodies[0].menuMode, "shared");
+    assert.ok(bodies[0].requestKey);
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
+  }
+});
+
+test("uncertain menu publication retries its original reviewed body", async () => {
+  const { default: OnboardingLaunch } =
+    await import("../src/mera/workspace/OnboardingLaunch");
+  const bodies: any[] = [];
+  let fail = true;
+  globalThis.fetch = async (url) =>
+    Response.json(
+      String(url).endsWith("publication-preview")
+        ? {
+            products: [{ name: "Rice" }],
+            previewHash: "a".repeat(64),
+            publishedVersion: 0,
+          }
+        : String(url).endsWith("qr-codes")
+          ? {
+              codes: [
+                {
+                  id: "existing",
+                  kind: "branch",
+                  url: "https://example.com/q/1",
+                },
+              ],
+            }
+          : { checks: [], launchState: "draft" },
+    );
+  const props = {
+    base: "/organizations/org/branches/branch",
+    organization: org,
+    branding: {},
+    items: [{ name: "Rice", price: 100 }],
+    capabilities: [],
+    contact: "hello@venue.test",
+    methods: ["cash"],
+    disabled: false,
+    onFix: () => {},
+    onFinished: () => {},
+    save: async (p: string, m: string, b: any) => {
+      if (p.endsWith("menu/publish")) {
+        bodies.push(b);
+        if (fail) throw Error("Connection lost");
+        return { version: 1 };
+      }
+      if (p.endsWith("launch-policy")) return { checks: [], canPublish: true };
+      if (p.endsWith("/launch")) return { launchState: "published" };
+      return { onboarding: { completedAt: "now" } };
+    },
+  };
+  try {
+    const view = render(<OnboardingLaunch {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: "Go live" }));
+    await screen.findByText("Connection lost");
+    view.unmount();
+    fail = false;
+    render(<OnboardingLaunch {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: "Go live" }));
+    await screen.findByRole("link", { name: "Open menu" });
+    assert.deepEqual(bodies[0], bodies[1]);
+  } finally {
+    cleanup();
+    window.sessionStorage.clear();
   }
 });
